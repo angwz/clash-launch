@@ -1,0 +1,22 @@
+# 最小示例：不带出口边车。没有出站代理时，只有管理员的订阅会由服务器直连拉取（暴露服务器 IP），
+# 普通用户的订阅只能「交给客户端」获取（第 14.6 节）。也可以把 CLASH_LAUNCH_EGRESS_PROXY 指向一台单独的出口。
+services:
+  clash-launch:
+    image: ghcr.io/angwz/clash-launch:latest
+    build: .
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - data:/data
+    environment:
+      CLASH_LAUNCH_PUBLIC_URL: https://cl.example.com
+      # CLASH_LAUNCH_EGRESS_PROXY: socks5h://203.0.113.10:1080
+    ports:
+      - "127.0.0.1:8080:8080"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  data:

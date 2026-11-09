@@ -1,0 +1,481 @@
+openapi: 3.1.0
+info:
+  title: Clash, Launch! API
+  version: 1.0.0
+  description: |
+    管理接口（/api/v1/）、订阅端点与健康检查。错误统一为 RFC 9457 application/problem+json，
+    type 取诊断或错误代码。可修改的资源返回 ETag；修改时必须带 If-Match，版本不一致返回 412。
+    认证使用会话 Cookie；除登录与设置外的写操作要求同源 Origin 与 X-CSRF-Token。
+  license: {name: GPL-3.0-or-later, identifier: GPL-3.0-or-later}
+servers: [{url: /}]
+tags:
+  - {name: subscription, description: 客户端使用的订阅端点}
+  - {name: session}
+  - {name: catalog}
+  - {name: sources}
+  - {name: rule-sources}
+  - {name: profiles}
+  - {name: links}
+  - {name: health}
+components:
+  securitySchemes:
+    session: {type: apiKey, in: cookie, name: cl_session, description: HTTPS 下 Cookie 名为 __Host-cl_session}
+    csrf: {type: apiKey, in: header, name: X-CSRF-Token}
+  parameters:
+    id: {name: id, in: path, required: true, schema: {type: string}}
+    lid: {name: lid, in: path, required: true, schema: {type: string}}
+    pack: {name: pack, in: path, required: true, schema: {type: string, enum: [mihomo]}}
+    token: {name: token, in: path, required: true, schema: {type: string}, description: 256 位随机令牌（base64url，43 个字符）}
+    ifMatch: {name: If-Match, in: header, required: true, schema: {type: string}, description: 资源的 ETag，如 "v3"}
+    cursor: {name: cursor, in: query, schema: {type: string}}
+    limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200}}
+    lang: {name: lang, in: query, schema: {type: string, enum: [en, zh-CN]}}
+  responses:
+    Problem:
+      description: 错误（RFC 9457）
+      content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}
+    NoContent: {description: 成功，无内容}
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string}
+        title: {type: string}
+        status: {type: integer}
+        detail: {type: string}
+        diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+    Diagnostic:
+      type: object
+      required: [code, severity]
+      properties:
+        code: {type: string}
+        severity: {type: string, enum: [error, warning, info]}
+        path: {type: string}
+        args: {type: object, additionalProperties: {type: string}}
+    User:
+      type: object
+      required: [id, username, role]
+      properties:
+        id: {type: string}
+        username: {type: string}
+        role: {type: string, enum: [admin, user]}
+        lang: {type: string}
+        timezone: {type: string}
+    Session:
+      type: object
+      required: [user, csrf]
+      properties:
+        user: {$ref: '#/components/schemas/User'}
+        csrf: {type: string}
+    Snapshot:
+      type: object
+      properties:
+        fetchedAt: {type: string, format: date-time}
+        lastAttempt: {type: string, format: date-time}
+        lastError: {type: string}
+        failingSince: {type: string, format: date-time}
+        via: {type: string, enum: [egress, direct]}
+        hash: {type: string}
+    Source:
+      type: object
+      required: [id, name, kind, interval, processing, allowDirect, fetch, version, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [single, batch, subscription, file]}
+        url: {type: string}
+        content: {type: string}
+        ua: {type: string}
+        headers: {type: object, additionalProperties: {type: string}}
+        interval: {type: integer}
+        processing: {type: object}
+        allowDirect: {type: boolean}
+        fetch: {type: string, enum: [warp, proxy, direct, client, local], description: 订阅的获取方式（第 14.6 节）}
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        snapshot: {$ref: '#/components/schemas/Snapshot'}
+    SourceInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name: {type: string}
+        kind: {type: string, enum: [single, batch, subscription, file]}
+        url: {type: string}
+        content: {type: string}
+        ua: {type: string}
+        headers: {type: object, additionalProperties: {type: string}}
+        interval: {type: integer}
+        processing: {type: object}
+        allowDirect: {type: boolean, description: 只有管理员能设置}
+    Node:
+      type: object
+      required: [name, type, server, port, fingerprint, region, rate, origin]
+      properties:
+        name: {type: string}
+        type: {type: string}
+        server: {type: string, description: 已打码}
+        port: {type: integer}
+        fingerprint: {type: string}
+        region:
+          type: object
+          properties:
+            code: {type: string}
+            kind: {type: string, enum: [flag, keyword, route, manual, rule, unknown]}
+            match: {type: string}
+            ignored: {type: array, items: {type: string}}
+            inferred: {type: boolean}
+        emoji: {type: string}
+        tags: {type: array, items: {type: string}}
+        rate: {type: number}
+        origin: {type: string}
+    RuleSource:
+      type: object
+      required: [id, name, kind, interval, version, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [toml, ini]}
+        preset: {type: string}
+        groupsUrl: {type: string}
+        rulesetsUrl: {type: string}
+        iniUrl: {type: string}
+        groupsText: {type: string}
+        rulesetsText: {type: string}
+        iniText: {type: string}
+        interval: {type: integer}
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    RuleSourceInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name: {type: string}
+        kind: {type: string, enum: [toml, ini]}
+        preset: {type: string}
+        groupsUrl: {type: string}
+        rulesetsUrl: {type: string}
+        iniUrl: {type: string}
+        groupsText: {type: string}
+        rulesetsText: {type: string}
+        iniText: {type: string}
+        interval: {type: integer}
+    RenderState:
+      type: object
+      required: [status, diagnostics]
+      properties:
+        status: {type: string, enum: [ok, failed, pending]}
+        error: {type: string}
+        goodAt: {type: string, format: date-time}
+        lastAt: {type: string, format: date-time}
+        diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+    Profile:
+      type: object
+      required: [id, name, doc, version, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        doc: {type: string, description: 方案文档（clash-launch/profile v1）}
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        render: {$ref: '#/components/schemas/RenderState'}
+    ProfileInput:
+      type: object
+      required: [doc]
+      properties:
+        doc: {type: string}
+        note: {type: string}
+    Revision:
+      type: object
+      required: [n, doc, createdAt]
+      properties:
+        n: {type: integer}
+        note: {type: string}
+        doc: {type: string}
+        createdAt: {type: string, format: date-time}
+    Preview:
+      type: object
+      required: [yaml, diagnostics, touched, kernel, diff]
+      properties:
+        yaml: {type: string}
+        diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+        touched: {type: array, items: {type: string}, description: 来自原始编辑的路径（⚡）}
+        kernel:
+          type: object
+          properties:
+            status: {type: string, enum: [passed, failed, unavailable, timeout]}
+            version: {type: string}
+            message: {type: string}
+            path: {type: string}
+        fatal: {type: string}
+        diff:
+          type: array
+          items:
+            type: object
+            required: [op, text]
+            properties:
+              op: {type: string, enum: [' ', '-', '+']}
+              text: {type: string}
+    Link:
+      type: object
+      required: [id, url, note, createdAt, version]
+      properties:
+        id: {type: string}
+        url: {type: string}
+        note: {type: string}
+        createdAt: {type: string, format: date-time}
+        lastAccess: {type: string, format: date-time}
+        lastUa: {type: string}
+        version: {type: integer}
+    List:
+      type: object
+      required: [items]
+      properties:
+        items: {type: array, items: {}}
+        next: {type: string}
+paths:
+  /healthz:
+    get: {tags: [health], summary: 存活检查, responses: {'200': {description: ok}}}
+  /readyz:
+    get: {tags: [health], summary: 就绪检查（数据库可用）, responses: {'200': {description: ready}, '503': {$ref: '#/components/responses/Problem'}}}
+  /s/{token}:
+    get:
+      tags: [subscription]
+      summary: 方案最近一次成功的渲染结果
+      description: 只读缓存，不触发拉取或渲染。支持 If-None-Match；按 IP 与令牌限流（默认每分钟 30 次）。
+      parameters: [{$ref: '#/components/parameters/token'}]
+      responses:
+        '200':
+          description: text/yaml；附 Content-Disposition、profile-update-interval、可选的 subscription-userinfo 与 profile-web-page-url
+          content: {text/yaml: {schema: {type: string}}}
+        '304': {description: 未修改}
+        '404': {description: 令牌无效}
+        '429': {description: 超出频率限制，带 Retry-After}
+        '503': {description: 尚无成功的渲染结果（正文是一段 YAML 注释）}
+  /p/{token}/{source}:
+    get:
+      tags: [subscription]
+      summary: 「交给客户端」模式下由本服务托管的节点文件
+      parameters: [{$ref: '#/components/parameters/token'}, {name: source, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: text/yaml（proxies 列表）}, '404': {description: 不存在}, '429': {description: 超出频率限制}}
+  /api/v1/setup:
+    post:
+      tags: [session]
+      summary: 用一次性设置令牌创建首个管理员
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [token, username, password], properties: {token: {type: string}, username: {type: string}, password: {type: string}}}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/session:
+    post:
+      tags: [session]
+      summary: 登录
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}}}}}}
+      responses: {'200': {description: 已登录，设置会话 Cookie, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [session]
+      summary: 登出
+      security: [{session: [], csrf: []}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}}
+  /api/v1/me:
+    get:
+      tags: [session]
+      summary: 当前用户与 CSRF 令牌
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}}
+  /api/v1/catalog/{pack}:
+    get:
+      tags: [catalog]
+      summary: 字段目录元数据、客户端预设、规则源预设与装饰 emoji
+      parameters: [{$ref: '#/components/parameters/pack'}]
+      responses: {'200': {description: ok}, '304': {description: 未修改}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/catalog/{pack}/schema:
+    get:
+      tags: [catalog]
+      summary: JSON Schema（draft 2020-12）
+      parameters: [{$ref: '#/components/parameters/pack'}, {$ref: '#/components/parameters/lang'}]
+      responses: {'200': {description: ok}}
+  /api/v1/catalog/{pack}/messages:
+    get:
+      tags: [catalog]
+      summary: 字段说明的 i18n 消息
+      parameters: [{$ref: '#/components/parameters/pack'}, {$ref: '#/components/parameters/lang'}]
+      responses: {'200': {description: ok}}
+  /api/v1/diagnostics:
+    get:
+      tags: [catalog]
+      summary: 全部诊断代码与中英文消息
+      responses: {'200': {description: ok}}
+  /api/v1/sources:
+    get:
+      tags: [sources]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [sources]
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/Source'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/sources/{id}:
+    get:
+      tags: [sources]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Source'}}}}, '404': {$ref: '#/components/responses/Problem'}}
+    put:
+      tags: [sources]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Source'}}}}, '404': {$ref: '#/components/responses/Problem'}, '412': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [sources]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/sources/{id}/refresh:
+    post:
+      tags: [sources]
+      summary: 立即拉取订阅
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: 快照状态, content: {application/json: {schema: {$ref: '#/components/schemas/Snapshot'}}}}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/sources/{id}/nodes:
+    get:
+      tags: [sources]
+      summary: 解析结果、整理后的节点与跳过清单
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {format: {type: string}, nodes: {type: array, items: {$ref: '#/components/schemas/Node'}}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}}
+  /api/v1/rule-sources:
+    get:
+      tags: [rule-sources]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [rule-sources]
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSourceInput'}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSource'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/rule-sources/{id}:
+    get:
+      tags: [rule-sources]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSource'}}}}, '404': {$ref: '#/components/responses/Problem'}}
+    put:
+      tags: [rule-sources]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSourceInput'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSource'}}}}, '412': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [rule-sources]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}}
+  /api/v1/rule-sources/{id}/refresh:
+    post:
+      tags: [rule-sources]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok}}
+  /api/v1/profiles:
+    get:
+      tags: [profiles]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [profiles]
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}
+      responses: {'201': {description: 已创建并渲染, content: {application/json: {schema: {$ref: '#/components/schemas/Profile'}}}}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}:
+    get:
+      tags: [profiles]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Profile'}}}}, '404': {$ref: '#/components/responses/Problem'}}
+    put:
+      tags: [profiles]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}
+      responses: {'200': {description: 已保存为新版本并渲染, content: {application/json: {schema: {$ref: '#/components/schemas/Profile'}}}}, '412': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [profiles]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}}
+  /api/v1/profiles/{id}/revisions:
+    get:
+      tags: [profiles]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: 版本列表（新的在前）, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+  /api/v1/profiles/{id}/rollback:
+    post:
+      tags: [profiles]
+      summary: 恢复到某个版本（恢复本身也生成新版本）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [n], properties: {n: {type: integer}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Profile'}}}}, '412': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/preview:
+    post:
+      tags: [profiles]
+      summary: 用草稿渲染并校验，不保存；返回 YAML、诊断与相对当前版本的差异
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {name: check, in: query, schema: {type: boolean}, description: 是否执行内核检查}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Preview'}}}}}
+  /api/v1/profiles/{id}/render:
+    get:
+      tags: [profiles]
+      summary: 最近一次成功的结果与最近一次尝试的诊断
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok}}
+  /api/v1/profiles/{id}/export:
+    get:
+      tags: [profiles]
+      summary: 导出方案文档
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: text/yaml}}
+  /api/v1/profiles/{id}/links:
+    get:
+      tags: [links]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [links]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {note: {type: string}}}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/Link'}}}}}
+  /api/v1/profiles/{id}/links/{lid}/reset:
+    post:
+      tags: [links]
+      summary: 重置链接：生成新令牌，旧链接立即失效
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/lid'}, {$ref: '#/components/parameters/ifMatch'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Link'}}}}, '412': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/links/{lid}:
+    patch:
+      tags: [links]
+      summary: 修改备注
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/lid'}, {$ref: '#/components/parameters/ifMatch'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {note: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Link'}}}}}
+    delete:
+      tags: [links]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}, {$ref: '#/components/parameters/lid'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}}

@@ -34,18 +34,20 @@
 ```sh
 go run ./tools/toolsync                       # 按 tools.lock.json 下载并校验 mihomo 与地理数据
 go test ./...                                 # 单元、golden、属性测试（离线）
-go test -tags kernel ./internal/kernel/       # 用真实 mihomo -t 检查全部 golden
+go test -tags kernel ./internal/kernel/ ./internal/api/   # 真实 mihomo：-t 检查全部 golden；实际加载订阅链接
 go test -run X -fuzz FuzzRender ./internal/render/   # fuzz（另有 FuzzMerge 等）
 go test ./internal/render/ ./internal/engine/ -update  # 更新 golden（必须人工审阅差异）
 gofmt -l . && go vet ./... && staticcheck ./... && golangci-lint run
 go run ./cmd/clash-launch render -check -mihomo .cache/tools/mihomo.exe -geodata .cache/tools/geodata testdata/profiles/m1-layers.yaml
+CLASH_LAUNCH_DATA_DIR=.cache/servedata CLASH_LAUNCH_LISTEN=127.0.0.1:18080 go run ./cmd/clash-launch serve   # 本机运行服务
 go run ./tools/catalog-extract scan -src .cache/ref/mihomo -version v1.19.33 -o fields.json
 go run ./tools/catalog-extract order -src .cache/ref/mihomo > testdata/catalog/example-order.json
 ```
 
 ## 代码约定
 
-- 依赖方向：`api → engine → (catalog, layer, node, ruleset, target, render)`；`engine` 不依赖 `store`、`source`、`api`（`TestDependencyDirection` 锁定）。网络只在 `internal/source`，持久化只在 `internal/store`，进程调用只在 `internal/kernel`。
+- 依赖方向：`api → service → (engine, store, source, kernel)`；`engine → (catalog, layer, node, ruleset, target, render)`，不依赖 `store`、`source`、`api`（`TestDependencyDirection` 锁定）。网络只在 `internal/source`，持久化只在 `internal/store`，进程调用只在 `internal/kernel`。
+- 新增依赖前先确认它不会把 `golang.org/x/*` 升到 mihomo `go.mod` 之上（`go get` 的输出中没有 upgraded golang.org/x/…），见 [0001](docs/decisions/0001-deviations-from-spec-1.0.md) #17。
 - 管线核心是纯函数：不读当前时间、随机数，不依赖 map 迭代顺序；相同输入逐字节相同。
 - 代码注释用简体中文，解释原因、不变量与复杂度，不逐行复述。
 - 先写简单直接的实现，出现真实重复再抽象。不吞错误，错误用 `%w` 包装并带上下文；不静默降级。

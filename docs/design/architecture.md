@@ -34,8 +34,13 @@
 | `internal/render` | 按目录排序、受限发射器、文件头、格式自检，见 [rendering](rendering.md) |
 | `internal/kernel` | mihomo 适配层：分享链接解析与节点校验（Go 库）、`mihomo -t`（可执行文件） |
 | `internal/engine` | 生成阶段（`Build`：有序源、订阅编号、provider 模式、策略组与规则）与管线编排（`Render`）、缓存键 |
+| `internal/store` | 唯一持久化的包：仓储接口、SQLite/PostgreSQL 通用实现、迁移、加密、备份与 `db copy`，见 [0002](../decisions/0002-storage-and-service.md) |
+| `internal/auth` | argon2id 口令哈希、口令策略、随机令牌与哈希、常数时间比较 |
+| `internal/service` | 外壳编排：从存储组装引擎输入、渲染与内核检查、保存最近一次成功的结果、拉取与快照、后台调度、托管 provider |
+| `internal/api` | HTTP：管理接口、订阅端点、会话与 CSRF、安全响应头、限流；契约见 [`api/openapi.yaml`](../../api/openapi.yaml) |
+| `web` | 嵌入前端构建产物 |
 | `internal/version` | 版本号与项目地址 |
-| `cmd/clash-launch` | 命令行：`render`、`catalog export`、`version` |
+| `cmd/clash-launch` | 命令行：`serve`、`render`、`catalog export`、`admin create`、`keys rotate`、`backup`、`db migrate`/`copy`、`healthcheck` |
 | `tools/catalog-extract` | 从 mihomo 源码与示例配置提取字段全集、键顺序与版本差异 |
 | `tools/toolsync` | 按 `tools.lock.json` 下载并校验 mihomo 与地理数据 |
 
@@ -50,4 +55,5 @@
 | 差异 | `TestParityRules`、`TestParityGroups` | 按 fork 源码实现的参考模型与本项目逐条比较，见 [subconverter-parity](subconverter-parity.md) |
 | fuzz | `FuzzRender`、`FuzzMerge`、`FuzzParse`（node）、`FuzzMatchRange`（ruleset） | 任意输入不 panic；渲染输出必过格式自检；合并结果确定、不修改输入；凭据不进入错误信息 |
 | 格式自检 | 每次渲染 | 重新解析输出并与渲染前的树逐节点比较；检查 YAML 1.1 歧义值、重复键、制表符缩进、CR、结尾换行 |
-| 内核 | `go test -tags kernel ./internal/kernel/` | mihomo v1.19.33 `-t` 检查全部 golden 输出；离线（见 [0001](../decisions/0001-deviations-from-spec-1.0.md#核验结论待环境核验项)） |
+| 内核 | `go test -tags kernel ./internal/kernel/ ./internal/api/` | mihomo v1.19.33 `-t` 检查全部 golden 输出（离线，见 [0001](../decisions/0001-deviations-from-spec-1.0.md#核验结论待环境核验项)）；端到端：mihomo 实际加载订阅链接返回的配置并开始监听 |
+| 契约与 API | `TestContract`、`TestEndToEnd` 等 | 路由表与 OpenAPI 逐条一致；登录、CSRF、If-Match、订阅、304、重置、越权 404、限流、503、SSRF |

@@ -23,7 +23,7 @@ linters:
       - .cache
     rules:
       - path: _test\.go
-        linters: [gosec]
+        linters: [gosec, bodyclose] # 测试的请求辅助函数在内部关闭响应体
 formatters:
   enable:
     - gofmt

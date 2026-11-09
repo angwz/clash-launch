@@ -4,7 +4,8 @@
 
 ## 现在
 
-- **阶段**：M1（引擎）、M2（输入）完成；下一步 M3（服务）。
+- **阶段**：M1（引擎）、M2（输入）完成；M3（服务）除 Docker 实测外完成；下一步 M4（Web）。
+- **待维护者**：本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
 
 ## 里程碑
@@ -13,7 +14,7 @@
 | --- | :---: | --- |
 | M1 引擎 | ✅ | 见下表 |
 | M2 输入 | ✅ | 见下表 |
-| M3 服务 | 🕓 | — |
+| M3 服务 | 🔄 | Docker 未验证，其余见下表 |
 | M4 Web | 🕓 | — |
 | M5 多用户与安全 | 🕓 | — |
 | M6 目标与目录 | 🕓 | — |
@@ -41,6 +42,15 @@
 | 用维护者真实的两份 toml 与合成节点生成配置并通过内核校验 | ✅ | `testdata/workspace/domainrouter`：domainrouter_v2 release（23 组、66 条 rulesets）+ 3 个有序源 → golden；`go test -tags kernel` 通过 mihomo v1.19.33 |
 | 与 subconverter 的差异逐条写入 parity 文档 | ✅ | [subconverter-parity](../design/subconverter-parity.md) 22 条；rules 与组成员由源码参考模型逐条对比（domainrouter_v2 两份 rulesets、ACL4SSR Online 与 Online_Full），**未运行实际的 subconverter** |
 
+## M3 验收
+
+| 验收条件 | 结果 | 证据 |
+| --- | :---: | --- |
+| 本地 Docker 运行 | ❌ 未验证 | 本机 Docker 守护进程未运行；`Dockerfile`、`compose.yaml`、`compose.minimal.yaml`、`deploy/warp/` 已编写，未构建。二进制以 `clash-launch serve` 在本机运行：迁移、主密钥生成、设置链接、healthz、readyz、healthcheck 正常 |
+| 用 mihomo 内核实际加载订阅链接 | ✅ | `TestKernelLoadsSubscription`（`-tags kernel`）：服务端渲染并通过 `mihomo -t` → 从 `/s/<令牌>` 取回配置 → mihomo v1.19.33（Windows amd64）实际启动并在 mixed-port 上监听 |
+| API 契约测试通过 | ✅ | `TestContract`：41 条路由与 `api/openapi.yaml` 逐条一致；`TestEndToEnd` 等覆盖登录、CSRF、If-Match（400/412）、订阅、304、重置、越权 404、限流 429、503、SSRF |
+| 存储可迁移性的设计写进决定 | ✅ | [0002](../decisions/0002-storage-and-service.md)；`TestMigrationsEquivalent`；`db copy` 在 SQLite → SQLite 上测试，**PostgreSQL 冒烟测试未运行**（本机没有实例） |
+
 ## 能力一览
 
 | 能力 | 位置 | 已实现 | 已验证 |
@@ -57,7 +67,12 @@
 | 规则源、匹配器、现代选择器、预设 | `internal/ruleset`、`catalog/rulesources/` | ✓ | 单元测试、差异测试、真实数据（domainrouter_v2、ACL4SSR） |
 | 拉取、SSRF、出站代理、快照 | `internal/source` | ✓ | httptest 与最小 SOCKS5 服务器；**未在真实 WARP 出口上验证** |
 | 生成阶段（有序源、编号、provider 模式） | `internal/engine/build.go` | ✓ | 工作区 golden（两份方案）、内核检查 |
-| 命令行 | `cmd/clash-launch`、`internal/workspace` | ✓ | 手动运行 `render -check -inputs`、`catalog export` |
+| 存储、迁移、加密、备份、db copy | `internal/store`、`migrations/` | ✓ | 单元测试（SQLite）：所有者隔离、乐观锁、AAD 绑定、轮换后旧密文可解密；PostgreSQL 未测试 |
+| 口令、令牌 | `internal/auth` | ✓ | 经 API 测试覆盖 |
+| 服务编排、调度、托管 provider | `internal/service` | ✓ | API 端到端测试；后台调度器只在本机冒烟运行中启动，未长时间运行 |
+| HTTP API、订阅端点、安全响应头、限流 | `internal/api`、`api/openapi.yaml` | ✓ | 契约测试、端到端测试、内核加载测试 |
+| 镜像与部署 | `Dockerfile`、`compose*.yaml`、`deploy/warp/` | ✓ | **未构建、未运行** |
+| 命令行 | `cmd/clash-launch`、`internal/workspace` | ✓ | 手动运行 `render -check -inputs`、`catalog export`、`serve`、`healthcheck` |
 | 工具 | `tools/catalog-extract`、`tools/toolsync` | ✓ | 单元测试；toolsync 实际下载并校验 SHA-256 |
 
 ## 最近一次验证
@@ -75,9 +90,11 @@ go test -fuzz FuzzRender（180 s）  → 878,011 次执行无失败
 go test -fuzz FuzzMerge（60 s）    → 无失败
 go test -fuzz FuzzParse（120 s）   → 100,228 次执行无失败
 go test -fuzz FuzzMatchRange（20 s）→ 无失败
+go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（含实际加载订阅链接）
+clash-launch serve（本机）          → 迁移、设置链接、healthz、readyz、healthcheck 正常
 ```
 
-未验证：Linux 上的测试（CI 尚未创建）；Docker（本机守护进程未运行，M3 处理）；经真实 WARP 出口拉取；与实际运行的 subconverter 对比。
+未验证：Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行（本机守护进程未运行）；WARP 边车；经真实 WARP 出口拉取；PostgreSQL；与实际运行的 subconverter 对比。
 
 ## 已知限制
 
@@ -89,4 +106,5 @@ go test -fuzz FuzzMatchRange（20 s）→ 无失败
 
 ## 下一步
 
-1. M3：仓储接口与 SQLite、迁移、加密、单管理员账号、API 与 OpenAPI、订阅端点与链接、后台拉取、缓存；Dockerfile 与 compose（WARP 边车选型）。
+1. M4：Svelte 5 前端——向导、方案编辑三栏、字段卡片、源排序与编号、命令面板、后备隐藏能源、节点源与规则源页、策略组预览、订阅链接、版本历史、导入；Playwright。
+2. Docker 可用后补做 M3 的镜像与 compose 验证。

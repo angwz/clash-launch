@@ -4,7 +4,7 @@
 
 一个由字段目录驱动的 YAML 生成器。第一个目标是 Mihomo 系 Clash 配置：在网页中填入节点、订阅和规则源（如 [domainrouter_v2](https://github.com/angwz/domainrouter_v2) 的 `rulesets.toml`、`groups.toml`），选择目标客户端，按官方文档逐字段设置，得到一条长期有效的订阅链接。官方新增的字段在目录跟进之前，可以直接在原始编辑模式中写入。
 
-> **状态** 实施中 · 引擎（M1）可用：命令行离线渲染、格式自检与 `mihomo -t` 检查。进度见 [docs/development/progress.md](docs/development/progress.md)，实施规范见 [docs/spec/](docs/spec/index.md)。
+> **状态** 实施中 · 引擎、输入与服务端（M1–M3）可用：API、订阅链接、后台拉取、加密存储；网页界面在 M4。进度见 [docs/development/progress.md](docs/development/progress.md)，实施规范见 [docs/spec/](docs/spec/index.md)。
 
 ```text
 节点 · 订阅 · 批量节点 ─┐

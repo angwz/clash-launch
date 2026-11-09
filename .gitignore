@@ -1,7 +1,8 @@
 # 构建产物
 /dist/
 /bin/
-/web/dist/
+/web/dist/*
+!/web/dist/.gitkeep
 /web/node_modules/
 
 # 本地数据与缓存（不入库）

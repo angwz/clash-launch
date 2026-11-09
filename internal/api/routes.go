@@ -1,0 +1,65 @@
+package api
+
+import "net/http"
+
+// Route 是一条路由。路由表是契约测试（TestContract）与 api/openapi.yaml 对照的依据。
+type Route struct {
+	Method  string
+	Pattern string
+	Handler http.HandlerFunc
+}
+
+func (s *Server) routes() []Route {
+	a := s.authed
+	return []Route{
+		{"GET", "/healthz", s.healthz},
+		{"GET", "/readyz", s.readyz},
+		{"GET", "/s/{token}", s.subscribe},
+		{"GET", "/p/{token}/{source}", s.hosted},
+
+		{"POST", "/api/v1/setup", s.setupAdmin},
+		{"POST", "/api/v1/session", s.login},
+		{"DELETE", "/api/v1/session", a(s.logout)},
+		{"GET", "/api/v1/me", a(s.me)},
+
+		{"GET", "/api/v1/catalog/{pack}", s.catalogMeta},
+		{"GET", "/api/v1/catalog/{pack}/schema", s.catalogSchema},
+		{"GET", "/api/v1/catalog/{pack}/messages", s.catalogMessages},
+		{"GET", "/api/v1/diagnostics", s.diagnostics},
+
+		{"GET", "/api/v1/sources", a(s.listSources)},
+		{"POST", "/api/v1/sources", a(s.createSource)},
+		{"GET", "/api/v1/sources/{id}", a(s.getSource)},
+		{"PUT", "/api/v1/sources/{id}", a(s.updateSource)},
+		{"DELETE", "/api/v1/sources/{id}", a(s.deleteSource)},
+		{"POST", "/api/v1/sources/{id}/refresh", a(s.refreshSource)},
+		{"GET", "/api/v1/sources/{id}/nodes", a(s.sourceNodes)},
+
+		{"GET", "/api/v1/rule-sources", a(s.listRules)},
+		{"POST", "/api/v1/rule-sources", a(s.createRule)},
+		{"GET", "/api/v1/rule-sources/{id}", a(s.getRule)},
+		{"PUT", "/api/v1/rule-sources/{id}", a(s.updateRule)},
+		{"DELETE", "/api/v1/rule-sources/{id}", a(s.deleteRule)},
+		{"POST", "/api/v1/rule-sources/{id}/refresh", a(s.refreshRule)},
+
+		{"GET", "/api/v1/profiles", a(s.listProfiles)},
+		{"POST", "/api/v1/profiles", a(s.createProfile)},
+		{"GET", "/api/v1/profiles/{id}", a(s.getProfile)},
+		{"PUT", "/api/v1/profiles/{id}", a(s.updateProfile)},
+		{"DELETE", "/api/v1/profiles/{id}", a(s.deleteProfile)},
+		{"GET", "/api/v1/profiles/{id}/revisions", a(s.listRevisions)},
+		{"POST", "/api/v1/profiles/{id}/rollback", a(s.rollback)},
+		{"POST", "/api/v1/profiles/{id}/preview", a(s.preview)},
+		{"GET", "/api/v1/profiles/{id}/render", a(s.renderStatus)},
+		{"GET", "/api/v1/profiles/{id}/export", a(s.exportProfile)},
+
+		{"GET", "/api/v1/profiles/{id}/links", a(s.listLinks)},
+		{"POST", "/api/v1/profiles/{id}/links", a(s.createLink)},
+		{"POST", "/api/v1/profiles/{id}/links/{lid}/reset", a(s.resetLink)},
+		{"PATCH", "/api/v1/profiles/{id}/links/{lid}", a(s.patchLink)},
+		{"DELETE", "/api/v1/profiles/{id}/links/{lid}", a(s.deleteLink)},
+	}
+}
+
+// Routes 返回路由表（契约测试使用）。
+func (s *Server) Routes() []Route { return s.routes() }
