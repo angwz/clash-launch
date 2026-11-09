@@ -1,0 +1,33 @@
+# 入站：listeners 与旧式的单项入站配置。
+# listeners 的逐类型字段在 M6 补齐（见 docs/development/progress.md）；在此之前按 any 透传，由内核检查把关。
+fields:
+  - key: listeners
+    type: list
+    items: {type: any, reason: 逐类型的入站字段尚未编入目录（M6）；内容按原样输出并交给内核检查}
+    importance: optional
+    doc: inbound/listeners
+    zh: [入站监听, "按类型配置的多个入站（mixed、socks、tun、shadowsocks 等）。"]
+    en: [Listeners, "Typed inbound listeners (mixed, socks, tun, shadowsocks and more)."]
+  - {key: ss-config, type: string, importance: expert, sensitive: true, doc: inbound/listeners,
+     zh: [Shadowsocks 入站（旧）, "单行形式的 Shadowsocks 入站；新配置建议使用 listeners。"], en: [Shadowsocks inbound (legacy), "One-line Shadowsocks inbound; prefer listeners for new configs."]}
+  - {key: vmess-config, type: string, importance: expert, sensitive: true, doc: inbound/listeners,
+     zh: [VMess 入站（旧）, "单行形式的 VMess 入站；新配置建议使用 listeners。"], en: [VMess inbound (legacy), "One-line VMess inbound; prefer listeners for new configs."]}
+  - key: tuic-server
+    type: object
+    importance: expert
+    doc: inbound/listeners/tuic-v5
+    zh: [TUIC 入站（旧）, "顶层的 TUIC 服务端；新配置建议使用 listeners。"]
+    en: [TUIC inbound (legacy), "Top-level TUIC server; prefer listeners for new configs."]
+    fields:
+      - {key: enable, type: bool, default: false, importance: expert, zh: [启用, "启用 TUIC 服务端。"], en: [Enable, "Enable the TUIC server."]}
+      - {key: listen, type: string, importance: expert, zh: [监听地址, "服务端监听地址。"], en: [Listen, "Listen address."]}
+      - {key: token, type: list, items: {type: string}, importance: expert, sensitive: true, zh: [令牌, "TUIC v4 的认证令牌。"], en: [Tokens, "TUIC v4 authentication tokens."]}
+      - {key: users, type: map, values: {type: string}, importance: expert, sensitive: true, zh: [用户, "TUIC v5 的 UUID 与密码。"], en: [Users, "TUIC v5 UUIDs and passwords."]}
+      - {key: certificate, type: string, importance: expert, zh: [证书, "服务端证书。"], en: [Certificate, "Server certificate."]}
+      - {key: private-key, type: string, importance: expert, sensitive: true, zh: [私钥, "服务端私钥。"], en: [Private key, "Server private key."]}
+      - {key: congestion-controller, type: string, importance: expert, zh: [拥塞控制, "QUIC 拥塞控制算法。"], en: [Congestion control, "QUIC congestion controller."]}
+      - {key: max-idle-time, type: int, default: 15000, importance: expert, zh: [最大空闲, "连接最大空闲毫秒数。"], en: [Max idle time, "Maximum idle time in milliseconds."]}
+      - {key: authentication-timeout, type: int, default: 1000, importance: expert, zh: [认证超时, "认证超时毫秒数。"], en: [Auth timeout, "Authentication timeout in milliseconds."]}
+      - {key: alpn, type: list, items: {type: string}, default: [h3], importance: expert, zh: [ALPN, "TLS ALPN 列表。"], en: [ALPN, "TLS ALPN list."]}
+      - {key: max-udp-relay-packet-size, type: int, default: 1500, importance: expert, zh: [UDP 包上限, "UDP 中继的最大包大小。"], en: [Max UDP packet, "Maximum UDP relay packet size."]}
+      - {key: cwnd, type: int, importance: expert, zh: [初始窗口, "拥塞窗口初值。"], en: [Initial window, "Initial congestion window."]}

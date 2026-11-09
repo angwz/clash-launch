@@ -1,0 +1,29 @@
+# golangci-lint v2 配置。默认的 standard 检查集之外，加入与本项目约定直接相关的几项。
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - bodyclose      # HTTP 响应体必须关闭（source、toolsync）
+    - errorlint      # 错误比较用 errors.Is/As，包装用 %w
+    - gosec          # 安全问题；测试中的弱随机数等在下方排除
+    - misspell
+    - nolintlint
+    - unconvert
+  settings:
+    gosec:
+      excludes:
+        - G204 # 子进程参数来自配置的内核路径（internal/kernel），不是用户输入
+        - G304 # 读取的路径来自命令行参数或测试数据
+        - G703 # 同上：路径来自命令行参数（CLI 与开发工具），是有意的输入
+        - G306 # 生成的配置与导出物使用 0644
+  exclusions:
+    paths:
+      - .cache
+    rules:
+      - path: _test\.go
+        linters: [gosec]
+formatters:
+  enable:
+    - gofmt

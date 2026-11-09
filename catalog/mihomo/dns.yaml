@@ -1,0 +1,146 @@
+# dns 分节。顺序取自官方示例（cache-algorithm 在 enable 之前，与示例一致）；
+# 示例未列出的 cache-max-size、listen-routing-mark、use-system-hosts 放在相关字段之后。
+fields:
+  - key: dns
+    type: object
+    importance: core
+    doc: dns
+    zh: [DNS, "内置 DNS 服务器与解析策略。"]
+    en: [DNS, "Built-in DNS server and resolution policy."]
+    fields:
+      - key: cache-algorithm
+        type: enum
+        enum:
+          - {value: lru, en: Least recently used, zh: 最近最少使用}
+          - {value: arc, en: Adaptive replacement cache, zh: 自适应替换缓存}
+        importance: expert
+        doc: "dns#cache-algorithm"
+        zh: [缓存算法, "DNS 缓存的淘汰算法。"]
+        en: [Cache algorithm, "Eviction algorithm of the DNS cache."]
+      - {key: cache-max-size, type: int, importance: expert, doc: dns,
+         zh: [缓存上限, "DNS 缓存的最大条目数。"], en: [Cache size, "Maximum number of DNS cache entries."]}
+      - key: enable
+        type: bool
+        default: false
+        importance: core
+        doc: "dns#enable"
+        zh: [启用, "启用内置 DNS；关闭时使用系统 DNS。"]
+        en: [Enable, "Use the built-in DNS; when off the system resolver is used."]
+      - {key: prefer-h3, type: bool, importance: optional, doc: "dns#prefer-h3",
+         zh: [优先 HTTP/3, "DoH 并发尝试 HTTP/3。"], en: [Prefer HTTP/3, "Race HTTP/3 for DoH servers."]}
+      - {key: listen, type: string, importance: optional, doc: "dns#listen", examples: [{value: "0.0.0.0:1053", en: Listen on all addresses, zh: 监听全部地址}],
+         zh: [监听地址, "内置 DNS 服务器对外提供服务的地址。"], en: [Listen, "Address where the built-in DNS server listens."]}
+      - {key: listen-routing-mark, type: int, importance: expert, doc: dns,
+         zh: [监听路由标记, "DNS 监听套接字的 routing-mark（仅 Linux）。"], en: [Listen routing mark, "routing-mark of the DNS listening socket (Linux only)."]}
+      - {key: ipv6, type: bool, default: false, importance: recommended, doc: "dns#ipv6",
+         zh: [IPv6 解析, "关闭时 AAAA 查询返回空结果。"], en: [IPv6 answers, "When off, AAAA queries return empty answers."]}
+      - {key: ipv6-timeout, type: int, default: 100, importance: expert, doc: dns,
+         zh: [AAAA 等待时间, "双栈并发时等待 AAAA 结果的毫秒数。"], en: [AAAA wait, "Milliseconds to wait for AAAA answers when racing both stacks."]}
+      - key: default-nameserver
+        type: list
+        items: {type: string}
+        importance: recommended
+        doc: "dns#default-nameserver"
+        examples: [{value: [223.5.5.5, 119.29.29.29], en: Plain IP resolvers, zh: 纯 IP 的解析器}]
+        zh: [引导 DNS, "用于解析其他 DNS 服务器域名的服务器，只能是 IP 地址。"]
+        en: [Bootstrap DNS, "Resolvers used to resolve other DNS server hostnames; IP addresses only."]
+      - key: enhanced-mode
+        type: enum
+        enum:
+          - {value: fake-ip, en: Answer with fake IPs from fake-ip-range, zh: 用 fake-ip-range 中的假 IP 应答}
+          - {value: redir-host, en: Answer with real IPs, zh: 用真实 IP 应答}
+          - {value: normal, en: Plain resolver without mapping, zh: 普通解析，不做映射}
+        default: redir-host
+        importance: recommended
+        doc: "dns#enhanced-mode"
+        ui: {widget: segmented}
+        related: [dns.fake-ip-range, dns.fake-ip-filter]
+        zh: [增强模式, "fake-ip 立即返回假 IP，连接时再解析；redir-host 返回真实 IP。"]
+        en: [Enhanced mode, "fake-ip answers instantly with a fake IP and resolves on connect; redir-host answers with real IPs."]
+        detail:
+          zh: fake-ip 响应最快、能避免 DNS 污染，但个别依赖真实 IP 的应用（如部分游戏、局域网服务）需要加入 fake-ip-filter。
+          en: fake-ip is fastest and avoids poisoned answers, but apps that need real IPs (some games, LAN services) must be listed in fake-ip-filter.
+      - {key: fake-ip-range, type: string, default: 198.18.0.1/16, importance: optional, doc: "dns#fake-ip-range",
+         zh: [fake-ip 池, "分配假 IPv4 地址的网段。"], en: [Fake-IP range, "CIDR from which fake IPv4 addresses are allocated."]}
+      - {key: fake-ip-range6, type: string, importance: optional, doc: "dns#fake-ip-range6",
+         zh: [fake-ip6 池, "分配假 IPv6 地址的网段。"], en: [Fake-IP range (IPv6), "CIDR from which fake IPv6 addresses are allocated."]}
+      - key: fake-ip-filter
+        type: list
+        items: {type: string}
+        importance: recommended
+        doc: "dns#fake-ip-filter"
+        examples: [{value: ["*.lan", "+.local"], en: Keep LAN names real, zh: 局域网域名使用真实 IP}]
+        zh: [fake-ip 例外, "不使用 fake-ip 的域名；支持通配、rule-set: 与 geosite: 引用。"]
+        en: [Fake-IP filter, "Domains that never get fake IPs; supports wildcards and rule-set:/geosite: references."]
+      - key: fake-ip-filter-mode
+        type: enum
+        enum:
+          - {value: blacklist, en: Listed domains get real IPs, zh: 列表内的域名用真实 IP}
+          - {value: whitelist, en: Only listed domains get fake IPs, zh: 只有列表内的域名用假 IP}
+          - {value: rule, en: Treat the list as ordered rules, zh: 把列表当作有序规则}
+        default: blacklist
+        importance: optional
+        doc: "dns#fake-ip-filter-mode"
+        zh: [例外模式, "fake-ip-filter 的匹配方式。"]
+        en: [Filter mode, "How fake-ip-filter is applied."]
+      - {key: fake-ip-ttl, type: int, default: 1, importance: expert, doc: "dns#fake-ip-ttl",
+         zh: [fake-ip TTL, "fake-ip 应答的 TTL；非必要不要修改。"], en: [Fake-IP TTL, "TTL of fake-ip answers; change only if you must."]}
+      - {key: use-hosts, type: bool, default: true, importance: optional, doc: "dns#use-hosts",
+         zh: [使用 hosts, "查询时使用配置中的 hosts。"], en: [Use hosts, "Answer from the configured hosts."]}
+      - {key: use-system-hosts, type: bool, default: true, importance: optional, doc: "dns#use-system-hosts",
+         zh: [使用系统 hosts, "查询时使用系统的 hosts 文件。"], en: [Use system hosts, "Answer from the system hosts file."]}
+      - key: respect-rules
+        type: bool
+        default: false
+        importance: optional
+        doc: "dns#respect-rules"
+        related: [dns.proxy-server-nameserver]
+        zh: [遵循规则, "DNS 服务器的连接也按 rules 选择出口；需要设置 proxy-server-nameserver。"]
+        en: [Respect rules, "Connections to DNS servers follow rules too; requires proxy-server-nameserver."]
+      - key: nameserver
+        type: list
+        items: {type: string}
+        importance: core
+        doc: "dns#nameserver"
+        examples: [{value: ["https://doh.pub/dns-query", "https://dns.alidns.com/dns-query"], en: DoH resolvers, zh: DoH 解析器}]
+        default: ["https://doh.pub/dns-query", "tls://223.5.5.5:853"]
+        zh: [主 DNS, "默认使用的 DNS 服务器；支持 UDP、TCP、DoT、DoH、DoQ。"]
+        en: [Nameservers, "Default DNS servers; UDP, TCP, DoT, DoH and DoQ are supported."]
+      - {key: fallback, type: list, items: {type: string}, importance: optional, doc: "dns#fallback",
+         zh: [备用 DNS, "主 DNS 结果不满足 fallback-filter 时改用的服务器。"], en: [Fallback, "Servers used when nameserver answers fail fallback-filter."]}
+      - {key: proxy-server-nameserver, type: list, items: {type: string}, importance: recommended, doc: "dns#proxy-server-nameserver",
+         zh: [节点域名 DNS, "专门用于解析节点服务器域名的 DNS。"], en: [Proxy server DNS, "DNS servers used only to resolve proxy server hostnames."]}
+      - key: proxy-server-nameserver-policy
+        type: map
+        values: {type: anyOf, of: [{type: string}, {type: list, items: {type: string}}]}
+        importance: expert
+        doc: "dns#proxy-server-nameserver-policy"
+        zh: [节点域名分流, "格式同 nameserver-policy，只用于节点域名解析。"]
+        en: [Proxy server DNS policy, "Same format as nameserver-policy, for proxy hostnames only."]
+      - {key: direct-nameserver, type: list, items: {type: string}, importance: optional, doc: "dns#direct-nameserver",
+         zh: [直连 DNS, "直连出口的域名使用的 DNS。"], en: [Direct DNS, "DNS servers for domains that go out directly."]}
+      - {key: direct-nameserver-follow-policy, type: bool, default: false, importance: expert, doc: "dns#direct-nameserver-follow-policy",
+         zh: [直连 DNS 遵循分流, "direct-nameserver 是否也遵循 nameserver-policy。"], en: [Direct DNS follows policy, "Whether direct-nameserver also honours nameserver-policy."]}
+      - key: fallback-filter
+        type: object
+        importance: optional
+        doc: "dns#fallback-filter"
+        zh: [备用条件, "什么情况下改用 fallback 的结果。"]
+        en: [Fallback filter, "When fallback answers are used instead."]
+        fields:
+          - {key: geoip, type: bool, default: true, importance: optional, doc: "dns#geoip", zh: [按 GeoIP, "是否按 GeoIP 判断。"], en: [Use GeoIP, "Decide by GeoIP."]}
+          - {key: geoip-code, type: string, default: CN, importance: optional, doc: "dns#geoip-code", zh: [GeoIP 代码, "结果属于该地区时采用主 DNS。"], en: [GeoIP code, "Keep nameserver answers that belong to this region."]}
+          - {key: ipcidr, type: list, items: {type: string}, importance: optional, doc: "dns#ipcidr", zh: [IP 网段, "主 DNS 返回这些网段时改用 fallback。"], en: [IP CIDRs, "Use fallback when nameserver answers fall in these CIDRs."]}
+          - {key: domain, type: list, items: {type: string}, importance: optional, doc: "dns#domain", zh: [域名, "这些域名直接使用 fallback。"], en: [Domains, "These domains always use fallback."]}
+          - {key: geosite, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: dns.nameserver-policy, doc: "dns#geosite",
+             zh: [GeoSite, "已弃用；请改用 nameserver-policy。"], en: [GeoSite, "Deprecated; use nameserver-policy."]}
+      - {key: fallback-lazy-query, type: bool, default: false, importance: expert, doc: "dns#fallback-lazy-query",
+         zh: [延迟查询备用, "先判断主 DNS 结果，需要时才查询 fallback。"], en: [Lazy fallback, "Query fallback only after nameserver answers fail the filter."]}
+      - key: nameserver-policy
+        type: map
+        values: {type: anyOf, of: [{type: string}, {type: list, items: {type: string}}]}
+        importance: recommended
+        doc: "dns#nameserver-policy"
+        examples: [{value: {"geosite:cn,private": ["https://doh.pub/dns-query"]}, en: Domestic domains use a domestic resolver, zh: 国内域名使用国内解析器}]
+        zh: [DNS 分流, "按域名、geosite: 或 rule-set: 指定使用的 DNS 服务器。"]
+        en: [Nameserver policy, "Pick DNS servers by domain, geosite: or rule-set:."]

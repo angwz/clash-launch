@@ -1,0 +1,244 @@
+# proxies：按 type 区分协议的节点列表。字段定义在共享片段（proxies/common.yaml）与
+# 协议专属片段（proxies/protocols.yaml）中，每个字段只定义一次；这里按官方示例 docs/config.yaml
+# 中该协议出现过的键顺序逐个取用（include + keys），示例中没有的字段插在它在分组模板中的前一个字段之后。
+# 所有协议的前四个键统一为 name、type、server、port（官方 tuic 样例把 type 写在 port 之后，属个别写法）。
+# 本文件由维护脚本按 testdata/catalog/example-order.json 生成后人工审阅；顺序由 catalog 测试锁定。
+fields:
+  - key: proxies
+    type: list
+    importance: core
+    doc: proxies
+    zh: [节点, "出站代理节点列表。"]
+    en: [Proxies, "Outbound proxy list."]
+    items:
+      type: oneOf
+      discriminator: type
+      variants:
+        - value: ss
+          doc: proxies/ss
+          zh: [Shadowsocks]
+          en: [Shadowsocks]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-ss, keys: [cipher, password]}
+            - {include: udp, keys: [udp]}
+            - {include: p-ss, keys: [udp-over-tcp, udp-over-tcp-version]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp]}
+            - {include: smux, keys: [smux]}
+            - {include: p-ss, keys: [plugin, client-fingerprint, plugin-opts]}
+            - {include: dial, keys: [dialer-proxy]}
+        - value: ssr
+          doc: proxies/ssr
+          zh: [ShadowsocksR]
+          en: [ShadowsocksR]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-ssr, keys: [cipher, password, obfs, protocol, obfs-param, protocol-param]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: vmess
+          doc: proxies/vmess
+          zh: [VMess]
+          en: [VMess]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-vmess, keys: [uuid, alterId, cipher, packet-encoding, global-padding, authenticated-length, xudp, packet-addr]}
+            - {include: udp, keys: [udp]}
+            - {include: tls-switch, keys: [tls]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint, skip-cert-verify, name-cert-verify]}
+            - {include: servername, keys: [servername]}
+            - {include: alpn, keys: [alpn]}
+            - {include: network, keys: [network]}
+            - {include: tls-ext, keys: [ech-opts, shadow-tls-opts, restls-opts, jls-opts, reality-opts]}
+            - {include: ws-opts, keys: [ws-opts]}
+            - {include: h2-opts, keys: [h2-opts]}
+            - {include: http-opts, keys: [http-opts]}
+            - {include: grpc-opts, keys: [grpc-opts]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: smux, keys: [smux]}
+        - value: vless
+          doc: proxies/vless
+          zh: [VLESS]
+          en: [VLESS]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-vless, keys: [uuid]}
+            - {include: network, keys: [network]}
+            - {include: servername, keys: [servername]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify, certificate, private-key, fingerprint]}
+            - {include: p-vless, keys: [encryption, packet-encoding, xudp, packet-addr]}
+            - {include: tls-switch, keys: [tls]}
+            - {include: udp, keys: [udp]}
+            - {include: p-vless, keys: [flow]}
+            - {include: tls-verify, keys: [client-fingerprint]}
+            - {include: alpn, keys: [alpn]}
+            - {include: tls-ext, keys: [ech-opts, shadow-tls-opts, restls-opts, jls-opts]}
+            - {include: grpc-opts, keys: [grpc-opts]}
+            - {include: tls-ext, keys: [reality-opts]}
+            - {include: ws-opts, keys: [ws-opts]}
+            - {include: http-opts, keys: [http-opts]}
+            - {include: h2-opts, keys: [h2-opts]}
+            - {include: xhttp-opts, keys: [xhttp-opts]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: smux, keys: [smux]}
+        - value: trojan
+          doc: proxies/trojan
+          zh: [Trojan]
+          en: [Trojan]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-trojan, keys: [password]}
+            - {include: tls-verify, keys: [client-fingerprint, fingerprint, certificate, private-key]}
+            - {include: udp, keys: [udp]}
+            - {include: network, keys: [network]}
+            - {include: sni, keys: [sni]}
+            - {include: alpn, keys: [alpn]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify]}
+            - {include: p-trojan-ss, keys: [ss-opts]}
+            - {include: tls-ext, keys: [ech-opts, shadow-tls-opts, restls-opts, jls-opts, reality-opts]}
+            - {include: grpc-opts, keys: [grpc-opts]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: smux, keys: [smux]}
+            - {include: ws-opts, keys: [ws-opts]}
+        - value: hysteria
+          doc: proxies/hysteria
+          zh: [Hysteria]
+          en: [Hysteria]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-hysteria, keys: [ports, auth-str, auth, obfs]}
+            - {include: alpn, keys: [alpn]}
+            - {include: p-hysteria, keys: [protocol, up, down]}
+            - {include: sni, keys: [sni]}
+            - {include: tls-ext, keys: [ech-opts, reality-opts, shadow-tls-opts, restls-opts, jls-opts]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify]}
+            - {include: p-hysteria, keys: [recv-window-conn, recv-window, disable-mtu-discovery]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint]}
+            - {include: p-hysteria, keys: [fast-open]}
+        - value: hysteria2
+          doc: proxies/hysteria2
+          zh: [Hysteria2]
+          en: [Hysteria2]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-hysteria2, keys: [ports, hop-interval, up, down]}
+            - {include: p-hysteria2-tail, keys: [bbr-profile, udp-mtu, initial-stream-receive-window, max-stream-receive-window, initial-connection-receive-window, max-connection-receive-window]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: p-hysteria2, keys: [password, obfs, obfs-password, obfs-min-packet-size, obfs-max-packet-size]}
+            - {include: sni, keys: [sni]}
+            - {include: tls-ext, keys: [ech-opts, reality-opts, shadow-tls-opts, restls-opts, jls-opts]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify, fingerprint, certificate, private-key, client-fingerprint]}
+            - {include: alpn, keys: [alpn]}
+            - {include: p-hysteria2-tail, keys: [realm-opts, handshake-timeout, cwnd]}
+        - value: tuic
+          doc: proxies/tuic
+          zh: [TUIC]
+          en: [TUIC]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-tuic, keys: [token, uuid, password, ip, heartbeat-interval]}
+            - {include: alpn, keys: [alpn]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint]}
+            - {include: p-tuic, keys: [disable-sni, reduce-rtt, request-timeout, udp-relay-mode, congestion-controller, cwnd, bbr-profile, max-udp-relay-packet-size, fast-open]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify]}
+            - {include: p-tuic, keys: [max-open-streams]}
+            - {include: sni, keys: [sni]}
+            - {include: tls-ext, keys: [ech-opts, reality-opts, shadow-tls-opts, restls-opts, jls-opts]}
+            - {include: p-tuic-tail, keys: [udp-over-stream, udp-over-stream-version, recv-window-conn, recv-window, disable-mtu-discovery, max-datagram-frame-size]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: wireguard
+          doc: proxies/wg
+          zh: [WireGuard]
+          en: [WireGuard]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-wireguard, keys: [ip, ipv6, public-key, allowed-ips, pre-shared-key, private-key]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp]}
+            - {include: p-wireguard, keys: [reserved, mtu, persistent-keepalive, workers, ip-stack]}
+            - {include: dial, keys: [dialer-proxy]}
+            - {include: p-wireguard, keys: [remote-dns-resolve, dns, refresh-server-ip-interval, peers, amnezia-wg-option]}
+        - value: anytls
+          doc: proxies/anytls
+          zh: [AnyTLS]
+          en: [AnyTLS]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-anytls, keys: [password]}
+            - {include: tls-verify, keys: [client-fingerprint]}
+            - {include: udp, keys: [udp]}
+            - {include: p-anytls, keys: [client-metadata, idle-session-check-interval, idle-session-timeout, min-idle-session, disable-reuse]}
+            - {include: sni, keys: [sni]}
+            - {include: alpn, keys: [alpn]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, skip-cert-verify, name-cert-verify]}
+            - {include: tls-ext, keys: [ech-opts, reality-opts, shadow-tls-opts, restls-opts, jls-opts]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: socks5
+          doc: proxies/socks
+          zh: [SOCKS5]
+          en: [SOCKS5]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-userpass, keys: [username, password]}
+            - {include: tls-switch, keys: [tls]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint, skip-cert-verify, name-cert-verify]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: http
+          doc: proxies/http
+          zh: [HTTP]
+          en: [HTTP]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-userpass, keys: [username, password]}
+            - {include: tls-switch, keys: [tls]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify]}
+            - {include: p-http-headers, keys: [headers]}
+            - {include: sni, keys: [sni]}
+            - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: snell
+          doc: proxies/snell
+          zh: [Snell]
+          en: [Snell]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-snell, keys: [psk, version]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: p-snell, keys: [reuse, client-fingerprint, obfs-opts]}
+        - value: mieru
+          doc: proxies/mieru
+          zh: [mieru]
+          en: [mieru]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-mieru, keys: [port-range, transport]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+            - {include: p-mieru, keys: [username, password, multiplexing, handshake-mode, traffic-pattern]}
+        - value: ssh
+          doc: proxies/ssh
+          zh: [SSH]
+          en: [SSH]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-ssh, keys: [username, password, private-key, private-key-passphrase, host-key, host-key-algorithms]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: direct
+          doc: proxies/direct
+          zh: [直连]
+          en: [Direct]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: dns
+          doc: proxies/dns
+          zh: [DNS 出站]
+          en: [DNS outbound]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: udp, keys: [udp]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}

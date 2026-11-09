@@ -1,0 +1,83 @@
+# proxy-groups：按 type 区分的策略组。官方示例的样例较短，顺序以 wiki「策略组」页的介绍顺序为准，
+# 类型专属字段（tolerance、strategy、hash-key、default-selected）紧跟在 interval 之后。
+# relay 已被 mihomo 移除（改用 dialer-proxy），ssid 从未被 mihomo 支持；两者都不在分支中，
+# 规则源中出现时由 ruleset 包报错并说明原因。
+fragments:
+  g-head:
+    - {key: name, type: string, importance: core, doc: "proxy-groups#name", zh: [名称, "策略组名称；规则与其他组用它引用本组。"], en: [Name, "Group name used by rules and other groups."]}
+    - {key: type, type: string, importance: core, doc: "proxy-groups#type", zh: [类型, "select、url-test、fallback 或 load-balance。"], en: [Type, "select, url-test, fallback or load-balance."]}
+    - {key: proxies, type: list, items: {type: string}, importance: core, doc: "proxy-groups#proxies", zh: [成员, "组内的节点与其他策略组，按顺序排列。"], en: [Members, "Proxies and other groups in this group, in order."]}
+    - {key: use, type: list, items: {type: string}, importance: recommended, doc: "proxy-groups#use", zh: [引用提供者, "把这些 proxy-provider 的节点加入本组。"], en: [Use providers, "Add the proxies of these proxy-providers."]}
+  g-probe:
+    - {key: url, type: string, importance: recommended, doc: "proxy-groups#url", examples: [{value: "https://www.gstatic.com/generate_204", en: Common probe URL, zh: 常用测速地址}],
+       zh: [测速地址, "健康检查请求的地址。"], en: [Probe URL, "URL requested by health checks."]}
+    - {key: interval, type: int, importance: recommended, doc: "proxy-groups#interval", zh: [测速间隔, "健康检查的间隔秒数。"], en: [Interval, "Health check interval in seconds."]}
+  g-tail:
+    - {key: lazy, type: bool, importance: optional, doc: "proxy-groups#lazy", zh: [懒惰测速, "组未被使用时不进行健康检查（默认开启）。"], en: [Lazy, "Skip health checks while the group is unused (on by default)."]}
+    - {key: timeout, type: int, importance: expert, doc: "proxy-groups#timeout", zh: [测速超时, "健康检查的超时毫秒数。"], en: [Timeout, "Health check timeout in milliseconds."]}
+    - {key: max-failed-times, type: int, importance: expert, doc: "proxy-groups#max-failed-times", zh: [失败次数, "连续失败多少次后强制重新测速。"], en: [Max failures, "Consecutive failures before forcing a re-check."]}
+    - {key: expected-status, type: string, importance: expert, doc: "proxy-groups#expected-status", zh: [期望状态码, "健康检查视为成功的 HTTP 状态码，如 204 或 200/302。"], en: [Expected status, "HTTP status codes counted as healthy, such as 204 or 200/302."]}
+    - {key: empty-fallback, type: string, importance: optional, since: "1.19.27", doc: "proxy-groups#empty-fallback",
+       zh: [空组回退, "组内没有可用成员时使用的节点；默认 COMPATIBLE，不能填策略组。"], en: [Empty fallback, "Proxy used when the group has no members; defaults to COMPATIBLE and may not be a group."]}
+    - {key: disable-udp, type: bool, importance: optional, doc: "proxy-groups#disable-udp", zh: [禁用 UDP, "本组不转发 UDP。"], en: [Disable UDP, "Do not relay UDP through this group."]}
+    - {key: include-all, type: bool, importance: optional, doc: "proxy-groups#include-all", zh: [包含全部, "引入全部节点与全部 provider。"], en: [Include all, "Include every proxy and every provider."]}
+    - {key: include-all-proxies, type: bool, importance: optional, doc: "proxy-groups#include-all-proxies", zh: [包含全部节点, "引入全部节点（不含 provider）。"], en: [Include all proxies, "Include every proxy (not providers)."]}
+    - {key: include-all-providers, type: bool, importance: optional, doc: "proxy-groups#include-all-providers", zh: [包含全部提供者, "引入全部 provider。"], en: [Include all providers, "Include every provider."]}
+    - {key: filter, type: string, importance: recommended, doc: "proxy-groups#filter", zh: [筛选, "只保留名称匹配该正则的节点；多个正则用反引号分隔。"], en: [Filter, "Keep proxies whose names match this regex; separate several with backticks."]}
+    - {key: exclude-filter, type: string, importance: optional, doc: "proxy-groups#exclude-filter", zh: [排除, "去掉名称匹配该正则的节点。"], en: [Exclude filter, "Drop proxies whose names match this regex."]}
+    - {key: exclude-type, type: string, importance: optional, doc: "proxy-groups#exclude-type", zh: [排除协议, "去掉这些协议的节点，用 | 分隔。"], en: [Exclude types, "Drop proxies of these protocols, separated by |."]}
+    - {key: hidden, type: bool, importance: optional, doc: "proxy-groups#hidden", zh: [隐藏, "在面板中隐藏本组。"], en: [Hidden, "Hide this group in dashboards."]}
+    - {key: icon, type: string, importance: optional, doc: "proxy-groups#icon", zh: [图标, "面板中显示的图标地址。"], en: [Icon, "Icon URL shown in dashboards."]}
+fields:
+  - key: proxy-groups
+    type: list
+    importance: core
+    doc: proxy-groups
+    zh: [策略组, "把节点组织成可选择或自动测速的组，供规则引用。"]
+    en: [Proxy groups, "Organise proxies into selectable or auto-tested groups for rules."]
+    items:
+      type: oneOf
+      discriminator: type
+      variants:
+        - value: select
+          doc: proxy-groups/select
+          zh: [手动选择]
+          en: [Select]
+          fields:
+            - {include: g-head}
+            - {include: g-probe}
+            - {key: default-selected, type: string, importance: optional, doc: "proxy-groups#default-selected", zh: [默认选择, "首次加载时选中的成员。"], en: [Default selection, "Member selected on first load."]}
+            - {include: g-tail}
+        - value: url-test
+          doc: proxy-groups/url-test
+          zh: [自动测速]
+          en: [URL test]
+          fields:
+            - {include: g-head}
+            - {include: g-probe}
+            - {key: tolerance, type: int, importance: recommended, doc: "proxy-groups/url-test#tolerance", zh: [容差, "新节点比当前节点快多少毫秒才切换。"], en: [Tolerance, "Milliseconds faster a proxy must be before switching."]}
+            - {include: g-tail}
+        - value: fallback
+          doc: proxy-groups/fallback
+          zh: [故障转移]
+          en: [Fallback]
+          fields: [{include: g-head}, {include: g-probe}, {include: g-tail}]
+        - value: load-balance
+          doc: proxy-groups/load-balance
+          zh: [负载均衡]
+          en: [Load balance]
+          fields:
+            - {include: g-head}
+            - {include: g-probe}
+            - key: strategy
+              type: enum
+              enum:
+                - {value: consistent-hashing, en: Same destination uses the same proxy, zh: 相同目标使用相同节点}
+                - {value: round-robin, en: Rotate through proxies, zh: 轮流使用}
+                - {value: sticky-sessions, en: Same source and destination stick together, zh: 相同来源与目标保持一致}
+              importance: recommended
+              doc: "proxy-groups/load-balance#strategy"
+              zh: [均衡策略, "选择节点的方式。"]
+              en: [Strategy, "How a proxy is chosen."]
+            - {key: hash-key, type: string, importance: expert, doc: "proxy-groups/load-balance#hash-key", zh: [哈希键, "consistent-hashing 使用的哈希依据。"], en: [Hash key, "What consistent-hashing hashes on."]}
+            - {include: g-tail}

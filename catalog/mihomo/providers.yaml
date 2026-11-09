@@ -1,0 +1,128 @@
+# proxy-providers 与 rule-providers。键是用户起的名称（map），值的字段顺序取自官方示例的第一个样例，
+# 其余字段按后续样例出现的位置插入。
+fields:
+  - key: proxy-providers
+    type: map
+    importance: recommended
+    doc: proxy-providers
+    zh: [节点提供者, "让客户端自行拉取的节点集合（订阅或本地文件）。"]
+    en: [Proxy providers, "Proxy sets fetched by the client itself (subscriptions or files)."]
+    values:
+      type: object
+      fields:
+        - key: type
+          type: enum
+          enum:
+            - {value: http, en: Download from url, zh: 从 url 下载}
+            - {value: file, en: Read a local file, zh: 读取本地文件}
+            - {value: inline, en: Proxies written in payload, zh: 直接写在 payload 中}
+          importance: core
+          doc: "proxy-providers#type"
+          zh: [类型, "节点的来源方式。"]
+          en: [Type, "Where the proxies come from."]
+        - {key: url, type: string, importance: core, sensitive: true, doc: "proxy-providers#url", zh: [地址, "订阅地址。"], en: [URL, "Subscription URL."]}
+        - {key: interval, type: int, importance: recommended, doc: "proxy-providers#interval", zh: [更新间隔, "重新拉取的间隔秒数。"], en: [Interval, "Seconds between refreshes."]}
+        - {key: path, type: string, importance: optional, doc: "proxy-providers#path", zh: [保存路径, "本地缓存文件路径；http 类型可留空。"], en: [Path, "Local cache path; optional for http."]}
+        - {key: proxy, type: string, importance: optional, doc: "proxy-providers#proxy", zh: [下载代理, "下载时经过的节点或策略组。"], en: [Download via, "Proxy or group used for downloading."]}
+        - {key: size-limit, type: int, importance: expert, doc: "proxy-providers#size-limit", zh: [大小上限, "下载文件的最大字节数；0 表示不限。"], en: [Size limit, "Maximum download size in bytes; 0 means unlimited."]}
+        - {key: age-secret-key, type: string, importance: expert, sensitive: true, doc: "proxy-providers#age-secret-key", zh: [age 私钥, "用于解密 age 加密的订阅内容。"], en: [age secret key, "Decrypts age-encrypted subscription content."]}
+        - {key: header, type: map, values: {type: list, items: {type: string}}, importance: optional, sensitive: true, doc: "proxy-providers#header", zh: [请求头, "下载时附加的请求头，每个值是列表。"], en: [Headers, "Request headers for downloads; each value is a list."]}
+        - key: health-check
+          type: object
+          importance: recommended
+          doc: "proxy-providers#health-check"
+          zh: [健康检查, "定期测试提供者中的节点。"]
+          en: [Health check, "Periodically test the provider's proxies."]
+          fields:
+            - {key: enable, type: bool, importance: recommended, doc: "proxy-providers#health-checkenable", zh: [启用, "启用健康检查。"], en: [Enable, "Enable health checks."]}
+            - {key: interval, type: int, importance: recommended, doc: "proxy-providers#health-checkinterval", zh: [间隔, "检查间隔秒数。"], en: [Interval, "Seconds between checks."]}
+            - {key: lazy, type: bool, default: true, importance: optional, doc: "proxy-providers#health-checklazy", zh: [懒惰检查, "未被使用时不检查。"], en: [Lazy, "Skip checks while unused."]}
+            - {key: url, type: string, importance: recommended, doc: "proxy-providers#health-checkurl", zh: [测速地址, "健康检查请求的地址。"], en: [Probe URL, "URL requested by health checks."]}
+            - {key: expected-status, type: string, importance: expert, doc: "proxy-providers#health-checkexpected-status", zh: [期望状态码, "视为成功的 HTTP 状态码。"], en: [Expected status, "HTTP status codes counted as healthy."]}
+            - {key: timeout, type: int, importance: expert, doc: "proxy-providers#health-checktimeout", zh: [超时, "检查超时毫秒数。"], en: [Timeout, "Check timeout in milliseconds."]}
+        - key: override
+          type: object
+          importance: optional
+          doc: "proxy-providers#override"
+          zh: [覆写, "统一修改提供者中每个节点的字段。"]
+          en: [Override, "Change fields of every proxy in the provider."]
+          fields:
+            - {key: skip-cert-verify, type: bool, importance: expert, zh: [跳过证书校验, "覆写每个节点的 skip-cert-verify。"], en: [Skip verification, "Override skip-cert-verify on every proxy."]}
+            - {key: name-cert-verify, type: string, importance: expert, zh: [校验名称, "覆写每个节点的 name-cert-verify。"], en: [Verify name, "Override name-cert-verify on every proxy."]}
+            - {key: udp, type: bool, importance: optional, zh: [UDP, "覆写每个节点的 udp。"], en: [UDP, "Override udp on every proxy."]}
+            - {key: udp-over-tcp, type: bool, importance: expert, zh: [UDP over TCP, "覆写每个节点的 udp-over-tcp。"], en: [UDP over TCP, "Override udp-over-tcp on every proxy."]}
+            - {key: tfo, type: bool, importance: expert, zh: [TFO, "覆写每个节点的 tfo。"], en: [TFO, "Override tfo on every proxy."]}
+            - {key: mptcp, type: bool, importance: expert, zh: [MPTCP, "覆写每个节点的 mptcp。"], en: [MPTCP, "Override mptcp on every proxy."]}
+            - {key: down, type: string, importance: expert, zh: [下行带宽, "覆写每个节点的 down。"], en: [Download, "Override down on every proxy."]}
+            - {key: up, type: string, importance: expert, zh: [上行带宽, "覆写每个节点的 up。"], en: [Upload, "Override up on every proxy."]}
+            - {key: dialer-proxy, type: string, importance: optional, zh: [前置代理, "覆写每个节点的 dialer-proxy。"], en: [Dialer proxy, "Override dialer-proxy on every proxy."]}
+            - {key: interface-name, type: string, importance: expert, zh: [出口网卡, "覆写每个节点的 interface-name。"], en: [Interface, "Override interface-name on every proxy."]}
+            - {key: routing-mark, type: int, importance: expert, zh: [路由标记, "覆写每个节点的 routing-mark。"], en: [Routing mark, "Override routing-mark on every proxy."]}
+            - {key: ip-version, type: string, importance: expert, zh: [IP 版本, "覆写每个节点的 ip-version。"], en: [IP version, "Override ip-version on every proxy."]}
+            - {key: additional-prefix, type: string, importance: optional, doc: "proxy-providers#overrideadditional-prefix", zh: [名称前缀, "给每个节点名加上前缀。"], en: [Name prefix, "Prefix added to every proxy name."]}
+            - {key: additional-suffix, type: string, importance: optional, doc: "proxy-providers#overrideadditional-suffix", zh: [名称后缀, "给每个节点名加上后缀。"], en: [Name suffix, "Suffix added to every proxy name."]}
+            - key: proxy-name
+              type: list
+              items:
+                type: object
+                fields:
+                  - {key: pattern, type: string, importance: optional, zh: [匹配, "节点名的正则。"], en: [Pattern, "Regex on proxy names."]}
+                  - {key: target, type: string, importance: optional, zh: [替换为, "替换后的文本。"], en: [Replace with, "Replacement text."]}
+              importance: optional
+              doc: "proxy-providers#overrideproxy-name"
+              zh: [重命名, "按正则替换节点名。"]
+              en: [Rename, "Rewrite proxy names by regex."]
+            - {key: override-expr, type: list, items: {type: any, reason: 表达式结构随版本演进，M6 补齐}, importance: expert, stability: experimental,
+               zh: [覆写表达式, "按条件覆写节点字段。"], en: [Override expressions, "Conditionally override proxy fields."]}
+        - {key: dialer-proxy, type: string, importance: optional, doc: proxy-providers, zh: [前置代理, "给提供者中的每个节点设置 dialer-proxy。"], en: [Dialer proxy, "Set dialer-proxy on every proxy of the provider."]}
+        - {key: filter, type: string, importance: optional, doc: proxy-providers, zh: [筛选, "只保留名称匹配该正则的节点。"], en: [Filter, "Keep proxies whose names match this regex."]}
+        - {key: exclude-filter, type: string, importance: optional, doc: proxy-providers, zh: [排除, "去掉名称匹配该正则的节点。"], en: [Exclude filter, "Drop proxies whose names match this regex."]}
+        - {key: exclude-type, type: string, importance: optional, doc: proxy-providers, zh: [排除协议, "去掉这些协议的节点，用 | 分隔。"], en: [Exclude types, "Drop proxies of these protocols, separated by |."]}
+        - {key: payload, type: list, items: {type: any, reason: 内联节点，结构同 proxies 的元素}, importance: optional, doc: proxy-providers, zh: [内联节点, "type 为 inline 时的节点列表。"], en: [Inline proxies, "Proxy list when type is inline."]}
+  - key: rule-providers
+    type: map
+    importance: recommended
+    doc: rule-providers
+    zh: [规则集, "可远程更新的规则集合，在 rules 中以 RULE-SET 引用。"]
+    en: [Rule providers, "Updatable rule sets referenced from rules by RULE-SET."]
+    values:
+      type: object
+      fields:
+        - key: behavior
+          type: enum
+          enum:
+            - {value: domain, en: Domain list, zh: 域名列表}
+            - {value: ipcidr, en: IP CIDR list, zh: IP 网段列表}
+            - {value: classical, en: Full rule lines, zh: 完整的规则行}
+          importance: core
+          doc: "rule-providers#behavior"
+          zh: [行为, "规则集内容的类型。"]
+          en: [Behavior, "Kind of content in the rule set."]
+        - {key: interval, type: int, importance: recommended, doc: "rule-providers#interval", zh: [更新间隔, "重新拉取的间隔秒数。"], en: [Interval, "Seconds between refreshes."]}
+        - {key: path, type: string, importance: optional, doc: "rule-providers#path", zh: [保存路径, "本地缓存文件路径；http 类型可留空。"], en: [Path, "Local cache path; optional for http."]}
+        - key: type
+          type: enum
+          enum:
+            - {value: http, en: Download from url, zh: 从 url 下载}
+            - {value: file, en: Read a local file, zh: 读取本地文件}
+            - {value: inline, en: Rules written in payload, zh: 直接写在 payload 中}
+          importance: core
+          doc: "rule-providers#type"
+          zh: [类型, "规则的来源方式。"]
+          en: [Type, "Where the rules come from."]
+        - {key: url, type: string, importance: core, doc: "rule-providers#url", zh: [地址, "规则文件地址。"], en: [URL, "Rule file URL."]}
+        - {key: proxy, type: string, importance: optional, doc: "rule-providers#proxy", zh: [下载代理, "下载时经过的节点或策略组。"], en: [Download via, "Proxy or group used for downloading."]}
+        - {key: size-limit, type: int, importance: expert, doc: "rule-providers#size-limit", zh: [大小上限, "下载文件的最大字节数；0 表示不限。"], en: [Size limit, "Maximum download size in bytes; 0 means unlimited."]}
+        - key: format
+          type: enum
+          enum:
+            - {value: yaml, en: YAML payload (default), zh: YAML payload（默认）}
+            - {value: text, en: One rule per line, zh: 每行一条}
+            - {value: mrs, en: Binary MRS (domain and ipcidr only), zh: 二进制 MRS（仅 domain 与 ipcidr）}
+          importance: recommended
+          doc: "rule-providers#format"
+          zh: [格式, "文件格式；mihomo 不按扩展名判断，非 YAML 时必须写明。"]
+          en: [Format, "File format; mihomo does not infer it from the extension, so set it for non-YAML files."]
+        - {key: path-in-bundle, type: string, importance: expert, doc: "rule-providers#path-in-bundle", zh: [包内路径, "本地文件缺失时从 BundleMRS.7z 解压的路径。"], en: [Path in bundle, "Path extracted from BundleMRS.7z when the local file is missing."]}
+        - {key: header, type: map, values: {type: list, items: {type: string}}, importance: expert, doc: "rule-providers#header", zh: [请求头, "下载时附加的请求头。"], en: [Headers, "Request headers for downloads."]}
+        - {key: payload, type: list, items: {type: string}, importance: optional, doc: "rule-providers#payload", zh: [内联规则, "type 为 inline 时的规则列表。"], en: [Inline rules, "Rule list when type is inline."]}

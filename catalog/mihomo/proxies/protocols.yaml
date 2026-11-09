@@ -1,0 +1,190 @@
+# 各协议的专属字段（片段名 p-<协议>）。字段集合取自 mihomo v1.19.33 adapter/outbound 的选项结构体，
+# 顺序以官方示例中该协议的第一个样例为基准。
+fragments:
+  p-ss:
+    - key: cipher
+      type: string
+      importance: core
+      doc: "proxies/ss#cipher"
+      examples: [{value: 2022-blake3-aes-128-gcm, en: Shadowsocks 2022, zh: Shadowsocks 2022}, {value: aes-128-gcm, en: AEAD, zh: AEAD}]
+      zh: [加密方式, "如 aes-128-gcm、chacha20-ietf-poly1305 或 2022-blake3-aes-128-gcm。"]
+      en: [Cipher, "For example aes-128-gcm, chacha20-ietf-poly1305 or 2022-blake3-aes-128-gcm."]
+    - {key: password, type: string, importance: core, sensitive: true, doc: "proxies/ss#password", zh: [密码, "Shadowsocks 密码。"], en: [Password, "Shadowsocks password."]}
+    - {key: udp-over-tcp, type: bool, importance: optional, doc: "proxies/ss#udp-over-tcp", zh: [UDP over TCP, "用 TCP 承载 UDP。"], en: [UDP over TCP, "Carry UDP inside TCP."]}
+    - {key: udp-over-tcp-version, type: int, importance: expert, doc: "proxies/ss#udp-over-tcp-version", zh: [UoT 版本, "UDP over TCP 协议版本。"], en: [UoT version, "UDP over TCP protocol version."]}
+    - {key: plugin, type: string, importance: optional, doc: "proxies/ss#plugin", examples: [{value: obfs, en: simple-obfs, zh: simple-obfs}, {value: v2ray-plugin, en: v2ray-plugin, zh: v2ray-plugin}],
+       zh: [插件, "obfs、v2ray-plugin、gost-plugin、shadow-tls、restls、kcptun 等。"], en: [Plugin, "obfs, v2ray-plugin, gost-plugin, shadow-tls, restls, kcptun and others."]}
+    - {key: plugin-opts, type: map, values: {type: any, reason: 字段随 plugin 不同而不同}, importance: optional, doc: "proxies/ss#plugin-opts",
+       zh: [插件参数, "插件的参数，取决于 plugin。"], en: [Plugin options, "Plugin parameters; depend on plugin."]}
+    - {key: client-fingerprint, type: string, importance: expert, doc: proxies/ss, zh: [客户端指纹, "插件使用 TLS 时模拟的浏览器指纹。"], en: [Client fingerprint, "Browser TLS fingerprint used by TLS-based plugins."]}
+  p-ssr:
+    - {key: cipher, type: string, importance: core, doc: proxies/ssr, zh: [加密方式, "SSR 加密方式。"], en: [Cipher, "SSR cipher."]}
+    - {key: password, type: string, importance: core, sensitive: true, doc: proxies/ssr, zh: [密码, "SSR 密码。"], en: [Password, "SSR password."]}
+    - {key: obfs, type: string, importance: core, doc: proxies/ssr, zh: [混淆, "SSR 混淆方式。"], en: [Obfs, "SSR obfuscation."]}
+    - {key: protocol, type: string, importance: core, doc: proxies/ssr, zh: [协议, "SSR 协议插件。"], en: [Protocol, "SSR protocol plugin."]}
+    - {key: obfs-param, type: string, importance: optional, doc: proxies/ssr, zh: [混淆参数, "混淆参数。"], en: [Obfs param, "Obfuscation parameter."]}
+    - {key: protocol-param, type: string, importance: optional, sensitive: true, doc: proxies/ssr, zh: [协议参数, "协议参数。"], en: [Protocol param, "Protocol parameter."]}
+  p-vmess:
+    - {key: uuid, type: string, importance: core, sensitive: true, doc: "proxies/vmess#uuid", zh: [UUID, "用户 ID。"], en: [UUID, "User ID."]}
+    - {key: alterId, type: int, importance: recommended, doc: "proxies/vmess#alterid", zh: [alterId, "额外 ID；现代服务端应为 0（启用 AEAD）。"], en: [alterId, "Alter ID; modern servers use 0 (AEAD)."]}
+    - key: cipher
+      type: enum
+      enum:
+        - {value: auto, en: Choose automatically, zh: 自动选择}
+        - {value: aes-128-gcm, en: AES-128-GCM, zh: AES-128-GCM}
+        - {value: chacha20-poly1305, en: ChaCha20-Poly1305, zh: ChaCha20-Poly1305}
+        - {value: none, en: No encryption, zh: 不加密}
+        - {value: zero, en: No encryption or authentication, zh: 不加密也不认证}
+      importance: recommended
+      doc: "proxies/vmess#cipher"
+      zh: [加密方式, "VMess 加密方式。"]
+      en: [Cipher, "VMess cipher."]
+    - {key: packet-encoding, type: string, importance: expert, doc: "proxies/vmess#packet-encoding", zh: [包编码, "UDP 包编码：packetaddr 或 xudp。"], en: [Packet encoding, "UDP packet encoding: packetaddr or xudp."]}
+    - {key: global-padding, type: bool, importance: expert, doc: "proxies/vmess#global-padding", zh: [全局填充, "启用全局填充。"], en: [Global padding, "Enable global padding."]}
+    - {key: authenticated-length, type: bool, importance: expert, doc: "proxies/vmess#authenticated-length", zh: [长度认证, "启用长度块认证。"], en: [Authenticated length, "Enable authenticated length blocks."]}
+    - {key: xudp, type: bool, importance: expert, doc: proxies/vmess, zh: [XUDP, "使用 XUDP 承载 UDP。"], en: [XUDP, "Carry UDP with XUDP."]}
+    - {key: packet-addr, type: bool, importance: expert, doc: proxies/vmess, zh: [packetaddr, "使用 packetaddr 承载 UDP。"], en: [packetaddr, "Carry UDP with packetaddr."]}
+  p-vless:
+    - {key: uuid, type: string, importance: core, sensitive: true, doc: "proxies/vless#uuid", zh: [UUID, "用户 ID。"], en: [UUID, "User ID."]}
+    - {key: flow, type: string, importance: recommended, doc: "proxies/vless#flow", examples: [{value: xtls-rprx-vision, en: XTLS Vision, zh: XTLS Vision}],
+       zh: [流控, "流控模式，常用 xtls-rprx-vision。"], en: [Flow, "Flow control mode, typically xtls-rprx-vision."]}
+    - {key: encryption, type: string, importance: optional, doc: "proxies/vless#encryption", zh: [加密, "VLESS 加密参数；留空表示不加密。"], en: [Encryption, "VLESS encryption parameter; empty means none."]}
+    - {key: packet-encoding, type: string, importance: expert, doc: "proxies/vless#packet-encoding", zh: [包编码, "UDP 包编码：packetaddr 或 xudp。"], en: [Packet encoding, "UDP packet encoding: packetaddr or xudp."]}
+    - {key: xudp, type: bool, importance: expert, doc: proxies/vless, zh: [XUDP, "使用 XUDP 承载 UDP。"], en: [XUDP, "Carry UDP with XUDP."]}
+    - {key: packet-addr, type: bool, importance: expert, doc: proxies/vless, zh: [packetaddr, "使用 packetaddr 承载 UDP。"], en: [packetaddr, "Carry UDP with packetaddr."]}
+  p-trojan:
+    - {key: password, type: string, importance: core, sensitive: true, doc: "proxies/trojan#password", zh: [密码, "Trojan 密码。"], en: [Password, "Trojan password."]}
+  p-trojan-ss:
+    - key: ss-opts
+      type: object
+      importance: expert
+      doc: "proxies/trojan#ss-opts"
+      zh: [Shadowsocks 加密, "在 Trojan 内再套一层 Shadowsocks AEAD 加密。"]
+      en: [Shadowsocks layer, "Wrap Trojan traffic in an extra Shadowsocks AEAD layer."]
+      fields:
+        - {key: enabled, type: bool, importance: expert, doc: "proxies/trojan#ss-opfsenabled", zh: [启用, "启用 Shadowsocks 加密。"], en: [Enable, "Enable the Shadowsocks layer."]}
+        - {key: method, type: string, importance: expert, doc: "proxies/trojan#ss-opfsmethod", zh: [加密方式, "Shadowsocks AEAD 加密方式。"], en: [Method, "Shadowsocks AEAD method."]}
+        - {key: password, type: string, importance: expert, sensitive: true, doc: "proxies/trojan#ss-opfspassword", zh: [密码, "Shadowsocks 密码。"], en: [Password, "Shadowsocks password."]}
+  p-hysteria2:
+    - {key: ports, type: string, importance: optional, doc: "proxies/hysteria2#ports", examples: [{value: "443,8443-8450", en: Port hopping, zh: 端口跳跃}],
+       zh: [端口跳跃, "端口跳跃使用的端口列表或范围。"], en: [Port hopping, "Port list or ranges used for port hopping."]}
+    - {key: hop-interval, type: string, importance: optional, doc: "proxies/hysteria2#hop-interval", zh: [跳跃间隔, "端口跳跃的间隔秒数。"], en: [Hop interval, "Seconds between port hops."]}
+    - {key: password, type: string, importance: core, sensitive: true, doc: "proxies/hysteria2#password", zh: [密码, "Hysteria2 认证密码。"], en: [Password, "Hysteria2 authentication password."]}
+    - {key: up, type: string, importance: recommended, doc: "proxies/hysteria2#updown", zh: [上行带宽, "如 30 Mbps；留空使用 BBR 拥塞控制。"], en: [Upload, "For example 30 Mbps; empty uses BBR congestion control."]}
+    - {key: down, type: string, importance: recommended, doc: "proxies/hysteria2#updown", zh: [下行带宽, "如 200 Mbps。"], en: [Download, "For example 200 Mbps."]}
+    - {key: obfs, type: string, importance: optional, doc: "proxies/hysteria2#obfs", zh: [混淆, "混淆类型，目前为 salamander。"], en: [Obfs, "Obfuscation type, currently salamander."]}
+    - {key: obfs-password, type: string, importance: optional, sensitive: true, doc: "proxies/hysteria2#obfs-password", zh: [混淆密码, "混淆使用的密码。"], en: [Obfs password, "Obfuscation password."]}
+    - {key: obfs-min-packet-size, type: int, importance: expert, doc: "proxies/hysteria2#obfs-min-packet-size", zh: [混淆最小包, "混淆的最小包大小。"], en: [Obfs min packet, "Minimum obfuscated packet size."]}
+    - {key: obfs-max-packet-size, type: int, importance: expert, doc: "proxies/hysteria2#obfs-max-packet-size", zh: [混淆最大包, "混淆的最大包大小。"], en: [Obfs max packet, "Maximum obfuscated packet size."]}
+  p-hysteria2-tail:
+    - {key: realm-opts, type: map, values: {type: any, reason: Realm 打洞参数较多，M6 补齐}, importance: expert, stability: experimental, doc: "proxies/hysteria2#realm-opts",
+       zh: [Realm, "通过 Realm 服务器打洞连接。"], en: [Realm, "Connect through a Realm rendezvous server."]}
+    - {key: handshake-timeout, type: int, importance: expert, doc: "proxies/hysteria2#handshake-timeout", zh: [握手超时, "QUIC 握手超时秒数。"], en: [Handshake timeout, "QUIC handshake timeout in seconds."]}
+    - {key: cwnd, type: int, importance: expert, doc: proxies/hysteria2, zh: [初始窗口, "拥塞窗口初值。"], en: [Initial window, "Initial congestion window."]}
+    - {key: bbr-profile, type: string, importance: expert, doc: proxies/hysteria2, zh: [BBR 配置, "BBR 拥塞控制的配置档。"], en: [BBR profile, "BBR congestion control profile."]}
+    - {key: udp-mtu, type: int, importance: expert, doc: proxies/hysteria2, zh: [UDP MTU, "QUIC 数据报的最大大小。"], en: [UDP MTU, "Maximum QUIC datagram size."]}
+    - {key: initial-stream-receive-window, type: int, importance: expert, doc: proxies/hysteria2, zh: [流接收窗口初值, "QUIC 流接收窗口初值。"], en: [Initial stream window, "Initial QUIC stream receive window."]}
+    - {key: max-stream-receive-window, type: int, importance: expert, doc: proxies/hysteria2, zh: [流接收窗口上限, "QUIC 流接收窗口上限。"], en: [Max stream window, "Maximum QUIC stream receive window."]}
+    - {key: initial-connection-receive-window, type: int, importance: expert, doc: proxies/hysteria2, zh: [连接接收窗口初值, "QUIC 连接接收窗口初值。"], en: [Initial connection window, "Initial QUIC connection receive window."]}
+    - {key: max-connection-receive-window, type: int, importance: expert, doc: proxies/hysteria2, zh: [连接接收窗口上限, "QUIC 连接接收窗口上限。"], en: [Max connection window, "Maximum QUIC connection receive window."]}
+  p-hysteria:
+    - {key: ports, type: string, importance: optional, doc: proxies/hysteria, zh: [端口跳跃, "端口跳跃使用的端口列表或范围。"], en: [Port hopping, "Port list or ranges used for port hopping."]}
+    - {key: auth-str, type: string, importance: core, sensitive: true, doc: proxies/hysteria, zh: [认证字符串, "Hysteria 认证字符串。"], en: [Auth string, "Hysteria authentication string."]}
+    - {key: auth, type: string, importance: optional, sensitive: true, doc: proxies/hysteria, zh: [认证（base64）, "base64 编码的认证数据。"], en: [Auth (base64), "Base64-encoded authentication."]}
+    - {key: obfs, type: string, importance: optional, sensitive: true, doc: proxies/hysteria, zh: [混淆, "混淆密码。"], en: [Obfs, "Obfuscation password."]}
+    - {key: protocol, type: string, importance: optional, doc: proxies/hysteria, zh: [协议, "udp、wechat-video 或 faketcp。"], en: [Protocol, "udp, wechat-video or faketcp."]}
+    - {key: up, type: string, importance: core, doc: proxies/hysteria, zh: [上行带宽, "如 30 Mbps。"], en: [Upload, "For example 30 Mbps."]}
+    - {key: down, type: string, importance: core, doc: proxies/hysteria, zh: [下行带宽, "如 200 Mbps。"], en: [Download, "For example 200 Mbps."]}
+    - {key: recv-window-conn, type: int, importance: expert, doc: proxies/hysteria, zh: [流接收窗口, "QUIC 流接收窗口。"], en: [Stream window, "QUIC stream receive window."]}
+    - {key: recv-window, type: int, importance: expert, doc: proxies/hysteria, zh: [连接接收窗口, "QUIC 连接接收窗口。"], en: [Connection window, "QUIC connection receive window."]}
+    - {key: disable-mtu-discovery, type: bool, importance: expert, doc: proxies/hysteria, zh: [禁用 MTU 探测, "禁用路径 MTU 探测。"], en: [Disable MTU discovery, "Disable path MTU discovery."]}
+    - {key: fast-open, type: bool, importance: expert, doc: proxies/hysteria, zh: [快速打开, "不等待连接确认即发送数据。"], en: [Fast open, "Send data before the connection is confirmed."]}
+  p-tuic:
+    - {key: token, type: string, importance: optional, sensitive: true, doc: "proxies/tuic#token", zh: [令牌, "TUIC v4 认证令牌。"], en: [Token, "TUIC v4 authentication token."]}
+    - {key: uuid, type: string, importance: core, sensitive: true, doc: "proxies/tuic#uuid", zh: [UUID, "TUIC v5 用户 UUID。"], en: [UUID, "TUIC v5 user UUID."]}
+    - {key: password, type: string, importance: core, sensitive: true, doc: "proxies/tuic#password", zh: [密码, "TUIC v5 用户密码。"], en: [Password, "TUIC v5 user password."]}
+    - {key: ip, type: string, importance: optional, doc: "proxies/tuic#ip", zh: [服务器 IP, "指定连接用的 IP，跳过 server 的域名解析。"], en: [Server IP, "IP used to connect instead of resolving server."]}
+    - {key: heartbeat-interval, type: int, importance: expert, doc: "proxies/tuic#heartbeat-interval", zh: [心跳间隔, "心跳间隔毫秒数。"], en: [Heartbeat, "Heartbeat interval in milliseconds."]}
+    - {key: disable-sni, type: bool, importance: expert, doc: "proxies/tuic#disable-sni", zh: [禁用 SNI, "握手时不发送 SNI。"], en: [Disable SNI, "Do not send SNI."]}
+    - {key: reduce-rtt, type: bool, importance: optional, doc: "proxies/tuic#reduce-rtt", zh: [0-RTT, "启用 0-RTT 握手。"], en: [0-RTT, "Enable 0-RTT handshakes."]}
+    - {key: request-timeout, type: int, importance: expert, doc: "proxies/tuic#request-timeout", zh: [请求超时, "请求超时毫秒数。"], en: [Request timeout, "Request timeout in milliseconds."]}
+    - {key: udp-relay-mode, type: string, importance: optional, doc: "proxies/tuic#udp-relay-mode", zh: [UDP 中继模式, "native 或 quic。"], en: [UDP relay mode, "native or quic."]}
+    - {key: congestion-controller, type: string, importance: optional, doc: "proxies/tuic#congestion-controller", zh: [拥塞控制, "cubic、new_reno 或 bbr。"], en: [Congestion control, "cubic, new_reno or bbr."]}
+    - {key: cwnd, type: int, importance: expert, doc: proxies/tuic, zh: [初始窗口, "拥塞窗口初值。"], en: [Initial window, "Initial congestion window."]}
+    - {key: bbr-profile, type: string, importance: expert, doc: proxies/tuic, zh: [BBR 配置, "BBR 拥塞控制的配置档。"], en: [BBR profile, "BBR congestion control profile."]}
+    - {key: max-udp-relay-packet-size, type: int, importance: expert, doc: "proxies/tuic#max-udp-relay-packet-size", zh: [UDP 包上限, "UDP 中继的最大包大小。"], en: [Max UDP packet, "Maximum UDP relay packet size."]}
+    - {key: fast-open, type: bool, importance: expert, doc: "proxies/tuic#fast-open", zh: [快速打开, "不等待连接确认即发送数据。"], en: [Fast open, "Send data before the connection is confirmed."]}
+    - {key: max-open-streams, type: int, importance: expert, doc: "proxies/tuic#max-open-streams", zh: [最大流数, "同时打开的最大流数。"], en: [Max open streams, "Maximum concurrently open streams."]}
+  p-tuic-tail:
+    - {key: udp-over-stream, type: bool, importance: expert, doc: proxies/tuic, zh: [UDP over Stream, "用 QUIC 流承载 UDP。"], en: [UDP over stream, "Carry UDP inside QUIC streams."]}
+    - {key: udp-over-stream-version, type: int, importance: expert, doc: proxies/tuic, zh: [UoS 版本, "UDP over Stream 协议版本。"], en: [UoS version, "UDP over stream protocol version."]}
+    - {key: recv-window-conn, type: int, importance: expert, doc: proxies/tuic, zh: [流接收窗口, "QUIC 流接收窗口。"], en: [Stream window, "QUIC stream receive window."]}
+    - {key: recv-window, type: int, importance: expert, doc: proxies/tuic, zh: [连接接收窗口, "QUIC 连接接收窗口。"], en: [Connection window, "QUIC connection receive window."]}
+    - {key: disable-mtu-discovery, type: bool, importance: expert, doc: proxies/tuic, zh: [禁用 MTU 探测, "禁用路径 MTU 探测。"], en: [Disable MTU discovery, "Disable path MTU discovery."]}
+    - {key: max-datagram-frame-size, type: int, importance: expert, doc: proxies/tuic, zh: [数据报帧上限, "QUIC 数据报帧的最大大小。"], en: [Max datagram frame, "Maximum QUIC datagram frame size."]}
+  p-wireguard:
+    - {key: ip, type: string, importance: core, doc: "proxies/wg#ip", zh: [IPv4 地址, "本端的 WireGuard IPv4 地址。"], en: [IPv4 address, "Local WireGuard IPv4 address."]}
+    - {key: ipv6, type: string, importance: optional, doc: "proxies/wg#ipv6", zh: [IPv6 地址, "本端的 WireGuard IPv6 地址。"], en: [IPv6 address, "Local WireGuard IPv6 address."]}
+    - {key: private-key, type: string, importance: core, sensitive: true, doc: "proxies/wg#private-key", zh: [私钥, "本端私钥。"], en: [Private key, "Local private key."]}
+    - {key: public-key, type: string, importance: core, doc: "proxies/wg#public-key", zh: [对端公钥, "服务端公钥。"], en: [Peer public key, "Server public key."]}
+    - {key: allowed-ips, type: list, items: {type: string}, importance: optional, doc: "proxies/wg#allowed-ips", zh: [允许的网段, "经此隧道转发的目标网段。"], en: [Allowed IPs, "Destinations routed through the tunnel."]}
+    - {key: pre-shared-key, type: string, importance: optional, sensitive: true, doc: "proxies/wg#pre-shared-key", zh: [预共享密钥, "可选的预共享密钥。"], en: [Pre-shared key, "Optional pre-shared key."]}
+    - {key: reserved, type: anyOf, of: [{type: string}, {type: list, items: {type: int}}], importance: expert, doc: "proxies/wg#reserved", zh: [保留字段, "握手保留字节（WARP 等需要）。"], en: [Reserved, "Handshake reserved bytes (needed by WARP and others)."]}
+    - {key: mtu, type: int, importance: expert, doc: "proxies/wg#mtu", zh: [MTU, "隧道 MTU。"], en: [MTU, "Tunnel MTU."]}
+    - {key: persistent-keepalive, type: int, importance: optional, doc: "proxies/wg#persistent-keepalive", zh: [保活间隔, "保活包间隔秒数。"], en: [Keepalive, "Seconds between keepalive packets."]}
+    - {key: workers, type: int, importance: expert, doc: proxies/wg, zh: [工作线程, "WireGuard 工作协程数。"], en: [Workers, "WireGuard worker count."]}
+    - {key: remote-dns-resolve, type: bool, importance: optional, doc: "proxies/wg#remote-dns-resolve", zh: [远程解析, "经隧道使用 dns 解析域名。"], en: [Remote DNS, "Resolve domains through the tunnel using dns."]}
+    - {key: dns, type: list, items: {type: string}, importance: optional, doc: "proxies/wg#dns", zh: [DNS, "remote-dns-resolve 使用的 DNS 服务器。"], en: [DNS, "DNS servers used by remote-dns-resolve."]}
+    - {key: refresh-server-ip-interval, type: int, importance: expert, doc: proxies/wg, zh: [刷新服务器 IP, "重新解析服务器地址的间隔秒数。"], en: [Refresh server IP, "Seconds between server re-resolution."]}
+    - key: peers
+      type: list
+      items:
+        type: object
+        fields:
+          - {key: server, type: string, importance: core, zh: [服务器, "对端地址。"], en: [Server, "Peer address."]}
+          - {key: port, type: int, importance: core, zh: [端口, "对端端口。"], en: [Port, "Peer port."]}
+          - {key: public-key, type: string, importance: core, zh: [公钥, "对端公钥。"], en: [Public key, "Peer public key."]}
+          - {key: pre-shared-key, type: string, importance: optional, sensitive: true, zh: [预共享密钥, "可选的预共享密钥。"], en: [Pre-shared key, "Optional pre-shared key."]}
+          - {key: allowed-ips, type: list, items: {type: string}, importance: optional, zh: [允许的网段, "经此对端转发的网段。"], en: [Allowed IPs, "Destinations routed to this peer."]}
+          - {key: reserved, type: anyOf, of: [{type: string}, {type: list, items: {type: int}}], importance: expert, zh: [保留字段, "握手保留字节。"], en: [Reserved, "Handshake reserved bytes."]}
+      importance: expert
+      doc: proxies/wg
+      zh: [多个对端, "多对端配置；填写后忽略顶层的对端字段。"]
+      en: [Peers, "Multi-peer setup; top-level peer fields are ignored when set."]
+    - {key: amnezia-wg-option, type: map, values: {type: any, reason: AmneziaWG 参数，M6 补齐}, importance: expert, stability: experimental, doc: proxies/wg,
+       zh: [AmneziaWG, "AmneziaWG 抗识别参数。"], en: [AmneziaWG, "AmneziaWG anti-detection parameters."]}
+    - {key: ip-stack, type: map, values: {type: any, reason: 用户态栈参数，M6 补齐}, importance: expert, doc: "proxies/wg#ip-stack",
+       zh: [用户态网络栈, "隧道内的用户态网络栈设置。"], en: [IP stack, "Userspace network stack inside the tunnel."]}
+  p-anytls:
+    - {key: password, type: string, importance: core, sensitive: true, doc: proxies/anytls, zh: [密码, "AnyTLS 密码。"], en: [Password, "AnyTLS password."]}
+    - {key: client-metadata, type: string, importance: expert, doc: "proxies/anytls#client-metadata", zh: [客户端元数据, "发送给服务端的附加信息。"], en: [Client metadata, "Extra information sent to the server."]}
+    - {key: idle-session-check-interval, type: int, importance: expert, doc: "proxies/anytls#idle-session-check-interval", zh: [空闲检查间隔, "检查空闲会话的间隔秒数。"], en: [Idle check interval, "Seconds between idle session checks."]}
+    - {key: idle-session-timeout, type: int, importance: expert, doc: "proxies/anytls#idle-session-timeout", zh: [空闲超时, "空闲会话关闭前的秒数。"], en: [Idle timeout, "Seconds before idle sessions close."]}
+    - {key: min-idle-session, type: int, importance: expert, doc: "proxies/anytls#min-idle-session", zh: [最少空闲会话, "保留的最少空闲会话数。"], en: [Min idle sessions, "Minimum idle sessions kept."]}
+    - {key: disable-reuse, type: bool, importance: expert, doc: proxies/anytls, zh: [禁用复用, "不复用会话。"], en: [Disable reuse, "Do not reuse sessions."]}
+  p-userpass:
+    - {key: username, type: string, importance: optional, doc: proxies, zh: [用户名, "代理认证用户名。"], en: [Username, "Proxy authentication username."]}
+    - {key: password, type: string, importance: optional, sensitive: true, doc: proxies, zh: [密码, "代理认证密码。"], en: [Password, "Proxy authentication password."]}
+  p-http-headers:
+    - {key: headers, type: map, values: {type: string}, importance: optional, doc: proxies/http, zh: [请求头, "附加的 HTTP 请求头。"], en: [Headers, "Extra HTTP request headers."]}
+  p-snell:
+    - {key: psk, type: string, importance: core, sensitive: true, doc: "proxies/snell#psk", zh: [预共享密钥, "Snell 预共享密钥。"], en: [PSK, "Snell pre-shared key."]}
+    - {key: version, type: int, importance: recommended, doc: "proxies/snell#version", zh: [版本, "Snell 协议版本。"], en: [Version, "Snell protocol version."]}
+    - {key: reuse, type: bool, importance: expert, doc: "proxies/snell#reuse", zh: [连接复用, "复用连接。"], en: [Reuse, "Reuse connections."]}
+    - {key: client-fingerprint, type: string, importance: expert, doc: "proxies/snell#client-fingerprint", zh: [客户端指纹, "混淆使用 TLS 时模拟的浏览器指纹。"], en: [Client fingerprint, "Browser fingerprint for TLS-based obfuscation."]}
+    - {key: obfs-opts, type: map, values: {type: any, reason: 混淆参数取决于 mode}, importance: optional, doc: "proxies/snell#obfs-opts", zh: [混淆参数, "混淆方式与参数，如 mode 与 host。"], en: [Obfs options, "Obfuscation mode and parameters such as mode and host."]}
+  p-mieru:
+    - {key: port-range, type: string, importance: optional, doc: "proxies/mieru#port-range", zh: [端口范围, "使用的端口范围。"], en: [Port range, "Port range to use."]}
+    - {key: transport, type: string, importance: core, doc: "proxies/mieru#transport", zh: [传输协议, "TCP 或 UDP。"], en: [Transport, "TCP or UDP."]}
+    - {key: username, type: string, importance: core, doc: proxies/mieru, zh: [用户名, "mieru 用户名。"], en: [Username, "mieru username."]}
+    - {key: password, type: string, importance: core, sensitive: true, doc: proxies/mieru, zh: [密码, "mieru 密码。"], en: [Password, "mieru password."]}
+    - {key: multiplexing, type: string, importance: optional, doc: "proxies/mieru#multiplexing", zh: [多路复用, "多路复用级别。"], en: [Multiplexing, "Multiplexing level."]}
+    - {key: handshake-mode, type: string, importance: expert, doc: "proxies/mieru#handshake-mode", zh: [握手模式, "握手方式。"], en: [Handshake mode, "Handshake mode."]}
+    - {key: traffic-pattern, type: string, importance: expert, doc: "proxies/mieru#traffic-pattern", zh: [流量模式, "流量特征参数。"], en: [Traffic pattern, "Traffic pattern parameter."]}
+  p-ssh:
+    - {key: username, type: string, importance: core, doc: "proxies/ssh#username", zh: [用户名, "SSH 用户名。"], en: [Username, "SSH username."]}
+    - {key: password, type: string, importance: optional, sensitive: true, doc: "proxies/ssh#password", zh: [密码, "SSH 密码。"], en: [Password, "SSH password."]}
+    - {key: private-key, type: string, importance: optional, sensitive: true, doc: "proxies/ssh#private-key", zh: [私钥, "SSH 私钥内容或路径。"], en: [Private key, "SSH private key content or path."]}
+    - {key: private-key-passphrase, type: string, importance: optional, sensitive: true, doc: proxies/ssh, zh: [私钥口令, "私钥的口令。"], en: [Key passphrase, "Passphrase of the private key."]}
+    - {key: host-key, type: list, items: {type: string}, importance: optional, doc: "proxies/ssh#host-key", zh: [主机公钥, "允许的服务器主机公钥。"], en: [Host keys, "Accepted server host keys."]}
+    - {key: host-key-algorithms, type: list, items: {type: string}, importance: expert, doc: "proxies/ssh#host-key-algorithms", zh: [主机密钥算法, "允许的主机密钥算法。"], en: [Host key algorithms, "Accepted host key algorithms."]}

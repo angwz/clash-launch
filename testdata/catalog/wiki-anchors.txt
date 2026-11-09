@@ -1,0 +1,45 @@
+# mihomo wiki 各配置页的标题锚点快照（https://wiki.metacubex.one/config/，2026-11-09 抓取）。
+# 每行：页面路径 锚点…；目录测试据此校验 doc 链接。更新方法见 docs/design/catalog.md。
+dns enable cache-algorithm prefer-h3 listen ipv6 enhanced-mode fake-ip-range fake-ip-range6 fake-ip-filter fake-ip-filter-mode fake-ip-ttl use-hosts use-system-hosts respect-rules default-nameserver nameserver-policy proxy-server-nameserver proxy-server-nameserver-policy direct-nameserver direct-nameserver-follow-policy nameserver fallback fallback-filter geoip geoip-code geosite ipcidr domain fallback-lazy-query dns_1 h3 skip-cert-verify name-cert-verify ecs ecs-override disable-ipv4 disable-ipv6 disable-qtype-int
+dns/hosts
+experimental quic-go-disable-gso quic-go-disable-ecn dialer-ip4p-convert
+general ipv6 tcp-keep-alive api tcp outbound-interface routing-mark tls geoip geo geo_1 geo_2 ua etag
+inbound/listeners name type listen port routing-mark rule proxy
+inbound/listeners/tuic-v5
+inbound/port https socks44a5
+inbound/tun enable stack device auto-route auto-redirect auto-detect-interface dns-mode dns-hijack strict-route mtu gso gso-max-size inet6-address udp-timeout iproute2-table-index iproute2-rule-index endpoint-independent-nat congestion-controller route-address-set route-exclude-address-set route-address route-exclude-address include-interface exclude-interface include-uid include-uid-range exclude-uid exclude-uid-range include-mac-address exclude-mac-address include-android-user include-package exclude-package inet4-route-address inet6-route-address inet4-route-exclude-address inet6-route-exclude-address tun_1
+ntp enable write-to-system server port interval dialer-proxy
+proxies name type server port ip-version udp interface-name routing-mark tfo mptcp dialer-proxy smux smuxenabled smuxprotocol smuxmax-connections smuxmin-streams smuxmax-streams smuxstatistic smuxonly-tcp smuxpadding smuxbrutal-opts smuxbrutal-optsenabled smuxbrutal-optsupdown
+proxies/anytls client-metadata idle-session-check-interval idle-session-timeout min-idle-session
+proxies/dialer-proxy vps socks relay relay-select
+proxies/direct
+proxies/dns
+proxies/http
+proxies/hysteria
+proxies/hysteria2 ports hop-interval password updown obfs obfs-password obfs-min-packet-size obfs-max-packet-size realm-opts handshake-timeout
+proxies/mieru port-range transport multiplexing handshake-mode traffic-pattern
+proxies/snell psk version reuse client-fingerprint obfs-opts obfs-optsmode obfs-optshost obfs-optspassword obfs-optsversion obfs-optsalpn obfs-optsusername obfs-optsversion-hint obfs-optsrestls-script
+proxies/socks
+proxies/ss cipher password udp-over-tcp udp-over-tcp-version plugin plugin-opts
+proxies/ssh username password private-key private_key_passphrase host-key host-key-algorithms
+proxies/ssr
+proxies/tls tls_1 sniservername fingerprint alpn skip-cert-verify name-cert-verify certificate private-key client-fingerprint reality-opts reality-optspublic-key reality-optsshort-id reality-optssupport-x25519mlkem768 ech-opts ech-optsenable ech-optsconfig ech-optsquery-server-name shadow-tls-opts shadow-tls-optsversion shadow-tls-optspassword restls-opts restls-optspassword restls-optsversion-hint restls-optsrestls-script jls-opts jls-optsusername jls-optspassword tlsmirror-opts tlsmirror-optsprimary-key tlsmirror-optsexplicit-nonce-ciphersuites tlsmirror-optsdefer-instance-derived-write-time tlsmirror-optstransport-layer-padding tlsmirror-optsconnection-enrolment tlsmirror-optsconnection-enrolmentprimary-ingress-outbound tlsmirror-optsconnection-enrolmentprimary-egress-outbound tlsmirror-optssequence-watermarking-enabled tlsmirror-optsembedded-traffic-generator tlsmirror-optsembedded-traffic-generatorsteps tlsmirror-optsembedded-traffic-generatorstepsname tlsmirror-optsembedded-traffic-generatorstepshost tlsmirror-optsembedded-traffic-generatorstepspath tlsmirror-optsembedded-traffic-generatorstepsmethod tlsmirror-optsembedded-traffic-generatorstepsheaders tlsmirror-optsembedded-traffic-generatorstepsconnection-ready tlsmirror-optsembedded-traffic-generatorstepsconnection-recall-exit tlsmirror-optsembedded-traffic-generatorstepsh2-do-not-wait-for-download-finish tlsmirror-optsembedded-traffic-generatorstepswait-time tlsmirror-optsembedded-traffic-generatorstepsnext-step
+proxies/transport http-opts http-optsmethod http-optspath http-optsheaders h2-opts h2-optshost h2-optspath grpc-opts grpc-optsgrpc-service-name grpc-optsgrpc-user-agent grpc-optsping-interval grpc-optsmax-connections grpc-optsmin-streams grpc-optsmax-streams ws-opts ws-optspath ws-optsheaders ws-optsmax-early-data ws-optsearly-data-header-name ws-optsv2ray-http-upgrade ws-optsv2ray-http-upgrade-fast-open mkcp-opts mkcp-optsmtu mkcp-optstti mkcp-optsuplink-capacity mkcp-optsdownlink-capacity mkcp-optscongestion mkcp-optswrite-buffer mkcp-optsread-buffer mkcp-optsseed mkcp-optsheader mekya-opts mekya-optsurl mekya-optsmax-write-delay mekya-optsmax-request-size mekya-optspolling-interval-initial mekya-optsh2-pool-size mekya-optskcp xhttp-opts xhttp-optspath xhttp-optshost xhttp-optsmode xhttp-optsheaders xhttp-optsno-grpc-header xhttp-optsx-padding-bytes xhttp-optsx-padding-obfs-mode xhttp-optsx-padding-key xhttp-optsx-padding-header xhttp-optsx-padding-placement xhttp-optsx-padding-method xhttp-optsuplink-http-method xhttp-optssession-placement xhttp-optssession-key xhttp-optssession-table xhttp-optssession-length xhttp-optsseq-placement xhttp-optsseq-key xhttp-optsuplink-data-placement xhttp-optsuplink-data-key xhttp-optsuplink-chunk-size xhttp-optssc-max-each-post-bytes xhttp-optssc-min-posts-interval-ms xhttp-optsreuse-settings xhttp-optsreuse-settingsmax-concurrency xhttp-optsreuse-settingsmax-connections xhttp-optsreuse-settingsc-max-reuse-times xhttp-optsreuse-settingsh-max-request-times xhttp-optsreuse-settingsh-max-reusable-secs xhttp-optsreuse-settingsh-keep-alive-period xhttp-optsdownload-settings
+proxies/trojan password ss-opts ss-opfsenabled ss-opfsmethod ss-opfspassword network
+proxies/tuic token uuid password ip heartbeat-interval disable-sni reduce-rtt request-timeout udp-relay-mode congestion-controller max-udp-relay-packet-size fast-open max-open-streams
+proxies/vless uuid flow packet-encoding encryption network
+proxies/vmess uuid alterid cipher packet-encoding global-padding authenticated-length network
+proxies/wg ip ipv6 private-key public-key allowed-ips pre-shared-key reserved persistent-keepalive ip-stack ip-stackmode ip-stackcongestion-controller mtu remote-dns-resolve dns wireguard_1
+proxy-groups name type proxies use url interval lazy default-selected empty-fallback timeout max-failed-times disable-udp interface-name routing-mark include-all include-all-proxies include-all-providers filter exclude-filter exclude-type expected-status hidden icon
+proxy-groups/fallback
+proxy-groups/load-balance strategy hash-key
+proxy-groups/select
+proxy-groups/url-test tolerance
+proxy-providers name type url path interval proxy size-limit age-secret-key header health-check health-checkenable health-checkurl health-checkinterval health-checktimeout health-checklazy health-checkexpected-status override overrideadditional-prefix overrideadditional-suffix overrideproxy-name override_1 overrideoverride-expr filter exclude-filter exclude-type payload
+proxy-providers/content
+rule-providers name type url path interval proxy behavior format path-in-bundle size-limit header payload
+rule-providers/content classical domain ipcidr
+rules domain domain-suffix domain-keyword domain-wildcard domain-regex geosite ip-cidr-ip-cidr6 ip-suffix ip-asn geoip src-geoip src-ip-asn src-ip-cidr src-ip-suffix dst-port src-port in-port in-type in-user in-name rematch-name process-path process-path-wildcard process-path-regex process-name process-name-wildcard process-name-regex uid network dscp rule-set and-or-not sub-rule match no-resolve src
+sniff enable force-dns-mapping parse-pure-ip override-destination sniff force-domain skip-domain skip-src-address skip-dst-address
+sub-rule
+tunnels network address target proxy

@@ -1,0 +1,37 @@
+# NAME: M1 · 两层编辑
+# TARGET: mihomo · mihomo 1.19.33
+# GENERATOR: Clash, Launch! 1.0.0-dev · https://github.com/angwz/clash-launch
+# UPDATED: 2026-11-09 06:08:31 (UTC+8)
+
+mixed-port: 7890
+
+allow-lan: false
+
+mode: rule
+
+log-level: info
+
+global-client-fingerprint: chrome
+
+experimental:
+  some-new-field: true
+
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - tls://192.0.2.53:853
+
+proxies:
+  - {name: 🪐 示例, type: ss, server: 192.0.2.1, port: 8388, cipher: aes-128-gcm, password: example}
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies:
+      - 🪐 示例
+      - DIRECT
+
+rules:
+  - DOMAIN,intranet.example.com,DIRECT
+  - MATCH,PROXY

@@ -1,0 +1,10 @@
+# 基准预设：Mihomo 内核本身，不接管任何字段。
+id: mihomo
+label: {en: Mihomo (generic), zh: Mihomo 通用}
+platform: any
+core: mihomo
+docs: https://wiki.metacubex.one/
+kernel: true
+notes:
+  en: Plain mihomo core. Every field is written as configured; nothing is managed by a client.
+  zh: 直接使用 mihomo 内核。所有字段按设置输出，不被任何客户端接管。

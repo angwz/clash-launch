@@ -1,0 +1,28 @@
+clash-launch/profile: v1
+name: M1 · 两层编辑
+target: { pack: mihomo, preset: mihomo, core: "1.19.33" }
+output: { timezone: Asia/Shanghai }
+form:
+  mixed-port: 7890
+  allow-lan: false
+  mode: rule
+  log-level: info
+  dns:
+    enable: true
+    enhanced-mode: fake-ip
+    nameserver: [https://doh.example.com/dns-query]
+  global-client-fingerprint: chrome
+raw: |
+  # 原始编辑（后备隐藏能源）：注释与空行原样保存
+  proxies: !append
+    - {name: 🪐 示例, type: ss, server: 192.0.2.1, port: 8388, cipher: aes-128-gcm, password: example}
+  proxy-groups:
+    - {name: PROXY, type: select, proxies: [🪐 示例, DIRECT]}
+  rules: !prepend
+    - DOMAIN,intranet.example.com,DIRECT
+    - MATCH,PROXY
+  dns:
+    nameserver: !replace
+      - tls://192.0.2.53:853
+  experimental:
+    some-new-field: true   # 目录外字段：原样输出

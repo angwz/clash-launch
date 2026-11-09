@@ -1,0 +1,90 @@
+# Mihomo 格式包 · 字段目录入口
+#
+# order 是顶层键的渲染顺序，取自 mihomo v1.19.33 官方示例 docs/config.yaml（含其中被注释掉的键）。
+# 示例中没有出现的键标注「示例未列出」，按 wiki 文档页的介绍顺序放在相关字段旁边。
+# 依据与取舍见 docs/design/catalog.md。
+id: mihomo
+label: Mihomo
+doc-root: https://wiki.metacubex.one/config/
+core-min: "1.18.0"
+core-max: "1.19.33"
+reference: MetaCubeX/mihomo@v1.19.33 docs/config.yaml
+files:
+  - general.yaml
+  - dns.yaml
+  - tun.yaml
+  - sniffer.yaml
+  - inbound.yaml
+  - platform.yaml
+  - proxies.yaml
+  - proxies/common.yaml
+  - proxies/protocols.yaml
+  - proxy-groups.yaml
+  - providers.yaml
+  - rules.yaml
+order:
+  - port
+  - socks-port
+  - mixed-port
+  - redir-port
+  - tproxy-port
+  - inbound-tfo            # 示例未列出
+  - inbound-mptcp          # 示例未列出
+  - allow-lan
+  - bind-address
+  - authentication
+  - skip-auth-prefixes
+  - lan-allowed-ips
+  - lan-disallowed-ips
+  - find-process-mode
+  - mode
+  - unified-delay          # 示例未列出
+  - geox-url
+  - geo-auto-update
+  - geo-update-interval
+  - geodata-mode           # 示例未列出
+  - geodata-loader         # 示例未列出
+  - geosite-matcher
+  - log-level
+  - ipv6
+  - tls
+  - external-controller
+  - external-controller-tls
+  - secret
+  - external-controller-cors
+  - external-controller-unix
+  - external-controller-pipe
+  - external-controller-routing-mark
+  - tcp-concurrent
+  - external-ui
+  - external-ui-name
+  - external-ui-url
+  - external-doh-server
+  - interface-name
+  - disable-keep-alive
+  - keep-alive-idle
+  - keep-alive-interval
+  - routing-mark
+  - global-client-fingerprint  # 示例未列出；v1.19.27 起已移除
+  - global-ua              # 示例未列出
+  - etag-support           # 示例未列出
+  - experimental
+  - hosts
+  - profile
+  - tun
+  - sniffer
+  - tunnels
+  - ntp                    # 示例未列出
+  - dns
+  - proxies
+  - proxy-groups
+  - proxy-providers
+  - rule-providers
+  - rules
+  - sub-rules
+  - listeners
+  - ss-config
+  - vmess-config
+  - tuic-server
+  - iptables               # 示例未列出
+  - clash-for-android      # 示例未列出

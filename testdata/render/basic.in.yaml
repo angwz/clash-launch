@@ -1,0 +1,38 @@
+# golden 输入：键序故意打乱，混入目录外字段；只使用保留示例地址与虚构凭据。
+rules:
+  - DOMAIN-SUFFIX,example.com,DIRECT
+  - RULE-SET,Proxy,🚀 节点选择
+  - GEOIP,CN,DIRECT,no-resolve
+  - MATCH,🐟 漏网之鱼
+dns:
+  nameserver: [https://doh.example.com/dns-query, tls://192.0.2.53:853]
+  enhanced-mode: fake-ip
+  enable: true
+  fake-ip-filter: ['*.lan', '+.local']
+  nameserver-policy:
+    'geosite:cn,private': [https://doh.example.com/dns-query]
+    '+.example.org': 192.0.2.53
+mode: rule
+mixed-port: 7890
+experimental:
+  some-new-field: true
+proxies:
+  - {port: 443, server: 192.0.2.10, type: vmess, name: 🇸🇬 广港 IEPL 新加坡 01, uuid: 11111111-2222-3333-4444-555555555555, alterId: 0, cipher: auto, tls: true, network: ws, ws-opts: {headers: {Host: cdn.example.com}, path: /ray}, servername: cdn.example.com}
+  - {name: 🪐 未知地区, type: ss, server: "2001:db8::1", port: 8388, password: MDEyMzQ1Njc4OWFiY2RlZg==, cipher: 2022-blake3-aes-128-gcm, udp: true}
+  - {name: 'yes', type: trojan, server: example.com, port: 443, password: pw, sni: example.com, udp: true, x-unknown: 1}
+proxy-groups:
+  - {name: 🚀 节点选择, type: select, proxies: [♻️ 自动选择, 🇸🇬 广港 IEPL 新加坡 01, DIRECT]}
+  - {interval: 300, url: https://www.gstatic.com/generate_204, name: ♻️ 自动选择, type: url-test, tolerance: 50, proxies: [🇸🇬 广港 IEPL 新加坡 01, 🪐 未知地区]}
+  - {name: 🐟 漏网之鱼, type: select, proxies: [🚀 节点选择, DIRECT]}
+rule-providers:
+  Proxy: {url: https://rules.example.com/Proxy.yaml, type: http, behavior: domain, path: ./ruleset/Proxy.yaml, interval: 86400}
+hosts:
+  router.lan: 192.0.2.1
+  '*.example.net': [192.0.2.2, 192.0.2.3]
+allow-lan: false
+log-level: info
+tun:
+  stack: mixed
+  enable: true
+  dns-hijack: ['any:53']
+  auto-route: true

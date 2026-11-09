@@ -1,0 +1,22 @@
+# 平台相关的顶层分节。官方示例与 wiki 都没有单独介绍，字段与默认值取自源码 config.RawConfig。
+fields:
+  - key: iptables
+    type: object
+    importance: expert
+    doc: general
+    zh: [iptables, "由内核自行配置 iptables 透明代理（仅 Linux）。"]
+    en: [iptables, "Let the core configure iptables transparent proxying (Linux only)."]
+    fields:
+      - {key: enable, type: bool, default: false, importance: expert, zh: [启用, "启用自动 iptables。"], en: [Enable, "Enable automatic iptables."]}
+      - {key: inbound-interface, type: string, default: lo, importance: expert, zh: [入站网卡, "接收被重定向流量的网卡。"], en: [Inbound interface, "Interface receiving redirected traffic."]}
+      - {key: bypass, type: list, items: {type: string}, importance: expert, zh: [绕过, "不做重定向的网段。"], en: [Bypass, "CIDRs that are not redirected."]}
+      - {key: dns-redirect, type: bool, default: true, importance: expert, zh: [DNS 重定向, "同时重定向 DNS 请求。"], en: [DNS redirect, "Also redirect DNS queries."]}
+  - key: clash-for-android
+    type: object
+    importance: expert
+    doc: general
+    zh: [Clash for Android, "只对 Clash for Android 系客户端生效的设置。"]
+    en: [Clash for Android, "Settings honoured only by Clash for Android style clients."]
+    fields:
+      - {key: append-system-dns, type: bool, importance: expert, zh: [追加系统 DNS, "把系统 DNS 追加到 nameserver。"], en: [Append system DNS, "Append the system DNS to nameserver."]}
+      - {key: ui-subtitle-pattern, type: string, importance: expert, zh: [副标题规则, "界面中节点副标题的匹配规则。"], en: [Subtitle pattern, "Pattern for proxy subtitles in the UI."]}
