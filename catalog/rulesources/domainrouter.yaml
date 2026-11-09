@@ -1,0 +1,19 @@
+# domainrouter_v2：维护者自己的规则，默认推荐。规则源以 URL 形式跟随更新。
+id: domainrouter
+label: {en: domainrouter_v2, zh: domainrouter_v2}
+repo: https://github.com/angwz/domainrouter_v2
+license: 见仓库
+checked: "2026-11-09"
+recommended: true
+notes:
+  en: Rule sets compiled and optimised daily by domainrouter_v2; groups.toml defines the policy groups.
+  zh: domainrouter_v2 每日编译、去重与优化的规则集；groups.toml 定义策略组。
+variants:
+  - id: yaml
+    label: {en: YAML rule sets, zh: YAML 规则集}
+    groups: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/groups.toml
+    rulesets: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/rulesets.toml
+  - id: mrs
+    label: {en: MRS rule sets (faster loading), zh: MRS 规则集（加载更快）}
+    groups: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/groups.toml
+    rulesets: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/rulesets-mrs.toml

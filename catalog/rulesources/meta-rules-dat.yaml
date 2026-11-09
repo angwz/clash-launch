@@ -1,0 +1,45 @@
+# MetaCubeX/meta-rules-dat：mihomo 官方组织的 geosite/geoip 数据与 MRS 规则集（meta 分支的 geo/）。
+id: meta-rules-dat
+label: {en: MetaCubeX meta-rules-dat, zh: MetaCubeX meta-rules-dat}
+repo: https://github.com/MetaCubeX/meta-rules-dat
+license: GPL-3.0
+checked: "2026-11-09"
+notes:
+  en: MRS rule sets built from geosite and geoip; a small template covering common categories.
+  zh: 由 geosite 与 geoip 构建的 MRS 规则集；模板覆盖常用分类。
+variants:
+  - id: mrs
+    label: {en: MRS categories, zh: MRS 分类}
+    groups-text: |
+      [[custom_groups]]
+      name = "🚀 节点选择"
+      type = "select"
+      rule = ["[]♻️ 自动选择", "[]DIRECT", ".*"]
+
+      [[custom_groups]]
+      name = "♻️ 自动选择"
+      type = "url-test"
+      url = "https://www.gstatic.com/generate_204"
+      interval = 300
+      tolerance = 50
+      rule = [".*"]
+    rulesets-text: |
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"
+      type = "clash-domain"
+      [[rulesets]]
+      group = "🚀 节点选择"
+      ruleset = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"
+      type = "clash-domain"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"
+      type = "clash-domain"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"
+      type = "clash-ipcidr"
+      [[rulesets]]
+      group = "🚀 节点选择"
+      ruleset = "[]MATCH"

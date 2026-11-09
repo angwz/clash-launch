@@ -17,9 +17,9 @@
 | 3 | 以 domainrouter_v2 的文档体系、groups.toml 校验与工程约定为范本 | 🔄 | [CLAUDE.md](../../CLAUDE.md)、本目录 |
 | 4 | YAML 格式绝对正确并每次自检，字段顺序遵循官方示例，渲染结果确定 | ✅ | [rendering](../design/rendering.md)、[catalog](../design/catalog.md) |
 | 5 | 两层编辑（表单 → 原始编辑，即后备隐藏能源）与合并标签语义严格落实 | ✅ | [merge](../design/merge.md) |
-| 6 | 有序源与订阅编号、地区识别（线路词剔除、手动覆盖、装饰 emoji）、现代选择器与外部配置 ini | 🕓 | M2 |
+| 6 | 有序源与订阅编号、地区识别（线路词剔除、手动覆盖、装饰 emoji）、现代选择器与外部配置 ini | ✅ | [nodes](../design/nodes.md)、[rules](../design/rules.md) |
 | 7 | 不静默丢弃：所有跳过、删除与无法转换的内容都进入诊断 | 🔄 | `internal/diag` |
-| 8 | 凭据加密、SSRF 防护、出站隐私与可迁移的存储层 | 🕓 | M2、M3、M5 |
+| 8 | 凭据加密、SSRF 防护、出站隐私与可迁移的存储层 | 🔄 | SSRF 与出站：[network](../design/network.md)；加密与存储：M3 |
 | 9 | 待环境核验的条目先查官方文档或源码再实现，结论写进决定 | 🔄 | [0001](../decisions/0001-deviations-from-spec-1.0.md#核验结论待环境核验项) |
-| 10 | 运行时不调用任何第三方服务；出站连接只经过配置的出口代理（默认 WARP） | 🕓 | M2（拉取层）、M3 |
+| 10 | 运行时不调用任何第三方服务；出站连接只经过配置的出口代理（默认 WARP） | 🔄 | 拉取层：[network](../design/network.md)；WARP 边车：M3 |
 | 11 | 每个里程碑闭环：实现、测试、整理、同步文档与进度、提交；未运行的验证不写成通过 | 🔄 | [progress](progress.md) |

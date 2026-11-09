@@ -1,0 +1,109 @@
+# NAME: M2 · 外部配置 ini
+# TARGET: mihomo · mihomo 1.19.33
+# GENERATOR: Clash, Launch! 1.0.0-dev · https://github.com/angwz/clash-launch
+# UPDATED: 2026-11-09 00:00:00 (UTC+0)
+
+mixed-port: 7890
+
+proxies:
+  - {name: 🇭🇰 香港 01, type: vmess, server: 192.0.2.11, port: 443, uuid: 11111111-2222-3333-4444-555555555555, alterId: 0, cipher: auto, xudp: true, udp: true, tls: true, skip-cert-verify: false, servername: cdn.example.com, network: ws, ws-opts: {path: /ray, headers: {Host: cdn.example.com}}}
+  - {name: 🇭🇰 广港 专线 新加坡 01, type: trojan, server: 192.0.2.12, port: 443, password: example-trojan, client-fingerprint: chrome, udp: true, sni: example.com, skip-cert-verify: false}
+  - {name: 🇯🇵 日本 东京 02, type: ss, server: 192.0.2.13, port: 8388, cipher: aes-128-gcm, password: example-ss, udp: true}
+
+proxy-groups:
+  - name: 🚀 节点选择
+    type: select
+    proxies:
+      - ♻️ 自动选择
+      - DIRECT
+      - 🇭🇰 香港 01
+      - 🇭🇰 广港 专线 新加坡 01
+      - 🇯🇵 日本 东京 02
+    use:
+      - 机场 B
+    filter: .*
+  - name: ♻️ 自动选择
+    type: url-test
+    proxies:
+      - 🇭🇰 香港 01
+      - 🇭🇰 广港 专线 新加坡 01
+      - 🇯🇵 日本 东京 02
+    use:
+      - 机场 B
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    filter: .*
+  - name: 🇭🇰 香港
+    type: fallback
+    proxies:
+      - 🇭🇰 香港 01
+      - 🇭🇰 广港 专线 新加坡 01
+    use:
+      - 机场 B
+    url: https://www.gstatic.com/generate_204
+    interval: 120
+    filter: (港|HK)
+  - name: 🎯 全球直连
+    type: select
+    proxies:
+      - DIRECT
+      - 🚀 节点选择
+  - name: 🛑 全球拦截
+    type: select
+    proxies:
+      - REJECT
+      - DIRECT
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      - 🇭🇰 香港 01
+      - 🇭🇰 广港 专线 新加坡 01
+      - 🇯🇵 日本 东京 02
+    use:
+      - 机场 B
+    filter: .*
+
+proxy-providers:
+  机场 B:
+    type: http
+    url: https://sub.example.com/api/v1/client/subscribe?token=example-token
+    interval: 3600
+    path: ./proxies/机场_B.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: https://www.gstatic.com/generate_204
+    exclude-filter: 测试
+
+rule-providers:
+  LocalAreaNetwork:
+    behavior: classical
+    interval: 86400
+    path: ./ruleset/LocalAreaNetwork.list
+    type: http
+    url: https://rules.example.com/Clash/LocalAreaNetwork.list
+    format: text
+  Reject:
+    behavior: domain
+    interval: 43200
+    path: ./ruleset/Reject.yaml
+    type: http
+    url: https://rules.example.com/clash-domain/Reject.yaml
+    format: yaml
+  Telegram:
+    behavior: ipcidr
+    interval: 86400
+    path: ./ruleset/Telegram.yaml
+    type: http
+    url: https://rules.example.com/clash-ipcidr/Telegram.yaml
+    format: yaml
+
+rules:
+  - RULE-SET,LocalAreaNetwork,🎯 全球直连
+  - RULE-SET,Reject,🛑 全球拦截
+  - RULE-SET,Telegram,🚀 节点选择,no-resolve
+  - GEOIP,CN,🎯 全球直连
+  - MATCH,🐟 漏网之鱼

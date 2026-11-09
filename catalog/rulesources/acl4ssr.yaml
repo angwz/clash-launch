@@ -1,0 +1,16 @@
+# ACL4SSR：成套的 subconverter 外部配置（ini）。选择一个变体，以 URL 形式跟随更新。
+id: acl4ssr
+label: {en: ACL4SSR, zh: ACL4SSR}
+repo: https://github.com/ACL4SSR/ACL4SSR
+license: CC-BY-SA-4.0
+checked: "2026-11-09"
+stars: 6909
+notes:
+  en: External configs for subconverter; rule lists are Surge-style .list files loaded as mihomo classical text.
+  zh: subconverter 外部配置；规则列表为 Surge 风格的 .list，按 mihomo classical text 加载。
+variants:
+  - {id: online, label: {en: Online (default), zh: Online（默认）}, ini: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini}
+  - {id: online-full, label: {en: Online Full, zh: Online Full（全分组）}, ini: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full.ini}
+  - {id: online-mini, label: {en: Online Mini, zh: Online Mini（精简）}, ini: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini.ini}
+  - {id: online-full-netflix, label: {en: Online Full Netflix, zh: Online Full Netflix}, ini: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_Netflix.ini}
+  - {id: online-full-noauto, label: {en: Online Full NoAuto, zh: Online Full NoAuto（无自动测速）}, ini: https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini}

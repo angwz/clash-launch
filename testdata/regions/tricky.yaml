@@ -1,0 +1,66 @@
+# 地区识别的刁钻名称表（第 5.8 节，必须项）。识别规则改动时，这份表就是回归测试。
+# 每一条：name 节点名；code 期望的地区（空表示未识别）；kind 期望来源；inferred 是否标为推断；
+# info: true 表示应被「去掉信息节点」去掉（不进入地区识别）。
+cases:
+  # —— 中转：线路词含地区字，但不是落地地 ——
+  - {name: 广港 IEPL 新加坡 01, code: SG, kind: keyword}
+  - {name: 深港 HK 01, code: HK, kind: keyword}
+  - {name: 沪日 IPLC 东京 02, code: JP, kind: keyword}
+  - {name: 京德 专线 法兰克福, code: DE, kind: keyword}
+  - {name: 沪日 01, code: JP, kind: route, inferred: true}
+  - {name: 广港 IEPL 01, code: HK, kind: route, inferred: true}
+  - {name: 香港 → 日本 01, code: JP, kind: keyword}
+  - {name: 美国->新加坡 中转, code: SG, kind: keyword}
+  - {name: 台湾转美国 BGP, code: US, kind: keyword}
+  - {name: 香港 IEPL 新加坡 02, code: SG, kind: keyword, inferred: true}
+  # —— 排除：长词优先，避免误判 ——
+  - {name: 尼日利亚 01, code: NG, kind: keyword}
+  - {name: 印度尼西亚 雅加达, code: ID, kind: keyword}
+  - {name: 印度 孟买 01, code: IN, kind: keyword}
+  - {name: 新西兰 奥克兰, code: NZ, kind: keyword}
+  - {name: 澳门 01, code: MO, kind: keyword}
+  - {name: 澳洲 悉尼, code: AU, kind: keyword}
+  - {name: 东京日本 01, code: JP, kind: keyword}
+  - {name: 美西 洛杉矶 01, code: US, kind: keyword}
+  # —— 混合语言与城市 ——
+  - {name: Singapore Premium 01, code: SG, kind: keyword}
+  - {name: HongKong-03, code: HK, kind: keyword}
+  - {name: Hong Kong 04 x2, code: HK, kind: keyword}
+  - {name: Tokyo 东京 BGP, code: JP, kind: keyword}
+  - {name: 洛杉矶 Los Angeles 05, code: US, kind: keyword}
+  - {name: 狮城 01, code: SG, kind: keyword}
+  - {name: 首尔 01, code: KR, kind: keyword}
+  - {name: 法兰克福 01, code: DE, kind: keyword}
+  - {name: 伦敦 London, code: GB, kind: keyword}
+  - {name: 台北 01, code: TW, kind: keyword}
+  # —— 代码：词边界，避免子串误判 ——
+  - {name: AUS 01, code: AU, kind: keyword}
+  - {name: Sydney AUS, code: AU, kind: keyword}
+  - {name: USA 01, code: US, kind: keyword}
+  - {name: UK London 02, code: GB, kind: keyword}
+  - {name: HK01, code: HK, kind: keyword}
+  - {name: hk-02, code: HK, kind: keyword}
+  - {name: JP|03, code: JP, kind: keyword}
+  - {name: SGP 04, code: SG, kind: keyword}
+  - {name: Plus Node 01, code: "", kind: unknown}
+  - {name: BUSINESS 01, code: "", kind: unknown}
+  - {name: Gaming in Asia, code: "", kind: unknown}
+  # —— 已有国旗 ——
+  - {name: 🇸🇬 新加坡 01, code: SG, kind: flag}
+  - {name: 🇯🇵 广港 01, code: JP, kind: flag}
+  - {name: 香港 🇭🇰 02, code: HK, kind: flag}
+  # —— 单字简称 ——
+  - {name: 港 01, code: HK, kind: keyword}
+  - {name: 日 02 x0.5, code: JP, kind: keyword}
+  - {name: 美 03, code: US, kind: keyword}
+  # —— 未识别 ——
+  - {name: Premium 01, code: "", kind: unknown}
+  - {name: 自建 VPS, code: "", kind: unknown}
+  - {name: IEPL 专线 01, code: "", kind: unknown}
+  # —— 信息节点：被「去掉信息节点」去掉 ——
+  - {name: "剩余流量：123.45 GB", info: true}
+  - {name: "套餐到期：2026-12-31", info: true}
+  - {name: "官网：example.com", info: true}
+  - {name: "距离下次重置剩余：12 天", info: true}
+  - {name: Traffic remaining 10GB, info: true}
+  - {name: "Expire: 2026-12-31", info: true}

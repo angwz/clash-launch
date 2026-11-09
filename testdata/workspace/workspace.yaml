@@ -1,0 +1,29 @@
+# 端到端测试的工作区：三个源（订阅、单条、订阅）与 domainrouter_v2 的真实规则源。
+clash-launch/workspace: v1
+sources:
+  - id: src_airport_a
+    name: 机场 A
+    kind: subscription
+    snapshot: snapshots/airport-a.txt
+    fetched: 2026-11-08T22:00:00Z
+  - id: src_my_vps
+    name: 我的 VPS
+    kind: single
+    snapshot: snapshots/my-vps.yaml
+    fetched: 2026-11-01T00:00:00Z
+  - id: src_airport_b
+    name: 机场 B
+    kind: subscription
+    snapshot: snapshots/airport-b.yaml
+    url: https://sub.example.com/api/v1/client/subscribe?token=example-token
+    fetched: 2026-11-08T21:00:00Z
+    processing:
+      exclude: 测试
+rule-sources:
+  - id: rs_domainrouter
+    groups: ../rules/domainrouter/groups.toml
+    rulesets: ../rules/domainrouter/rulesets.toml
+    fetched: 2026-11-09T00:00:00Z
+  - id: rs_sample_ini
+    ini: ../rules/sample.ini
+    fetched: 2026-11-09T00:00:00Z

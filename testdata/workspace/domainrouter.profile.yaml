@@ -1,0 +1,17 @@
+clash-launch/profile: v1
+name: M2 · domainrouter_v2
+target: { pack: mihomo, preset: mihomo, core: "1.19.33" }
+output: { timezone: Asia/Shanghai }
+sources:
+  - ref: src_airport_a
+  - ref: src_my_vps
+  - ref: src_airport_b
+rules: { ref: rs_domainrouter }
+form:
+  mixed-port: 7890
+  mode: rule
+  log-level: info
+  dns: { enable: true, enhanced-mode: fake-ip, nameserver: [https://doh.example.com/dns-query] }
+raw: |
+  rules: !prepend
+    - DOMAIN,intranet.example.com,DIRECT

@@ -1,0 +1,1 @@
+- {name: 自建 VPS, type: wireguard, server: 192.0.2.20, port: 51820, ip: 172.16.0.2, private-key: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=, public-key: QD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiE=, udp: true}

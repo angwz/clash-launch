@@ -6,5 +6,5 @@ import "embed"
 
 // FS 是嵌入的目录数据。路径以 mihomo/、regions/、rulesources/ 开头。
 //
-//go:embed mihomo
+//go:embed mihomo regions rulesources
 var FS embed.FS

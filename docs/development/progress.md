@@ -4,7 +4,7 @@
 
 ## 现在
 
-- **阶段**：M1（引擎）完成；下一步 M2（输入）。
+- **阶段**：M1（引擎）、M2（输入）完成；下一步 M3（服务）。
 - **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
 
 ## 里程碑
@@ -12,7 +12,7 @@
 | 阶段 | 状态 | 验收结果 |
 | --- | :---: | --- |
 | M1 引擎 | ✅ | 见下表 |
-| M2 输入 | 🕓 | — |
+| M2 输入 | ✅ | 见下表 |
 | M3 服务 | 🕓 | — |
 | M4 Web | 🕓 | — |
 | M5 多用户与安全 | 🕓 | — |
@@ -31,6 +31,16 @@
 | `catalog-extract` 能对两个版本输出字段差异 | ✅ | v1.19.32 → v1.19.33：新增 `tun.dns-mode`、`listeners.tun.dns-mode`；单元测试覆盖 order 与 diff |
 | CLI `clash-launch render <方案文件>` | ✅ | `-check` 端到端：示例方案通过 `mihomo -t` |
 
+## M2 验收
+
+| 验收条件 | 结果 | 证据 |
+| --- | :---: | --- |
+| 分享链接 fuzz | ✅ | `FuzzParse`（内容识别 + 分享链接 + sing-box + 校验）120 秒约 10 万次执行无失败；检查凭据不进入错误信息 |
+| GROUPID 范围语法与 fork 行为一致 | ✅ | `TestMatchRange` 26 个用例逐条对照 subexport.cpp；`FuzzMatchRange` 20 秒无失败 |
+| 地区识别的刁钻名称测试表全部通过 | ✅ | `testdata/regions/tricky.yaml` 55 条 |
+| 用维护者真实的两份 toml 与合成节点生成配置并通过内核校验 | ✅ | `testdata/workspace/domainrouter`：domainrouter_v2 release（23 组、66 条 rulesets）+ 3 个有序源 → golden；`go test -tags kernel` 通过 mihomo v1.19.33 |
+| 与 subconverter 的差异逐条写入 parity 文档 | ✅ | [subconverter-parity](../design/subconverter-parity.md) 22 条；rules 与组成员由源码参考模型逐条对比（domainrouter_v2 两份 rulesets、ACL4SSR Online 与 Online_Full），**未运行实际的 subconverter** |
+
 ## 能力一览
 
 | 能力 | 位置 | 已实现 | 已验证 |
@@ -43,7 +53,11 @@
 | 内核检查（离线 `mihomo -t`） | `internal/kernel` | ✓ | mihomo v1.19.33 实测：合法配置通过，坏节点失败并定位到 `proxies[0]` |
 | 方案文档 | `internal/profile` | ✓ | 经引擎测试覆盖 |
 | 管线编排、缓存键 | `internal/engine` | ✓ | golden、确定性、依赖方向测试 |
-| 命令行 | `cmd/clash-launch` | ✓ | 手动运行 `render -check`、`catalog export` |
+| 节点输入与整理、地区识别 | `internal/node`、`catalog/regions/` | ✓ | 单元测试、刁钻名称表、fuzz |
+| 规则源、匹配器、现代选择器、预设 | `internal/ruleset`、`catalog/rulesources/` | ✓ | 单元测试、差异测试、真实数据（domainrouter_v2、ACL4SSR） |
+| 拉取、SSRF、出站代理、快照 | `internal/source` | ✓ | httptest 与最小 SOCKS5 服务器；**未在真实 WARP 出口上验证** |
+| 生成阶段（有序源、编号、provider 模式） | `internal/engine/build.go` | ✓ | 工作区 golden（两份方案）、内核检查 |
+| 命令行 | `cmd/clash-launch`、`internal/workspace` | ✓ | 手动运行 `render -check -inputs`、`catalog export` |
 | 工具 | `tools/catalog-extract`、`tools/toolsync` | ✓ | 单元测试；toolsync 实际下载并校验 SHA-256 |
 
 ## 最近一次验证
@@ -59,17 +73,20 @@ go test ./...                      → catalog、engine、layer、render、catal
 go test -tags kernel ./internal/kernel/   → 通过（mihomo v1.19.33）
 go test -fuzz FuzzRender（180 s）  → 878,011 次执行无失败
 go test -fuzz FuzzMerge（60 s）    → 无失败
+go test -fuzz FuzzParse（120 s）   → 100,228 次执行无失败
+go test -fuzz FuzzMatchRange（20 s）→ 无失败
 ```
 
-未验证：Linux 上的测试（CI 尚未创建）；Docker（本机守护进程未运行，M3 处理）。
+未验证：Linux 上的测试（CI 尚未创建）；Docker（本机守护进程未运行，M3 处理）；经真实 WARP 出口拉取；与实际运行的 subconverter 对比。
 
 ## 已知限制
 
 - 目录：`listeners` 的逐类型字段，以及 xhttp 细项、shadow-tls/restls/jls、realm、AmneziaWG 等节点子选项暂以 `any` 透传（M6 补齐）；详细说明与示例覆盖率在 M6 前补齐。
 - 目标预设只有 `mihomo`；其余预设在 M6 按客户端官方文档逐项核对后加入。
 - `geoip.dat` 的哈希是首次下载时记录的，没有上游公布的校验值可对照。
+- sing-box：`multiplex` 不转换为 `smux`；只读取 `outbounds`，不读取 `endpoints` 中的 WireGuard。
+- groups.toml 中组的透传键按键名排序输出（go-toml 解码为 map 时丢失原顺序）；目录内的键由渲染器按目录顺序排列，不受影响。
 
 ## 下一步
 
-1. M2：内容识别、分享链接（`ConvertsV2Ray` 逐行调用 + `ParseProxy` 校验）、整理、有序源与订阅编号、地区识别、groups/rulesets 展开与匹配器、现代选择器、外部配置 ini、拉取与快照、SSRF 防护与出口代理。
-2. 与 subconverter 的差异逐条写入 `docs/design/subconverter-parity.md`。
+1. M3：仓储接口与 SQLite、迁移、加密、单管理员账号、API 与 OpenAPI、订阅端点与链接、后台拉取、缓存；Dockerfile 与 compose（WARP 边车选型）。

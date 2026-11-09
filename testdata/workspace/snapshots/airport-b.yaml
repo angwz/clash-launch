@@ -1,0 +1,6 @@
+# 机场 B 的 Clash 订阅快照（虚构）
+proxies:
+  - {name: HK Hysteria2 01, type: hysteria2, server: hy2.example.com, port: 443, password: example-hy2, sni: hy2.example.com}
+  - {name: JP TUIC 01, type: tuic, server: tuic.example.com, port: 443, uuid: 11111111-2222-3333-4444-777777777777, password: example-tuic, sni: tuic.example.com}
+  - {name: US 02 x2, type: ss, server: 192.0.2.30, port: 8388, cipher: aes-128-gcm, password: example-ss2}
+  - {name: 测试节点, type: ss, server: 192.0.2.31, port: 8388, cipher: aes-128-gcm, password: example-ss3}

@@ -71,8 +71,10 @@ func TestGoldenPassesKernel(t *testing.T) {
 	c := NewTestChecker(t)
 	files, _ := filepath.Glob(filepath.Join("..", "..", "testdata", "render", "*.golden.yaml"))
 	more, _ := filepath.Glob(filepath.Join("..", "..", "testdata", "profiles", "*.golden"))
+	ws, _ := filepath.Glob(filepath.Join("..", "..", "testdata", "workspace", "*.golden"))
+	more = append(more, ws...)
 	files = append(files, more...)
-	if len(files) < 2 {
+	if len(files) < 4 {
 		t.Fatal("golden 文件缺失")
 	}
 	for _, f := range files {

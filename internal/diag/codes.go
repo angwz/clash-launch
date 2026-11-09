@@ -95,3 +95,53 @@ var (
 	KernelTimeout     = reg("kernel.timeout", Error, "Kernel check timed out after {timeout}", "内核检查超时（{timeout}）")
 	KernelPassed      = reg("kernel.passed", Info, "mihomo {version} -t passed", "已通过 mihomo {version} -t 检查")
 )
+
+// —— 节点输入与整理（第 5 节）——
+var (
+	NodeUnrecognized = reg("node.unrecognized", Error, "Content of {source} is not recognised (expected Clash YAML, sing-box JSON, base64 or share links); preview: {preview}", "无法识别 {source} 的内容（应为 Clash YAML、sing-box JSON、base64 或分享链接）；预览：{preview}")
+	NodeLineSkipped  = reg("node.line_skipped", Warning, "Line {line} of {source} skipped: {reason} ({scheme})", "{source} 第 {line} 行已跳过：{reason}（{scheme}）")
+	NodeInvalid      = reg("node.invalid", Warning, "Proxy {name} from {source} rejected by mihomo: {reason}", "{source} 中的节点 {name} 未通过 mihomo 校验：{reason}")
+	NodeNotProxy     = reg("node.not_proxy", Warning, "Item {index} of {source} is not a proxy mapping with name and type", "{source} 的第 {index} 项不是带 name 与 type 的节点映射")
+	NodeInfoRemoved  = reg("node.info_removed", Info, "Information entry {name} removed from {source}", "已从 {source} 去掉信息节点 {name}")
+	NodeFiltered     = reg("node.filtered", Info, "{name} from {source} filtered out by {rule}", "{source} 中的 {name} 被 {rule} 过滤")
+	NodeDuplicate    = reg("node.duplicate", Info, "{name} from {source} duplicates {first} and was removed", "{source} 中的 {name} 与 {first} 重复，已去掉")
+	NodeRenamed      = reg("node.renamed", Info, "{name} renamed to {new} to keep names unique", "{name} 已改名为 {new} 以保持名称唯一")
+	NodeEmptySource  = reg("node.empty_source", Warning, "{source} produced no proxies", "{source} 没有产出任何节点")
+	NodeRegionInfer  = reg("node.region_inferred", Info, "Region of {name} inferred as {code}: {reason}", "{name} 的地区推断为 {code}：{reason}")
+	NodeRegionManual = reg("node.region_manual_unknown", Warning, "Manual region {code} for {name} is not a known region", "为 {name} 手动指定的地区 {code} 不在地区表中")
+	NodeSingboxSkip  = reg("node.singbox_unsupported", Warning, "sing-box outbound {tag} ({type}) is not converted: {reason}", "未转换 sing-box 出站 {tag}（{type}）：{reason}")
+	NodeSingboxField = reg("node.singbox_field", Warning, "sing-box field {field} of {tag} is not converted", "未转换 {tag} 的 sing-box 字段 {field}")
+	RegexInvalid     = reg("regex.invalid", Error, "Invalid regular expression at {where}: {reason}", "{where} 处的正则无效：{reason}")
+	RegexTimeout     = reg("regex.timeout", Warning, "Regular expression at {where} timed out on {name}; treated as no match", "{where} 处的正则在 {name} 上超时，按未命中处理")
+	ProviderNoEquiv  = reg("provider.not_equivalent", Warning, "{setting} of {source} cannot be expressed in provider mode and has no effect", "{source} 的 {setting} 在「交给客户端」模式下无法等价表达，不会生效")
+)
+
+// —— 规则源（第 6 节）——
+var (
+	RulesSyntax       = reg("rules.syntax", Error, "{file}: {reason}", "{file}：{reason}")
+	GroupInvalid      = reg("group.invalid", Error, "Group {name}: {reason}", "策略组 {name}：{reason}")
+	GroupReference    = reg("group.reference", Error, "Group {name} references {ref}, which does not exist", "策略组 {name} 引用的 {ref} 不存在")
+	GroupCycle        = reg("group.cycle", Error, "Groups reference each other in a cycle: {cycle}", "策略组之间存在循环引用：{cycle}")
+	GroupTypeMihomo   = reg("group.type_unsupported", Error, "Group {name} has type {type}, which mihomo does not support: {reason}", "策略组 {name} 的类型 {type} 不被 mihomo 支持：{reason}")
+	GroupEmpty        = reg("group.empty", Warning, "Group {name} matched no proxies; {fallback} written instead", "策略组 {name} 没有匹配到任何节点，已写入 {fallback}")
+	GroupOffCatalog   = reg("group.off_catalog_key", Warning, "Group {name}: key {key} is not a mihomo group field; passed through as-is", "策略组 {name}：键 {key} 不是 mihomo 的组字段，按原样透传")
+	GroupKeyIgnored   = reg("group.key_ignored", Warning, "Group {name}: key {key} is not used for Clash output: {reason}", "策略组 {name}：键 {key} 不用于 Clash 输出：{reason}")
+	GroupMatcher      = reg("group.matcher_unsupported", Error, "Group {name}: matcher {matcher} cannot be implemented equivalently: {reason}", "策略组 {name}：匹配器 {matcher} 无法等价实现：{reason}")
+	GroupMatcherNote  = reg("group.matcher_note", Warning, "Group {name}: matcher {matcher}: {reason}", "策略组 {name}：匹配器 {matcher}：{reason}")
+	GroupIDShift      = reg("group.groupid_shift", Info, "Group {name} uses GROUPID {range}; subscription numbering: {numbering}", "策略组 {name} 使用 GROUPID {range}；当前订阅编号：{numbering}")
+	GroupProviderRef  = reg("group.provider_ref", Warning, "Group {name} uses provider {ref}, which is not defined (raw edit may still add it)", "策略组 {name} 引用的 provider {ref} 未定义（原始编辑中仍可补上）")
+	GroupProviderNote = reg("group.provider_partial", Warning, "Group {name}: {condition} depends on server-side data and has no effect for provider sources", "策略组 {name}：{condition} 依赖服务器端信息，对「交给客户端」的源不生效")
+	SelectInvalid     = reg("select.invalid", Error, "Group {name}: select table: {reason}", "策略组 {name}：select 表：{reason}")
+	RulesetInvalid    = reg("ruleset.invalid", Error, "Ruleset {index}: {reason}", "第 {index} 条 ruleset：{reason}")
+	RulesetRenamed    = reg("ruleset.renamed", Info, "Rule provider {name} renamed to {new} to keep names unique", "rule-provider {name} 已改名为 {new} 以保持名称唯一")
+	RulesetLimit      = reg("ruleset.limitation", Warning, "Ruleset {index}: {reason}", "第 {index} 条 ruleset：{reason}")
+	IniUnsupported    = reg("ini.unsupported_key", Warning, "External config key {key} is not supported and was ignored", "外部配置的键 {key} 不受支持，已忽略")
+	IniInvalid        = reg("ini.invalid", Error, "External config line {line}: {reason}", "外部配置第 {line} 行：{reason}")
+)
+
+// —— 拉取与网络（第 5.4、14.5、14.6 节）——
+var (
+	FetchFailed    = reg("fetch.failed", Warning, "Fetching {source} failed: {reason}", "拉取 {source} 失败：{reason}")
+	FetchBlocked   = reg("fetch.blocked", Error, "Fetching {source} was blocked: {reason}", "已阻止拉取 {source}：{reason}")
+	FetchStaleLong = reg("fetch.stale_long", Warning, "{source} has been failing for more than {days} days", "{source} 已连续失败超过 {days} 天")
+)

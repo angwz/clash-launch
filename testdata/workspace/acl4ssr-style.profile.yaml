@@ -1,0 +1,11 @@
+clash-launch/profile: v1
+name: M2 · 外部配置 ini
+target: { pack: mihomo, preset: mihomo, core: "1.19.33" }
+sources:
+  - ref: src_airport_a
+  - ref: src_my_vps
+  - ref: src_airport_b
+    mode: provider
+rules: { ref: rs_sample_ini }
+form:
+  mixed-port: 7890

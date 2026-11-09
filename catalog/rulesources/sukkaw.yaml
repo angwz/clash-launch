@@ -1,0 +1,34 @@
+# SukkaW 规则集（ruleset.skk.moe）：提供 Clash 版本的 classical text 列表（non_ip 与 ip 两类）。
+id: sukkaw
+label: {en: Sukka Ruleset, zh: SukkaW 规则集}
+repo: https://github.com/SukkaW/Surge
+license: AGPL-3.0
+checked: "2026-11-09"
+stars: 4647
+notes:
+  en: Clash text lists from ruleset.skk.moe; non_ip lists go before ip lists, as the author recommends.
+  zh: 来自 ruleset.skk.moe 的 Clash 文本列表；非 IP 类在前、IP 类在后。
+variants:
+  - id: basic
+    label: {en: Basic, zh: 基础}
+    groups-text: |
+      [[custom_groups]]
+      name = "🚀 节点选择"
+      type = "select"
+      rule = ["[]DIRECT", ".*"]
+    rulesets-text: |
+      [[rulesets]]
+      group = "REJECT"
+      ruleset = "https://ruleset.skk.moe/Clash/non_ip/reject.txt"
+      type = "clash-classic"
+      [[rulesets]]
+      group = "🚀 节点选择"
+      ruleset = "https://ruleset.skk.moe/Clash/non_ip/global.txt"
+      type = "clash-classic"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://ruleset.skk.moe/Clash/ip/china_ip.txt"
+      type = "clash-classic"
+      [[rulesets]]
+      group = "🚀 节点选择"
+      ruleset = "[]MATCH"

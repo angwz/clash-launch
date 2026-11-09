@@ -1,0 +1,92 @@
+# Loyalsoldier/clash-rules：只提供规则文件。rule-providers 与 rules 按官方 README 的「白名单模式」生成；
+# 策略组模板由本项目提供（README 只要求存在名为 PROXY 的策略）。注意 .txt 文件的内容是 YAML payload。
+id: loyalsoldier
+label: {en: Loyalsoldier clash-rules, zh: Loyalsoldier clash-rules}
+repo: https://github.com/Loyalsoldier/clash-rules
+license: GPL-3.0
+checked: "2026-11-09"
+stars: 29199
+notes:
+  en: Whitelist mode from the official README; edit the groups template to taste.
+  zh: 采用官方 README 的白名单模式；策略组模板可以自行修改。
+variants:
+  - id: whitelist
+    label: {en: Whitelist mode, zh: 白名单模式}
+    groups-text: |
+      [[custom_groups]]
+      name = "PROXY"
+      type = "select"
+      rule = ["[]♻️ 自动选择", "[]DIRECT", ".*"]
+
+      [[custom_groups]]
+      name = "♻️ 自动选择"
+      type = "url-test"
+      url = "https://www.gstatic.com/generate_204"
+      interval = 300
+      tolerance = 50
+      rule = [".*"]
+    rulesets-text: |
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/applications.txt"
+      type = "clash-classic"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/private.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "REJECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/icloud.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/apple.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "PROXY"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/google.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "PROXY"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt"
+      type = "clash-domain"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt"
+      type = "clash-ipcidr"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt"
+      type = "clash-ipcidr"
+      format = "yaml"
+      [[rulesets]]
+      group = "PROXY"
+      ruleset = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/telegramcidr.txt"
+      type = "clash-ipcidr"
+      format = "yaml"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "[]GEOIP,LAN"
+      [[rulesets]]
+      group = "DIRECT"
+      ruleset = "[]GEOIP,CN"
+      [[rulesets]]
+      group = "PROXY"
+      ruleset = "[]MATCH"

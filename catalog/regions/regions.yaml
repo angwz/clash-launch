@@ -1,0 +1,92 @@
+# 地区识别数据（第 5.8 节）。识别结果是节点的 region 属性（ISO 3166-1 两位代码），国旗只是它的一种显示方式。
+#
+# 每个地区：
+#   code   ISO 3166-1 两位代码          iso3  三位代码
+#   zh     中文名称与常见别称（多字）    short 机场常用的单字简称（可省略）
+#   en     英文名称（按词边界、不区分大小写匹配）
+#   cities 主要城市（中英文混写；英文按词边界匹配）
+#   codes  额外的代码写法（如 UK → GB），按词边界匹配
+# 匹配时较长的词优先并占用其位置，因此「尼日利亚」不会被当作「日」，「印度尼西亚」不会被当作「印度」。
+regions:
+  - {code: HK, iso3: HKG, short: 港, zh: [香港, 港岛], en: [Hong Kong, HongKong], cities: [九龙, 新界, 沙田, 葵涌, Kowloon]}
+  - {code: TW, iso3: TWN, short: 台, zh: [台湾, 臺灣, 台灣], en: [Taiwan], cities: [台北, 臺北, 新北, 台中, 臺中, 高雄, 彰化, 桃园, Taipei, Taichung, Kaohsiung]}
+  - {code: MO, iso3: MAC, zh: [澳门, 澳門], en: [Macau, Macao]}
+  - {code: JP, iso3: JPN, short: 日, zh: [日本], en: [Japan], cities: [东京, 東京, 大阪, 埼玉, 名古屋, 福冈, 札幌, 京都, 横滨, Tokyo, Osaka, Saitama, Nagoya, Fukuoka, Sapporo, Kyoto, Yokohama]}
+  - {code: KR, iso3: KOR, short: 韩, zh: [韩国, 韓國, 南韩], en: [Korea, South Korea], cities: [首尔, 首爾, 春川, 釜山, Seoul, Chuncheon, Busan]}
+  - {code: KP, iso3: PRK, zh: [朝鲜, 北韩], en: [North Korea]}
+  - {code: SG, iso3: SGP, short: 新, zh: [新加坡, 狮城, 獅城, 星加坡], en: [Singapore]}
+  - {code: US, iso3: USA, short: 美, zh: [美国, 美國, 美西, 美东, 美中, 美利坚], en: [United States, America], codes: [USA], cities: [洛杉矶, 圣何塞, 硅谷, 西雅图, 芝加哥, 达拉斯, 纽约, 波特兰, 俄勒冈, 凤凰城, 费利蒙, 拉斯维加斯, 圣克拉拉, 旧金山, 迈阿密, 亚特兰大, 华盛顿, 弗吉尼亚, 阿什本, 堪萨斯, 丹佛, 夏威夷, Los Angeles, San Jose, Silicon Valley, Seattle, Chicago, Dallas, New York, Portland, Oregon, Phoenix, Fremont, Las Vegas, Santa Clara, San Francisco, Miami, Atlanta, Washington, Virginia, Ashburn, Kansas, Denver, Hawaii]}
+  - {code: CA, iso3: CAN, zh: [加拿大], en: [Canada], cities: [多伦多, 温哥华, 蒙特利尔, Toronto, Vancouver, Montreal]}
+  - {code: MX, iso3: MEX, zh: [墨西哥], en: [Mexico]}
+  - {code: GB, iso3: GBR, short: 英, zh: [英国, 英國, 大不列颠], en: [United Kingdom, Britain, England], codes: [UK], cities: [伦敦, 倫敦, 曼彻斯特, London, Manchester]}
+  - {code: DE, iso3: DEU, short: 德, zh: [德国, 德國], en: [Germany], cities: [法兰克福, 柏林, 慕尼黑, 杜塞尔多夫, Frankfurt, Berlin, Munich, Dusseldorf]}
+  - {code: FR, iso3: FRA, short: 法, zh: [法国, 法國], en: [France], cities: [巴黎, 马赛, Paris, Marseille]}
+  - {code: NL, iso3: NLD, short: 荷, zh: [荷兰, 荷蘭], en: [Netherlands, Holland], cities: [阿姆斯特丹, Amsterdam]}
+  - {code: RU, iso3: RUS, short: 俄, zh: [俄罗斯, 俄羅斯, 毛子], en: [Russia], cities: [莫斯科, 圣彼得堡, 新西伯利亚, 伯力, 哈巴罗夫斯克, Moscow, Saint Petersburg, Novosibirsk, Khabarovsk]}
+  - {code: UA, iso3: UKR, zh: [乌克兰, 烏克蘭], en: [Ukraine], cities: [基辅, Kyiv, Kiev]}
+  - {code: IN, iso3: IND, zh: [印度], en: [India], cities: [孟买, 新德里, 班加罗尔, Mumbai, New Delhi, Bangalore]}
+  - {code: ID, iso3: IDN, zh: [印度尼西亚, 印尼], en: [Indonesia], cities: [雅加达, Jakarta]}
+  - {code: MY, iso3: MYS, zh: [马来西亚, 馬來西亞, 大马], en: [Malaysia], cities: [吉隆坡, Kuala Lumpur]}
+  - {code: TH, iso3: THA, short: 泰, zh: [泰国, 泰國], en: [Thailand], cities: [曼谷, Bangkok]}
+  - {code: VN, iso3: VNM, short: 越, zh: [越南], en: [Vietnam, Viet Nam], cities: [河内, 胡志明, Hanoi, Ho Chi Minh]}
+  - {code: PH, iso3: PHL, short: 菲, zh: [菲律宾, 菲律賓], en: [Philippines], cities: [马尼拉, Manila]}
+  - {code: KH, iso3: KHM, zh: [柬埔寨], en: [Cambodia], cities: [金边, Phnom Penh]}
+  - {code: MM, iso3: MMR, zh: [缅甸], en: [Myanmar]}
+  - {code: LA, iso3: LAO, zh: [老挝], en: [Laos]}
+  - {code: MN, iso3: MNG, zh: [蒙古], en: [Mongolia], cities: [乌兰巴托, Ulaanbaatar]}
+  - {code: NP, iso3: NPL, zh: [尼泊尔], en: [Nepal]}
+  - {code: BD, iso3: BGD, zh: [孟加拉], en: [Bangladesh]}
+  - {code: PK, iso3: PAK, zh: [巴基斯坦], en: [Pakistan]}
+  - {code: LK, iso3: LKA, zh: [斯里兰卡], en: [Sri Lanka]}
+  - {code: KZ, iso3: KAZ, zh: [哈萨克斯坦, 哈萨克], en: [Kazakhstan], cities: [阿拉木图, Almaty]}
+  - {code: AU, iso3: AUS, zh: [澳大利亚, 澳洲, 澳大利亞], en: [Australia], cities: [悉尼, 墨尔本, 布里斯班, 珀斯, Sydney, Melbourne, Brisbane, Perth]}
+  - {code: NZ, iso3: NZL, zh: [新西兰, 紐西蘭], en: [New Zealand], cities: [奥克兰, Auckland]}
+  - {code: TR, iso3: TUR, short: 土, zh: [土耳其], en: [Turkey, Türkiye], cities: [伊斯坦布尔, Istanbul]}
+  - {code: AE, iso3: ARE, zh: [阿联酋, 阿拉伯联合酋长国], en: [United Arab Emirates], codes: [UAE], cities: [迪拜, 阿布扎比, Dubai, Abu Dhabi]}
+  - {code: SA, iso3: SAU, zh: [沙特, 沙特阿拉伯], en: [Saudi Arabia], cities: [利雅得, Riyadh]}
+  - {code: QA, iso3: QAT, zh: [卡塔尔], en: [Qatar], cities: [多哈, Doha]}
+  - {code: IL, iso3: ISR, zh: [以色列], en: [Israel], cities: [特拉维夫, Tel Aviv]}
+  - {code: IR, iso3: IRN, zh: [伊朗], en: [Iran], cities: [德黑兰, Tehran]}
+  - {code: EG, iso3: EGY, zh: [埃及], en: [Egypt], cities: [开罗, Cairo]}
+  - {code: ZA, iso3: ZAF, zh: [南非], en: [South Africa], cities: [约翰内斯堡, Johannesburg]}
+  - {code: NG, iso3: NGA, zh: [尼日利亚, 尼日利亞], en: [Nigeria], cities: [拉各斯, Lagos]}
+  - {code: KE, iso3: KEN, zh: [肯尼亚], en: [Kenya]}
+  - {code: BR, iso3: BRA, zh: [巴西], en: [Brazil], cities: [圣保罗, Sao Paulo]}
+  - {code: AR, iso3: ARG, zh: [阿根廷], en: [Argentina], cities: [布宜诺斯艾利斯, Buenos Aires]}
+  - {code: CL, iso3: CHL, zh: [智利], en: [Chile], cities: [圣地亚哥, Santiago]}
+  - {code: CO, iso3: COL, zh: [哥伦比亚], en: [Colombia]}
+  - {code: PE, iso3: PER, zh: [秘鲁], en: [Peru]}
+  - {code: IT, iso3: ITA, zh: [意大利, 義大利], en: [Italy], cities: [米兰, 罗马, Milan, Rome]}
+  - {code: ES, iso3: ESP, zh: [西班牙], en: [Spain], cities: [马德里, 巴塞罗那, Madrid, Barcelona]}
+  - {code: PT, iso3: PRT, zh: [葡萄牙], en: [Portugal], cities: [里斯本, Lisbon]}
+  - {code: CH, iso3: CHE, zh: [瑞士], en: [Switzerland], cities: [苏黎世, Zurich]}
+  - {code: SE, iso3: SWE, zh: [瑞典], en: [Sweden], cities: [斯德哥尔摩, Stockholm]}
+  - {code: NO, iso3: NOR, zh: [挪威], en: [Norway], cities: [奥斯陆, Oslo]}
+  - {code: FI, iso3: FIN, zh: [芬兰], en: [Finland], cities: [赫尔辛基, Helsinki]}
+  - {code: DK, iso3: DNK, zh: [丹麦], en: [Denmark], cities: [哥本哈根, Copenhagen]}
+  - {code: IS, iso3: ISL, zh: [冰岛], en: [Iceland]}
+  - {code: IE, iso3: IRL, zh: [爱尔兰], en: [Ireland], cities: [都柏林, Dublin]}
+  - {code: BE, iso3: BEL, zh: [比利时], en: [Belgium], cities: [布鲁塞尔, Brussels]}
+  - {code: LU, iso3: LUX, zh: [卢森堡], en: [Luxembourg]}
+  - {code: AT, iso3: AUT, zh: [奥地利], en: [Austria], cities: [维也纳, Vienna]}
+  - {code: PL, iso3: POL, zh: [波兰], en: [Poland], cities: [华沙, Warsaw]}
+  - {code: CZ, iso3: CZE, zh: [捷克], en: [Czech, Czechia], cities: [布拉格, Prague]}
+  - {code: HU, iso3: HUN, zh: [匈牙利], en: [Hungary], cities: [布达佩斯, Budapest]}
+  - {code: RO, iso3: ROU, zh: [罗马尼亚], en: [Romania], cities: [布加勒斯特, Bucharest]}
+  - {code: BG, iso3: BGR, zh: [保加利亚], en: [Bulgaria], cities: [索菲亚, Sofia]}
+  - {code: GR, iso3: GRC, zh: [希腊], en: [Greece], cities: [雅典, Athens]}
+  - {code: RS, iso3: SRB, zh: [塞尔维亚], en: [Serbia]}
+  - {code: HR, iso3: HRV, zh: [克罗地亚], en: [Croatia]}
+  - {code: EE, iso3: EST, zh: [爱沙尼亚], en: [Estonia]}
+  - {code: LV, iso3: LVA, zh: [拉脱维亚], en: [Latvia]}
+  - {code: LT, iso3: LTU, zh: [立陶宛], en: [Lithuania]}
+  - {code: MD, iso3: MDA, zh: [摩尔多瓦], en: [Moldova]}
+  - {code: CN, iso3: CHN, zh: [中国大陆, 中国, 中國, 大陆, 回国, 国内], en: [China, Mainland], cities: [北京, 上海, 广州, 深圳, 杭州, 成都, 重庆, 武汉, 南京, 天津, 苏州, 厦门, 福州, 青岛, 西安, Beijing, Shanghai, Guangzhou, Shenzhen, Hangzhou, Chengdu, Chongqing]}
+
+# 线路词：描述中转线路的词。它们含有地区字，但通常不是落地地，识别前先剔除。
+# 「城市简称 + 地区简称」的组合由 route-cities × 各地区的 short 生成（广港、沪日、京德……）；
+# 剔除后若再没有其他地区线索，才用线路词中的地区作为推断结果。
+route-cities: [广, 深, 沪, 莞, 京, 杭, 苏, 厦, 福, 成, 渝, 汉, 宁, 津, 青, 佛, 珠, 穗, 申, 中]
+route-words: [IPLC, IEPL, BGP, CN2, GIA, 中转, 专线, 隧道, 直连, 内网, 跨境, 入口, 出口, 优化, Relay, Transit]
+# 方向符号：出现时只取符号之后的部分。
+arrows: ["→", "->", "=>", "⇒", "➡", "转", "至"]
