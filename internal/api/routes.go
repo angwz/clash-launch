@@ -45,6 +45,10 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/account/passkeys/{id}/delete", a(s.deletePasskey)},
 		{"POST", "/api/v1/session/passkey/begin", s.sessionPasskeyBegin},
 		{"POST", "/api/v1/session/passkey", s.sessionPasskey},
+		{"GET", "/api/v1/account/smtp", a(s.getSMTP)},
+		{"PUT", "/api/v1/account/smtp", a(s.putSMTP)},
+		{"DELETE", "/api/v1/account/smtp", a(s.deleteSMTP)},
+		{"POST", "/api/v1/account/smtp/test", a(s.testSMTP)},
 
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},

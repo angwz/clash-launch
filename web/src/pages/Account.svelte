@@ -6,6 +6,7 @@
   import Icon from "../components/Icon.svelte";
   import TwoFactor from "../components/account/TwoFactor.svelte";
   import Passkeys from "../components/account/Passkeys.svelte";
+  import Alerts from "../components/account/Alerts.svelte";
   import { api } from "../lib/api/client";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
@@ -144,6 +145,8 @@
   <Passkeys />
 
   <TwoFactor />
+
+  <Alerts />
 
   <section class="panel box" aria-labelledby="ac-s">
     <h2 id="ac-s">{t("account.sessions")}</h2>

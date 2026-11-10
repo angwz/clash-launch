@@ -256,6 +256,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "passkey.unavailable", "passkeys need CLASH_LAUNCH_PUBLIC_URL to be set")
 	case errors.Is(err, service.ErrQuota):
 		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
+	case errors.Is(err, source.ErrSMTP):
+		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
+	case errors.Is(err, service.ErrSMTPUnavailable):
+		problem(w, http.StatusConflict, "smtp.unavailable", "email alerts are not available on this server")
 	case errors.Is(err, service.ErrInvalidLogin):
 		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
 	case errors.As(err, &wait):

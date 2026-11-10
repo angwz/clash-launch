@@ -20,6 +20,7 @@ const known: Record<string, string> = {
   "passkey.invalid": "error.passkey",
   "passkey.unavailable": "error.passkey_unavailable",
   "quota.exceeded": "error.quota",
+  "smtp.unavailable": "error.smtp_unavailable",
   "mfa.state": "error.mfa_state",
   rate_limited: "error.rate",
   conflict: "error.conflict",
@@ -31,6 +32,8 @@ const known: Record<string, string> = {
 
 export function errorText(e: unknown): string {
   if (e instanceof ApiError) {
+    // 邮件发送失败的说明（阶段与服务器返回码）对用户有用，原样附上
+    if (e.type === "smtp.failed") return t("error.smtp", { detail: e.detail.replace(/^source: 邮件发送失败：/, "") });
     const key = known[e.type];
     if (key) return t(key);
     if (e.status === 429) return t("error.rate");

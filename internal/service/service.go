@@ -54,7 +54,9 @@ type Service struct {
 	Now           func() time.Time
 	// PoWBits 是注册与找回的工作量证明难度（前导零位数），0 表示默认 20。
 	PoWBits int
-	// Notifier 发送安全提醒（新设备登录、口令修改等）；nil 时不发送。
+	// Mailer 发送用户本人配置的提醒邮件；nil 时邮件提醒不可用。
+	Mailer *source.Mailer
+	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。
 	Notifier Notifier
 
 	guardsState

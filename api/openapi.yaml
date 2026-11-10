@@ -315,6 +315,26 @@ components:
       properties:
         options: {type: object, description: WebAuthn 选项，二进制字段为 base64url}
         ticket: {type: string, description: 签名的挑战凭证，5 分钟有效，只能使用一次}
+    SMTPInput:
+      type: object
+      required: [host, port, security, from, to]
+      properties:
+        host: {type: string}
+        port: {type: integer, enum: [25, 465, 587]}
+        security: {type: string, enum: [tls, starttls], description: tls 为隐式 TLS（465）；starttls 要求服务器支持 STARTTLS}
+        username: {type: string}
+        password: {type: string}
+        from: {type: string, description: 只填邮箱地址}
+        to: {type: string}
+    SMTPSettings:
+      allOf:
+        - {$ref: '#/components/schemas/SMTPInput'}
+        - type: object
+          required: [hasPassword, enabled]
+          properties:
+            hasPassword: {type: boolean}
+            enabled: {type: boolean}
+            verifiedAt: {type: string, format: date-time}
     List:
       type: object
       required: [items]
@@ -512,6 +532,28 @@ paths:
       summary: 用通行密钥完成登录（navigator.credentials.get 的结果）
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [ticket, credential], properties: {ticket: {type: string}, credential: {type: object, required: [id, clientDataJSON, authenticatorData, signature], properties: {id: {type: string}, clientDataJSON: {type: string}, authenticatorData: {type: string}, signature: {type: string}, userHandle: {type: string}}}}}}}}
       responses: {'200': {description: 已登录, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/smtp:
+    get:
+      tags: [account]
+      summary: 提醒邮件设置（不含口令）；settings 为 null 表示未设置，available 为 false 表示服务不提供邮件提醒
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [available], properties: {available: {type: boolean}, settings: {oneOf: [{$ref: '#/components/schemas/SMTPSettings'}, {type: 'null'}]}}}}}}}
+    put:
+      tags: [account]
+      summary: 保存设置（回到未验证状态，需要再发送测试邮件）；password 为空表示保留原口令
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SMTPInput'}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [account]
+      security: [{session: [], csrf: []}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}}
+  /api/v1/account/smtp/test:
+    post:
+      tags: [account]
+      summary: 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次
+      security: [{session: [], csrf: []}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/registration:
     get:
       tags: [admin]

@@ -166,7 +166,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

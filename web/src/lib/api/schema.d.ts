@@ -1221,6 +1221,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/smtp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 提醒邮件设置（不含口令）；settings 为 null 表示未设置，available 为 false 表示服务不提供邮件提醒 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            available: boolean;
+                            settings?: components["schemas"]["SMTPSettings"] | null;
+                        };
+                    };
+                };
+            };
+        };
+        /** 保存设置（回到未验证状态，需要再发送测试邮件）；password 为空表示保留原口令 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SMTPInput"];
+                };
+            };
+            responses: {
+                204: components["responses"]["NoContent"];
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/smtp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/registration": {
         parameters: {
             query?: never;
@@ -2732,6 +2831,27 @@ export interface components {
             options: Record<string, never>;
             /** @description 签名的挑战凭证，5 分钟有效，只能使用一次 */
             ticket: string;
+        };
+        SMTPInput: {
+            host: string;
+            /** @enum {integer} */
+            port: 25 | 465 | 587;
+            /**
+             * @description tls 为隐式 TLS（465）；starttls 要求服务器支持 STARTTLS
+             * @enum {string}
+             */
+            security: "tls" | "starttls";
+            username?: string;
+            password?: string;
+            /** @description 只填邮箱地址 */
+            from: string;
+            to: string;
+        };
+        SMTPSettings: components["schemas"]["SMTPInput"] & {
+            hasPassword: boolean;
+            enabled: boolean;
+            /** Format: date-time */
+            verifiedAt?: string;
         };
         List: {
             items: unknown[];
