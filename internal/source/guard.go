@@ -1,4 +1,4 @@
-// Package source 是唯一联网的包：拉取订阅与规则源、SSRF 防护、出站代理、快照（第 5.4、14.5、14.6 节）。
+// Package source 是唯一联网的包：拉取订阅与规则源、SSRF 防护、快照（第 5.4、14.5 节；服务器直连，见 docs/decisions/0003）。
 package source
 
 import (
