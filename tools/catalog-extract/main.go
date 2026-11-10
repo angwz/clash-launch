@@ -3,6 +3,7 @@
 //	catalog-extract scan  -src <mihomo 源码目录> [-o fields.json]   字段全集与类型（来自结构体 tag）
 //	catalog-extract order -src <mihomo 源码目录>                     官方示例 docs/config.yaml 中各位置的键顺序
 //	catalog-extract diff  <旧 fields.json> <新 fields.json>          两个内核版本之间的新增、移除与类型变化
+//	catalog-extract coverage [-o cov.json] <fields.json>            scan 结果在目录 catalog/mihomo 中的覆盖情况（摘要写到标准错误）
 //
 // 提取只读源码，不编译、不运行 mihomo。结果是「初稿」：类型来自 Go 类型的粗略映射，
 // 说明、重要程度与文档链接由人工写入 catalog/。扫描范围见 roots。
@@ -14,6 +15,9 @@ import (
 	"fmt"
 	"os"
 	"sort"
+
+	catalogdata "github.com/angwz/clash-launch/catalog"
+	"github.com/angwz/clash-launch/internal/catalog"
 )
 
 // Field 是提取出的一个字段。
@@ -69,13 +73,32 @@ func main() {
 		if len(d.Added)+len(d.Removed)+len(d.Changed) > 0 {
 			os.Exit(3) // 有差异：CI 据此开 Issue
 		}
+	case "coverage":
+		fs := flag.NewFlagSet("coverage", flag.ExitOnError)
+		out := fs.String("o", "", "输出文件（默认标准输出）")
+		_ = fs.Parse(os.Args[2:])
+		if fs.NArg() != 1 {
+			usage()
+		}
+		var r Result
+		readJSON(fs.Arg(0), &r)
+		cat, err := catalog.Load(catalogdata.FS, "mihomo")
+		check(err)
+		cv := coverage(r, cat)
+		fmt.Fprintf(os.Stderr, "total %d  covered %d  free %d  skipped %d  passthrough %d  missing %d\n", cv.Total, cv.Counts[covCovered], cv.Counts[covFree], cv.Counts[covSkipped], cv.Counts[covPassthrough], cv.Counts[covMissing])
+		for _, s := range cv.Sections {
+			if s.Counts[covPassthrough]+s.Counts[covMissing] > 0 {
+				fmt.Fprintf(os.Stderr, "  %-28s passthrough %4d  missing %4d\n", s.Section, s.Counts[covPassthrough], s.Counts[covMissing])
+			}
+		}
+		writeJSON(*out, cv)
 	default:
 		usage()
 	}
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "用法：catalog-extract scan|order|diff …（见源码注释）")
+	fmt.Fprintln(os.Stderr, "用法：catalog-extract scan|order|diff|coverage …（见源码注释）")
 	os.Exit(2)
 }
 

@@ -119,7 +119,7 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
 
 ## 已知限制
 
-- 目录：`listeners` 的逐类型字段，以及 xhttp 细项、shadow-tls/restls/jls、realm、AmneziaWG 等节点子选项暂以 `any` 透传（M6 补齐）；详细说明与示例覆盖率在 M6 前补齐。
+- 目录：覆盖率见 [catalog](../design/catalog.md#覆盖率)；`listeners` 的逐类型字段暂以 `any` 透传，11 种较新的节点协议尚未收录（补齐中）。
 - 目标预设有 `mihomo` 与 `openclash`；其余客户端预设在 M6 按官方文档或源码逐项核对后加入。
 - `geoip.dat` 的哈希是首次下载时记录的，没有上游公布的校验值可对照。
 - sing-box：`multiplex` 不转换为 `smux`；只读取 `outbounds`，不读取 `endpoints` 中的 WireGuard。

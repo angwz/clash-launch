@@ -1,4 +1,119 @@
 # tun 分节。顺序取自官方示例；示例未列出的字段按 wiki「TUN」页的顺序插在相关字段之后。
+# 字段写在片段 tun-fields 中，listeners 的 tun 类型复用其中默认值相同的字段（inbound.yaml）。
+fragments:
+  tun-fields:
+    - {key: enable, type: bool, default: false, importance: core, doc: "inbound/tun#enable",
+       zh: [启用, "启用 TUN 模式（需要管理员或 root 权限）。"], en: [Enable, "Enable TUN mode (needs administrator or root)."]}
+    - key: stack
+      type: enum
+      enum:
+        - {value: system, en: OS network stack, zh: 系统网络栈}
+        - {value: gvisor, en: gVisor userspace stack, zh: gVisor 用户态网络栈}
+        - {value: mixed, en: system for TCP and gvisor for UDP, zh: TCP 用 system，UDP 用 gvisor}
+        - {value: mips, en: mihomo's own userspace stack (core default), zh: mihomo 自带的用户态网络栈（内核默认）}
+      default: mips
+      importance: recommended
+      doc: "inbound/tun#stack"
+      zh: [网络栈, "处理 TUN 流量的网络栈实现。"]
+      en: [Stack, "Network stack that processes TUN traffic."]
+    - {key: device, type: string, importance: optional, doc: "inbound/tun#device",
+       zh: [网卡名, "虚拟网卡的名称；留空自动选择。"], en: [Device, "Name of the virtual interface; empty picks one automatically."]}
+    - key: dns-mode
+      type: enum
+      enum:
+        - {value: disabled, en: Do not touch system DNS, zh: 不设置系统 DNS}
+        - {value: native, en: Set the TUN address as system DNS, zh: 把 TUN 地址设为系统 DNS}
+        - {value: hijack, en: native plus hijacking port 53 on other interfaces, zh: 在 native 基础上拦截其他网卡的 53 端口}
+      importance: recommended
+      since: "1.19.33"
+      doc: "inbound/tun#dns-mode"
+      zh: [系统 DNS 方式, "如何让系统 DNS 经过 TUN；留空时与旧版本行为一致。"]
+      en: [System DNS mode, "How system DNS is routed into TUN; empty keeps the previous behaviour."]
+    - {key: dns-hijack, type: list, items: {type: string}, default: ["0.0.0.0:53"], importance: recommended, doc: "inbound/tun#dns-hijack",
+       zh: [DNS 劫持, "被劫持到内置 DNS 的地址；any:53 表示所有 53 端口。"], en: [DNS hijack, "Addresses redirected to the built-in DNS; any:53 means every port 53."]}
+    - {key: auto-detect-interface, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-detect-interface",
+       zh: [自动识别出口, "自动选择默认出口网卡，避免回环。"], en: [Auto-detect interface, "Pick the default outbound interface automatically to avoid loops."]}
+    - {key: auto-route, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-route",
+       zh: [自动路由, "自动配置路由表，把流量导入 TUN。"], en: [Auto route, "Configure the routing table to send traffic into TUN."]}
+    - {key: mtu, type: int, importance: expert, doc: "inbound/tun#mtu",
+       zh: [MTU, "虚拟网卡的最大传输单元。"], en: [MTU, "Maximum transmission unit of the interface."]}
+    - {key: gso, type: bool, importance: expert, doc: "inbound/tun#gso",
+       zh: [GSO, "启用通用分段卸载（仅 Linux）。"], en: [GSO, "Enable generic segmentation offload (Linux only)."]}
+    - {key: gso-max-size, type: int, importance: expert, doc: "inbound/tun#gso-max-size",
+       zh: [GSO 包大小, "通用分段卸载的最大包大小。"], en: [GSO max size, "Maximum packet size for segmentation offload."]}
+    - {key: inet6-address, type: list, items: {type: string}, default: ["fdfe:dcba:9876::1/126"], importance: expert, doc: "inbound/tun#inet6-address",
+       zh: [IPv6 地址, "虚拟网卡的 IPv6 地址。"], en: [IPv6 address, "IPv6 address of the interface."]}
+    - {key: auto-redirect, type: bool, default: false, importance: optional, doc: "inbound/tun#auto-redirect",
+       zh: [自动重定向, "自动配置 nftables/iptables 重定向 TCP（仅 Linux，路由器上推荐）。"], en: [Auto redirect, "Configure nftables/iptables to redirect TCP (Linux only; recommended on routers)."]}
+    - {key: auto-redirect-input-mark, type: int, importance: expert, doc: inbound/tun,
+       zh: [重定向入站标记, "auto-redirect 使用的入站 fwmark。"], en: [Redirect input mark, "Inbound fwmark used by auto-redirect."]}
+    - {key: auto-redirect-output-mark, type: int, importance: expert, doc: inbound/tun,
+       zh: [重定向出站标记, "auto-redirect 使用的出站 fwmark。"], en: [Redirect output mark, "Outbound fwmark used by auto-redirect."]}
+    - {key: auto-redirect-iproute2-fallback-rule-index, type: int, importance: expert, doc: inbound/tun,
+       zh: [重定向回退规则序号, "auto-redirect 回退 iproute2 规则的序号。"], en: [Redirect fallback rule index, "Index of the iproute2 fallback rule used by auto-redirect."]}
+    - {key: strict-route, type: bool, importance: optional, doc: "inbound/tun#strict-route",
+       zh: [严格路由, "所有连接都进入 TUN 以防泄漏；本机将无法被其他设备访问。"], en: [Strict route, "Route every connection into TUN to prevent leaks; the device becomes unreachable from others."]}
+    - {key: disable-icmp-forwarding, type: bool, importance: expert, doc: inbound/tun,
+       zh: [禁用 ICMP 转发, "避免 ICMP 回环；ping 将不再显示真实延迟。"], en: [Disable ICMP forwarding, "Avoid ICMP loops; ping no longer shows real latency."]}
+    - key: congestion-controller
+      type: enum
+      enum:
+        - {value: cubic, en: CUBIC, zh: CUBIC}
+        - {value: reno, en: Reno, zh: Reno}
+        - {value: bbr, en: BBR, zh: BBR}
+        - {value: bbr3, en: BBRv3, zh: BBRv3}
+      importance: expert
+      doc: "inbound/tun#congestion-controller"
+      zh: [拥塞控制, "TCP 拥塞控制算法；只在 mips 栈下生效。"]
+      en: [Congestion control, "TCP congestion controller; effective only with the mips stack."]
+    - {key: udp-timeout, type: int, importance: expert, doc: "inbound/tun#udp-timeout",
+       zh: [UDP 超时, "UDP 会话的空闲超时秒数。"], en: [UDP timeout, "Idle timeout of UDP sessions, in seconds."]}
+    - {key: icmp-timeout, type: int, importance: expert, doc: inbound/tun,
+       zh: [ICMP 超时, "ICMP 会话的空闲超时秒数。"], en: [ICMP timeout, "Idle timeout of ICMP sessions, in seconds."]}
+    - {key: iproute2-table-index, type: int, importance: expert, doc: "inbound/tun#iproute2-table-index",
+       zh: [路由表序号, "auto-route 使用的 iproute2 路由表序号。"], en: [Route table index, "iproute2 table index used by auto-route."]}
+    - {key: iproute2-rule-index, type: int, importance: expert, doc: "inbound/tun#iproute2-rule-index",
+       zh: [路由规则序号, "auto-route 使用的 iproute2 规则起始序号。"], en: [Route rule index, "Starting iproute2 rule index used by auto-route."]}
+    - {key: route-address-set, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-address-set",
+       zh: [路由规则集, "只把这些规则集中的目标 IP 导入 TUN（Linux，需要 nftables）。"], en: [Route address sets, "Send only destination IPs from these rule sets into TUN (Linux, nftables)."]}
+    - {key: route-exclude-address-set, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-exclude-address-set",
+       zh: [排除规则集, "这些规则集中的目标 IP 绕过 TUN（Linux，需要 nftables）。"], en: [Exclude address sets, "Destination IPs from these rule sets bypass TUN (Linux, nftables)."]}
+    - {key: route-address, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-address",
+       zh: [自定义路由, "auto-route 时使用这些路由代替默认路由。"], en: [Route addresses, "Routes used instead of the default route with auto-route."]}
+    - {key: route-exclude-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
+       zh: [排除路由, "auto-route 时不导入 TUN 的网段。"], en: [Exclude routes, "CIDRs kept out of TUN with auto-route."]}
+    - {key: inet4-route-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-address, doc: inbound/tun,
+       zh: [IPv4 路由（旧）, "旧写法；请改用 route-address。"], en: [IPv4 routes (legacy), "Legacy form; use route-address."]}
+    - {key: inet6-route-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-address, doc: inbound/tun,
+       zh: [IPv6 路由（旧）, "旧写法；请改用 route-address。"], en: [IPv6 routes (legacy), "Legacy form; use route-address."]}
+    - {key: inet4-route-exclude-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-exclude-address, doc: inbound/tun,
+       zh: [IPv4 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv4 excludes (legacy), "Legacy form; use route-exclude-address."]}
+    - {key: inet6-route-exclude-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-exclude-address, doc: inbound/tun,
+       zh: [IPv6 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv6 excludes (legacy), "Legacy form; use route-exclude-address."]}
+    - {key: endpoint-independent-nat, type: bool, default: false, importance: expert, doc: "inbound/tun#endpoint-independent-nat",
+       zh: [端点无关 NAT, "启用独立于端点的 NAT（对性能有影响）。"], en: [Endpoint-independent NAT, "Enable endpoint-independent NAT (costs performance)."]}
+    - {key: include-interface, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
+       zh: [包含网卡, "只路由这些网卡的流量；与 exclude-interface 冲突。"], en: [Include interfaces, "Route traffic only from these interfaces; conflicts with exclude-interface."]}
+    - {key: exclude-interface, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
+       zh: [排除网卡, "不路由这些网卡的流量。"], en: [Exclude interfaces, "Do not route traffic from these interfaces."]}
+    - {key: include-uid, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [包含 UID, "只路由这些用户的流量（Linux）。"], en: [Include UIDs, "Route traffic only from these users (Linux)."]}
+    - {key: include-uid-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含 UID 范围, "形如 1000:9999 的用户范围。"], en: [Include UID ranges, "User ranges such as 1000:9999."]}
+    - {key: exclude-uid, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除 UID, "不路由这些用户的流量。"], en: [Exclude UIDs, "Do not route traffic from these users."]}
+    - {key: exclude-uid-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除 UID 范围, "形如 1000:9999 的用户范围。"], en: [Exclude UID ranges, "User ranges such as 1000:9999."]}
+    - {key: include-mac-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含 MAC, "只路由这些设备的流量。"], en: [Include MACs, "Route traffic only from these devices."]}
+    - {key: exclude-mac-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除 MAC, "不路由这些设备的流量。"], en: [Exclude MACs, "Do not route traffic from these devices."]}
+    - {key: include-android-user, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [Android 用户, "只路由这些 Android 用户的流量。"], en: [Android users, "Route traffic only from these Android users."]}
+    - {key: include-package, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含应用, "只路由这些 Android 应用的流量。"], en: [Include packages, "Route traffic only from these Android apps."]}
+    - {key: exclude-package, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除应用, "不路由这些 Android 应用的流量。"], en: [Exclude packages, "Do not route traffic from these Android apps."]}
+    - {key: exclude-src-port, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除源端口, "不路由来自这些端口的流量。"], en: [Exclude source ports, "Do not route traffic from these ports."]}
+    - {key: exclude-src-port-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除源端口范围, "形如 1000:2000。"], en: [Exclude source port ranges, "Ranges such as 1000:2000."]}
+    - {key: exclude-dst-port, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除目标端口, "不路由发往这些端口的流量。"], en: [Exclude destination ports, "Do not route traffic to these ports."]}
+    - {key: exclude-dst-port-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除目标端口范围, "形如 1000:2000。"], en: [Exclude destination port ranges, "Ranges such as 1000:2000."]}
+    - {key: loopback-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [回环地址, "视为本机回环的地址。"], en: [Loopback addresses, "Addresses treated as local loopback."]}
+    - {key: file-descriptor, type: int, importance: expert, doc: inbound/tun, zh: [文件描述符, "使用已打开的 TUN 文件描述符（嵌入式场景）。"], en: [File descriptor, "Use an already-open TUN file descriptor (embedded use)."]}
+    - {key: recvmsgx, type: bool, default: true, importance: expert, doc: inbound/tun, zh: [recvmmsg, "批量接收数据包。"], en: [recvmmsg, "Receive packets in batches."]}
+    - {key: sendmsgx, type: bool, default: false, importance: expert, doc: inbound/tun, zh: [sendmmsg, "批量发送数据包；当前实现下多线程下载可能卡死，默认关闭。"], en: [sendmmsg, "Send packets in batches; off by default because it may stall multi-threaded downloads."]}
+    - {key: processors-per-channel, type: int, default: 1, importance: expert, doc: inbound/tun, zh: [每通道处理器, "每个通道的处理协程数；1 最省内存。"], en: [Processors per channel, "Workers per channel; 1 uses the least memory."]}
 fields:
   - key: tun
     type: object
@@ -7,115 +122,4 @@ fields:
     zh: [TUN, "虚拟网卡模式：接管系统流量，无需应用支持代理。"]
     en: [TUN, "Virtual network interface that captures system traffic without per-app proxy settings."]
     fields:
-      - {key: enable, type: bool, default: false, importance: core, doc: "inbound/tun#enable",
-         zh: [启用, "启用 TUN 模式（需要管理员或 root 权限）。"], en: [Enable, "Enable TUN mode (needs administrator or root)."]}
-      - key: stack
-        type: enum
-        enum:
-          - {value: system, en: OS network stack, zh: 系统网络栈}
-          - {value: gvisor, en: gVisor userspace stack, zh: gVisor 用户态网络栈}
-          - {value: mixed, en: system for TCP and gvisor for UDP, zh: TCP 用 system，UDP 用 gvisor}
-          - {value: mips, en: mihomo's own userspace stack (core default), zh: mihomo 自带的用户态网络栈（内核默认）}
-        default: mips
-        importance: recommended
-        doc: "inbound/tun#stack"
-        zh: [网络栈, "处理 TUN 流量的网络栈实现。"]
-        en: [Stack, "Network stack that processes TUN traffic."]
-      - {key: device, type: string, importance: optional, doc: "inbound/tun#device",
-         zh: [网卡名, "虚拟网卡的名称；留空自动选择。"], en: [Device, "Name of the virtual interface; empty picks one automatically."]}
-      - key: dns-mode
-        type: enum
-        enum:
-          - {value: disabled, en: Do not touch system DNS, zh: 不设置系统 DNS}
-          - {value: native, en: Set the TUN address as system DNS, zh: 把 TUN 地址设为系统 DNS}
-          - {value: hijack, en: native plus hijacking port 53 on other interfaces, zh: 在 native 基础上拦截其他网卡的 53 端口}
-        importance: recommended
-        since: "1.19.33"
-        doc: "inbound/tun#dns-mode"
-        zh: [系统 DNS 方式, "如何让系统 DNS 经过 TUN；留空时与旧版本行为一致。"]
-        en: [System DNS mode, "How system DNS is routed into TUN; empty keeps the previous behaviour."]
-      - {key: dns-hijack, type: list, items: {type: string}, default: ["0.0.0.0:53"], importance: recommended, doc: "inbound/tun#dns-hijack",
-         zh: [DNS 劫持, "被劫持到内置 DNS 的地址；any:53 表示所有 53 端口。"], en: [DNS hijack, "Addresses redirected to the built-in DNS; any:53 means every port 53."]}
-      - {key: auto-detect-interface, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-detect-interface",
-         zh: [自动识别出口, "自动选择默认出口网卡，避免回环。"], en: [Auto-detect interface, "Pick the default outbound interface automatically to avoid loops."]}
-      - {key: auto-route, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-route",
-         zh: [自动路由, "自动配置路由表，把流量导入 TUN。"], en: [Auto route, "Configure the routing table to send traffic into TUN."]}
-      - {key: mtu, type: int, importance: expert, doc: "inbound/tun#mtu",
-         zh: [MTU, "虚拟网卡的最大传输单元。"], en: [MTU, "Maximum transmission unit of the interface."]}
-      - {key: gso, type: bool, importance: expert, doc: "inbound/tun#gso",
-         zh: [GSO, "启用通用分段卸载（仅 Linux）。"], en: [GSO, "Enable generic segmentation offload (Linux only)."]}
-      - {key: gso-max-size, type: int, importance: expert, doc: "inbound/tun#gso-max-size",
-         zh: [GSO 包大小, "通用分段卸载的最大包大小。"], en: [GSO max size, "Maximum packet size for segmentation offload."]}
-      - {key: inet6-address, type: list, items: {type: string}, default: ["fdfe:dcba:9876::1/126"], importance: expert, doc: "inbound/tun#inet6-address",
-         zh: [IPv6 地址, "虚拟网卡的 IPv6 地址。"], en: [IPv6 address, "IPv6 address of the interface."]}
-      - {key: auto-redirect, type: bool, default: false, importance: optional, doc: "inbound/tun#auto-redirect",
-         zh: [自动重定向, "自动配置 nftables/iptables 重定向 TCP（仅 Linux，路由器上推荐）。"], en: [Auto redirect, "Configure nftables/iptables to redirect TCP (Linux only; recommended on routers)."]}
-      - {key: auto-redirect-input-mark, type: int, importance: expert, doc: inbound/tun,
-         zh: [重定向入站标记, "auto-redirect 使用的入站 fwmark。"], en: [Redirect input mark, "Inbound fwmark used by auto-redirect."]}
-      - {key: auto-redirect-output-mark, type: int, importance: expert, doc: inbound/tun,
-         zh: [重定向出站标记, "auto-redirect 使用的出站 fwmark。"], en: [Redirect output mark, "Outbound fwmark used by auto-redirect."]}
-      - {key: auto-redirect-iproute2-fallback-rule-index, type: int, importance: expert, doc: inbound/tun,
-         zh: [重定向回退规则序号, "auto-redirect 回退 iproute2 规则的序号。"], en: [Redirect fallback rule index, "Index of the iproute2 fallback rule used by auto-redirect."]}
-      - {key: strict-route, type: bool, importance: optional, doc: "inbound/tun#strict-route",
-         zh: [严格路由, "所有连接都进入 TUN 以防泄漏；本机将无法被其他设备访问。"], en: [Strict route, "Route every connection into TUN to prevent leaks; the device becomes unreachable from others."]}
-      - {key: disable-icmp-forwarding, type: bool, importance: expert, doc: inbound/tun,
-         zh: [禁用 ICMP 转发, "避免 ICMP 回环；ping 将不再显示真实延迟。"], en: [Disable ICMP forwarding, "Avoid ICMP loops; ping no longer shows real latency."]}
-      - key: congestion-controller
-        type: enum
-        enum:
-          - {value: cubic, en: CUBIC, zh: CUBIC}
-          - {value: reno, en: Reno, zh: Reno}
-          - {value: bbr, en: BBR, zh: BBR}
-          - {value: bbr3, en: BBRv3, zh: BBRv3}
-        importance: expert
-        doc: "inbound/tun#congestion-controller"
-        zh: [拥塞控制, "TCP 拥塞控制算法；只在 mips 栈下生效。"]
-        en: [Congestion control, "TCP congestion controller; effective only with the mips stack."]
-      - {key: udp-timeout, type: int, importance: expert, doc: "inbound/tun#udp-timeout",
-         zh: [UDP 超时, "UDP 会话的空闲超时秒数。"], en: [UDP timeout, "Idle timeout of UDP sessions, in seconds."]}
-      - {key: icmp-timeout, type: int, importance: expert, doc: inbound/tun,
-         zh: [ICMP 超时, "ICMP 会话的空闲超时秒数。"], en: [ICMP timeout, "Idle timeout of ICMP sessions, in seconds."]}
-      - {key: iproute2-table-index, type: int, importance: expert, doc: "inbound/tun#iproute2-table-index",
-         zh: [路由表序号, "auto-route 使用的 iproute2 路由表序号。"], en: [Route table index, "iproute2 table index used by auto-route."]}
-      - {key: iproute2-rule-index, type: int, importance: expert, doc: "inbound/tun#iproute2-rule-index",
-         zh: [路由规则序号, "auto-route 使用的 iproute2 规则起始序号。"], en: [Route rule index, "Starting iproute2 rule index used by auto-route."]}
-      - {key: route-address-set, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-address-set",
-         zh: [路由规则集, "只把这些规则集中的目标 IP 导入 TUN（Linux，需要 nftables）。"], en: [Route address sets, "Send only destination IPs from these rule sets into TUN (Linux, nftables)."]}
-      - {key: route-exclude-address-set, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-exclude-address-set",
-         zh: [排除规则集, "这些规则集中的目标 IP 绕过 TUN（Linux，需要 nftables）。"], en: [Exclude address sets, "Destination IPs from these rule sets bypass TUN (Linux, nftables)."]}
-      - {key: route-address, type: list, items: {type: string}, importance: expert, doc: "inbound/tun#route-address",
-         zh: [自定义路由, "auto-route 时使用这些路由代替默认路由。"], en: [Route addresses, "Routes used instead of the default route with auto-route."]}
-      - {key: route-exclude-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
-         zh: [排除路由, "auto-route 时不导入 TUN 的网段。"], en: [Exclude routes, "CIDRs kept out of TUN with auto-route."]}
-      - {key: inet4-route-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-address, doc: inbound/tun,
-         zh: [IPv4 路由（旧）, "旧写法；请改用 route-address。"], en: [IPv4 routes (legacy), "Legacy form; use route-address."]}
-      - {key: inet6-route-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-address, doc: inbound/tun,
-         zh: [IPv6 路由（旧）, "旧写法；请改用 route-address。"], en: [IPv6 routes (legacy), "Legacy form; use route-address."]}
-      - {key: inet4-route-exclude-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-exclude-address, doc: inbound/tun,
-         zh: [IPv4 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv4 excludes (legacy), "Legacy form; use route-exclude-address."]}
-      - {key: inet6-route-exclude-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-exclude-address, doc: inbound/tun,
-         zh: [IPv6 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv6 excludes (legacy), "Legacy form; use route-exclude-address."]}
-      - {key: endpoint-independent-nat, type: bool, default: false, importance: expert, doc: "inbound/tun#endpoint-independent-nat",
-         zh: [端点无关 NAT, "启用独立于端点的 NAT（对性能有影响）。"], en: [Endpoint-independent NAT, "Enable endpoint-independent NAT (costs performance)."]}
-      - {key: include-interface, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
-         zh: [包含网卡, "只路由这些网卡的流量；与 exclude-interface 冲突。"], en: [Include interfaces, "Route traffic only from these interfaces; conflicts with exclude-interface."]}
-      - {key: exclude-interface, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
-         zh: [排除网卡, "不路由这些网卡的流量。"], en: [Exclude interfaces, "Do not route traffic from these interfaces."]}
-      - {key: include-uid, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [包含 UID, "只路由这些用户的流量（Linux）。"], en: [Include UIDs, "Route traffic only from these users (Linux)."]}
-      - {key: include-uid-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含 UID 范围, "形如 1000:9999 的用户范围。"], en: [Include UID ranges, "User ranges such as 1000:9999."]}
-      - {key: exclude-uid, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除 UID, "不路由这些用户的流量。"], en: [Exclude UIDs, "Do not route traffic from these users."]}
-      - {key: exclude-uid-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除 UID 范围, "形如 1000:9999 的用户范围。"], en: [Exclude UID ranges, "User ranges such as 1000:9999."]}
-      - {key: include-mac-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含 MAC, "只路由这些设备的流量。"], en: [Include MACs, "Route traffic only from these devices."]}
-      - {key: exclude-mac-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除 MAC, "不路由这些设备的流量。"], en: [Exclude MACs, "Do not route traffic from these devices."]}
-      - {key: include-android-user, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [Android 用户, "只路由这些 Android 用户的流量。"], en: [Android users, "Route traffic only from these Android users."]}
-      - {key: include-package, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [包含应用, "只路由这些 Android 应用的流量。"], en: [Include packages, "Route traffic only from these Android apps."]}
-      - {key: exclude-package, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除应用, "不路由这些 Android 应用的流量。"], en: [Exclude packages, "Do not route traffic from these Android apps."]}
-      - {key: exclude-src-port, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除源端口, "不路由来自这些端口的流量。"], en: [Exclude source ports, "Do not route traffic from these ports."]}
-      - {key: exclude-src-port-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除源端口范围, "形如 1000:2000。"], en: [Exclude source port ranges, "Ranges such as 1000:2000."]}
-      - {key: exclude-dst-port, type: list, items: {type: int}, importance: expert, doc: inbound/tun, zh: [排除目标端口, "不路由发往这些端口的流量。"], en: [Exclude destination ports, "Do not route traffic to these ports."]}
-      - {key: exclude-dst-port-range, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [排除目标端口范围, "形如 1000:2000。"], en: [Exclude destination port ranges, "Ranges such as 1000:2000."]}
-      - {key: loopback-address, type: list, items: {type: string}, importance: expert, doc: inbound/tun, zh: [回环地址, "视为本机回环的地址。"], en: [Loopback addresses, "Addresses treated as local loopback."]}
-      - {key: file-descriptor, type: int, importance: expert, doc: inbound/tun, zh: [文件描述符, "使用已打开的 TUN 文件描述符（嵌入式场景）。"], en: [File descriptor, "Use an already-open TUN file descriptor (embedded use)."]}
-      - {key: recvmsgx, type: bool, default: true, importance: expert, doc: inbound/tun, zh: [recvmmsg, "批量接收数据包。"], en: [recvmmsg, "Receive packets in batches."]}
-      - {key: sendmsgx, type: bool, default: false, importance: expert, doc: inbound/tun, zh: [sendmmsg, "批量发送数据包；当前实现下多线程下载可能卡死，默认关闭。"], en: [sendmmsg, "Send packets in batches; off by default because it may stall multi-threaded downloads."]}
-      - {key: processors-per-channel, type: int, default: 1, importance: expert, doc: inbound/tun, zh: [每通道处理器, "每个通道的处理协程数；1 最省内存。"], en: [Processors per channel, "Workers per channel; 1 uses the least memory."]}
+      - {include: tun-fields}

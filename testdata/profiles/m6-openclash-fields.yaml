@@ -1,0 +1,93 @@
+clash-launch/profile: v1
+name: M6 · OpenClash 与补全字段
+target: { pack: mihomo, preset: openclash, core: "1.19.33" }
+output: { timezone: Asia/Shanghai }
+form:
+  mixed-port: 7893
+  allow-lan: true
+  mode: rule
+  log-level: info
+  external-controller: 0.0.0.0:9090
+  dns:
+    enable: true
+    listen: 0.0.0.0:7874
+    enhanced-mode: fake-ip
+    nameserver: [https://doh.example.com/dns-query]
+raw: |
+  # 节点、策略组与规则由生成器产出；这里用原始编辑写入，检查新收录字段的键序与内核兼容性
+  proxies:
+    - name: vless-xhttp
+      type: vless
+      server: vless.example.com
+      port: 443
+      uuid: 00000000-0000-4000-8000-000000000001
+      network: xhttp
+      tls: true
+      servername: vless.example.com
+      xhttp-opts:
+        path: /xhttp
+        host: vless.example.com
+        mode: auto
+        x-padding-bytes: 100-1000
+        session-placement: query
+        session-key: sid
+        reuse-settings:
+          max-concurrency: 16-32
+          h-keep-alive-period: 0
+        download-settings:
+          path: /down
+          server: down.example.com
+          port: 443
+          tls: true
+          servername: down.example.com
+    - name: trojan-shadowtls
+      type: trojan
+      server: trojan.example.com
+      port: 443
+      password: example-password
+      sni: trojan.example.com
+      shadow-tls-opts: {version: 3, password: example-shadowtls}
+    - name: vmess-restls
+      type: vmess
+      server: vmess.example.com
+      port: 443
+      uuid: 00000000-0000-4000-8000-000000000002
+      alterId: 0
+      cipher: auto
+      tls: true
+      servername: vmess.example.com
+      restls-opts: {password: example-restls, version-hint: tls13}
+    - name: vmess-mkcp
+      type: vmess
+      server: 192.0.2.10
+      port: 443
+      uuid: 00000000-0000-4000-8000-000000000003
+      alterId: 0
+      cipher: auto
+      network: mkcp
+      mkcp-opts: {mtu: 1350, tti: 50, uplink-capacity: 5, downlink-capacity: 20, congestion: false, header: wechat-video}
+    - name: hy2-realm
+      type: hysteria2
+      server: hy2.example.com
+      port: 443
+      password: example-password
+      realm-opts:
+        enable: true
+        server-url: https://realm.example.com
+        token: example-token
+        realm-id: example-cabin
+        stun-servers: [stun.example.com:3478]
+    - name: awg
+      type: wireguard
+      server: 192.0.2.20
+      port: 51820
+      ip: 172.16.0.2
+      private-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      public-key: AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=
+      udp: true
+      ip-stack: {mode: auto, congestion-controller: cubic}
+      amnezia-wg-option: {version: 2, jc: 5, jmin: 500, jmax: 501, s1: 30, s2: 40, h1: "123456", h2: "67543", h3: "123123", h4: "32345"}
+  proxy-groups:
+    - {name: PROXY, type: select, proxies: [vless-xhttp, trojan-shadowtls, vmess-restls, vmess-mkcp, hy2-realm, awg, DIRECT]}
+  rules:
+    - MATCH,PROXY

@@ -72,8 +72,8 @@ fields:
               doc: "proxy-providers#overrideproxy-name"
               zh: [重命名, "按正则替换节点名。"]
               en: [Rename, "Rewrite proxy names by regex."]
-            - {key: override-expr, type: list, items: {type: any, reason: 表达式结构随版本演进，M6 补齐}, importance: expert, stability: experimental,
-               zh: [覆写表达式, "按条件覆写节点字段。"], en: [Override expressions, "Conditionally override proxy fields."]}
+            - {key: override-expr, type: list, items: {type: string}, importance: expert, stability: experimental,
+               zh: [覆写表达式, "按顺序对每个节点执行的 jq 风格表达式，如 .name = \"[A] \" + .name；结果仍须为映射。"], en: [Override expressions, "jq-style expressions applied to each proxy in order, e.g. .name = \"[A] \" + .name; the result must stay a mapping."]}
         - {key: dialer-proxy, type: string, importance: optional, doc: proxy-providers, zh: [前置代理, "给提供者中的每个节点设置 dialer-proxy。"], en: [Dialer proxy, "Set dialer-proxy on every proxy of the provider."]}
         - {key: filter, type: string, importance: optional, doc: proxy-providers, zh: [筛选, "只保留名称匹配该正则的节点。"], en: [Filter, "Keep proxies whose names match this regex."]}
         - {key: exclude-filter, type: string, importance: optional, doc: proxy-providers, zh: [排除, "去掉名称匹配该正则的节点。"], en: [Exclude filter, "Drop proxies whose names match this regex."]}

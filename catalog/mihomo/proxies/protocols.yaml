@@ -77,8 +77,15 @@ fragments:
     - {key: obfs-min-packet-size, type: int, importance: expert, doc: "proxies/hysteria2#obfs-min-packet-size", zh: [混淆最小包, "混淆的最小包大小。"], en: [Obfs min packet, "Minimum obfuscated packet size."]}
     - {key: obfs-max-packet-size, type: int, importance: expert, doc: "proxies/hysteria2#obfs-max-packet-size", zh: [混淆最大包, "混淆的最大包大小。"], en: [Obfs max packet, "Maximum obfuscated packet size."]}
   p-hysteria2-tail:
-    - {key: realm-opts, type: map, values: {type: any, reason: Realm 打洞参数较多，M6 补齐}, importance: expert, stability: experimental, doc: "proxies/hysteria2#realm-opts",
-       zh: [Realm, "通过 Realm 服务器打洞连接。"], en: [Realm, "Connect through a Realm rendezvous server."]}
+    - key: realm-opts
+      type: object
+      importance: expert
+      stability: experimental
+      doc: "proxies/hysteria2#realm-opts"
+      zh: [Realm, "通过 Realm 会合服务器打洞，与位于 NAT 后的 hysteria2 服务端直连。"]
+      en: [Realm, "Hole-punch through a Realm rendezvous server to reach a hysteria2 server behind NAT."]
+      fields:
+        - {include: realm-fields}
     - {key: handshake-timeout, type: int, importance: expert, doc: "proxies/hysteria2#handshake-timeout", zh: [握手超时, "QUIC 握手超时秒数。"], en: [Handshake timeout, "QUIC handshake timeout in seconds."]}
     - {key: cwnd, type: int, importance: expert, doc: proxies/hysteria2, zh: [初始窗口, "拥塞窗口初值。"], en: [Initial window, "Initial congestion window."]}
     - {key: bbr-profile, type: string, importance: expert, doc: proxies/hysteria2, zh: [BBR 配置, "BBR 拥塞控制的配置档。"], en: [BBR profile, "BBR congestion control profile."]}
@@ -99,6 +106,10 @@ fragments:
     - {key: recv-window, type: int, importance: expert, doc: proxies/hysteria, zh: [连接接收窗口, "QUIC 连接接收窗口。"], en: [Connection window, "QUIC connection receive window."]}
     - {key: disable-mtu-discovery, type: bool, importance: expert, doc: proxies/hysteria, zh: [禁用 MTU 探测, "禁用路径 MTU 探测。"], en: [Disable MTU discovery, "Disable path MTU discovery."]}
     - {key: fast-open, type: bool, importance: expert, doc: proxies/hysteria, zh: [快速打开, "不等待连接确认即发送数据。"], en: [Fast open, "Send data before the connection is confirmed."]}
+    - {key: hop-interval, type: int, default: 10, importance: optional, doc: proxies/hysteria, zh: [跳跃间隔, "端口跳跃的间隔秒数。"], en: [Hop interval, "Seconds between port hops."]}
+    - {key: obfs-protocol, type: string, importance: expert, doc: proxies/hysteria, zh: [协议（Stash 写法）, "protocol 的 Stash 兼容写法；填写时覆盖 protocol。"], en: [Protocol (Stash), "Stash-compatible spelling of protocol; overrides protocol when set."]}
+    - {key: up-speed, type: int, importance: expert, doc: proxies/hysteria, zh: [上行带宽（Stash 写法）, "以 Mbps 为单位的整数；非 0 时覆盖 up。"], en: [Upload (Stash), "Integer in Mbps; overrides up when non-zero."]}
+    - {key: down-speed, type: int, importance: expert, doc: proxies/hysteria, zh: [下行带宽（Stash 写法）, "以 Mbps 为单位的整数；非 0 时覆盖 down。"], en: [Download (Stash), "Integer in Mbps; overrides down when non-zero."]}
   p-tuic:
     - {key: token, type: string, importance: optional, sensitive: true, doc: "proxies/tuic#token", zh: [令牌, "TUIC v4 认证令牌。"], en: [Token, "TUIC v4 authentication token."]}
     - {key: uuid, type: string, importance: core, sensitive: true, doc: "proxies/tuic#uuid", zh: [UUID, "TUIC v5 用户 UUID。"], en: [UUID, "TUIC v5 user UUID."]}
@@ -151,10 +162,65 @@ fragments:
       doc: proxies/wg
       zh: [多个对端, "多对端配置；填写后忽略顶层的对端字段。"]
       en: [Peers, "Multi-peer setup; top-level peer fields are ignored when set."]
-    - {key: amnezia-wg-option, type: map, values: {type: any, reason: AmneziaWG 参数，M6 补齐}, importance: expert, stability: experimental, doc: proxies/wg,
-       zh: [AmneziaWG, "AmneziaWG 抗识别参数。"], en: [AmneziaWG, "AmneziaWG anti-detection parameters."]}
-    - {key: ip-stack, type: map, values: {type: any, reason: 用户态栈参数，M6 补齐}, importance: expert, doc: "proxies/wg#ip-stack",
-       zh: [用户态网络栈, "隧道内的用户态网络栈设置。"], en: [IP stack, "Userspace network stack inside the tunnel."]}
+    - key: amnezia-wg-option
+      type: object
+      importance: expert
+      stability: experimental
+      doc: proxies/wg
+      zh: [AmneziaWG, "填写后启用 AmneziaWG 抗识别；各参数须与服务端一致。"]
+      en: [AmneziaWG, "Enables AmneziaWG obfuscation when present; every parameter must match the server."]
+      fields:
+        - {key: version, type: int, importance: recommended, zh: [实现版本, "只有 3 使用 v3 实现，其他值使用旧实现。"], en: [Version, "Only 3 selects the v3 implementation; other values use the legacy one."]}
+        - {key: jc, type: int, importance: core, zh: [垃圾包数量, "握手前发送的垃圾包个数（v1.0+）。"], en: [Junk count, "Number of junk packets before the handshake (v1.0+)."]}
+        - {key: jmin, type: int, importance: core, zh: [垃圾包最小长度, "垃圾包最小字节数（v1.0+）。"], en: [Junk min, "Minimum junk packet size in bytes (v1.0+)."]}
+        - {key: jmax, type: int, importance: core, zh: [垃圾包最大长度, "垃圾包最大字节数（v1.0+）。"], en: [Junk max, "Maximum junk packet size in bytes (v1.0+)."]}
+        - {key: s1, type: int, importance: core, zh: [S1, "握手发起包的填充字节数（v1.0+）。"], en: [S1, "Padding bytes for the handshake initiation (v1.0+)."]}
+        - {key: s2, type: int, importance: core, zh: [S2, "握手响应包的填充字节数（v1.0+）。"], en: [S2, "Padding bytes for the handshake response (v1.0+)."]}
+        - {key: s3, type: int, importance: optional, zh: [S3, "Cookie 回复包的填充字节数（v1.5+）。"], en: [S3, "Padding bytes for the cookie reply (v1.5+)."]}
+        - {key: s4, type: int, importance: optional, zh: [S4, "数据包的填充字节数（v1.5+）。"], en: [S4, "Padding bytes for transport packets (v1.5+)."]}
+        - {key: h1, type: string, importance: core, zh: [H1, "握手发起包的消息类型；v1.x 为单个数值，v2+ 可写范围。"], en: [H1, "Message type of the handshake initiation; a single value in v1.x, a range allowed in v2+."]}
+        - {key: h2, type: string, importance: core, zh: [H2, "握手响应包的消息类型；v2+ 可写范围。"], en: [H2, "Message type of the handshake response; a range allowed in v2+."]}
+        - {key: h3, type: string, importance: core, zh: [H3, "Cookie 回复包的消息类型；v2+ 可写范围。"], en: [H3, "Message type of the cookie reply; a range allowed in v2+."]}
+        - {key: h4, type: string, importance: core, zh: [H4, "数据包的消息类型；v2+ 可写范围。"], en: [H4, "Message type of transport packets; a range allowed in v2+."]}
+        - {key: i1, type: string, importance: optional, zh: [I1, "握手前发送的特征包模板（v1.5+），如 <b 0xf6ab><r 10>。"], en: [I1, "Signature packet template sent before the handshake (v1.5+), e.g. <b 0xf6ab><r 10>."]}
+        - {key: i2, type: string, importance: optional, zh: [I2, "第二个特征包模板（v1.5+）。"], en: [I2, "Second signature packet template (v1.5+)."]}
+        - {key: i3, type: string, importance: optional, zh: [I3, "第三个特征包模板（v1.5+）。"], en: [I3, "Third signature packet template (v1.5+)."]}
+        - {key: i4, type: string, importance: optional, zh: [I4, "第四个特征包模板（v1.5+）。"], en: [I4, "Fourth signature packet template (v1.5+)."]}
+        - {key: i5, type: string, importance: optional, zh: [I5, "第五个特征包模板（v1.5+）。"], en: [I5, "Fifth signature packet template (v1.5+)."]}
+        - {key: j1, type: string, importance: expert, zh: [J1, "仅 AmneziaWG v1.5 的垃圾包模板，v2+ 已移除。"], en: [J1, "Junk template for AmneziaWG v1.5 only; removed in v2+."]}
+        - {key: j2, type: string, importance: expert, zh: [J2, "仅 AmneziaWG v1.5 的垃圾包模板，v2+ 已移除。"], en: [J2, "Junk template for AmneziaWG v1.5 only; removed in v2+."]}
+        - {key: j3, type: string, importance: expert, zh: [J3, "仅 AmneziaWG v1.5 的垃圾包模板，v2+ 已移除。"], en: [J3, "Junk template for AmneziaWG v1.5 only; removed in v2+."]}
+        - {key: itime, type: int, importance: expert, zh: [发送间隔, "仅 AmneziaWG v1.5 的特征包发送间隔秒数，v2+ 已移除。"], en: [Interval, "Signature packet interval in seconds for AmneziaWG v1.5 only; removed in v2+."]}
+        - {key: header-protection-key, type: string, importance: optional, sensitive: true, zh: [头部保护密钥, "v3 的头部保护密钥（base64）；需要 version: 3，不能与 v1.5 专用项同时使用。"], en: [Header protection key, "v3 header protection key (base64); needs version: 3 and cannot be mixed with v1.5-only options."]}
+        - {key: content-padding-addition, type: string, importance: optional, zh: [内容填充, "v3 的额外内容填充范围，如 0-32。"], en: [Content padding, "v3 extra content padding range such as 0-32."]}
+        - {key: rekey-after-time, type: string, importance: expert, zh: [重新协商间隔, "v3 重新协商密钥前的秒数。"], en: [Rekey after, "v3 seconds before rekeying."]}
+        - {key: rekey-timeout, type: string, importance: expert, zh: [重新协商超时, "v3 重新协商的超时秒数。"], en: [Rekey timeout, "v3 rekey timeout in seconds."]}
+        - {key: reject-after-time, type: string, importance: expert, zh: [密钥失效时间, "v3 密钥失效前的秒数。"], en: [Reject after, "v3 seconds after which keys are rejected."]}
+        - {key: keepalive-timeout, type: string, importance: expert, zh: [保活超时, "v3 保活超时秒数。"], en: [Keepalive timeout, "v3 keepalive timeout in seconds."]}
+        - {key: max-handshake-attempts, type: string, importance: expert, zh: [最大握手次数, "v3 放弃前的最大握手尝试次数。"], en: [Max handshake attempts, "v3 handshake attempts before giving up."]}
+        - {key: random-trailers, type: bool, importance: expert, zh: [随机尾部, "v3.1+ 在报文后附加随机尾部。"], en: [Random trailers, "v3.1+ appends random trailers to packets."]}
+        - {key: disable-cookies, type: bool, importance: expert, zh: [禁用 Cookie, "v3.1+ 不使用 Cookie 机制。"], en: [Disable cookies, "v3.1+ disables the cookie mechanism."]}
+    - key: ip-stack
+      type: object
+      importance: expert
+      doc: "proxies/wg#ip-stack"
+      zh: [用户态网络栈, "隧道内使用的用户态网络栈。"]
+      en: [IP stack, "Userspace network stack used inside the tunnel."]
+      fields:
+        - key: mode
+          type: enum
+          default: auto
+          importance: optional
+          enum: [{value: auto, en: Auto (mihomo stack), zh: 自动（mihomo 自带栈）}, {value: mips, en: mihomo stack, zh: mihomo 栈}, {value: gvisor, en: gVisor (needs with_gvisor build), zh: gVisor（需要 with_gvisor 编译）}]
+          zh: [模式, "auto 使用 mihomo 自带的网络栈；gvisor 需要以 with_gvisor 编译的内核。"]
+          en: [Mode, "auto uses the built-in mihomo stack; gvisor needs a core built with with_gvisor."]
+        - key: congestion-controller
+          type: enum
+          default: cubic
+          importance: expert
+          enum: [{value: cubic, en: CUBIC, zh: CUBIC}, {value: reno, en: Reno, zh: Reno}, {value: bbr, en: BBR, zh: BBR}, {value: bbr3, en: BBRv3, zh: BBRv3}]
+          zh: [TCP 拥塞控制, "隧道内 TCP 的拥塞控制算法；gVisor 下忽略。"]
+          en: [TCP congestion control, "TCP congestion controller inside the tunnel; ignored by gVisor."]
   p-anytls:
     - {key: password, type: string, importance: core, sensitive: true, doc: proxies/anytls, zh: [密码, "AnyTLS 密码。"], en: [Password, "AnyTLS password."]}
     - {key: client-metadata, type: string, importance: expert, doc: "proxies/anytls#client-metadata", zh: [客户端元数据, "发送给服务端的附加信息。"], en: [Client metadata, "Extra information sent to the server."]}
@@ -188,3 +254,16 @@ fragments:
     - {key: private-key-passphrase, type: string, importance: optional, sensitive: true, doc: proxies/ssh, zh: [私钥口令, "私钥的口令。"], en: [Key passphrase, "Passphrase of the private key."]}
     - {key: host-key, type: list, items: {type: string}, importance: optional, doc: "proxies/ssh#host-key", zh: [主机公钥, "允许的服务器主机公钥。"], en: [Host keys, "Accepted server host keys."]}
     - {key: host-key-algorithms, type: list, items: {type: string}, importance: expert, doc: "proxies/ssh#host-key-algorithms", zh: [主机密钥算法, "允许的主机密钥算法。"], en: [Host key algorithms, "Accepted host key algorithms."]}
+  realm-fields:
+    - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用 Realm；必须手动开启。"], en: [Enable, "Enable Realm; must be turned on explicitly."]}
+    - {key: server-url, type: string, importance: core, zh: [会合服务器, "Realm 服务器地址，如 https://realm.hy2.io。"], en: [Server URL, "Realm server URL such as https://realm.hy2.io."]}
+    - {key: token, type: string, importance: core, sensitive: true, zh: [令牌, "以 Authorization: Bearer 出示给 Realm 服务器的令牌。"], en: [Token, "Bearer token presented to the Realm server."]}
+    - {key: realm-id, type: string, importance: core, zh: [Realm ID, "服务端与客户端约定的会合标识。"], en: [Realm ID, "Rendezvous identifier shared by server and client."]}
+    - {key: stun-servers, type: list, items: {type: string}, importance: recommended, zh: [STUN 服务器, "用于发现公网地址的 STUN 服务器（host:port）。"], en: [STUN servers, "STUN servers (host:port) used to discover the public address."]}
+    - {key: sni, type: string, importance: expert, zh: [SNI, "连接 server-url 时使用的 SNI。"], en: [SNI, "SNI used when connecting to server-url."]}
+    - {key: skip-cert-verify, type: bool, default: false, importance: expert, zh: [跳过证书验证, "连接 server-url 时不验证证书。"], en: [Skip cert verify, "Do not verify the server-url certificate."]}
+    - {key: name-cert-verify, type: string, importance: expert, zh: [证书名称校验, "只修改证书 DNSName 的校验目标，不修改 SNI。"], en: [Cert name check, "Changes only the certificate DNSName to verify, not the SNI."]}
+    - {key: fingerprint, type: string, importance: expert, zh: [证书指纹, "固定 server-url 证书的 SHA-256 指纹。"], en: [Fingerprint, "Pin the server-url certificate SHA-256 fingerprint."]}
+    - {key: certificate, type: string, importance: expert, zh: [客户端证书, "访问 server-url 时使用的客户端证书（mTLS）。"], en: [Client certificate, "Client certificate for server-url (mTLS)."]}
+    - {key: private-key, type: string, importance: expert, sensitive: true, zh: [客户端私钥, "客户端证书的私钥。"], en: [Client key, "Private key of the client certificate."]}
+    - {key: alpn, type: list, items: {type: string}, importance: expert, zh: [ALPN, "连接 server-url 时的 ALPN。"], en: [ALPN, "ALPN for server-url."]}

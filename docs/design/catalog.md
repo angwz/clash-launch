@@ -56,11 +56,23 @@
 ```sh
 go run ./tools/catalog-extract scan -src <mihomo 源码> -version vX -o vX.json   # 字段全集与类型
 go run ./tools/catalog-extract diff old.json new.json                           # 新增、移除、类型变化；有差异时退出码 3
+go run ./tools/catalog-extract coverage -o cov.json vX.json                      # 每条路径在目录中的状态；摘要写到标准错误
 ```
 
 扫描范围：`config.RawConfig`（`yaml` tag）、`adapter.ParseProxy` 分派的选项结构体（`proxy`）、`outboundgroup.ParseProxyGroup`（`group`）、两种 provider 的 schema（`provider`）、`listener.ParseListener`（`inbound`）。类型是 Go 类型的粗略映射（例如枚举在 Go 中是整数），只作初稿，由人工核对后写入目录。
 
+`coverage` 把 scan 的每条路径放到目录中解析，分为五类：**covered**（类型化收录，可在表单中配置）、**free**（源码本身就是 `any` 或 `map[string]any`，目录如实以 `any` 收录）、**skipped**（有意不收录，原因登记在 `tools/catalog-extract/coverage.go` 的 `skipped`）、**passthrough**（某个祖先以 `any` 透传）、**missing**（目录中没有）。路径分段与 scan 一致：列表与 map 的元素层不占段，按 `type` 分派处以判别值占一段。
+
 ## 覆盖率
+
+以 `catalog-extract coverage` 对 mihomo v1.19.33 的 scan 结果（2075 条路径）为准。
+
+| 时间 | covered | free | skipped | passthrough | missing | 本次补齐 |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 2026-11-09（M1 结束，free 尚未单列，计入 passthrough） | 793 | 0 | 0 | 873 | 409 | — |
+| 2026-11-09 | 1012 | 4 | 1 | 781 | 277 | xhttp 全部细项（含 download-settings、reuse-settings）、shadow-tls/restls/jls、realm、AmneziaWG、ip-stack、vmess 的 mkcp/mekya/tlsmirror、hysteria 的 hop-interval 与 Stash 别名、override-expr |
+
+早期记录（按目录中带说明的字段计数）：
 
 | 时间 | 带说明的字段 | 范围 |
 | --- | ---: | --- |

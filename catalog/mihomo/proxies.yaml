@@ -48,9 +48,12 @@ fields:
             - {include: tls-verify, keys: [fingerprint, certificate, private-key, client-fingerprint, skip-cert-verify, name-cert-verify]}
             - {include: servername, keys: [servername]}
             - {include: alpn, keys: [alpn]}
+            - {include: tlsmirror-opts}
             - {include: network, keys: [network]}
             - {include: tls-ext, keys: [ech-opts, shadow-tls-opts, restls-opts, jls-opts, reality-opts]}
             - {include: ws-opts, keys: [ws-opts]}
+            - {include: mkcp-opts}
+            - {include: mekya-opts}
             - {include: h2-opts, keys: [h2-opts]}
             - {include: http-opts, keys: [http-opts]}
             - {include: grpc-opts, keys: [grpc-opts]}
@@ -106,9 +109,9 @@ fields:
           en: [Hysteria]
           fields:
             - {include: head, keys: [name, type, server, port]}
-            - {include: p-hysteria, keys: [ports, auth-str, auth, obfs]}
+            - {include: p-hysteria, keys: [ports, hop-interval, auth-str, auth, obfs]}
             - {include: alpn, keys: [alpn]}
-            - {include: p-hysteria, keys: [protocol, up, down]}
+            - {include: p-hysteria, keys: [protocol, obfs-protocol, up, up-speed, down, down-speed]}
             - {include: sni, keys: [sni]}
             - {include: tls-ext, keys: [ech-opts, reality-opts, shadow-tls-opts, restls-opts, jls-opts]}
             - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
