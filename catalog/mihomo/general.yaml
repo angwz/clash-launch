@@ -15,8 +15,8 @@ fields:
     zh: [混合端口, "一个端口同时接受 HTTP(S) 与 SOCKS 代理请求。"]
     en: [Mixed port, "One port that accepts both HTTP(S) and SOCKS proxy requests."]
     detail:
-      zh: 大多数客户端只需要这一个入站端口。GUI 客户端通常会接管它，在客户端设置里修改即可。
-      en: Most setups need only this inbound port. GUI clients usually manage it; change it in the client settings instead.
+      zh: 大多数场景只需要这一个入站端口。
+      en: Most setups need only this inbound port.
   - {key: redir-port, type: int, importance: expert, doc: inbound/port, ui: {widget: port},
      zh: [透明代理端口, "Linux/macOS 上 TCP 重定向（REDIRECT）透明代理的入站端口。"], en: [Redirect port, "Inbound port for TCP REDIRECT transparent proxying on Linux and macOS."]}
   - {key: tproxy-port, type: int, importance: expert, doc: inbound/port, ui: {widget: port},

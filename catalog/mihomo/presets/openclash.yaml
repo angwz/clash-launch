@@ -1,7 +1,7 @@
 # OpenClash（OpenWrt LuCI 插件）。依据与取舍见 docs/decisions/0006-openclash-preset.md。
 #
-# OpenClash 在启动内核前用 yml_change.sh 改写订阅配置：下面的 managed 只列「无条件改写或删除」
-# 与「按 LuCI 设置改写、默认开启」的字段；按条件追加的项（自定义 DNS、hosts、规则）写在 notes。
+# OpenClash 启动内核前会按 LuCI 设置改写部分字段（详见决定 0006）。生成器不替用户做取舍：
+# 用户设置什么就输出什么，也不逐字段提示（反馈 #17）。
 # 参考提交：vernesong/OpenClash@e553e82（master，luci-app-openclash 0.48.002）。
 id: openclash
 label: {en: OpenClash (OpenWrt), zh: OpenClash（OpenWrt）}
@@ -15,49 +15,6 @@ basis:
   - https://github.com/vernesong/OpenClash/blob/e553e82e01c697aefbe1555261a503f425e00ccd/luci-app-openclash/root/etc/init.d/openclash
   - https://github.com/vernesong/OpenClash/blob/e553e82e01c697aefbe1555261a503f425e00ccd/luci-app-openclash/root/etc/config/openclash
   - https://github.com/vernesong/OpenClash/blob/e553e82e01c697aefbe1555261a503f425e00ccd/luci-app-openclash/root/usr/share/openclash/openclash_core.sh
-managed:
-  # 入站与控制面：每次启动都按 LuCI 设置写入。
-  - port
-  - socks-port
-  - redir-port
-  - tproxy-port
-  - mixed-port
-  - allow-lan
-  - bind-address
-  - mode
-  - log-level
-  - ipv6
-  - external-controller
-  - secret
-  - external-ui
-  - external-ui-name
-  - external-ui-url
-  # 删除或改写为路由器专用值。
-  - routing-mark
-  - iptables
-  - tun
-  - profile.store-selected
-  - ntp.enable
-  # DNS：OpenClash 自己监听并接管 dnsmasq 的转发。
-  - dns.enable
-  - dns.ipv6
-  - dns.listen
-  - dns.enhanced-mode
-  - dns.fake-ip-range
-  - dns.respect-rules
-  - dns.use-hosts
-  # 默认开启的嗅探设置会整体替换 sniffer。
-  - sniffer
 notes:
-  en: >-
-    OpenClash rewrites the profile before starting its bundled mihomo core (master tracks the
-    Alpha branch): ports, allow-lan, external-controller and secret, the DNS listener and mode,
-    tun and sniffer come from the LuCI settings. Proxy and rule provider paths are moved under
-    ./proxy_provider/ and ./rule_provider/; "system" DNS servers are removed to avoid loops; when
-    nameserver is empty it is filled with public resolvers. Proxies, groups, rules and the
-    remaining DNS fields are kept as generated.
-  zh: >-
-    OpenClash 在启动自带的 mihomo 内核（master 分支跟随 Alpha）前改写配置：端口、allow-lan、
-    external-controller 与 secret、DNS 监听与模式、tun、sniffer 由 LuCI 设置决定。proxy 与 rule
-    provider 的 path 会被移到 ./proxy_provider/、./rule_provider/ 下；为避免回环会删除 system DNS；
-    nameserver 为空时补上公共 DNS。节点、策略组、规则与其余 DNS 字段按生成结果保留。
+  en: Subscription for OpenClash on OpenWrt, checked against its bundled mihomo core.
+  zh: 生成给 OpenWrt 上 OpenClash 使用的订阅，按它自带的 mihomo 内核检查。

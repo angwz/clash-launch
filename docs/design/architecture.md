@@ -30,7 +30,7 @@
 | `internal/source` | 唯一联网的包：拉取、SSRF 防护、出站代理、快照，见 [network](network.md) |
 | `internal/workspace` | 命令行的工作区文件（源与规则源的快照） |
 | `internal/layer` | 表单层校验（只接受目录字段）与原始编辑合并（合并标签），见 [merge](merge.md) |
-| `internal/target` | 目标预设加载；版本门槛、目标不支持的字段、接管字段、弃用提示 |
+| `internal/target` | 目标预设加载；版本门槛、目标不支持的字段、弃用提示 |
 | `internal/render` | 按目录排序、受限发射器、文件头、格式自检，见 [rendering](rendering.md) |
 | `internal/kernel` | mihomo 适配层：分享链接解析与节点校验（Go 库）、`mihomo -t`（可执行文件） |
 | `internal/engine` | 生成阶段（`Build`：有序源、订阅编号、provider 模式、策略组与规则）与管线编排（`Render`）、缓存键 |

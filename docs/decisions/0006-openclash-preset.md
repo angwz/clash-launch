@@ -1,7 +1,8 @@
 # 0006 · OpenClash 预设
 
 - 状态：已采纳（2026-11-10）
-- 范围：`catalog/mihomo/presets/openclash.yaml` 的内核版本判断、接管字段与刻意不做的事
+- 范围：`catalog/mihomo/presets/openclash.yaml` 的内核版本判断、OpenClash 改写的字段与刻意不做的事
+- 修订：2026-11-10 按反馈 #17 取消「接管」标记与 `target.managed_field` 提示，预设不再带 `managed` 列表
 - 参考：`vernesong/OpenClash@e553e82`（master，luci-app-openclash 0.48.002），只读放在 `.cache/ref/openclash/`；内核版本信息取自同仓库 `core` 分支 `88a4504`
 
 ## 内核版本
@@ -14,9 +15,11 @@
 
 **决定**：预设不固定内核版本，新建方案沿用格式包的最高版本（v1.19.33），内核检查用同一个 mihomo。理由：Alpha 构建持续前移，固定一个快照版本很快就会过时；唯一差异的 `tun.dns-mode` 所在的 `tun` 整段由 OpenClash 重写，对输出没有影响。Smart 内核是第三方分支，不在支持范围内。
 
-## 接管字段
+## OpenClash 会改写的字段（仅供参考）
 
-依据是 `yml_change.sh`：OpenClash 每次启动内核前读取订阅配置，按 LuCI 设置改写后再交给内核。预设的 `managed` 只列**无条件改写**，或**按默认开启的设置改写**的字段；这些字段照常输出，界面标注「接管」，渲染时给出 `target.managed_field` 提示。
+依据是 `yml_change.sh`：OpenClash 每次启动内核前读取订阅配置，按 LuCI 设置改写后再交给内核。下表只作记录，方便排查「为什么路由器上的值和订阅里不一样」。
+
+**决定（反馈 #17）**：生成器不在界面或诊断中逐字段提示这些改写。用户设置什么就输出什么；路由器上以 OpenClash 的设置为准，那是用户在 OpenClash 侧的选择。
 
 | 类别 | 字段 | OpenClash 的行为 |
 | --- | --- | --- |
@@ -27,7 +30,7 @@
 | DNS | `dns.enable` `dns.ipv6` `dns.listen` `dns.enhanced-mode` `dns.fake-ip-range` `dns.respect-rules` `dns.use-hosts` | DNS 监听 `0.0.0.0:7874` 并接管 dnsmasq 的转发；模式与 fake-ip 网段来自 LuCI |
 | 嗅探 | `sniffer` | 启用嗅探（默认）时整段替换为 OpenClash 内置配置，否则只把 `enable` 设为 false |
 
-**不列入 `managed`，写进预设说明**（它们只在特定条件下发生，或是追加而不是覆盖）：
+按条件发生或只是追加的改写：
 
 - proxy 与 rule provider 的 `path` 被移到 `./proxy_provider/`、`./rule_provider/` 下（`init.d/openclash`）。生成器写出的相对路径不受影响，只是落盘位置变化。
 - `nameserver`、`fallback`、`default-nameserver`、`proxy-server-nameserver` 中的 `system` 被删除（防回环，`enable_redirect_dns` 默认 1）；`nameserver` 为空时补公共 DNS；`respect-rules` 为真而 `proxy-server-nameserver` 为空时自动补上。
@@ -37,7 +40,7 @@
 
 ## 刻意不做
 
-- **不替用户删除接管字段**：用户可能在 OpenClash 中关闭了对应的覆写，或把同一份订阅给其他客户端用。
+- **不替用户删除或标记这些字段**：用户可能在 OpenClash 中关闭了对应的覆写，或把同一份订阅给其他客户端用。
 - **不预设表单初值**：OpenClash 不强制 `unified-delay`、`tcp-concurrent` 等选项，给初值属于主观取舍。
 - **不模拟 OpenClash 的改写**：内核检查针对生成器的输出本身；OpenClash 改写后的结果由维护者在路由器上导入验证。
 

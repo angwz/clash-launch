@@ -179,13 +179,16 @@ ruleset = "[]MATCH"
 `
 
 func (h *harness) setup() (*client, string) {
-	st, _ := h.svc.NewSetup(context.Background())
-	h.srv.SetSetup(st)
 	c := h.client()
-	c.want(403, "POST", "/api/v1/setup", map[string]string{"token": "wrong", "username": "admin", "password": "correct horse battery"})
-	c.want(422, "POST", "/api/v1/setup", map[string]string{"token": st.Token, "username": "admin", "password": "short"})
-	c.want(201, "POST", "/api/v1/setup", map[string]string{"token": st.Token, "username": "admin", "password": "correct horse battery"})
-	c.want(403, "POST", "/api/v1/setup", map[string]string{"token": st.Token, "username": "again", "password": "correct horse battery"})
+	if !strings.Contains(string(c.want(200, "GET", "/api/v1/setup", nil)), `"needed":true`) {
+		h.t.Fatal("没有账号时应需要首次注册")
+	}
+	c.want(422, "POST", "/api/v1/setup", map[string]string{"username": "admin", "password": "abcde"})
+	c.want(201, "POST", "/api/v1/setup", map[string]string{"username": "admin", "password": "correct horse battery"})
+	c.want(403, "POST", "/api/v1/setup", map[string]string{"username": "again", "password": "correct horse battery"})
+	if !strings.Contains(string(c.want(200, "GET", "/api/v1/setup", nil)), `"needed":false`) {
+		h.t.Fatal("已有账号后不再需要首次注册")
+	}
 	c.login("admin", "correct horse battery")
 	src := decode[sourceDTO](h.t, c.want(201, "POST", "/api/v1/sources", map[string]any{
 		"name": "我的 VPS", "kind": "batch",
@@ -403,8 +406,8 @@ func TestRegistrationAndInvites(t *testing.T) {
 	if r, _ := reg(" bob", ""); r.StatusCode != 422 {
 		t.Errorf("首尾空白的用户名应报错而不是被改写：%d", r.StatusCode)
 	}
-	if r, _ := reg("ab", ""); r.StatusCode != 422 {
-		t.Errorf("过短的用户名应拒绝：%d", r.StatusCode)
+	if r, _ := reg(strings.Repeat("x", 33), ""); r.StatusCode != 422 {
+		t.Errorf("过长的用户名应拒绝：%d", r.StatusCode)
 	}
 	if r, b := reg("ALICE", ""); r.StatusCode != 409 || !strings.Contains(string(b), `"exists"`) {
 		t.Errorf("用户名应不区分大小写地唯一，且返回 409 exists：%d %s", r.StatusCode, b)

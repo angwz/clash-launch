@@ -202,9 +202,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** 是否还需要创建首个管理员（没有任何账号时为 true） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            needed: boolean;
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** 用一次性设置令牌创建首个管理员 */
+        /** 没有任何账号时创建首个管理员；已有账号后返回 403 */
         post: {
             parameters: {
                 query?: never;
@@ -215,7 +237,6 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        token: string;
                         username: string;
                         password: string;
                     };

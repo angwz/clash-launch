@@ -25,10 +25,9 @@ type Preset struct {
 	Platform string            `yaml:"platform" json:"platform"`
 	Core     string            `yaml:"core" json:"core"` // mihomo | stash
 	Docs     string            `yaml:"docs" json:"docs"`
-	// Basis 列出 defaults 与 managed 每一项的依据链接（官方文档或源码）。查不到依据的项不写。
+	// Basis 列出 defaults 与说明中每一项的依据链接（官方文档或源码）。查不到依据的项不写。
 	Basis    []string          `yaml:"basis" json:"basis,omitempty"`
-	Defaults yaml.Node         `yaml:"defaults" json:"-"`                // 新建方案时的表单初值
-	Managed  []string          `yaml:"managed" json:"managed,omitempty"` // 由客户端或插件接管的字段路径
+	Defaults yaml.Node         `yaml:"defaults" json:"-"` // 新建方案时的表单初值
 	Notes    map[string]string `yaml:"notes" json:"notes"`
 	Kernel   bool              `yaml:"kernel" json:"kernel"` // 是否有可用的 mihomo 内核检查
 }
@@ -77,8 +76,8 @@ func Load(fsys fs.FS, pack string) ([]*Preset, error) {
 		if p.Label["en"] == "" || p.Label["zh"] == "" {
 			return nil, fmt.Errorf("target: %s 缺少中英文名称", p.ID)
 		}
-		if (len(p.Managed) > 0 || p.Defaults.Kind != 0) && len(p.Basis) == 0 {
-			return nil, fmt.Errorf("target: %s 写了 defaults 或 managed，但没有依据链接", p.ID)
+		if p.Defaults.Kind != 0 && len(p.Basis) == 0 {
+			return nil, fmt.Errorf("target: %s 写了 defaults，但没有依据链接", p.ID)
 		}
 		seen[p.ID] = true
 		pp := p
@@ -101,18 +100,14 @@ func Find(presets []*Preset, id string) *Preset {
 // Adapt 按目标适配合并后的配置（就地修改 root）：
 //  1. 内核版本门槛：since 高于所选内核、或 removed 不高于所选内核时警告，不删除；
 //  2. 目标不支持的字段：来自表单的删除并逐条报告；来自原始编辑的保留（用户明确要求输出）；
-//  3. 接管字段：照常输出，提示会被客户端覆盖；
-//  4. 已弃用字段：提示替代字段。
+//  3. 已弃用字段：提示替代字段。
+//
+// 客户端运行时是否改写某个字段不在这里提示：用户写什么就输出什么（反馈 #17）。
 //
 // touched 是原始编辑写入过的路径（layer.Result.Touched）。
 func Adapt(root *yaml.Node, touched []string, cat *catalog.Catalog, p *Preset, core string, out *diag.List) {
 	a := &adapter{touched: touched, p: p, core: parseVersion(core), coreText: core, out: out}
 	a.walk(root, cat.Root, "")
-	for _, m := range p.Managed {
-		if lookup(root, m) {
-			out.Add(diag.TargetManaged, m, "path", m, "preset", p.ID)
-		}
-	}
 }
 
 type adapter struct {
@@ -179,18 +174,6 @@ func (a *adapter) check(f *catalog.Field, p string) bool {
 		a.out.Add(diag.TargetDeprecated, p, "path", p, "replacement", f.Replacement)
 	}
 	return false
-}
-
-// lookup 报告点分路径（不含下标）是否存在于配置中。
-func lookup(root *yaml.Node, p string) bool {
-	n := root
-	for _, seg := range strings.Split(p, ".") {
-		n = yamlx.Get(n, seg)
-		if n == nil {
-			return false
-		}
-	}
-	return true
 }
 
 func parseVersion(v string) []int {

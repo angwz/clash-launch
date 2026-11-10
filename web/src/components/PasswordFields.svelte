@@ -1,6 +1,8 @@
 <script lang="ts">
-  // 用户名 + 口令 + 确认口令。口令规则由后端判定（最短 10 个字符、常见口令表）；这里只做长度与一致性的即时提示。
+  // 用户名 + 口令 + 确认口令。口令规则由后端判定（至少 5 个字符、至少 2 类字符、常见口令表）；
+  // 这里只做即时提示（lib/password.ts）。
   import { t } from "../lib/i18n/i18n.svelte";
+  import { passwordOk } from "../lib/password";
 
   let {
     username = $bindable(""),
@@ -9,10 +11,11 @@
   }: { username?: string; password?: string; valid?: boolean } = $props();
 
   let confirm = $state("");
-  const tooShort = $derived(password.length > 0 && [...password].length < 10);
+  const strong = $derived(passwordOk(password));
+  const tooShort = $derived(password.length > 0 && !strong);
   const mismatch = $derived(confirm.length > 0 && confirm !== password);
   $effect(() => {
-    valid = username.length >= 3 && [...password].length >= 10 && confirm === password;
+    valid = username.trim().length >= 1 && strong && confirm === password;
   });
 </script>
 

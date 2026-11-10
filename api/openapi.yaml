@@ -405,10 +405,14 @@ paths:
       parameters: [{$ref: '#/components/parameters/token'}, {name: source, in: path, required: true, schema: {type: string}}]
       responses: {'200': {description: text/yaml（proxies 列表）}, '404': {description: 不存在}, '429': {description: 超出频率限制}}
   /api/v1/setup:
+    get:
+      tags: [session]
+      summary: 是否还需要创建首个管理员（没有任何账号时为 true）
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [needed], properties: {needed: {type: boolean}}}}}}}
     post:
       tags: [session]
-      summary: 用一次性设置令牌创建首个管理员
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [token, username, password], properties: {token: {type: string}, username: {type: string}, password: {type: string}}}}}}
+      summary: 没有任何账号时创建首个管理员；已有账号后返回 403
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}}}}}}
       responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /api/v1/session:
     post:

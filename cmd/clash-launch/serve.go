@@ -208,14 +208,13 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	srv := api.New(svc, *apiCfg, log)
-	if st, err := svc.NewSetup(ctx); err == nil && st != nil {
-		srv.SetSetup(st)
+	if needed, err := svc.NeedsSetup(ctx); err == nil && needed {
 		base := c.PublicURL
 		if base == "" {
 			base = "http://<对外地址>"
 		}
-		// 设置链接只出现在日志中，15 分钟有效；也可以用 clash-launch admin create 创建管理员。
-		log.Warn("还没有任何账号：用一次性设置链接创建首个管理员（15 分钟有效）", "url", base+"/setup#"+st.Token)
+		// 第一个打开页面的人注册为管理员；也可以用 clash-launch admin create 创建。
+		log.Warn("还没有任何账号：打开页面注册首个管理员", "url", base+"/setup")
 	}
 	go svc.Run(ctx, time.Minute)
 	hs := srv.HTTPServer(c.Listen)

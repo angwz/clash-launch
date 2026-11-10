@@ -41,8 +41,7 @@ type Server struct {
 	Svc          *service.Service
 	Cfg          Config
 	Log          *slog.Logger
-	setup        *service.Setup
-	mu           sync.Mutex
+	setupMu      sync.Mutex // 串行化首次注册：两个并发请求不能都成为管理员
 	limit        *limiter
 	regLimit     *limiter // 注册：每个 IP 每小时 10 次
 	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
@@ -72,13 +71,6 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 		s.mux.Handle("GET /", staticHandler(cfg.Static))
 	}
 	return s
-}
-
-// SetSetup 设置首个管理员的一次性令牌（serve 启动时生成并打印）。
-func (s *Server) SetSetup(st *service.Setup) {
-	s.mu.Lock()
-	s.setup = st
-	s.mu.Unlock()
 }
 
 // Handler 返回带全部中间件的处理器。

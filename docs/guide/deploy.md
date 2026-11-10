@@ -12,10 +12,10 @@ docker compose logs clash-launch | grep setup
 ```
 
 1. 修改 `compose.yaml` 中的 `CLASH_LAUNCH_PUBLIC_URL` 为你的对外地址（HTTPS）。
-2. 首次启动时日志里有一条**一次性设置链接**（15 分钟有效），打开它创建首个管理员；也可以用命令行：
+2. 首次启动后打开对外地址，会自动进入**首次注册**：第一个访问者成为管理员，之后这个入口关闭。部署到公网时请在启动后尽快完成这一步。也可以用命令行：
 
    ```sh
-   docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '一个至少 10 个字符的口令'
+   docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '至少 5 位、含 2 类字符的口令'
    ```
 
 3. 把 nginx 或 Caddy 反向代理到 `127.0.0.1:8080`，见 [reverse-proxy](reverse-proxy.md)。

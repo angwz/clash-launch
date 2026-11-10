@@ -78,7 +78,6 @@ var (
 var (
 	TargetUnknown     = reg("target.unknown", Error, "Unknown target preset {preset}", "未知的目标预设 {preset}")
 	TargetUnsupported = reg("target.unsupported_field", Warning, "{path} is not supported by {preset}; removed", "{preset} 不支持 {path}，已删除")
-	TargetManaged     = reg("target.managed_field", Info, "{path} is managed by {preset} and may be overridden by the client", "{path} 由 {preset} 接管，可能被客户端覆盖")
 	TargetSince       = reg("target.since", Warning, "{path} requires core {since} or later; selected core is {core}", "{path} 需要内核 {since} 或更新，所选内核为 {core}")
 	TargetRemoved     = reg("target.removed", Warning, "{path} was removed in core {removed}; selected core is {core}", "{path} 在内核 {removed} 中已移除，所选内核为 {core}")
 	TargetDeprecated  = reg("target.deprecated", Info, "{path} is deprecated; use {replacement}", "{path} 已弃用，请改用 {replacement}")

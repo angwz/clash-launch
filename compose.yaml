@@ -1,5 +1,5 @@
 # Clash, Launch! 单容器部署。对外只暴露本机的 8080，由 nginx/Caddy 反向代理并提供 HTTPS。
-# 首次启动后查看日志中的一次性设置链接：docker compose logs clash-launch
+# 首次启动后打开对外地址注册首个管理员（第一个访问者成为管理员，之后不再开放）。
 # 服务器直接拉取订阅：订阅提供方能看到本机的出口 IP（docs/decisions/0003）。
 services:
   clash-launch:

@@ -121,6 +121,7 @@
 </script>
 
 {#if kind === "bool"}
+  {#if !set && field.default !== undefined}<span class="dflt-tag">{t("field.default_tag")}</span>{/if}
   <button
     {id}
     type="button"
@@ -134,15 +135,16 @@
     <span class="knob"></span>
   </button>
 {:else if kind === "segmented"}
+  {#if !set && field.default !== undefined}<span class="dflt-tag">{t("field.default_tag")}</span>{/if}
   <div class="seg" role="radiogroup" aria-labelledby={labelId}>
     {#each options as o (o)}
       <button
         type="button"
         role="radio"
         aria-checked={effective === o}
-        class:on={effective === o}
+        class:on={set && value === o}
         class:implicit={!set && effective === o}
-        title={optLabel(o) || undefined}
+        title={(!set && effective === o ? t("field.default_tag") + " · " : "") + (optLabel(o) || o)}
         onclick={() => (set && value === o ? reset() : editor.set(path, o))}
       ><span class="ltr">{o}</span></button>
     {/each}
@@ -209,8 +211,22 @@
   .switch[aria-checked="true"] {
     background: var(--accent);
   }
+  /* 未设置：只是显示默认值，用虚线框与灰色区分于「已设置」（反馈 #17：默认值不能看起来像已选中） */
   .switch[data-set="false"] {
-    opacity: 0.6;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+    outline: 1px dashed var(--border-strong);
+    outline-offset: 2px;
+  }
+  .switch[data-set="false"] .knob {
+    background: var(--border-strong);
+    box-shadow: none;
+  }
+  .dflt-tag {
+    font-size: var(--text-xs);
+    color: var(--fg-subtle, var(--fg-muted));
+    margin-inline-end: var(--space-2);
+    white-space: nowrap;
   }
   .knob {
     position: absolute;
@@ -256,7 +272,9 @@
   }
   .seg button.implicit {
     color: var(--fg-muted);
-    font-style: italic;
+    background: transparent;
+    outline: 1px dashed var(--border-strong);
+    outline-offset: -3px;
   }
   .ctl {
     inline-size: auto;

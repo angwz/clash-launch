@@ -1,6 +1,7 @@
 <script lang="ts">
   // 找回口令（第 14.1 节）：输入用户名 → 回答安全问题（答对至少 2 个）→ 设置新口令。
   // 成功后该账号的全部会话失效，需要重新登录。需要工作量证明；连续失败后锁定 15 分钟。
+  import { passwordOk } from "../lib/password";
   import AuthLayout from "../components/AuthLayout.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -56,7 +57,7 @@
     }
   }
 
-  const pwOk = $derived([...password].length >= 10 && password === confirm);
+  const pwOk = $derived(passwordOk(password) && password === confirm);
 </script>
 
 <AuthLayout title={t("recover.title")} subtitle={step === "done" ? undefined : t("recover.subtitle")}>

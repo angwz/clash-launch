@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"encoding/json"
@@ -138,23 +139,21 @@ func (s *Service) HostedProvider(ctx context.Context, link *store.Link, sourceID
 	return render.Render(yamlx.Map("proxies", seq), render.Options{Catalog: s.Catalog}, &ds)
 }
 
-// Setup 是首个管理员的一次性设置令牌（第 14.1 节）：只在没有任何账号时生成，15 分钟有效，打印在日志中。
-type Setup struct {
-	Token   string
-	Expires time.Time
+// NeedsSetup 报告是否还没有任何账号。没有账号时，第一个访问者可以直接创建管理员（反馈 #17：
+// 个人项目，不再要求日志中的一次性令牌）。
+func (s *Service) NeedsSetup(ctx context.Context) (bool, error) {
+	n, err := s.Store.Users().Count(ctx)
+	if err != nil {
+		return false, fmt.Errorf("service: 统计账号: %w", err)
+	}
+	return n == 0, nil
 }
 
-// NewSetup 在没有任何账号时返回一个设置令牌；已有账号时返回 nil。
-func (s *Service) NewSetup(ctx context.Context) (*Setup, error) {
-	n, err := s.Store.Users().Count(ctx)
-	if err != nil || n > 0 {
+// CreateAdmin 创建管理员账号（admin create 命令与首次注册共用）。
+func (s *Service) CreateAdmin(ctx context.Context, username, password string) (*store.User, error) {
+	if err := CheckUsername(username); err != nil {
 		return nil, err
 	}
-	return &Setup{Token: auth.NewToken(24), Expires: s.now().Add(15 * time.Minute)}, nil
-}
-
-// CreateAdmin 创建管理员账号（admin create 命令与设置链接共用）。
-func (s *Service) CreateAdmin(ctx context.Context, username, password string) (*store.User, error) {
 	if err := auth.CheckPassword(password); err != nil {
 		return nil, err
 	}

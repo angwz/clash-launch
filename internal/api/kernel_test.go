@@ -89,10 +89,8 @@ func TestKernelOpenClashFlow(t *testing.T) {
 	}))
 	defer origin.Close()
 
-	st, _ := h.svc.NewSetup(context.Background())
-	h.srv.SetSetup(st)
 	c := h.client()
-	c.want(201, "POST", "/api/v1/setup", map[string]string{"token": st.Token, "username": "admin", "password": "correct horse battery"})
+	c.want(201, "POST", "/api/v1/setup", map[string]string{"username": "admin", "password": "correct horse battery"})
 	c.login("admin", "correct horse battery")
 
 	src := decode[sourceDTO](t, c.want(201, "POST", "/api/v1/sources", map[string]any{"name": "机场", "kind": "subscription", "url": origin.URL + "/sub"}))
@@ -111,9 +109,6 @@ func TestKernelOpenClashFlow(t *testing.T) {
 	diags := string(p.Render.Diagnostics)
 	if p.Render.Status != "ok" || !strings.Contains(diags, "kernel.passed") {
 		t.Fatalf("应通过内核检查：%+v %s", p.Render, diags)
-	}
-	if !strings.Contains(diags, "target.managed_field") {
-		t.Errorf("openclash 预设应提示接管字段：%s", diags)
 	}
 
 	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+p.ID+"/links", map[string]string{}))

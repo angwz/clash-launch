@@ -7,7 +7,7 @@ import (
 )
 
 // 常见口令表（第 14.1 节：随程序发布，不联网查询）。由 tools/commonpw 从固定版本的 NCSC 口令表生成，
-// 只含长度不少于 10 个字符的条目（更短的口令本来就会被拒绝）。
+// 只含长度不少于 10 个字符的条目；更短的常见口令（如 abc123）不在表中，由字符类别要求与登录退避兜底。
 
 //go:embed common_passwords.txt
 var commonRaw string

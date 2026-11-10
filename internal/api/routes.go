@@ -17,6 +17,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/s/{token}", s.subscribe},
 		{"GET", "/p/{token}/{source}", s.hosted},
 
+		{"GET", "/api/v1/setup", s.setupStatus},
 		{"POST", "/api/v1/setup", s.setupAdmin},
 		{"POST", "/api/v1/session", s.login},
 		{"DELETE", "/api/v1/session", a(s.logout)},

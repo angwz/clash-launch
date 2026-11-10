@@ -26,9 +26,7 @@
 
   const nav = $derived(catalog.meta?.pack.nav ?? []);
   const current = $derived(nav.find((s) => s.id === section));
-  const preset = $derived(catalog.meta?.presets.find((p) => p.id === editor.doc?.target.preset));
   const core = $derived(editor.doc?.target.core || catalog.meta?.pack.coreMax || "");
-  const managed = $derived(preset?.managed ?? []);
 
   onMount(() => {
     void Promise.all([catalog.load(), editor.load(params.id!)]).catch((e) => (loadError = errorText(e)));
@@ -228,7 +226,7 @@
           </section>
         {:else}
           {#key current.id}
-            <SectionView section={current} {editor} {core} {managed} onRaw={(s) => openRaw(s)} />
+            <SectionView section={current} {editor} {core} onRaw={(s) => openRaw(s)} />
           {/key}
         {/if}
       </div>

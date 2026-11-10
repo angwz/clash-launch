@@ -24,8 +24,8 @@
 
 ## 账号与会话（第 14.1–14.2 节，M3 部分）
 
-- 口令：argon2id，m=19 MiB、t=2、p=1、32 字节输出、16 字节盐（OWASP Password Storage Cheat Sheet 的推荐配置之一），PHC 字符串格式，参数随哈希保存；用户不存在时执行一次同等开销的计算。最短 10 个字符；常见口令表 M5 补全。
-- 首个管理员：`clash-launch admin create`（口令从标准输入读取），或首次启动时打印在日志中的一次性设置链接（15 分钟有效，用后作废）。不存在默认口令。
+- 口令：argon2id，m=19 MiB、t=2、p=1、32 字节输出、16 字节盐（OWASP Password Storage Cheat Sheet 的推荐配置之一），PHC 字符串格式，参数随哈希保存；用户不存在时执行一次同等开销的计算。口令策略见 [security](../design/security.md)（反馈 #17 后为至少 5 个字符、至少 2 类字符）。
+- 首个管理员：`clash-launch admin create`（口令从标准输入读取），或在还没有任何账号时由第一个访问者在 `/setup` 注册（反馈 #17 取消了日志中的一次性设置令牌；检查与创建在同一把锁内，并发请求只有一个成功）。不存在默认口令。
 - 会话：32 字节随机令牌，只存 SHA-256；Cookie `HttpOnly`、`SameSite=Lax`、HTTPS 下 `Secure` 且名称带 `__Host-` 前缀；每次登录都是新的会话 ID；空闲 7 天、绝对 30 天过期（可配置）。
 - CSRF：会话绑定的同步令牌（登录与 `/me` 返回，写请求放在 `X-CSRF-Token`），并检查 `Origin` 与对外地址一致。没有采用规范中「双提交 Cookie」的写法：会话已经在服务端，同步令牌更简单且同样有效。
 - 注册开关与一次性邀请见 [0003](0003-direct-fetch-and-invites.md)；找回、通行密钥、TOTP、SMTP 提醒、登录退避与配额见 [0005](0005-account-security.md) 与 [security](../design/security.md)。个人 API 令牌（Bearer）尚未实现。

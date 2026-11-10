@@ -13,15 +13,13 @@
     path,
     editor,
     core,
-    managed,
     onlySet = false,
-  }: { field: MetaField; path: string[]; editor: EditorState; core: string; managed: string[]; onlySet?: boolean } = $props();
+  }: { field: MetaField; path: string[]; editor: EditorState; core: string; onlySet?: boolean } = $props();
 
   const pathKey = $derived(path.join("."));
   const labelId = $derived("lbl-" + pathKey);
   const set = $derived(editor.isSet(path));
   const raw = $derived(editor.touched(path));
-  const isManaged = $derived(managed.includes(pathKey));
   const isGroup = $derived(field.type === "object" && !!field.fields?.length);
   const inline = $derived(
     field.type === "bool" || field.type === "int" || (field.type === "enum" && (field.enum?.length ?? 0) <= 6) || (field.type === "string" && !field.sensitive),
@@ -74,7 +72,7 @@
       <div class="group-body">
         {#each field.fields ?? [] as f (f.key)}
           {#if childVisible(f)}
-            <FieldCard field={f} path={[...path, f.key]} {editor} {core} {managed} {onlySet} />
+            <FieldCard field={f} path={[...path, f.key]} {editor} {core} {onlySet} />
           {/if}
         {/each}
       </div>
@@ -91,7 +89,6 @@
           {#if field.stability === "experimental"}<span class="badge warn">{t("badge.experimental")}</span>{/if}
           {#if field.stability === "deprecated"}<span class="badge err">{t("badge.deprecated")}</span>{/if}
           {#if field.since}<span class="badge" class:warn={newer} title={newer ? t("badge.since_newer", { core }) : undefined}>{t("badge.since", { v: field.since })}</span>{/if}
-          {#if isManaged}<span class="badge info" title={t("badge.managed_hint")}>{t("badge.managed")}</span>{/if}
           {#if raw}<span class="badge raw" title={t("raw.badge_hint")}><Icon name="bolt" size={12} />{t("raw.badge")}</span>{/if}
         </div>
         {#if catalog.summary(field)}<p class="summary">{catalog.summary(field)}</p>{/if}
@@ -244,10 +241,6 @@
   .badge.err {
     background: var(--err-soft);
     color: var(--err);
-  }
-  .badge.info {
-    background: var(--info-soft);
-    color: var(--info);
   }
   .badge.raw {
     background: var(--raw-soft);

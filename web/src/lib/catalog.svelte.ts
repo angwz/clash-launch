@@ -46,7 +46,6 @@ export interface Preset {
   platform: string;
   core: string;
   docs: string;
-  managed?: string[];
   notes: Record<string, string>;
   kernel: boolean;
   defaults?: Record<string, unknown>;

@@ -1,6 +1,7 @@
 <script lang="ts">
   // 账号与安全（第 14.1 节）：口令、安全问题、登录设备、界面偏好。
   // 通行密钥、两步验证与提醒邮件在各自的分节中（随 M5 后续步骤加入）。
+  import { passwordOk } from "../lib/password";
   import PageHeader from "../components/PageHeader.svelte";
   import QuestionFields, { blankQuestions, questionsValid, toPayload, type QuestionInput } from "../components/QuestionFields.svelte";
   import Icon from "../components/Icon.svelte";
@@ -92,7 +93,7 @@
     }
   }
 
-  const pwOk = $derived(pw.current !== "" && [...pw.next].length >= 10 && pw.next === pw.confirm);
+  const pwOk = $derived(pw.current !== "" && passwordOk(pw.next) && pw.next === pw.confirm);
   const qLabel = (q: { builtin: number; text?: string }) => (q.builtin >= 0 ? t("question.builtin." + q.builtin) : (q.text ?? ""));
 </script>
 

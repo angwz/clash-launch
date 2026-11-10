@@ -171,27 +171,37 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, p *principal) {
 }
 
 type setupReq struct {
-	Token    string `json:"token"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-// setupAdmin 用首次启动时打印的一次性令牌创建首个管理员（15 分钟有效，用后作废）。
+// setupStatus 报告是否还需要创建首个管理员（登录页据此跳到首次注册）。
+func (s *Server) setupStatus(w http.ResponseWriter, r *http.Request) {
+	needed, err := s.Svc.NeedsSetup(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"needed": needed})
+}
+
+// setupAdmin 在还没有任何账号时创建首个管理员；之后一律 403。
+// 检查与创建在同一把锁内完成，并发的第二个请求会看到已有账号。
 func (s *Server) setupAdmin(w http.ResponseWriter, r *http.Request) {
 	var req setupReq
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
 		return
 	}
-	s.mu.Lock()
-	st := s.setup
-	s.mu.Unlock()
-	if st == nil || time.Now().After(st.Expires) || !auth.Equal(req.Token, st.Token) {
-		problem(w, http.StatusForbidden, "setup.invalid", "setup link is invalid or expired")
+	s.setupMu.Lock()
+	defer s.setupMu.Unlock()
+	needed, err := s.Svc.NeedsSetup(r.Context())
+	if err != nil {
+		s.fail(w, err)
 		return
 	}
-	if strings.TrimSpace(req.Username) == "" {
-		s.fail(w, badRequest("username is required"))
+	if !needed {
+		problem(w, http.StatusForbidden, "setup.done", "an administrator already exists")
 		return
 	}
 	u, err := s.Svc.CreateAdmin(r.Context(), strings.TrimSpace(req.Username), req.Password)
@@ -199,7 +209,6 @@ func (s *Server) setupAdmin(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	s.SetSetup(nil)
 	writeJSON(w, http.StatusCreated, toUser(u))
 }
 

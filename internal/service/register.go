@@ -58,10 +58,10 @@ func (s *Service) CreateInvite(ctx context.Context, admin string, ttl time.Durat
 	return tok, inv, nil
 }
 
-// CheckUsername 校验用户名：3–32 个字符，不含空白与控制字符。
+// CheckUsername 校验用户名：1–32 个字符，首尾无空白，不含控制字符（反馈 #17：用户名可以简单）。
 func CheckUsername(name string) error {
 	n := utf8.RuneCountInString(name)
-	if n < 3 || n > 32 || strings.TrimSpace(name) != name {
+	if n < 1 || n > 32 || strings.TrimSpace(name) != name {
 		return ErrUsername
 	}
 	for _, r := range name {

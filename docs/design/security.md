@@ -32,7 +32,7 @@
 | 项 | 默认 | 位置 |
 | --- | --- | --- |
 | 注册 | 关闭，凭一次性邀请 | [0003](../decisions/0003-direct-fetch-and-invites.md) |
-| 口令 | ≥ 10 个字符，拒绝常见口令表（9128 条，长度 ≥ 10）；argon2id m=19 MiB、t=2、p=1 | `internal/auth` |
+| 口令 | ≥ 5 个字符且至少 2 类字符（小写、大写、数字、其他），拒绝常见口令表（9128 条，长度 ≥ 10，更短的常见口令靠登录退避兜底）；argon2id m=19 MiB、t=2、p=1 | `internal/auth` |
 | 工作量证明 | 20 位（约 1 秒） | `CLASH_LAUNCH_POW_BITS` |
 | 登录退避 | 按账号 3 次后 1 s 起翻倍，最长 15 分钟；按 IP 10 次后 | `internal/service/account.go` |
 | 找回锁定 | 按账号 5 次、按 IP 10 次后锁定 15 分钟 | 同上 |
@@ -51,7 +51,7 @@
 
 | # | 要求 | 测试 | 层级 |
 | ---: | --- | --- | --- |
-| A1 | 口令最短 10 位；拒绝常见口令（不区分大小写） | `TestCheckPassword` | 单元 |
+| A1 | 口令至少 5 位且至少 2 类字符；拒绝常见口令（不区分大小写） | `TestCheckPassword` | 单元 |
 | A2 | 用户名不存在与口令错误的响应相同，耗时相近（DummyVerify） | `TestAccountSecurity`（找回）；登录走同一路径 | API |
 | A3 | 登录失败按账号退避；退避期内即使口令正确也拒绝 | `TestAccountSecurity` | API |
 | A4 | 注册默认关闭；邀请一次性、可过期、可撤销 | `TestRegistrationAndInvites`、`TestInvites`、e2e 注册 | API / e2e |

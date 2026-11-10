@@ -19,6 +19,11 @@
   let canRegister = $state(false);
 
   $effect(() => {
+    // 还没有任何账号：直接去首次注册（第一个访问者成为管理员）
+    api
+      .get<{ needed: boolean }>("/api/v1/setup")
+      .then((r) => r.needed && router.go("/setup", true))
+      .catch(() => {});
     api
       .get<{ open: boolean }>("/api/v1/register")
       .then((r) => (canRegister = r.open))

@@ -38,3 +38,4 @@
 | # | 意见 | 状态 | 落点 |
 | ---: | --- | :---: | --- |
 | 16 | 本轮只做 OpenClash 预设、字段目录补全与 OpenClash 验收，范围外不做；每个小目标测试、同步文档并本地提交；检查以退出码为准，不能只看过滤后的输出；汇报用通俗、简短的语言 | ✅ | [0006](../decisions/0006-openclash-preset.md)、[catalog](../design/catalog.md#覆盖率)、[progress](progress.md) |
+| 17 | 首次运行不再要求日志中的令牌，第一个访问者直接注册管理员；用户名与口令可以简单（口令至少 5 位、2 类字符），靠防爆破兜底。编辑器里默认值不能看起来像已选中；不再标注或提示「由客户端接管」，字段设置的决定权交给用户 | ✅ | [0002](../decisions/0002-storage-and-service.md)、[security](../design/security.md)、[0006](../decisions/0006-openclash-preset.md) |

@@ -12,9 +12,8 @@
     section,
     editor,
     core,
-    managed,
     onRaw,
-  }: { section: NavSection; editor: EditorState; core: string; managed: string[]; onRaw: (section: NavSection) => void } = $props();
+  }: { section: NavSection; editor: EditorState; core: string; onRaw: (section: NavSection) => void } = $props();
 
   let onlySet = $state(false);
   let more = $state(false);
@@ -80,7 +79,7 @@
 
   <div class="cards">
     {#each primary as e (e.path.join("."))}
-      <FieldCard field={e.field} path={e.path} {editor} {core} {managed} {onlySet} />
+      <FieldCard field={e.field} path={e.path} {editor} {core} {onlySet} />
     {/each}
   </div>
 
@@ -92,7 +91,7 @@
     {#if more}
       <div class="cards">
         {#each rest as e (e.path.join("."))}
-          <FieldCard field={e.field} path={e.path} {editor} {core} {managed} />
+          <FieldCard field={e.field} path={e.path} {editor} {core} />
         {/each}
       </div>
     {/if}

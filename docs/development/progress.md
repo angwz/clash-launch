@@ -4,7 +4,7 @@
 
 ## 现在
 
-- **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。本轮（反馈 #14–#16）的核心路径已完成：OpenClash 预设、字段目录补全、OpenClash 验收（见「核心路径验收」）。
+- **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。核心路径（反馈 #14–#16）已完成，见「核心路径验收」；反馈 #17 的三项修正已完成（首次注册免令牌与简单口令、默认值显示、取消接管提示）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
 
@@ -88,7 +88,7 @@
 | 字段目录：加载、片段、校验、键序、导出 | `catalog/mihomo/`、`internal/catalog` | ✓ | 单元测试；文档锚点对照 wiki 快照；顶层、dns、tun、sniffer、28 种节点协议、20 种 listeners、rule-provider 的顺序对照官方示例；scan 覆盖率 100%（见核心路径验收） |
 | 安全 YAML 解析 | `internal/yamlx` | ✓ | 体积、节点数、别名展开、重复键经合并与渲染测试间接覆盖 |
 | 表单层校验与原始编辑合并 | `internal/layer` | ✓ | 表驱动、fuzz |
-| 目标适配（版本门槛、不支持、接管、弃用） | `internal/target` | ✓ | 端到端（`global-client-fingerprint` 移除警告）；预设 `mihomo`、`openclash`（[0006](../decisions/0006-openclash-preset.md)），`TestPresetManagedPathsInCatalog` 锁定接管路径 |
+| 目标适配（版本门槛、不支持、弃用） | `internal/target` | ✓ | 端到端（`global-client-fingerprint` 移除警告）；预设 `mihomo`、`openclash`（[0006](../decisions/0006-openclash-preset.md)） |
 | 渲染与格式自检 | `internal/render` | ✓ | 刁钻标量表、golden、fuzz |
 | 内核检查（离线 `mihomo -t`） | `internal/kernel` | ✓ | mihomo v1.19.33 实测：合法配置通过，坏节点失败并定位到 `proxies[0]` |
 | 方案文档 | `internal/profile` | ✓ | 经引擎测试覆盖 |
@@ -117,12 +117,12 @@ go vet ./...                        → 通过
 staticcheck ./...                   → 通过
 golangci-lint run ./...             → 0 issues
 go test ./...                       → 全部通过
-go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（含 TestKernelOpenClashFlow）
+go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（含 TestKernelOpenClashFlow；首次注册改为免令牌后重跑）
 catalog-extract coverage            → 2075 条：covered 2070、free 3、skipped 2、passthrough 0、missing 0
 npm run check（svelte-check）       → 0 错误 0 警告
 vitest                              → 37 通过
 npm run build                       → 通过
-playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
+playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过（反馈 #17 修改后重跑）
 真机验收（clash-launch serve）      → 订阅取回 200，mihomo -t 通过，实际启动监听，日志 0 error
 ```
 
