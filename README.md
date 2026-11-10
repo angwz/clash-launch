@@ -36,7 +36,7 @@ docker compose up -d
 docker compose pull && docker compose up -d
 ```
 
-数据保存在名为 `data` 的 Docker 卷中，更新不会丢失；启动时会自动迁移数据库，并在迁移前备份。想固定版本时，把 `compose.yaml` 中的 `:latest` 改为具体版本号（如 `:1.0.0`）。
+数据默认保存在名为 `data` 的 Docker 卷中；想放在当前目录方便查看和打包，把 `compose.yaml` 中的 `- data:/data` 换成注释里的 `- ./data:/data` 即可，不需要手动改权限。两种方式更新都不会丢数据；启动时会自动迁移数据库，并在迁移前备份。想固定版本时，把 `compose.yaml` 中的 `:latest` 改为具体版本号（如 `:1.0.0`）。
 
 更多配置项、备份与迁移见 [docs/guide/deploy.md](docs/guide/deploy.md)。
 

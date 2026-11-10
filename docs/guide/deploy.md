@@ -30,6 +30,15 @@ docker compose pull && docker compose up -d
 
 不想手动执行时，可以在同一台机器上运行 [Watchtower](https://containrrr.dev/watchtower/) 定时检查新镜像；它会自动重启容器，适合个人使用，不适合需要控制升级时机的场合。
 
+## 数据放在哪
+
+| 写法 | 位置 | 适合 |
+| --- | --- | --- |
+| `- data:/data`（默认） | Docker 数据卷，一般在 `/var/lib/docker/volumes/<目录名>_data/_data` | 不关心文件在哪，复制粘贴就能用 |
+| `- ./data:/data` | `compose.yaml` 旁边的 `data` 文件夹 | 想直接查看、整个文件夹打包备份 |
+
+两种写法都不需要手动改权限：`compose.yaml` 以 root 启动容器（`user: "0:0"`），程序先把 `/data` 的所有者改为运行用户 65532，再放弃 root 继续运行（`cmd/clash-launch/privdrop_linux.go`）。为此 compose 只放行 `CHOWN`、`DAC_OVERRIDE`、`SETUID`、`SETGID` 四项能力，降权后全部失效。不用这个 compose、直接以普通用户运行且目录不可写时，程序会退出并在日志中给出 `chown` 命令。
+
 ## 版本
 
 | 镜像标签 | 何时更新 | 适合 |

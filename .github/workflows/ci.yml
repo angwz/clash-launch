@@ -43,3 +43,45 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run budget
+
+  # 用仓库中的 compose.yaml 实际运行镜像（amd64）：
+  #   ① 宿主机目录 ./data 由 root 创建（VPS 上最常见的情况）→ 自动交给运行用户并降权；
+  #   ② 默认的 Docker 数据卷；
+  #   ③ 以普通用户运行且目录不可写 → 退出并在日志中给出修复命令。
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: 构建镜像
+        run: docker build -t clash-launch:ci .
+      - name: 覆盖文件（只替换镜像与数据位置，其余沿用 compose.yaml）
+        run: |
+          printf 'services:\n  clash-launch:\n    image: clash-launch:ci\n' > image.override.yaml
+          printf 'services:\n  clash-launch:\n    image: clash-launch:ci\n    volumes: !override\n      - ./data:/data\n' > bind.override.yaml
+      - name: ① root 创建的 ./data
+        run: |
+          sudo mkdir data
+          docker compose -f compose.yaml -f bind.override.yaml up -d
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:20230/healthz && break; sleep 1; done
+          curl -sf http://127.0.0.1:20230/api/v1/setup | grep -q '"needed":true'
+          echo 'ci-pass-1' | docker compose -f compose.yaml -f bind.override.yaml exec -T clash-launch /clash-launch admin create -username admin
+          curl -sf http://127.0.0.1:20230/api/v1/setup | grep -q '"needed":false'
+          sudo ls -ln data
+          test "$(sudo stat -c %u data/master.key)" = 65532
+          test "$(sudo stat -c %u data/clash-launch.db)" = 65532
+          test -z "$(sudo find data -not -uid 65532)"
+          docker compose -f compose.yaml -f bind.override.yaml down
+      - name: ② Docker 数据卷
+        run: |
+          docker compose -f compose.yaml -f image.override.yaml up -d
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:20230/healthz && break; sleep 1; done
+          curl -sf http://127.0.0.1:20230/healthz
+          docker compose -f compose.yaml -f image.override.yaml down -v
+      - name: ③ 普通用户且目录不可写
+        run: |
+          sudo mkdir data2
+          if docker run --rm --user 65532:65532 -v "$PWD/data2:/data" clash-launch:ci serve > out.txt 2>&1; then
+            echo "应当启动失败"; cat out.txt; exit 1
+          fi
+          cat out.txt
+          grep -q 'chown -R 65532:65532' out.txt

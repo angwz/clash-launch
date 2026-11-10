@@ -41,3 +41,4 @@
 | 17 | 首次运行不再要求日志中的令牌，第一个访问者直接注册管理员；用户名与口令可以简单（口令至少 5 位、2 类字符），靠防爆破兜底。编辑器里默认值不能看起来像已选中；不再标注或提示「由客户端接管」，字段设置的决定权交给用户 | ✅ | [0002](../decisions/0002-storage-and-service.md)、[security](../design/security.md)、[0006](../decisions/0006-openclash-preset.md) |
 | 18 | 编辑器：设置后字段不跳动、「更多设置」默认展开；总开关打开时按官方示例填推荐值，关闭时其余字段变淡；全站加入合适的动效；预览格式与官方一致并能显示 emoji；随后开源到 GitHub，并用 Actions 构建镜像，以 docker compose 部署与更新 | ✅ | [0004](../decisions/0004-web-frontend.md) #20–#24、[catalog](../design/catalog.md)、[rendering](../design/rendering.md) |
 | 19 | 默认端口改为 20230；版本号从 1.0.0 开始，修补加修订号；推荐的 compose 默认对外开放端口（VPS 部署需要直接访问网页）；公开仓库不展示名字的来历；口令少于 8 位时必须含特殊字符；界面提示所对应的 mihomo 版本与兼容性；说明版本更新后数据库如何保持可用 | ✅ | [deploy](../guide/deploy.md)「版本」「备份与升级」、[security](../design/security.md) |
+| 20 | 数据映射到宿主机目录（如 ./data）时不应要求用户手动改权限；希望 root 登录 VPS 的用户执行几条命令就能运行 | ✅ | [deploy](../guide/deploy.md)「数据放在哪」 |

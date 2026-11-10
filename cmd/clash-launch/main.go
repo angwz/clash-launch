@@ -25,6 +25,16 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
+	// 会读写数据目录的子命令：先让数据目录对运行用户可写；以 root 启动时随后降为普通用户（见 privdrop_linux.go）。
+	switch os.Args[1] {
+	case "serve", "admin", "keys", "backup", "db":
+		if c, err := loadConfig(); err == nil {
+			if err := prepareDataDir(c.DataDir); err != nil {
+				fmt.Fprintln(os.Stderr, "clash-launch:", err)
+				os.Exit(1)
+			}
+		}
+	}
 	var code int
 	switch os.Args[1] {
 	case "render":
