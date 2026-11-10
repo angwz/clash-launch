@@ -1,9 +1,21 @@
 {
+  "account.change_password": "Change password",
+  "account.current_password": "Current password",
+  "account.last_active": "Active {when}",
   "account.local_hint": "Language and theme are stored in this browser.",
+  "account.logout_others": "Also sign out other devices",
+  "account.password": "Password",
+  "account.password_changed": "Password changed",
   "account.preferences": "Preferences",
-  "account.role": "Role",
+  "account.questions_change": "Change",
+  "account.questions_desc": "If you forget your password, answering 2 of them lets you reset it.",
+  "account.questions_missing": "No security questions yet. Without them you can't recover a forgotten password yourself.",
+  "account.questions_saved": "Security questions updated",
+  "account.questions_set": "Set up",
+  "account.revoke": "Sign out",
+  "account.sessions": "Signed-in devices",
   "account.theme": "Theme",
-
+  "account.this_device": "This device",
   "admin.col_created": "Created",
   "admin.col_expires": "Expires",
   "admin.col_note": "Note",
@@ -27,7 +39,6 @@
   "admin.subtitle": "Registration and invites.",
   "admin.title": "Admin",
   "admin.validity": "Valid for",
-
   "badge.deprecated": "Deprecated",
   "badge.experimental": "Experimental",
   "badge.managed": "Managed by client",
@@ -35,7 +46,6 @@
   "badge.replacement": "Use {key} instead",
   "badge.since": "≥ {v}",
   "badge.since_newer": "Newer than the selected core {core}; older cores ignore it or fail",
-
   "check.error": "Check error",
   "check.failed": "Failed",
   "check.idle": "Not checked",
@@ -43,7 +53,6 @@
   "check.run": "Run kernel check",
   "check.running": "Checking…",
   "check.unavailable": "Unavailable",
-
   "common.actions": "Actions",
   "common.add": "Add",
   "common.cancel": "Cancel",
@@ -59,7 +68,6 @@
   "common.remove": "Remove",
   "common.save": "Save",
   "common.saved": "Saved",
-
   "editor.add_source": "Add a node source…",
   "editor.conflict": "This profile was changed elsewhere. Reload before saving (unsaved changes will be lost), or copy your raw edit first.",
   "editor.disable": "Disable",
@@ -103,7 +111,6 @@
   "editor.sources_title": "Node sources",
   "editor.unsaved": "Unsaved changes",
   "editor.view": "View",
-
   "error.auth_invalid": "Incorrect username or password.",
   "error.auth_required": "Please sign in first.",
   "error.conflict": "This was changed elsewhere. Reload and try again.",
@@ -111,15 +118,19 @@
   "error.exists": "That name is already taken.",
   "error.http": "Request failed (HTTP {status}).",
   "error.internal": "Internal server error. Try again later.",
+  "error.locked": "Too many failed attempts. Try again later.",
   "error.network": "Could not reach the server.",
   "error.not_found": "Not found.",
   "error.not_ready": "The service is not ready yet.",
+  "error.pow": "The check expired. Please try again.",
+  "error.questions": "Choose 3 different questions; each answer needs at least 2 characters.",
   "error.rate": "Too many attempts. Try again later.",
+  "error.recovery_failed": "Recovery failed: the username or answers are incorrect.",
   "error.register_closed": "Registration is closed; a valid invite link is required.",
   "error.setup_invalid": "The setup link is invalid or expired. Restart the service to get a new one.",
   "error.username": "Usernames are 3–32 characters with no whitespace or control characters.",
   "error.weak_password": "Password too weak: at least 10 characters, and not a common password.",
-
+  "error.wrong_password": "The current password is incorrect.",
   "field.default_is": "Default {value}",
   "field.default_option": "Default ({value})",
   "field.docs": "Docs",
@@ -141,7 +152,6 @@
   "field.unset_option": "Not set",
   "field.username": "Username",
   "field.yaml_placeholder": "YAML snippet",
-
   "history.as_new": "As newer",
   "history.as_old": "As older",
   "history.compare": "Compare v{a} → v{b}",
@@ -150,18 +160,14 @@
   "history.rolled_back": "Restored version {n} (new version v{v})",
   "history.same": "The two versions are identical.",
   "history.title": "Version history",
-
   "importance.core": "Core",
-
   "invite.active": "Active",
   "invite.expired": "Expired",
   "invite.used": "Used",
-
   "kernel.failed": "mihomo -t failed",
   "kernel.passed": "mihomo {version} -t passed",
   "kernel.timeout": "Kernel check timed out",
   "kernel.unavailable": "Kernel check unavailable",
-
   "links.created": "Created {when}",
   "links.delete_confirm": "Delete this link? Clients using it will stop receiving updates.",
   "links.edit_profile": "Edit profile",
@@ -179,33 +185,28 @@
   "links.subtitle": "Subscription links for {name}; each link can be reset on its own.",
   "links.title": "Subscription links",
   "links.untitled": "Untitled link",
-
   "login.busy": "Signing in…",
+  "login.forgot": "Forgot password?",
   "login.no_account": "No account yet?",
   "login.register": "Register",
   "login.submit": "Sign in",
   "login.subtitle": "Sign in to manage your profiles and subscriptions.",
   "login.title": "Sign in",
-
   "mode.inline": "Inline",
   "mode.provider": "Provider",
-
   "nav.account": "Account",
   "nav.admin": "Admin",
   "nav.profiles": "Profiles",
   "nav.rules": "Rule sources",
   "nav.sources": "Node sources",
-
   "node.name": "Name",
   "node.rate": "Rate",
   "node.region": "Region",
   "node.server": "Server",
   "node.tags": "Tags",
   "node.type": "Protocol",
-
   "notfound.home": "Back to home",
   "notfound.title": "Page not found",
-
   "palette.commands": "commands",
   "palette.empty": "No matches",
   "palette.kind.command": "Command",
@@ -218,7 +219,7 @@
   "palette.select": "select",
   "palette.theme": "Theme: {theme}",
   "palette.title": "Command palette",
-
+  "pow.working": "Verifying… {percent}%",
   "preview.diagnostics": "Diagnostics",
   "preview.diff": "Diff",
   "preview.fatal": "Cannot render",
@@ -228,7 +229,6 @@
   "preview.title": "Preview",
   "preview.updating": "Updating…",
   "preview.yaml": "YAML",
-
   "proc.exclude": "Exclude (regex)",
   "proc.flags": "Flags",
   "proc.flags_off": "No flags",
@@ -248,7 +248,6 @@
   "proc.setting.rename": "renaming",
   "proc.setting.sort": "sorting",
   "proc.sort_name": "Sort by name",
-
   "profiles.empty_body": "The wizard walks you through picking a client, adding a subscription and choosing rules, then hands you a subscription link.",
   "profiles.empty_title": "Create your first profile",
   "profiles.history": "History",
@@ -261,7 +260,24 @@
   "profiles.title": "Profiles",
   "profiles.version": "v{n}",
   "profiles.wizard": "Wizard",
-
+  "question.builtin.0": "In what city were you born?",
+  "question.builtin.1": "What was the name of your first pet?",
+  "question.builtin.2": "What was the name of your elementary school?",
+  "question.builtin.3": "What is your favorite book?",
+  "question.builtin.4": "Where did you have your first job?",
+  "question.builtin.5": "What was your childhood best friend's name?",
+  "question.builtin.6": "In what city was your father born?",
+  "question.builtin.7": "What is your favorite movie?",
+  "question.builtin.8": "Where did you go on your first trip?",
+  "question.builtin.9": "What was your favorite teacher's last name?",
+  "questions.answer": "Answer",
+  "questions.answer_n": "Answer to question {n}",
+  "questions.custom": "Custom question…",
+  "questions.custom_n": "Custom question {n}",
+  "questions.custom_placeholder": "A question only you know the answer to",
+  "questions.hint": "Used to recover your account if you forget your password: any 2 correct answers are enough. Answers ignore case and full-width characters.",
+  "questions.question_n": "Question {n}",
+  "questions.title": "Security questions",
   "raw.badge": "Raw",
   "raw.badge_hint": "Written or changed by raw edit",
   "raw.close": "Back to form",
@@ -276,7 +292,13 @@
   "raw.tag.prepend": "Insert at the start of the list",
   "raw.tag.replace": "Replace entirely, no merge",
   "raw.title": "Raw edit",
-
+  "recover.answer_hint": "Answer at least 2 correctly to set a new password. All devices will need to sign in again.",
+  "recover.done": "Your password has been reset. Sign in with the new password.",
+  "recover.new_password": "New password",
+  "recover.next": "Next",
+  "recover.submit": "Reset password",
+  "recover.subtitle": "Answer the security questions you set when registering.",
+  "recover.title": "Recover password",
   "region.kind.flag": "flag",
   "region.kind.keyword": "keyword",
   "region.kind.manual": "manual",
@@ -290,7 +312,6 @@
   "region.why.route": "Exit end of a route: {match}",
   "region.why.rule": "Source region rule: {match}",
   "region.why.unknown": "No region detected; click to set one",
-
   "register.back_login": "Sign in",
   "register.closed": "Registration is not open. Ask an administrator for an invite link.",
   "register.have_account": "Already have an account?",
@@ -301,14 +322,11 @@
   "register.title": "Register",
   "register.username_hint": "3–32 characters, no whitespace; case-insensitive.",
   "register.with_invite": "You've been invited to create an account.",
-
   "render.failed": "Failed",
   "render.ok": "Ready",
   "render.pending": "Not rendered",
-
   "role.admin": "Administrator",
   "role.user": "User",
-
   "rules.added": "Rule source added",
   "rules.checked": "checked {date}",
   "rules.custom": "Custom rule source",
@@ -325,16 +343,13 @@
   "rules.text_hint": "Leave empty to use the URL above",
   "rules.title": "Rule sources",
   "rules.variant": "Variant",
-
   "setup.no_token": "The setup token is missing. Use the full setup link from the service log.",
   "setup.submit": "Create administrator",
   "setup.subtitle": "Create the first administrator. The setup link is valid for 15 minutes and works once.",
   "setup.title": "Initial setup",
-
   "severity.error": "Error",
   "severity.info": "Info",
   "severity.warning": "Warning",
-
   "shell.collapse": "Collapse sidebar",
   "shell.expand": "Expand sidebar",
   "shell.language": "Language",
@@ -343,7 +358,6 @@
   "shell.nav": "Main navigation",
   "shell.skip": "Skip to main content",
   "shell.theme": "Theme: {theme}",
-
   "source.basic": "Basics",
   "source.content": "Content",
   "source.content_hint": "Share links (one per line), base64 subscriptions, Clash YAML and sing-box JSON are detected automatically.",
@@ -375,7 +389,6 @@
   "source.ua": "User-Agent",
   "source.url": "Subscription URL",
   "source.url_hint": "The server fetches this URL directly; the provider can see the server's outbound IP.",
-
   "sources.col_kind": "Type",
   "sources.col_name": "Name",
   "sources.col_status": "Status",
@@ -383,11 +396,9 @@
   "sources.new": "New node source",
   "sources.subtitle": "Subscriptions and hand-added nodes; profiles reference them in order.",
   "sources.title": "Node sources",
-
   "theme.dark": "Dark",
   "theme.light": "Light",
   "theme.system": "System",
-
   "wizard.back": "Back",
   "wizard.done_desc": "Add the link to your client. You can refine everything in the editor later; the subscription updates automatically.",
   "wizard.done_title": "Your subscription link is ready",

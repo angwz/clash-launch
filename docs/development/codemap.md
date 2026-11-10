@@ -49,6 +49,10 @@
 | 后台调度 | `internal/service/jobs.go` | API 端到端 | — |
 | 注册、邀请 | `internal/service/register.go`、`internal/api/register.go` | `TestRegistrationAndInvites`、`TestInvites` | [0003](../decisions/0003-direct-fetch-and-invites.md) |
 | 口令、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
+| 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
+| 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
+| 安全提醒的触发点 | `internal/service/alerts.go`（种类与 `notify`）；发送实现见 SMTP | — | [security](../design/security.md) |
+| 账号安全的表 | `migrations/*/0003_security.sql`、`internal/store/security.go` | `TestSecurityRepos` | — |
 | 会话、登录、CSRF | `internal/api/session.go` | `api_test.go` | [0002](../decisions/0002-storage-and-service.md) |
 | 配置项（环境变量） | `cmd/clash-launch/serve.go` | — | [deploy](../guide/deploy.md) |
 | 静态前端的缓存与回退 | `internal/api/server.go` 的 `staticHandler` | `TestStaticHandler` | [0004](../decisions/0004-web-frontend.md) |
@@ -69,6 +73,9 @@
 | 原始编辑器 | `components/editor/RawEditor.svelte`、`lib/cm.ts`（Shadow DOM，原因见 0004 #11） | e2e |
 | 命令面板 | `components/CommandPalette.svelte`、`lib/palette.svelte.ts`；页面用 `palette.register` 添加来源 | e2e |
 | 图标 | `src/components/Icon.svelte`（自绘路径表） | — |
+| 工作量证明（浏览器端） | `src/lib/pow.ts`、`pow.worker.ts`、`sha256.ts`（与后端 `auth.LeadingZeroBits` 一致） | `sha256.test.ts`、e2e |
+| 安全问题表单与内置问题文字 | `src/components/QuestionFields.svelte`；文字在消息 `question.builtin.0–9`（数量与 `auth.BuiltinQuestions` 一致） | `i18n.test.ts` |
+| 批量添加界面文字 | `scripts/merge-messages.mjs <补丁.json>`（按键排序写回两种语言） | `i18n.test.ts` |
 | API 类型 | `src/lib/api/schema.d.ts` 由 `npm run gen:api` 生成，不手改 | `npm run check` |
 
 ## 不变量（改动时最容易破坏的）

@@ -72,12 +72,26 @@ func CheckUsername(name string) error {
 	return nil
 }
 
-// Register 创建普通用户。注册开放时不需要邀请；关闭时邀请必须有效，并在同一事务中被标记为已用。
-func (s *Service) Register(ctx context.Context, username, password, invite string) (*store.User, error) {
+// RegisterInput 是注册的输入。安全问题必填（第 14.1 节：找回口令的唯一途径）。
+type RegisterInput struct {
+	Username  string
+	Password  string
+	Invite    string
+	Questions []auth.Question
+	Answers   []string
+}
+
+// Register 创建普通用户。注册开放时不需要邀请；关闭时邀请必须有效。
+// 账号、安全问题与邀请的消费在同一事务中完成。工作量证明由调用方（HTTP 层）先行校验。
+func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, error) {
+	username, password, invite := in.Username, in.Password, in.Invite
 	if err := CheckUsername(username); err != nil {
 		return nil, err
 	}
 	if err := auth.CheckPassword(password, CommonPasswords); err != nil {
+		return nil, err
+	}
+	if err := auth.CheckQuestions(in.Questions, in.Answers); err != nil {
 		return nil, err
 	}
 	open, err := s.RegistrationOpen(ctx)
@@ -91,9 +105,16 @@ func (s *Service) Register(ctx context.Context, username, password, invite strin
 	if err != nil {
 		return nil, err
 	}
+	stored, err := hashQuestions(in.Questions, in.Answers)
+	if err != nil {
+		return nil, err
+	}
 	u := &store.User{Username: username, PasswordHash: hash, Role: "user"}
 	err = s.Store.Tx(ctx, func(tx store.Store) error {
 		if err := tx.Users().Create(ctx, u); err != nil {
+			return err
+		}
+		if err := tx.Questions().Set(ctx, u.ID, stored); err != nil {
 			return err
 		}
 		if !open { // 开放注册时忽略邀请：过期的邀请链接不应挡住注册

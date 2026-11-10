@@ -1,9 +1,21 @@
 {
+  "account.change_password": "修改口令",
+  "account.current_password": "当前口令",
+  "account.last_active": "最近活动 {when}",
   "account.local_hint": "语言与主题保存在当前浏览器中。",
+  "account.logout_others": "同时注销其他设备",
+  "account.password": "口令",
+  "account.password_changed": "口令已修改",
   "account.preferences": "界面偏好",
-  "account.role": "角色",
+  "account.questions_change": "修改",
+  "account.questions_desc": "忘记口令时，答对其中 2 个即可重设。",
+  "account.questions_missing": "还没有设置安全问题。忘记口令时将无法自行找回。",
+  "account.questions_saved": "安全问题已更新",
+  "account.questions_set": "设置",
+  "account.revoke": "注销",
+  "account.sessions": "登录的设备",
   "account.theme": "主题",
-
+  "account.this_device": "当前设备",
   "admin.col_created": "创建",
   "admin.col_expires": "过期时间",
   "admin.col_note": "备注",
@@ -27,7 +39,6 @@
   "admin.subtitle": "注册方式与邀请。",
   "admin.title": "管理",
   "admin.validity": "有效期",
-
   "badge.deprecated": "已弃用",
   "badge.experimental": "实验",
   "badge.managed": "由客户端接管",
@@ -35,7 +46,6 @@
   "badge.replacement": "改用 {key}",
   "badge.since": "≥ {v}",
   "badge.since_newer": "高于所选内核 {core}，旧内核会忽略或报错",
-
   "check.error": "检查出错",
   "check.failed": "未通过",
   "check.idle": "未检查",
@@ -43,7 +53,6 @@
   "check.run": "运行内核检查",
   "check.running": "检查中…",
   "check.unavailable": "无法检查",
-
   "common.actions": "操作",
   "common.add": "添加",
   "common.cancel": "取消",
@@ -59,7 +68,6 @@
   "common.remove": "移除",
   "common.save": "保存",
   "common.saved": "已保存",
-
   "editor.add_source": "添加一个节点源…",
   "editor.conflict": "方案已在别处修改。请刷新后再保存（未保存的修改会丢失），或复制原始编辑内容后再刷新。",
   "editor.disable": "停用",
@@ -103,7 +111,6 @@
   "editor.sources_title": "节点源",
   "editor.unsaved": "未保存的修改",
   "editor.view": "视图",
-
   "error.auth_invalid": "用户名或口令不正确。",
   "error.auth_required": "请先登录。",
   "error.conflict": "资源已在别处修改，请刷新后重试。",
@@ -111,15 +118,19 @@
   "error.exists": "名称已被使用。",
   "error.http": "请求失败（HTTP {status}）。",
   "error.internal": "服务器内部错误，请稍后重试。",
+  "error.locked": "失败次数过多，请稍后再试。",
   "error.network": "无法连接到服务器。",
   "error.not_found": "找不到这个资源。",
   "error.not_ready": "服务尚未就绪。",
+  "error.pow": "验证已过期，请重试。",
+  "error.questions": "需要 3 个互不相同的问题，每个答案至少 2 个字符。",
   "error.rate": "尝试次数过多，请稍后再试。",
+  "error.recovery_failed": "无法找回：用户名或答案不正确。",
   "error.register_closed": "注册已关闭，需要有效的邀请链接。",
   "error.setup_invalid": "设置链接无效或已过期。重新启动服务可以得到新的链接。",
   "error.username": "用户名需为 3–32 个字符，不含空白与控制字符。",
   "error.weak_password": "口令太弱：至少 10 个字符，且不能是常见口令。",
-
+  "error.wrong_password": "当前口令不正确。",
   "field.default_is": "默认 {value}",
   "field.default_option": "默认（{value}）",
   "field.docs": "文档",
@@ -141,7 +152,6 @@
   "field.unset_option": "不设置",
   "field.username": "用户名",
   "field.yaml_placeholder": "YAML 片段",
-
   "history.as_new": "作为新版本",
   "history.as_old": "作为旧版本",
   "history.compare": "比较 v{a} → v{b}",
@@ -150,18 +160,14 @@
   "history.rolled_back": "已恢复到第 {n} 版（新版本 v{v}）",
   "history.same": "两个版本的方案文档相同。",
   "history.title": "版本历史",
-
   "importance.core": "核心",
-
   "invite.active": "可用",
   "invite.expired": "已过期",
   "invite.used": "已使用",
-
   "kernel.failed": "mihomo -t 未通过",
   "kernel.passed": "mihomo {version} -t 通过",
   "kernel.timeout": "内核检查超时",
   "kernel.unavailable": "内核检查不可用",
-
   "links.created": "创建于 {when}",
   "links.delete_confirm": "删除这条链接？使用它的客户端将无法再更新订阅。",
   "links.edit_profile": "编辑方案",
@@ -179,33 +185,28 @@
   "links.subtitle": "{name} 的订阅链接；每条链接可以单独重置。",
   "links.title": "订阅链接",
   "links.untitled": "未命名链接",
-
   "login.busy": "登录中…",
+  "login.forgot": "忘记口令？",
   "login.no_account": "还没有账号？",
   "login.register": "注册",
   "login.submit": "登录",
   "login.subtitle": "登录以管理你的方案与订阅。",
   "login.title": "登录",
-
   "mode.inline": "写入配置",
   "mode.provider": "交给客户端",
-
   "nav.account": "账号",
   "nav.admin": "管理",
   "nav.profiles": "方案",
   "nav.rules": "规则源",
   "nav.sources": "节点源",
-
   "node.name": "名称",
   "node.rate": "倍率",
   "node.region": "地区",
   "node.server": "地址",
   "node.tags": "标签",
   "node.type": "协议",
-
   "notfound.home": "回到首页",
   "notfound.title": "页面不存在",
-
   "palette.commands": "命令",
   "palette.empty": "没有匹配的结果",
   "palette.kind.command": "命令",
@@ -218,7 +219,7 @@
   "palette.select": "选择",
   "palette.theme": "主题：{theme}",
   "palette.title": "命令面板",
-
+  "pow.working": "正在验证…{percent}%",
   "preview.diagnostics": "诊断",
   "preview.diff": "差异",
   "preview.fatal": "无法渲染",
@@ -228,7 +229,6 @@
   "preview.title": "预览",
   "preview.updating": "更新中…",
   "preview.yaml": "YAML",
-
   "proc.exclude": "排除（正则）",
   "proc.flags": "国旗",
   "proc.flags_off": "不添加国旗",
@@ -248,7 +248,6 @@
   "proc.setting.rename": "重命名",
   "proc.setting.sort": "排序",
   "proc.sort_name": "按名称排序",
-
   "profiles.empty_body": "向导会带你完成：选择客户端、添加订阅、选择规则源，最后得到订阅链接。",
   "profiles.empty_title": "创建第一个方案",
   "profiles.history": "历史",
@@ -261,7 +260,24 @@
   "profiles.title": "方案",
   "profiles.version": "第 {n} 版",
   "profiles.wizard": "向导",
-
+  "question.builtin.0": "你出生在哪座城市？",
+  "question.builtin.1": "你的第一只宠物叫什么名字？",
+  "question.builtin.2": "你就读的小学叫什么名字？",
+  "question.builtin.3": "你最喜欢的一本书是什么？",
+  "question.builtin.4": "你的第一份工作在哪家公司？",
+  "question.builtin.5": "你童年最好的朋友叫什么名字？",
+  "question.builtin.6": "你父亲出生在哪座城市？",
+  "question.builtin.7": "你最喜欢的一部电影是什么？",
+  "question.builtin.8": "你第一次旅行去了哪里？",
+  "question.builtin.9": "你最喜欢的老师姓什么？",
+  "questions.answer": "答案",
+  "questions.answer_n": "第 {n} 个问题的答案",
+  "questions.custom": "自定义问题…",
+  "questions.custom_n": "第 {n} 个自定义问题",
+  "questions.custom_placeholder": "写一个只有你知道答案的问题",
+  "questions.hint": "忘记口令时用来找回账号：答对其中 2 个即可。答案不区分大小写与全角半角。",
+  "questions.question_n": "第 {n} 个问题",
+  "questions.title": "安全问题",
   "raw.badge": "原始编辑",
   "raw.badge_hint": "这个值被原始编辑写入或修改",
   "raw.close": "回到表单",
@@ -276,7 +292,13 @@
   "raw.tag.prepend": "插入到列表开头",
   "raw.tag.replace": "整体替换，不合并",
   "raw.title": "原始编辑",
-
+  "recover.answer_hint": "答对其中 2 个即可设置新口令。成功后所有设备都需要重新登录。",
+  "recover.done": "口令已重设。请用新口令登录。",
+  "recover.new_password": "新口令",
+  "recover.next": "下一步",
+  "recover.submit": "重设口令",
+  "recover.subtitle": "回答你注册时设置的安全问题。",
+  "recover.title": "找回口令",
   "region.kind.flag": "国旗",
   "region.kind.keyword": "关键词",
   "region.kind.manual": "手动",
@@ -290,7 +312,6 @@
   "region.why.route": "线路的落地端：{match}",
   "region.why.rule": "源的地区规则：{match}",
   "region.why.unknown": "没有识别出地区，点击手动指定",
-
   "register.back_login": "去登录",
   "register.closed": "当前不开放注册。请向管理员索取邀请链接。",
   "register.have_account": "已有账号？",
@@ -301,14 +322,11 @@
   "register.title": "注册",
   "register.username_hint": "3–32 个字符，不含空白；不区分大小写。",
   "register.with_invite": "你收到了一个邀请，可以创建一个账号。",
-
   "render.failed": "失败",
   "render.ok": "已生成",
   "render.pending": "未生成",
-
   "role.admin": "管理员",
   "role.user": "用户",
-
   "rules.added": "已添加规则源",
   "rules.checked": "核对于 {date}",
   "rules.custom": "自定义规则源",
@@ -325,16 +343,13 @@
   "rules.text_hint": "留空则使用上面的地址",
   "rules.title": "规则源",
   "rules.variant": "变体",
-
   "setup.no_token": "缺少设置令牌。请使用服务日志中的完整设置链接。",
   "setup.submit": "创建管理员",
   "setup.subtitle": "创建首个管理员账号。设置链接 15 分钟内有效，只能使用一次。",
   "setup.title": "初始设置",
-
   "severity.error": "错误",
   "severity.info": "提示",
   "severity.warning": "警告",
-
   "shell.collapse": "收起侧栏",
   "shell.expand": "展开侧栏",
   "shell.language": "语言",
@@ -343,7 +358,6 @@
   "shell.nav": "主导航",
   "shell.skip": "跳到主要内容",
   "shell.theme": "主题：{theme}",
-
   "source.basic": "基本设置",
   "source.content": "内容",
   "source.content_hint": "支持分享链接（每行一条）、base64 订阅、Clash YAML 与 sing-box JSON；格式自动识别。",
@@ -375,7 +389,6 @@
   "source.ua": "User-Agent",
   "source.url": "订阅地址",
   "source.url_hint": "服务器直接拉取这个地址；订阅提供方能看到服务器的出口 IP。",
-
   "sources.col_kind": "类型",
   "sources.col_name": "名称",
   "sources.col_status": "状态",
@@ -383,11 +396,9 @@
   "sources.new": "新建节点源",
   "sources.subtitle": "订阅与手动添加的节点；方案按顺序引用它们。",
   "sources.title": "节点源",
-
   "theme.dark": "深色",
   "theme.light": "浅色",
   "theme.system": "跟随系统",
-
   "wizard.back": "上一步",
   "wizard.done_desc": "把链接添加到客户端；之后可以随时在编辑器中调整，订阅会自动更新。",
   "wizard.done_title": "订阅链接已就绪",

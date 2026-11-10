@@ -23,6 +23,15 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/me", a(s.me)},
 		{"GET", "/api/v1/register", s.registrationState},
 		{"POST", "/api/v1/register", s.register},
+		{"GET", "/api/v1/pow", s.powChallenge},
+		{"POST", "/api/v1/recovery/questions", s.recoveryQuestions},
+		{"POST", "/api/v1/recovery", s.recover},
+
+		{"GET", "/api/v1/account/questions", a(s.myQuestions)},
+		{"PUT", "/api/v1/account/questions", a(s.setQuestions)},
+		{"PUT", "/api/v1/account/password", a(s.changePassword)},
+		{"GET", "/api/v1/account/sessions", a(s.listSessions)},
+		{"DELETE", "/api/v1/account/sessions/{id}", a(s.deleteSession)},
 
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},

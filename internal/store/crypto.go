@@ -256,6 +256,7 @@ var encrypted = []struct{ table, pk, col, aad string }{
 	{"sources", "id", "url_enc", "url"}, {"sources", "id", "content_enc", "content"}, {"sources", "id", "headers_enc", "headers"},
 	{"snapshots", "key", "content_enc", "content"}, {"profiles", "id", "doc_enc", "doc"}, {"revisions", "id", "doc_enc", "doc"},
 	{"links", "id", "token_enc", "token"}, {"renders", "profile_id", "good_yaml_enc", "good_yaml"},
+	{"user_totp", "user_id", "secret_enc", "secret"}, {"user_smtp", "user_id", "password_enc", "password"},
 }
 
 // ReEncrypt 用当前密钥重新加密全部数据（keys rotate 的第二步），返回改写的单元数。在一个事务中完成。

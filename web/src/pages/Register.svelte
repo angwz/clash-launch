@@ -1,10 +1,13 @@
 <script lang="ts">
   // 注册（决定 0003）：注册开放时直接注册；关闭时需要一次性邀请链接 /register#<令牌>。
+  // 需要 3 个安全问题（找回口令的唯一途径）与本地工作量证明（约 1 秒）。
   import AuthLayout from "../components/AuthLayout.svelte";
   import PasswordFields from "../components/PasswordFields.svelte";
+  import QuestionFields, { blankQuestions, questionsValid, toPayload } from "../components/QuestionFields.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { t } from "../lib/i18n/i18n.svelte";
+  import { proofOfWork } from "../lib/pow";
   import { router } from "../lib/router.svelte";
   import { session } from "../lib/session.svelte";
 
@@ -13,7 +16,9 @@
   let username = $state("");
   let password = $state("");
   let valid = $state(false);
+  let questions = $state(blankQuestions());
   let busy = $state(false);
+  let progress = $state<number | null>(null);
   let error = $state("");
 
   $effect(() => {
@@ -30,7 +35,10 @@
     busy = true;
     error = "";
     try {
-      await api.post("/api/v1/register", { username, password, invite: open ? undefined : invite });
+      progress = 0;
+      const pow = await proofOfWork("register", (p) => (progress = p));
+      progress = null;
+      await api.post("/api/v1/register", { username, password, invite: open ? undefined : invite, ...toPayload(questions), pow });
       await session.login(username, password);
       history.replaceState(null, "", "/register");
       router.go("/welcome", true);
@@ -38,6 +46,7 @@
       error = errorText(err);
     } finally {
       busy = false;
+      progress = null;
     }
   }
 </script>
@@ -51,8 +60,11 @@
   {:else}
     <form onsubmit={submit} novalidate>
       <PasswordFields bind:username bind:password bind:valid />
+      <QuestionFields bind:questions />
       {#if error}<p class="field-error" role="alert">{error}</p>{/if}
-      <button class="btn primary" type="submit" disabled={busy || !valid}>{t("register.submit")}</button>
+      <button class="btn primary" type="submit" disabled={busy || !valid || !questionsValid(questions)}>
+        {#if progress !== null}{t("pow.working", { percent: Math.round(progress * 100) })}{:else}{t("register.submit")}{/if}
+      </button>
       <p class="alt">{t("register.have_account")} <a href="/login">{t("register.back_login")}</a></p>
     </form>
   {/if}

@@ -191,6 +191,12 @@ type Store interface {
 	Audit() AuditRepo
 	Settings() SettingsRepo
 	Invites() InviteRepo
+	Questions() QuestionRepo
+	TOTP() TOTPRepo
+	Passkeys() PasskeyRepo
+	SMTP() SMTPRepo
+	Quotas() QuotaRepo
+	Devices() DeviceRepo
 	// Tx 在一个事务中执行 fn；fn 返回错误时回滚。
 	Tx(ctx context.Context, fn func(Store) error) error
 	Close() error

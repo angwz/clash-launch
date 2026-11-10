@@ -44,6 +44,7 @@
       <label class="label" for="p">{t("field.password")}</label>
       <input id="p" class="input" type="password" bind:value={password} autocomplete="current-password" required />
     </div>
+    <p class="forgot"><a href="/recover">{t("login.forgot")}</a></p>
     {#if error}<p class="field-error" role="alert">{error}</p>{/if}
     <button class="btn primary" type="submit" disabled={busy || !username || !password}>{busy ? t("login.busy") : t("login.submit")}</button>
     {#if canRegister}
@@ -53,6 +54,11 @@
 </AuthLayout>
 
 <style>
+  .forgot {
+    margin-block-start: calc(-1 * var(--space-2));
+    text-align: end;
+    font-size: var(--text-sm);
+  }
   .alt {
     text-align: center;
     color: var(--fg-muted);

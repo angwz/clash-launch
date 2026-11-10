@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -44,9 +45,10 @@ type config struct {
 	LogLevel       string
 	Mihomo         string
 	Geodata        string
+	PoWBits        int // 注册与找回的工作量证明难度（前导零位数），默认 20，约 1 秒
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -80,6 +82,11 @@ func loadConfig() (config, error) {
 		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"),
 		Mihomo: get("MIHOMO", "/opt/mihomo/mihomo"), Geodata: get("GEODATA", "/opt/mihomo/geodata"),
 	}
+	bits, err := strconv.Atoi(get("POW_BITS", "20"))
+	if err != nil || bits < 1 || bits > 32 {
+		return config{}, fmt.Errorf("CLASH_LAUNCH_POW_BITS 需要 1–32 的整数")
+	}
+	c.PoWBits = bits
 	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
 	return c, nil
 }
@@ -159,7 +166,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

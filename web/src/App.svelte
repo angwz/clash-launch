@@ -22,6 +22,7 @@
     login: () => import("./pages/Login.svelte"),
     setup: () => import("./pages/Setup.svelte"),
     register: () => import("./pages/Register.svelte"),
+    recover: () => import("./pages/Recover.svelte"),
     profile: () => import("./pages/ProfileEditor.svelte"),
     "profile-links": () => import("./pages/ProfileLinks.svelte"),
     "profile-history": () => import("./pages/ProfileHistory.svelte"),

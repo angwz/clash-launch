@@ -30,6 +30,8 @@ const dynamic: Record<string, string[]> = {
   "kernel.": ["passed", "failed", "unavailable", "timeout"],
   "invite.": ["active", "used", "expired"],
   "palette.kind.": ["page", "field", "command"],
+  // 与 internal/auth.BuiltinQuestions 一致
+  "question.builtin.": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
   // 与 internal/engine/build.go 中 provider 模式无法表达的整理设置一致
   "proc.setting.": ["flags", "rename", "keepInfo", "keepDuplicates", "overrides", "sort"],
 };

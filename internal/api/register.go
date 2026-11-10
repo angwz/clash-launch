@@ -2,10 +2,11 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/angwz/clash-launch/internal/auth"
+	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/store"
 )
 
@@ -35,20 +36,18 @@ func (s *Server) registrationState(w http.ResponseWriter, r *http.Request) {
 }
 
 type registerReq struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Invite   string `json:"invite"`
+	Username  string          `json:"username"`
+	Password  string          `json:"password"`
+	Invite    string          `json:"invite"`
+	Questions []auth.Question `json:"questions"`
+	Answers   []string        `json:"answers"`
+	PoW       powProof        `json:"pow"`
 }
 
-// register 创建普通用户：注册开放时不需要邀请；关闭时需要有效的一次性邀请。按 IP 限速。
+// register 创建普通用户：注册开放时不需要邀请；关闭时需要有效的一次性邀请。
+// 需要工作量证明与 3 个安全问题；按 IP 限速。
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
-	if !s.sameOrigin(r) {
-		problem(w, http.StatusForbidden, "auth.csrf", "cross-origin request refused")
-		return
-	}
-	if ok, wait := s.regLimit.allow(s.clientIP(r).String(), time.Now()); !ok {
-		w.Header().Set("Retry-After", strconv.Itoa(wait))
-		problem(w, http.StatusTooManyRequests, "register.rate", "too many attempts")
+	if !s.publicLimited(w, r, s.regLimit) {
 		return
 	}
 	var req registerReq
@@ -56,7 +55,11 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	u, err := s.Svc.Register(r.Context(), req.Username, req.Password, strings.TrimSpace(req.Invite))
+	if err := s.Svc.CheckPoW(service.PoWRegister, req.PoW.Challenge, req.PoW.Nonce); err != nil {
+		s.fail(w, err)
+		return
+	}
+	u, err := s.Svc.Register(r.Context(), service.RegisterInput{Username: req.Username, Password: req.Password, Invite: strings.TrimSpace(req.Invite), Questions: req.Questions, Answers: req.Answers})
 	if err != nil {
 		s.fail(w, err)
 		return

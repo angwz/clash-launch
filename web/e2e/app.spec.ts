@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { apiAs, login, seedProfile } from "./helpers";
 
+// 三个安全问题使用默认选择的内置问题 0、1、2
+async function fillAnswers(page: Page, answers = ["Beijing", "Mochi", "Sunrise School"]) {
+  for (let i = 0; i < 3; i++) await page.getByLabel(`第 ${i + 1} 个问题的答案`).fill(answers[i]!);
+}
+
 // 收集页面错误与 CSP 违规：任何一条都让测试失败（第 14.2 节的 CSP 不放宽）。
 function watch(page: Page): string[] {
   const problems: string[] = [];
@@ -102,6 +107,7 @@ test("注册：默认关闭；凭一次性邀请注册，邀请不能复用", as
   await page.getByLabel("用户名").fill(user);
   await page.getByLabel("口令", { exact: true }).fill("a long enough password");
   await page.getByLabel("确认口令").fill("a long enough password");
+  await fillAnswers(page);
   await page.getByRole("button", { name: "注册" }).click();
   await expect(page).toHaveURL(/\/welcome$/);
   // 普通用户看不到管理
@@ -114,6 +120,7 @@ test("注册：默认关闭；凭一次性邀请注册，邀请不能复用", as
   await p2.getByLabel("用户名").fill(user + "x");
   await p2.getByLabel("口令", { exact: true }).fill("a long enough password");
   await p2.getByLabel("确认口令").fill("a long enough password");
+  await fillAnswers(p2);
   await p2.getByRole("button", { name: "注册" }).click();
   await expect(p2.getByRole("alert")).toContainText("需要有效的邀请链接");
   await ctx2.close();
@@ -147,4 +154,42 @@ test("手机视口：没有横向滚动", async ({ page, request, baseURL }) => 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
+});
+
+test("找回口令：答对 2 个问题后重设，旧会话失效", async ({ browser, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const call = await apiAs(request, baseURL!);
+  await call("PUT", "/api/v1/admin/registration", { open: true });
+  const user = "rc" + Date.now().toString(36);
+
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.goto("/register");
+  await page.getByLabel("用户名").fill(user);
+  await page.getByLabel("口令", { exact: true }).fill("a long enough password");
+  await page.getByLabel("确认口令").fill("a long enough password");
+  await fillAnswers(page);
+  await page.getByRole("button", { name: "注册" }).click();
+  await expect(page).toHaveURL(/\/welcome$/);
+  await call("PUT", "/api/v1/admin/registration", { open: false });
+
+  const other = await browser.newContext();
+  const r = await other.newPage();
+  await r.goto("/login");
+  await r.getByRole("link", { name: "忘记口令？" }).click();
+  await r.getByLabel("用户名").fill(user);
+  await r.getByRole("button", { name: "下一步" }).click();
+  await r.getByLabel("你出生在哪座城市？").fill("  ＢＥＩＪＩＮＧ ");
+  await r.getByLabel("你的第一只宠物叫什么名字？").fill("mochi");
+  await r.getByLabel("新口令").fill("another long password");
+  await r.getByLabel("确认口令").fill("another long password");
+  await r.getByRole("button", { name: "重设口令" }).click();
+  await expect(r.getByText("口令已重设")).toBeVisible();
+
+  // 原来的会话已失效
+  await page.goto("/account");
+  await expect(page).toHaveURL(/\/login/);
+  await login(r, { username: user, password: "another long password" });
+  await ctx.close();
+  await other.close();
 });

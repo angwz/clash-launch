@@ -19,6 +19,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	catalogdata "github.com/angwz/clash-launch/catalog"
+	"github.com/angwz/clash-launch/internal/auth"
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/kernel"
 	"github.com/angwz/clash-launch/internal/node"
@@ -95,7 +96,7 @@ func newHarness(t *testing.T, checker *kernel.Checker) *harness {
 	guard, _ := source.ParseAllowlist("127.0.0.1")
 	fetcher, _ := source.New(source.Config{Guard: guard})
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PoWBits: 4}
 	h := &harness{t: t, db: db, svc: svc}
 	h.http = httptest.NewServer(nil)
 	t.Cleanup(h.http.Close)
@@ -352,7 +353,7 @@ func TestRegistrationAndInvites(t *testing.T) {
 		t.Fatal("注册应默认关闭")
 	}
 	reg := func(user, invite string) (*http.Response, []byte) {
-		return anon.do("POST", "/api/v1/register", map[string]string{"username": user, "password": "a long enough password", "invite": invite})
+		return anon.do("POST", "/api/v1/register", registerBody(t, anon, user, invite))
 	}
 	if r, _ := reg("alice", ""); r.StatusCode != 403 {
 		t.Fatalf("关闭时无邀请应拒绝：%d", r.StatusCode)
@@ -416,4 +417,26 @@ func firstAdmin(t *testing.T, h *harness) string {
 		t.Fatal(err)
 	}
 	return u.ID
+}
+
+// registerBody 构造注册请求：三个安全问题与已求解的工作量证明（测试中难度为 4 位）。
+func registerBody(t *testing.T, c *client, user, invite string) map[string]any {
+	t.Helper()
+	return map[string]any{
+		"username":  user,
+		"password":  "a long enough password",
+		"invite":    invite,
+		"questions": []map[string]any{{"builtin": 0}, {"builtin": 1}, {"builtin": -1, "text": "我的第一辆自行车"}},
+		"answers":   []string{"Beijing", "Mr. Whiskers", "红色"},
+		"pow":       solvePoW(t, c, "register"),
+	}
+}
+
+func solvePoW(t *testing.T, c *client, purpose string) map[string]string {
+	t.Helper()
+	ch := decode[struct {
+		Challenge string `json:"challenge"`
+		Bits      int    `json:"bits"`
+	}](t, c.want(200, "GET", "/api/v1/pow?purpose="+purpose, nil))
+	return map[string]string{"challenge": ch.Challenge, "nonce": auth.Solve(ch.Challenge, ch.Bits)}
 }

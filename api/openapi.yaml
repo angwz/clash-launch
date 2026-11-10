@@ -17,6 +17,7 @@ tags:
   - {name: profiles}
   - {name: links}
   - {name: admin}
+  - {name: account}
   - {name: health}
 components:
   securitySchemes:
@@ -248,6 +249,40 @@ components:
       required: [open]
       properties:
         open: {type: boolean, description: 是否允许无邀请注册（默认关闭）}
+    PoWChallenge:
+      type: object
+      required: [challenge, bits]
+      properties:
+        challenge: {type: string, description: 签名的挑战，5 分钟有效，只能使用一次}
+        bits: {type: integer, description: 要求 SHA-256(challenge ":" nonce) 的前导零位数}
+    PoWProof:
+      type: object
+      required: [challenge, nonce]
+      properties:
+        challenge: {type: string}
+        nonce: {type: string, description: 十进制整数}
+    Question:
+      type: object
+      required: [builtin]
+      properties:
+        builtin: {type: integer, description: 内置问题编号 0–9；-1 表示自定义}
+        text: {type: string, description: 自定义问题的文字}
+    Questions:
+      type: object
+      required: [questions]
+      properties:
+        questions: {type: array, items: {$ref: '#/components/schemas/Question'}}
+    SessionInfo:
+      type: object
+      required: [id, device, ua, ip, createdAt, lastSeen, current]
+      properties:
+        id: {type: string}
+        device: {type: string, description: 浏览器与系统的粗略归类}
+        ua: {type: string}
+        ip: {type: string, description: IP 前缀（IPv4 /24、IPv6 /48）}
+        createdAt: {type: string, format: date-time}
+        lastSeen: {type: string, format: date-time}
+        current: {type: boolean}
     List:
       type: object
       required: [items]
@@ -310,8 +345,57 @@ paths:
     post:
       tags: [session]
       summary: 注册普通用户；注册关闭时需要有效的一次性邀请。按 IP 限速
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}, invite: {type: string}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password, questions, answers, pow], properties: {username: {type: string}, password: {type: string}, invite: {type: string}, questions: {type: array, items: {$ref: '#/components/schemas/Question'}, minItems: 3, maxItems: 3}, answers: {type: array, items: {type: string}, minItems: 3, maxItems: 3}, pow: {$ref: '#/components/schemas/PoWProof'}}}}}}
       responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: 用户名已存在}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/pow:
+    get:
+      tags: [session]
+      summary: 工作量证明挑战（注册与找回前在浏览器中求解，约 1 秒）
+      parameters: [{name: purpose, in: query, required: true, schema: {type: string, enum: [register, recover]}}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/PoWChallenge'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/recovery/questions:
+    post:
+      tags: [session]
+      summary: 找回时显示的安全问题；用户不存在时返回稳定的诱饵问题。按 IP 限速
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username], properties: {username: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Questions'}}}}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/recovery:
+    post:
+      tags: [session]
+      summary: 答对至少 2 个安全问题后重设口令；该账号的全部会话失效。连续失败后锁定 15 分钟
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, answers, password, pow], properties: {username: {type: string}, answers: {type: array, items: {type: string}, minItems: 3, maxItems: 3}, password: {type: string}, pow: {$ref: '#/components/schemas/PoWProof'}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '400': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/questions:
+    get:
+      tags: [account]
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Questions'}}}}}
+    put:
+      tags: [account]
+      summary: 替换安全问题（需要当前口令）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password, questions, answers], properties: {password: {type: string}, questions: {type: array, items: {$ref: '#/components/schemas/Question'}}, answers: {type: array, items: {type: string}}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/password:
+    put:
+      tags: [account]
+      summary: 修改口令；可同时注销其他设备
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [current, password], properties: {current: {type: string}, password: {type: string}, logoutOthers: {type: boolean}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/sessions:
+    get:
+      tags: [account]
+      summary: 当前登录的设备
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/SessionInfo'}}}}}}}}
+  /api/v1/account/sessions/{id}:
+    delete:
+      tags: [account]
+      summary: 注销一个设备
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/registration:
     get:
       tags: [admin]

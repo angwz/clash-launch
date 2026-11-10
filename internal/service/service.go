@@ -52,7 +52,12 @@ type Service struct {
 	PublicURL     string // 例如 https://cl.example.com（无结尾斜杠）
 	Policy        Policy
 	Now           func() time.Time
+	// PoWBits 是注册与找回的工作量证明难度（前导零位数），0 表示默认 20。
+	PoWBits int
+	// Notifier 发送安全提醒（新设备登录、口令修改等）；nil 时不发送。
+	Notifier Notifier
 
+	guardsState
 	locks sync.Map // 方案 ID → *sync.Mutex：同一方案的渲染串行
 }
 

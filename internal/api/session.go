@@ -123,16 +123,9 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	u, err := s.Svc.Store.Users().ByUsername(ctx, req.Username)
+	u, err := s.Svc.Login(ctx, req.Username, req.Password, s.clientIP(r).String())
 	if err != nil {
-		auth.DummyVerify(req.Password) // 与口令错误同样耗时，不泄露用户是否存在
-		s.audit(ctx, "", "login.failed", map[string]string{"username": req.Username})
-		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
-		return
-	}
-	if u.Disabled || !auth.VerifyPassword(u.PasswordHash, req.Password) {
-		s.audit(ctx, u.ID, "login.failed", nil)
-		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
+		s.fail(w, err)
 		return
 	}
 	if old, err := r.Cookie(s.cookieName()); err == nil {
@@ -146,7 +139,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: s.cookieName(), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
-	s.audit(ctx, u.ID, "login.ok", map[string]string{"ip": sess.IPPrefix})
+	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA)
 	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF})
 }
 

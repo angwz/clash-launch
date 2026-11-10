@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,14 +38,15 @@ type Config struct {
 
 // Server 是 HTTP 服务。
 type Server struct {
-	Svc      *service.Service
-	Cfg      Config
-	Log      *slog.Logger
-	setup    *service.Setup
-	mu       sync.Mutex
-	limit    *limiter
-	regLimit *limiter // 注册：每个 IP 每小时 10 次
-	mux      *http.ServeMux
+	Svc          *service.Service
+	Cfg          Config
+	Log          *slog.Logger
+	setup        *service.Setup
+	mu           sync.Mutex
+	limit        *limiter
+	regLimit     *limiter // 注册：每个 IP 每小时 10 次
+	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
+	mux          *http.ServeMux
 }
 
 // New 构造服务并注册路由。
@@ -61,7 +63,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -219,6 +221,7 @@ func problem(w http.ResponseWriter, status int, code, detail string, ds ...diag.
 
 // fail 把错误映射为问题详情：不存在与不属于当前用户一律 404（第 14.3 节）。
 func (s *Server) fail(w http.ResponseWriter, err error) {
+	var wait *service.WaitError
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		problem(w, http.StatusNotFound, "not_found", "resource not found")
@@ -234,6 +237,19 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "register.closed", "registration is closed; a valid invite is required")
 	case errors.Is(err, service.ErrUsername):
 		problem(w, http.StatusUnprocessableEntity, "register.username", err.Error())
+	case errors.Is(err, auth.ErrPoW):
+		problem(w, http.StatusBadRequest, "pow.invalid", "proof of work is invalid or expired")
+	case errors.Is(err, auth.ErrQuestions):
+		problem(w, http.StatusUnprocessableEntity, "account.questions", err.Error())
+	case errors.Is(err, service.ErrRecoveryFailed):
+		problem(w, http.StatusForbidden, "recovery.failed", "recovery failed")
+	case errors.Is(err, service.ErrWrongPassword):
+		problem(w, http.StatusForbidden, "account.wrong_password", "current password is incorrect")
+	case errors.Is(err, service.ErrInvalidLogin):
+		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
+	case errors.As(err, &wait):
+		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Wait.Seconds())+1))
+		problem(w, http.StatusTooManyRequests, "auth.locked", "too many failed attempts; try again later")
 	default:
 		s.Log.Error("request failed", "error", err)
 		problem(w, http.StatusInternalServerError, "internal", "internal error")
