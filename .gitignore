@@ -27,3 +27,6 @@ Thumbs.db
 .env
 *.key
 /web/build-manifest.json
+
+# 本地构建的可执行文件
+*.exe
