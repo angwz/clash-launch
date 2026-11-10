@@ -335,6 +335,44 @@ components:
             hasPassword: {type: boolean}
             enabled: {type: boolean}
             verifiedAt: {type: string, format: date-time}
+    AuditEntry:
+      type: object
+      required: [id, at, action, detail]
+      properties:
+        id: {type: string}
+        at: {type: string, format: date-time}
+        action: {type: string}
+        detail: {type: object}
+        user: {type: string, description: 管理员视图中的账号名}
+    Limits:
+      type: object
+      required: [sources, profiles, links, minInterval, storage]
+      properties:
+        sources: {type: integer}
+        profiles: {type: integer}
+        links: {type: integer}
+        minInterval: {type: integer, description: 秒}
+        storage: {type: integer, description: 字节}
+    Usage:
+      type: object
+      required: [sources, profiles, links, bytes]
+      properties:
+        sources: {type: integer}
+        profiles: {type: integer}
+        links: {type: integer}
+        bytes: {type: integer, description: 加密后保存的内容字节数}
+    AdminUser:
+      type: object
+      required: [id, username, role, disabled, createdAt, mfa, usage, quota]
+      properties:
+        id: {type: string}
+        username: {type: string}
+        role: {type: string}
+        disabled: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        mfa: {type: boolean}
+        usage: {$ref: '#/components/schemas/Usage'}
+        quota: {allOf: [{$ref: '#/components/schemas/Limits'}], description: 单独设置的配额，-1 表示使用默认值}
     List:
       type: object
       required: [items]
@@ -554,6 +592,63 @@ paths:
       summary: 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次
       security: [{session: [], csrf: []}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/audit:
+    get:
+      tags: [account]
+      summary: 与本人有关的审计记录（新的在前）
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/AuditEntry'}}, next: {type: string}}}}}}}
+  /api/v1/account/quota:
+    get:
+      tags: [account]
+      summary: 本人的配额与用量（-1 表示不限制）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [limits, usage], properties: {limits: {$ref: '#/components/schemas/Limits'}, usage: {$ref: '#/components/schemas/Usage'}}}}}}}
+  /api/v1/admin/users:
+    get:
+      tags: [admin]
+      summary: 用户的元数据与用量（不含任何内容）
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items, defaults], properties: {items: {type: array, items: {$ref: '#/components/schemas/AdminUser'}}, defaults: {$ref: '#/components/schemas/Limits'}}}}}}, '404': {description: 不是管理员}}
+  /api/v1/admin/users/{id}:
+    patch:
+      tags: [admin]
+      summary: 停用或启用账号；停用时注销其全部会话。不能停用自己
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [disabled], properties: {disabled: {type: boolean}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/users/{id}/password:
+    post:
+      tags: [admin]
+      summary: 重置口令并注销其全部会话
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/users/{id}/quota:
+    put:
+      tags: [admin]
+      summary: 设置配额（-1 表示使用默认值）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Limits'}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/audit:
+    get:
+      tags: [admin]
+      summary: 全部审计记录（附账号名）
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/AuditEntry'}}, next: {type: string}}}}}}}
+  /api/v1/admin/status:
+    get:
+      tags: [admin]
+      summary: 系统状态：版本、内核、目录、主密钥、可选功能
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
   /api/v1/admin/registration:
     get:
       tags: [admin]

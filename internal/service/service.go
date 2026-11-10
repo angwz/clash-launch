@@ -54,6 +54,10 @@ type Service struct {
 	Now           func() time.Time
 	// PoWBits 是注册与找回的工作量证明难度（前导零位数），0 表示默认 20。
 	PoWBits int
+	// QuotaDefaults 是全局默认配额；零值字段使用内置默认（见 quota.go）。
+	QuotaDefaults QuotaDefaults
+	// AuditRetention 是审计日志的保留期；0 表示不清理。
+	AuditRetention time.Duration
 	// Mailer 发送用户本人配置的提醒邮件；nil 时邮件提醒不可用。
 	Mailer *source.Mailer
 	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。

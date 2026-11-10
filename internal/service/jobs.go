@@ -23,12 +23,18 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	s.tick(ctx)
+	s.PruneAudit(ctx)
+	lastPrune := s.now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
 			s.tick(ctx)
+			if s.now().Sub(lastPrune) >= 24*time.Hour { // 审计日志每天清理一次
+				s.PruneAudit(ctx)
+				lastPrune = s.now()
+			}
 		}
 	}
 }

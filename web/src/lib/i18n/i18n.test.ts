@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
+import { AUDIT_ACTIONS } from "../../components/AuditLog.svelte";
 import en from "./messages/en.json";
 import zh from "./messages/zh-CN.json";
 
@@ -30,6 +31,8 @@ const dynamic: Record<string, string[]> = {
   "kernel.": ["passed", "failed", "unavailable", "timeout"],
   "invite.": ["active", "used", "expired"],
   "palette.kind.": ["page", "field", "command"],
+  // 与后端写入的审计动作一致（components/AuditLog.svelte）
+  "audit.action.": AUDIT_ACTIONS,
   // 与 internal/auth.BuiltinQuestions 一致
   "question.builtin.": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
   // 与 internal/engine/build.go 中 provider 模式无法表达的整理设置一致

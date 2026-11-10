@@ -21,6 +21,7 @@ const known: Record<string, string> = {
   "passkey.unavailable": "error.passkey_unavailable",
   "quota.exceeded": "error.quota",
   "smtp.unavailable": "error.smtp_unavailable",
+  "admin.self": "error.admin_self",
   "mfa.state": "error.mfa_state",
   rate_limited: "error.rate",
   conflict: "error.conflict",

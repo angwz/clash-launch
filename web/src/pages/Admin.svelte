@@ -3,6 +3,9 @@
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
+  import AuditLog from "../components/AuditLog.svelte";
+  import Status from "../components/admin/Status.svelte";
+  import Users from "../components/admin/Users.svelte";
   import { api, listAll, type Invite } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -82,6 +85,16 @@
   {:else}
     {#if error}<p class="field-error" role="alert">{error}</p>{/if}
 
+    <section class="panel box" aria-labelledby="a-status">
+      <h2 id="a-status">{t("admin.status")}</h2>
+      <Status />
+    </section>
+
+    <section class="panel box" aria-labelledby="a-users">
+      <h2 id="a-users">{t("admin.users")}</h2>
+      <Users />
+    </section>
+
     <section class="panel box" aria-labelledby="a-reg">
       <div class="row">
         <div>
@@ -146,12 +159,17 @@
         </table>
       {/if}
     </section>
+
+    <section class="panel box" aria-labelledby="a-audit">
+      <h2 id="a-audit">{t("admin.audit")}</h2>
+      <AuditLog scope="all" />
+    </section>
   {/if}
 </div>
 
 <style>
   .page {
-    max-inline-size: 960px;
+    max-inline-size: 1120px;
     margin-inline: auto;
     padding: var(--space-8) var(--space-6);
   }

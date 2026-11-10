@@ -46,9 +46,11 @@ type config struct {
 	Mihomo         string
 	Geodata        string
 	PoWBits        int // 注册与找回的工作量证明难度（前导零位数），默认 20，约 1 秒
+	Quota          service.QuotaDefaults
+	AuditDays      int // 审计日志保留天数，默认 180；0 表示不清理
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "AUDIT_DAYS"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -87,6 +89,17 @@ func loadConfig() (config, error) {
 		return config{}, fmt.Errorf("CLASH_LAUNCH_POW_BITS 需要 1–32 的整数")
 	}
 	c.PoWBits = bits
+	// 配额默认值与审计保留期：非负整数；配额为 0 时使用内置默认（见 internal/service/quota.go）
+	nums := map[string]int{}
+	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180"} {
+		n, err := strconv.Atoi(get(k, def))
+		if err != nil || n < 0 {
+			return config{}, fmt.Errorf("CLASH_LAUNCH_%s 需要非负整数", k)
+		}
+		nums[k] = n
+	}
+	c.Quota = service.QuotaDefaults{Sources: nums["QUOTA_SOURCES"], Profiles: nums["QUOTA_PROFILES"], Links: nums["QUOTA_LINKS"], MinInterval: time.Duration(nums["QUOTA_MIN_INTERVAL"]) * time.Minute, Storage: int64(nums["QUOTA_STORAGE_MB"]) << 20}
+	c.AuditDays = nums["AUDIT_DAYS"]
 	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
 	return c, nil
 }
@@ -166,7 +179,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

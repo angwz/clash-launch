@@ -7,6 +7,7 @@
   import TwoFactor from "../components/account/TwoFactor.svelte";
   import Passkeys from "../components/account/Passkeys.svelte";
   import Alerts from "../components/account/Alerts.svelte";
+  import AuditLog from "../components/AuditLog.svelte";
   import { api } from "../lib/api/client";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
@@ -26,6 +27,7 @@
   }
 
   let sessions = $state<SessionInfo[]>([]);
+  let quota = $state<{ limits: { sources: number; profiles: number; links: number; storage: number }; usage: { sources: number; profiles: number; links: number; bytes: number } } | null>(null);
   let myQuestions = $state<{ builtin: number; text?: string }[]>([]);
 
   // 修改口令
@@ -42,6 +44,7 @@
         api.get<{ questions: { builtin: number; text?: string }[] }>("/api/v1/account/questions"),
       ]);
       sessions = s.items;
+      quota = await api.get("/api/v1/account/quota");
       myQuestions = q.questions;
     } catch (e) {
       toasts.push("err", errorText(e));
@@ -165,6 +168,23 @@
     </ul>
   </section>
 
+  {#if quota}
+    <section class="panel box" aria-labelledby="ac-quota">
+      <h2 id="ac-quota">{t("account.quota")}</h2>
+      <ul class="meters">
+        {#each [[t("admin.q_sources"), quota.usage.sources, quota.limits.sources], [t("admin.q_profiles"), quota.usage.profiles, quota.limits.profiles], [t("admin.q_links"), quota.usage.links, quota.limits.links]] as [name, used, limit] (name)}
+          <li><span>{name}</span><span class="mono">{used} / {Number(limit) < 0 ? "∞" : limit}</span></li>
+        {/each}
+        <li><span>{t("admin.q_storage")}</span><span class="mono">{(quota.usage.bytes / (1 << 20)).toFixed(1)} / {quota.limits.storage < 0 ? "∞" : (quota.limits.storage / (1 << 20)).toFixed(0)} MiB</span></li>
+      </ul>
+    </section>
+  {/if}
+
+  <section class="panel box" aria-labelledby="ac-audit">
+    <h2 id="ac-audit">{t("account.audit")}</h2>
+    <AuditLog scope="me" />
+  </section>
+
   <section class="panel box" aria-labelledby="ac-pref">
     <h2 id="ac-pref">{t("account.preferences")}</h2>
     <div class="grid two">
@@ -235,6 +255,17 @@
     padding-inline-start: var(--space-5);
     list-style: decimal;
     color: var(--fg-muted);
+  }
+  .meters {
+    display: grid;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+  }
+  .meters li {
+    display: flex;
+    justify-content: space-between;
+    padding-block: var(--space-1);
+    border-block-end: 1px solid var(--border);
   }
   .sessions li {
     display: flex;

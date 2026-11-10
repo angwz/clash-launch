@@ -137,7 +137,7 @@ func (c *Checker) run(ctx context.Context, config []byte) (Result, error) {
 	if ctx.Err() == context.DeadlineExceeded {
 		return Result{Status: TimedOut, Message: "timeout"}, nil
 	}
-	version := c.version()
+	version := c.Version()
 	if runErr == nil && strings.Contains(output, "test is successful") {
 		return Result{Status: Passed, Version: version}, nil
 	}
@@ -149,7 +149,8 @@ func (c *Checker) run(ctx context.Context, config []byte) (Result, error) {
 	return Result{Status: Failed, Version: version, Message: msg, Path: locate(msg)}, nil
 }
 
-func (c *Checker) version() string {
+// Version 返回内核版本（管理页的系统状态也使用）。
+func (c *Checker) Version() string {
 	// 版本取自工具锁：与 go.mod 中的依赖一致，避免每次检查多启动一次进程。
 	return "v1.19.33"
 }

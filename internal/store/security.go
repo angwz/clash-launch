@@ -54,20 +54,20 @@ type SMTP struct {
 
 // Quota 是用户的配额；-1 表示使用全局默认值。MinInterval 单位为秒。
 type Quota struct {
-	UserID      string
-	Sources     int
-	Profiles    int
-	Links       int
-	MinInterval int
-	Storage     int64
+	UserID      string `json:"-"`
+	Sources     int    `json:"sources"`
+	Profiles    int    `json:"profiles"`
+	Links       int    `json:"links"`
+	MinInterval int    `json:"minInterval"`
+	Storage     int64  `json:"storage"`
 }
 
 // Usage 是用户当前的用量。Bytes 为加密后保存的源内容、快照、方案文档与版本的总字节数。
 type Usage struct {
-	Sources  int
-	Profiles int
-	Links    int
-	Bytes    int64
+	Sources  int   `json:"sources"`
+	Profiles int   `json:"profiles"`
+	Links    int   `json:"links"`
+	Bytes    int64 `json:"bytes"`
 }
 
 // QuestionRepo 管理安全问题。
@@ -411,3 +411,6 @@ func (r devices) Seen(ctx context.Context, userID, fingerprint string, now time.
 	}
 	return err == nil, err
 }
+
+// KeyStatus 返回当前主密钥 ID 与密钥环中的密钥数。
+func (d *DB) KeyStatus() (string, int) { return d.keys.Current(), len(d.keys.IDs()) }

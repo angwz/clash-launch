@@ -260,6 +260,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
 	case errors.Is(err, service.ErrSMTPUnavailable):
 		problem(w, http.StatusConflict, "smtp.unavailable", "email alerts are not available on this server")
+	case errors.Is(err, service.ErrSelf):
+		problem(w, http.StatusConflict, "admin.self", "administrators cannot do this to their own account")
 	case errors.Is(err, service.ErrInvalidLogin):
 		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
 	case errors.As(err, &wait):

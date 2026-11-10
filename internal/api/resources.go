@@ -170,6 +170,10 @@ func (s *Server) createSource(w http.ResponseWriter, r *http.Request, p *princip
 		s.fail(w, err)
 		return
 	}
+	if err := s.quota(r, p, service.QuotaSource, int64(len(src.Content)), src.Interval); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if err := s.Svc.Store.Sources().Create(r.Context(), p.User.ID, src); err != nil {
 		s.fail(w, err)
 		return
@@ -204,7 +208,12 @@ func (s *Server) updateSource(w http.ResponseWriter, r *http.Request, p *princip
 		s.fail(w, err)
 		return
 	}
+	before := int64(len(src.Content))
 	if err := s.applySource(p, req, src); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.quota(r, p, "", int64(len(src.Content))-before, src.Interval); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -226,6 +235,10 @@ func (s *Server) deleteSource(w http.ResponseWriter, r *http.Request, p *princip
 }
 
 func (s *Server) refreshSource(w http.ResponseWriter, r *http.Request, p *principal) {
+	if err := s.Svc.CheckRefresh(p.User); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if _, err := s.Svc.Store.Sources().Get(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
 		s.fail(w, err)
 		return
@@ -368,6 +381,10 @@ func (s *Server) createRule(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	if err := s.quota(r, p, "", int64(len(x.GroupsText)+len(x.RulesetsText)+len(x.INIText)), x.Interval); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if err := s.Svc.Store.RuleSources().Create(r.Context(), p.User.ID, x); err != nil {
 		s.fail(w, err)
 		return
@@ -406,6 +423,10 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	if err := s.quota(r, p, "", 0, x.Interval); err != nil {
+		s.fail(w, err)
+		return
+	}
 	x.Version = v
 	if err := s.Svc.Store.RuleSources().Update(r.Context(), p.User.ID, x); err != nil {
 		s.fail(w, err)
@@ -424,6 +445,10 @@ func (s *Server) deleteRule(w http.ResponseWriter, r *http.Request, p *principal
 }
 
 func (s *Server) refreshRule(w http.ResponseWriter, r *http.Request, p *principal) {
+	if err := s.Svc.CheckRefresh(p.User); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if _, err := s.Svc.Store.RuleSources().Get(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
 		s.fail(w, err)
 		return
@@ -502,6 +527,10 @@ func (s *Server) createProfile(w http.ResponseWriter, r *http.Request, p *princi
 		return
 	}
 	x := &store.Profile{Name: doc.Name, Doc: []byte(req.Doc)}
+	if err := s.quota(r, p, service.QuotaProfile, int64(len(req.Doc)), 0); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if err := s.Svc.Store.Profiles().Create(r.Context(), p.User.ID, x, req.Note); err != nil {
 		s.fail(w, err)
 		return
@@ -541,6 +570,11 @@ func (s *Server) updateProfile(w http.ResponseWriter, r *http.Request, p *princi
 		return
 	}
 	x := &store.Profile{ID: r.PathValue("id"), Name: doc.Name, Doc: []byte(req.Doc), Version: v}
+	// 每次保存都会增加一个版本：按新文档的大小计入存储
+	if err := s.quota(r, p, "", int64(len(req.Doc)), 0); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if err := s.Svc.Store.Profiles().Update(r.Context(), p.User.ID, x, req.Note); err != nil {
 		s.fail(w, err)
 		return
@@ -753,6 +787,10 @@ func (s *Server) createLink(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	if err := s.quota(r, p, service.QuotaLink, 0, 0); err != nil {
+		s.fail(w, err)
+		return
+	}
 	tok := auth.NewToken(32) // 256 位，base64url 编码为 43 个字符（第 13.2 节）
 	l := &store.Link{ProfileID: r.PathValue("id"), Token: tok, TokenHash: auth.HashToken(tok), Note: truncate(req.Note, 200)}
 	if err := s.Svc.Store.Links().Create(r.Context(), p.User.ID, l); err != nil {
@@ -921,4 +959,19 @@ func diagsJSON(raw []byte) json.RawMessage {
 		return json.RawMessage("[]")
 	}
 	return json.RawMessage(raw)
+}
+
+// quota 检查配额：kind 非空时检查数量（新建），extra 为新增的内容字节数，interval 为拉取间隔（秒，0 表示默认）。
+func (s *Server) quota(r *http.Request, p *principal, kind string, extra int64, interval int) error {
+	ctx := r.Context()
+	if err := s.Svc.CheckInterval(ctx, p.User, interval); err != nil {
+		return err
+	}
+	if kind != "" {
+		return s.Svc.CheckCreate(ctx, p.User, kind, extra)
+	}
+	if extra > 0 {
+		return s.Svc.CheckStorage(ctx, p.User, extra)
+	}
+	return nil
 }

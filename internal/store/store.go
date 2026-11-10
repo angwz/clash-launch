@@ -197,6 +197,8 @@ type Store interface {
 	SMTP() SMTPRepo
 	Quotas() QuotaRepo
 	Devices() DeviceRepo
+	// KeyStatus 返回当前主密钥 ID 与密钥环中的密钥数（管理页的系统状态）。
+	KeyStatus() (current string, count int)
 	// Tx 在一个事务中执行 fn；fn 返回错误时回滚。
 	Tx(ctx context.Context, fn func(Store) error) error
 	Close() error
@@ -285,6 +287,10 @@ type RenderRepo interface {
 type AuditRepo interface {
 	Add(ctx context.Context, e *AuditEntry) error
 	List(ctx context.Context, owner string, p Page) ([]AuditEntry, error)
+	// All 供管理员查看全部记录（新的在前）。
+	All(ctx context.Context, p Page) ([]AuditEntry, error)
+	// Prune 删除 before 之前的记录，返回删除的条数（保留期，第 14.7 节）。
+	Prune(ctx context.Context, before time.Time) (int64, error)
 }
 
 // SettingsRepo 管理全局设置（注册模式、拉取策略等）。

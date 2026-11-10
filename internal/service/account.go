@@ -43,6 +43,7 @@ type guards struct {
 	recoverIP   *auth.Backoff // 按 IP：连续失败 10 次后锁定 15 分钟
 	decoy       []byte        // 生成诱饵问题的密钥
 	smtpTest    *auth.Backoff // 测试邮件：每个用户每小时最多 5 封
+	refresh     *auth.Backoff // 手动拉取：每个用户每小时最多 30 次
 }
 
 func (s *Service) g() *guards {
@@ -55,6 +56,7 @@ func (s *Service) g() *guards {
 			recoverIP:   auth.NewBackoff(9, 15*time.Minute, 15*time.Minute),
 			decoy:       []byte(auth.NewToken(32)),
 			smtpTest:    auth.NewBackoff(5, time.Hour, time.Hour),
+			refresh:     auth.NewBackoff(30, time.Hour, time.Hour),
 		}
 	})
 	return s.guards

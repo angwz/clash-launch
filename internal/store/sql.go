@@ -942,7 +942,26 @@ func (r audits) List(ctx context.Context, owner string, p Page) ([]AuditEntry, e
 	if p.After != "" {
 		after = p.After
 	}
-	rows, err := r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=? AND id < ? ORDER BY id DESC LIMIT ?", owner, after, limitOf(p))
+	return r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=? AND id < ? ORDER BY id DESC LIMIT ?", owner, after, limitOf(p)))
+}
+
+func (r audits) All(ctx context.Context, p Page) ([]AuditEntry, error) {
+	after := "ffffffff"
+	if p.After != "" {
+		after = p.After
+	}
+	return r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p)))
+}
+
+func (r audits) Prune(ctx context.Context, before time.Time) (int64, error) {
+	res, err := r.d.exec(ctx, "DELETE FROM audit WHERE at < ?", ms(before))
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (r audits) scan(rows *sql.Rows, err error) ([]AuditEntry, error) {
 	if err != nil {
 		return nil, err
 	}

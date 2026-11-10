@@ -33,7 +33,7 @@
   let url = $state("");
   let content = $state("");
   let ua = $state("");
-  let interval = $state(0);
+  let interval = $state(0); // 分钟（界面）；接口以秒为单位
   let nodes = $state<Node[]>([]);
   let diags = $state<Diagnostic[]>([]);
   let format = $state("");
@@ -50,7 +50,7 @@
       url = s.url ?? "";
       content = s.content ?? "";
       ua = s.ua ?? "";
-      interval = s.interval;
+      interval = Math.round(s.interval / 60);
       proc = (s.processing ?? {}) as Processing;
       await Promise.all([loadNodes(), catalog.load()]);
     } catch (e) {
@@ -71,7 +71,7 @@
     if (!src) return;
     saving = true;
     try {
-      const body: Record<string, unknown> = { name, kind: src.kind, ua: ua || undefined, interval, processing: clean(proc) };
+      const body: Record<string, unknown> = { name, kind: src.kind, ua: ua || undefined, interval: interval * 60, processing: clean(proc) };
       if (src.kind === "subscription") body.url = url;
       else body.content = content;
       src = await api.put<Source>("/api/v1/sources/" + src.id, body, { ifMatch: src.version });
