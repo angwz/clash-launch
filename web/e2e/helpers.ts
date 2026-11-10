@@ -1,6 +1,8 @@
 // 端到端测试的共用步骤：登录、经 API 准备数据。测试数据只用 example.com / 192.0.2.0/24 与虚构凭据。
+import { createHmac } from "node:crypto";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { solve } from "../src/lib/sha256";
 
 export const ADMIN = { username: "admin", password: "admin password 2026" };
 
@@ -47,4 +49,42 @@ export async function seedProfile(request: APIRequestContext, baseURL: string, n
   ].join("\n");
   const p = await call<{ id: string; version: number }>("POST", "/api/v1/profiles", { doc, note: "" });
   return { profile: p.id, source: src.id, call };
+}
+
+// —— 两步验证与独立账号（不影响共用的管理员）——
+
+/** RFC 6238：base32 密钥在时间步 step 的 6 位验证码。 */
+export function totp(secret: string, step: number): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const c of secret.replace(/\s+/g, "").toUpperCase()) bits += alphabet.indexOf(c).toString(2).padStart(5, "0");
+  const key = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
+  const msg = Buffer.alloc(8);
+  msg.writeBigUInt64BE(BigInt(step));
+  const h = createHmac("sha1", key).update(msg).digest();
+  const off = h[h.length - 1]! & 0x0f;
+  return String((h.readUInt32BE(off) & 0x7fffffff) % 1_000_000).padStart(6, "0");
+}
+
+export const step = () => Math.floor(Date.now() / 1000 / 30);
+
+/** 打开注册并经 API 创建一个普通用户（含安全问题与工作量证明），返回用户名。 */
+export async function createUser(request: APIRequestContext, baseURL: string, prefix: string): Promise<string> {
+  const admin = await apiAs(request, baseURL);
+  await admin("PUT", "/api/v1/admin/registration", { open: true });
+  const user = prefix + Date.now().toString(36);
+  const ch = await (await request.get("/api/v1/pow?purpose=register")).json();
+  const res = await request.post("/api/v1/register", {
+    headers: { Origin: baseURL },
+    data: {
+      username: user,
+      password: "a long enough password",
+      questions: [{ builtin: 0 }, { builtin: 1 }, { builtin: 2 }],
+      answers: ["aa", "bb", "cc"],
+      pow: { challenge: ch.challenge, nonce: solve(ch.challenge, ch.bits) },
+    },
+  });
+  expect(res.ok(), await res.text()).toBeTruthy();
+  await admin("PUT", "/api/v1/admin/registration", { open: false });
+  return user;
 }

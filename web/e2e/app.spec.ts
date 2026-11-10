@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { apiAs, login, seedProfile } from "./helpers";
+import { apiAs, createUser, login, seedProfile, step, totp } from "./helpers";
 
 // 三个安全问题使用默认选择的内置问题 0、1、2
 async function fillAnswers(page: Page, answers = ["Beijing", "Mochi", "Sunrise School"]) {
@@ -192,4 +192,35 @@ test("找回口令：答对 2 个问题后重设，旧会话失效", async ({ br
   await login(r, { username: user, password: "another long password" });
   await ctx.close();
   await other.close();
+});
+
+test("两步验证：扫码启用、显示恢复码；之后登录需要验证码", async ({ browser, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const user = await createUser(request, baseURL!, "mfa");
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await login(page, { username: user, password: "a long enough password" });
+  await page.goto("/account");
+  await page.getByRole("button", { name: "启用" }).click();
+  const secret = (await page.locator(".secret").textContent())!.replace(/\s+/g, "");
+  await page.getByLabel("验证码").fill(totp(secret, step()));
+  await page.getByRole("button", { name: "确认并启用" }).click();
+  await expect(page.getByText("恢复码", { exact: true })).toBeVisible();
+  await expect(page.locator(".code-list li")).toHaveCount(10);
+  await page.getByRole("button", { name: "我已保存" }).click();
+  await expect(page.getByText(/已启用 · 剩余 10 个恢复码/)).toBeVisible();
+  await ctx.close();
+
+  const ctx2 = await browser.newContext();
+  const p2 = await ctx2.newPage();
+  await p2.goto("/login");
+  await p2.getByLabel("用户名").fill(user);
+  await p2.getByLabel("口令", { exact: true }).fill("a long enough password");
+  await p2.getByRole("button", { name: "登录" }).click();
+  await expect(p2.getByRole("heading", { name: "两步验证" })).toBeVisible();
+  // 启用时用过的时间步不能再用；下一个时间步（允许 ±1 的偏差）可以
+  await p2.getByLabel("验证码").fill(totp(secret, step() + 1));
+  await p2.getByRole("button", { name: "验证" }).click();
+  await expect(p2).toHaveURL(/\/$/);
+  await ctx2.close();
 });

@@ -283,6 +283,24 @@ components:
         createdAt: {type: string, format: date-time}
         lastSeen: {type: string, format: date-time}
         current: {type: boolean}
+    TOTPStatus:
+      type: object
+      required: [enabled, remainingCodes]
+      properties:
+        enabled: {type: boolean}
+        remainingCodes: {type: integer}
+    RecoveryCodes:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes: {type: array, items: {type: string}}
+    MFAChallenge:
+      type: object
+      required: [mfa, ticket]
+      description: 口令正确但需要第二因素时的登录响应（不设置会话）
+      properties:
+        mfa: {type: array, items: {type: string, enum: [totp, passkey]}}
+        ticket: {type: string}
     List:
       type: object
       required: [items]
@@ -325,7 +343,7 @@ paths:
       tags: [session]
       summary: 登录
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}}}}}}
-      responses: {'200': {description: 已登录，设置会话 Cookie, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: 已登录并设置会话 Cookie；启用了第二因素时返回 MFAChallenge 而不设置会话, content: {application/json: {schema: {oneOf: [{$ref: '#/components/schemas/Session'}, {$ref: '#/components/schemas/MFAChallenge'}]}}}}, '401': {$ref: '#/components/responses/Problem'}}
     delete:
       tags: [session]
       summary: 登出
@@ -396,6 +414,44 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/session/totp:
+    post:
+      tags: [session]
+      summary: 登录第二步：用 TOTP 验证码或恢复码完成登录（凭证来自口令登录的响应，5 分钟有效）
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [ticket, code], properties: {ticket: {type: string}, code: {type: string}}}}}}
+      responses: {'200': {description: 已登录, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/totp:
+    get:
+      tags: [account]
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/TOTPStatus'}}}}}
+  /api/v1/account/totp/setup:
+    post:
+      tags: [account]
+      summary: 生成待确认的 TOTP 密钥（已启用时 409）
+      security: [{session: [], csrf: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [secret, uri], properties: {secret: {type: string}, uri: {type: string, description: otpauth:// 地址}}}}}}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/totp/enable:
+    post:
+      tags: [account]
+      summary: 用一个验证码确认并启用；返回 10 个一次性恢复码（只显示这一次）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [code], properties: {code: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RecoveryCodes'}}}}, '401': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/totp/disable:
+    post:
+      tags: [account]
+      summary: 关闭两步验证（需要口令）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '403': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/totp/recovery-codes:
+    post:
+      tags: [account]
+      summary: 重新生成恢复码，旧码作废（需要口令）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RecoveryCodes'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/registration:
     get:
       tags: [admin]

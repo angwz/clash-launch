@@ -16,6 +16,8 @@ const known: Record<string, string> = {
   "pow.invalid": "error.pow",
   "account.questions": "error.questions",
   "account.wrong_password": "error.wrong_password",
+  "mfa.invalid": "error.mfa",
+  "mfa.state": "error.mfa_state",
   rate_limited: "error.rate",
   conflict: "error.conflict",
   exists: "error.exists",

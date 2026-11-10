@@ -149,3 +149,70 @@ func durs(ds []time.Duration) []string {
 	}
 	return out
 }
+
+// RFC 6238 附录 B 的测试向量（SHA-1，密钥为 ASCII "12345678901234567890"，取 8 位结果的后 6 位）。
+func TestTOTPVectors(t *testing.T) {
+	secret := b32.EncodeToString([]byte("12345678901234567890"))
+	vectors := map[int64]string{59: "287082", 1111111109: "081804", 1111111111: "050471", 1234567890: "005924", 2000000000: "279037", 20000000000: "353130"}
+	for ts, want := range vectors {
+		got, err := TOTPCode(secret, ts/30)
+		if err != nil || got != want {
+			t.Errorf("T=%d：%s，期望 %s（%v）", ts, got, want, err)
+		}
+	}
+}
+
+func TestVerifyTOTP(t *testing.T) {
+	secret := NewTOTPSecret()
+	now := time.Unix(1_800_000_000, 0)
+	cur, _ := TOTPCode(secret, TOTPStep(now))
+	prev, _ := TOTPCode(secret, TOTPStep(now)-1)
+	old, _ := TOTPCode(secret, TOTPStep(now)-3)
+	if s, ok := VerifyTOTP(secret, cur, now); !ok || s != TOTPStep(now) {
+		t.Error("当前时间步应通过")
+	}
+	if _, ok := VerifyTOTP(secret, " "+prev[:3]+" "+prev[3:], now); !ok {
+		t.Error("前一个时间步（含空格）应通过")
+	}
+	if _, ok := VerifyTOTP(secret, old, now); ok {
+		t.Error("超出窗口的验证码应拒绝")
+	}
+	if !strings.HasPrefix(TOTPURI(secret, "Clash, Launch!", "alice"), "otpauth://totp/Clash%2C%20Launch%21:alice?") {
+		t.Errorf("URI：%s", TOTPURI(secret, "Clash, Launch!", "alice"))
+	}
+}
+
+func TestRecoveryCodes(t *testing.T) {
+	codes, hashes := NewRecoveryCodes(10)
+	if len(codes) != 10 || len(hashes) != 10 {
+		t.Fatal("数量")
+	}
+	if HashRecoveryCode(strings.ToUpper(strings.ReplaceAll(codes[0], "-", " "))) != hashes[0] {
+		t.Error("大小写、空格与连字符不影响")
+	}
+	seen := map[string]bool{}
+	for _, c := range codes {
+		if len(c) != 9 || c[4] != '-' || seen[c] {
+			t.Errorf("格式或重复：%s", c)
+		}
+		seen[c] = true
+	}
+}
+
+func TestTickets(t *testing.T) {
+	tk := NewTickets()
+	now := time.Unix(1_800_000_000, 0)
+	x := tk.Issue("mfa", "user-1", 5*time.Minute, now)
+	if sub, err := tk.Verify("mfa", x, now.Add(time.Minute)); err != nil || sub != "user-1" {
+		t.Fatalf("有效凭证：%q %v", sub, err)
+	}
+	if _, err := tk.Verify("mfa", x, now.Add(6*time.Minute)); err == nil {
+		t.Error("过期应拒绝")
+	}
+	if _, err := tk.Verify("other", x, now); err == nil {
+		t.Error("用途不同应拒绝")
+	}
+	if _, err := NewTickets().Verify("mfa", x, now); err == nil {
+		t.Error("其他密钥签发的凭证应拒绝")
+	}
+}

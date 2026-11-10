@@ -58,8 +58,10 @@ func (s *Service) g() *guards {
 
 // guardsState 嵌入 Service（见 service.go）。
 type guardsState struct {
-	guardsOnce sync.Once
-	guards     *guards
+	guardsOnce  sync.Once
+	guards      *guards
+	ticketsOnce sync.Once
+	ticketsVal  *auth.Tickets
 }
 
 // —— 工作量证明 ——

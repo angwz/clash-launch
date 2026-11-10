@@ -245,6 +245,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "recovery.failed", "recovery failed")
 	case errors.Is(err, service.ErrWrongPassword):
 		problem(w, http.StatusForbidden, "account.wrong_password", "current password is incorrect")
+	case errors.Is(err, service.ErrMFA):
+		problem(w, http.StatusUnauthorized, "mfa.invalid", "verification code is invalid or expired")
+	case errors.Is(err, service.ErrMFAState):
+		problem(w, http.StatusConflict, "mfa.state", "two-step verification is not in a state that allows this")
 	case errors.Is(err, service.ErrInvalidLogin):
 		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
 	case errors.As(err, &wait):
