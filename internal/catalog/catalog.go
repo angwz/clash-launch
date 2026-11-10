@@ -125,6 +125,7 @@ type Pack struct {
 	DocRoot   string       `yaml:"doc-root" json:"docRoot"`
 	CoreMin   string       `yaml:"core-min" json:"coreMin"`
 	CoreMax   string       `yaml:"core-max" json:"coreMax"`
+	CoreDate  string       `yaml:"core-date" json:"coreDate"`  // core-max 的发布日期
 	Reference string       `yaml:"reference" json:"reference"` // 示例配置的来源与版本
 	Order     []string     `yaml:"order" json:"order"`
 	Files     []string     `yaml:"files" json:"-"`

@@ -76,7 +76,7 @@ export interface RulePreset {
 }
 
 export interface CatalogMeta {
-  pack: { id: string; label: string; docRoot: string; coreMin: string; coreMax: string; reference: string; order: string[]; nav: NavSection[] };
+  pack: { id: string; label: string; docRoot: string; coreMin: string; coreMax: string; coreDate?: string; reference: string; order: string[]; nav: NavSection[] };
   digest: string;
   version: string;
   sections: MetaField[];

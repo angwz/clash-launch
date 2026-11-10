@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -18,6 +19,9 @@ import (
 
 // Migrate 执行尚未执行的迁移（只向前）。SQLite 下，若有待执行的迁移且数据库已有数据，
 // 先把数据库备份到 backupDir（升级前自动备份，第 18.3 节）。返回执行的迁移版本。
+// ErrNewerSchema 表示数据库由更新的程序版本迁移过，当前程序不能安全使用它。
+var ErrNewerSchema = errors.New("store: 数据库版本比程序新")
+
 func (d *DB) Migrate(ctx context.Context, backupDir string) ([]int, error) {
 	if _, err := d.root.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS schema_migrations (version BIGINT NOT NULL PRIMARY KEY, applied_at BIGINT NOT NULL)"); err != nil {
 		return nil, err
@@ -42,13 +46,22 @@ func (d *DB) Migrate(ctx context.Context, backupDir string) ([]int, error) {
 	}
 	sort.Strings(files)
 	var pending []string
+	known := map[int]bool{}
 	for _, f := range files {
 		v, err := versionOf(f)
 		if err != nil {
 			return nil, err
 		}
+		known[v] = true
 		if !applied[v] {
 			pending = append(pending, f)
+		}
+	}
+	// 防止降级：数据库里有本程序不认识的迁移，说明它被更新的版本升级过。旧程序在新表结构上运行
+	// 可能写坏数据，所以拒绝启动，提示换回新版本或恢复迁移前的自动备份。
+	for v := range applied {
+		if !known[v] {
+			return nil, fmt.Errorf("%w：数据库已被更新的版本升级（迁移 %d），当前程序较旧。请使用新版本镜像，或从 backups 目录恢复升级前的备份", ErrNewerSchema, v)
 		}
 	}
 	if len(pending) == 0 {

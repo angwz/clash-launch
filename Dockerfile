@@ -31,13 +31,13 @@ COPY --from=build /out/clash-launch /clash-launch
 COPY --from=build /out/mihomo/mihomo /opt/mihomo/mihomo
 COPY --from=build /out/mihomo/geodata /opt/mihomo/geodata
 COPY --from=build --chown=65532:65532 /out/data /data
-ENV CLASH_LAUNCH_LISTEN=:8080 \
+ENV CLASH_LAUNCH_LISTEN=:20230 \
     CLASH_LAUNCH_DATA_DIR=/data \
     CLASH_LAUNCH_MIHOMO=/opt/mihomo/mihomo \
     CLASH_LAUNCH_GEODATA=/opt/mihomo/geodata
 USER 65532:65532
 VOLUME /data
-EXPOSE 8080
+EXPOSE 20230
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["/clash-launch", "healthcheck"]
 ENTRYPOINT ["/clash-launch"]
 CMD ["serve"]

@@ -1,9 +1,9 @@
 # Clash, Launch! —— docker compose 部署（说明见 README「部署」与 docs/guide/deploy.md）。
 #
-#   启动：docker compose up -d        打开 http://<服务器 IP>:8080 注册管理员（第一个访问者成为管理员）
+#   启动：docker compose up -d        打开 http://<服务器 IP>:20230 注册管理员（第一个访问者成为管理员）
 #   更新：docker compose pull && docker compose up -d
 #
-# 默认用明文 HTTP 并对所有 IP 开放 8080 端口，方便试用。正式使用前请加 HTTPS 反向代理，
+# 默认用明文 HTTP 并对所有 IP 开放 20230 端口，方便试用。正式使用前请加 HTTPS 反向代理，
 # 否则登录口令与订阅链接里的令牌会以明文经过网络（风险与做法见 README「安全」）。
 services:
   clash-launch:
@@ -11,12 +11,12 @@ services:
     container_name: clash-launch
     restart: unless-stopped
     ports:
-      - "8080:8080"                             # 只给本机反向代理用时改为 "127.0.0.1:8080:8080"
+      - "20230:20230"                           # 对外开放，浏览器直接访问；同一台机器上配了 HTTPS 反代后可改为 "127.0.0.1:20230:20230"
     volumes:
       - data:/data                              # 数据库与主密钥（master.key）：备份时两者都要
     environment:
       # 对外地址：生成的订阅链接以它为准；不填时根据请求推断。加了 HTTPS 后改为 https://你的域名
-      # CLASH_LAUNCH_PUBLIC_URL: http://203.0.113.10:8080
+      # CLASH_LAUNCH_PUBLIC_URL: http://203.0.113.10:20230
       # 放在反向代理之后时填代理所在网段，服务才会采信 X-Forwarded-For 中的真实 IP
       # CLASH_LAUNCH_TRUSTED_PROXIES: 172.16.0.0/12
       CLASH_LAUNCH_LOG_LEVEL: info

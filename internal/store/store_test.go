@@ -254,3 +254,19 @@ func TestInvites(t *testing.T) {
 		t.Errorf("重复删除应 404：%v", err)
 	}
 }
+
+// 防止降级：数据库被更新的版本迁移过（有本程序不认识的迁移）时，Migrate 拒绝继续，数据保持不变；
+// 已是最新时重复 Migrate 不做任何事（每次启动都会调用）。
+func TestMigrateRefusesNewerSchema(t *testing.T) {
+	d := newDB(t)
+	ctx := context.Background()
+	if done, err := d.Migrate(ctx, ""); err != nil || len(done) != 0 {
+		t.Fatalf("重复迁移应无操作：%v %v", done, err)
+	}
+	if _, err := d.root.ExecContext(ctx, "INSERT INTO schema_migrations (version, applied_at) VALUES (9999, 0)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Migrate(ctx, ""); !errors.Is(err, ErrNewerSchema) {
+		t.Fatalf("应拒绝更新版本的数据库：%v", err)
+	}
+}

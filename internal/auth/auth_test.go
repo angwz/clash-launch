@@ -222,12 +222,12 @@ func TestTickets(t *testing.T) {
 }
 
 func TestCheckPassword(t *testing.T) {
-	for _, pw := range []string{"ab1", "abcde", "12345", "Password123", "QWERTYUIOP", "1234567890", "woaini1314", "一段中文口令"} {
+	for _, pw := range []string{"ab1", "abcde", "12345", "abc12", "Abcde12", "abcdefgh", "Password123", "QWERTYUIOP", "1234567890", "woaini1314", "一段中文口令"} {
 		if err := CheckPassword(pw); err == nil {
 			t.Errorf("%q 应被拒绝", pw)
 		}
 	}
-	for _, pw := range []string{"abc12", "Ab-cd", "correct horse battery", "中文口令2026", "Tr0ub4dor&3-extended"} {
+	for _, pw := range []string{"ab-12", "Ab-cd", "abcd1234", "Abcdefgh", "correct horse battery", "中文口令2026", "Tr0ub4dor&3-extended"} {
 		if err := CheckPassword(pw); err != nil {
 			t.Errorf("%q 应被接受：%v", pw, err)
 		}

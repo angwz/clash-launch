@@ -193,6 +193,10 @@
         <option value="sources">{t("editor.sources_rules")}</option>
         {#each nav as s (s.id)}<option value={s.id}>{catalog.navTitle(s)}</option>{/each}
       </select>
+      {#if catalog.meta}
+        <!-- 兼容性提示：目录按某个 mihomo 版本编写，更新或更旧的内核不保证完全兼容（反馈 #19） -->
+        <p class="compat">{t("editor.compat", { core: catalog.meta.pack.coreMax, date: catalog.meta.pack.coreDate ?? "" })}</p>
+      {/if}
     </nav>
 
     <div class="content" id="editor-main">
@@ -380,6 +384,13 @@
   }
   .secnav-select {
     display: none;
+  }
+  .compat {
+    margin-block-start: var(--space-5);
+    padding-inline: var(--space-2);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--fg-subtle);
   }
 
   /* —— 主区 —— */

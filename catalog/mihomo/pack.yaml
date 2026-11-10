@@ -8,6 +8,7 @@ label: Mihomo
 doc-root: https://wiki.metacubex.one/config/
 core-min: "1.18.0"
 core-max: "1.19.33"
+core-date: "2026-10-21"   # core-max 的官方发布日期，界面的兼容性提示使用
 reference: MetaCubeX/mihomo@v1.19.33 docs/config.yaml
 files:
   - general.yaml

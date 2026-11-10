@@ -6,7 +6,7 @@
 
 - **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。核心路径（反馈 #14–#16）已完成，见「核心路径验收」；反馈 #17 的三项修正已完成（首次注册免令牌与简单口令、默认值显示、取消接管提示）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
-- **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
+- **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 
 ## 里程碑
 
@@ -18,7 +18,7 @@
 | M4 Web | 🔄 | 第一阶段见下表；视觉由实施者决定（反馈 #13） |
 | M5 多用户与安全 | ✅ | 见下表；安全测试清单见 [security](../design/security.md) |
 | M6 目标与目录 | 🔄 | OpenClash 预设与目录补全完成，其他客户端预设未开始 |
-| M7 发布 | ➖ | 由维护者决定何时进行 |
+| M7 发布 | 🔄 | 仓库、CI 与镜像发布已上线；首个版本 v1.0.0 |
 
 ## 核心路径验收（反馈 #15）
 
@@ -55,7 +55,7 @@
 
 | 验收条件 | 结果 | 证据 |
 | --- | :---: | --- |
-| 本地 Docker 运行 | ❌ 未验证 | 本机 Docker 守护进程未运行；`Dockerfile`、`compose.yaml` 已编写，未构建。二进制以 `clash-launch serve` 在本机运行：迁移、主密钥生成、设置链接、healthz、readyz、healthcheck 正常 |
+| 镜像构建与运行 | 🔄 | 镜像在 GitHub Actions 中构建成功（amd64、arm64），清单可匿名拉取；容器实际运行尚未验证（本机 Docker 未运行），待维护者在 VPS 上首次部署 |
 | 用 mihomo 内核实际加载订阅链接 | ✅ | `TestKernelLoadsSubscription`（`-tags kernel`）：服务端渲染并通过 `mihomo -t` → 从 `/s/<令牌>` 取回配置 → mihomo v1.19.33（Windows amd64）实际启动并在 mixed-port 上监听 |
 | API 契约测试通过 | ✅ | `TestContract`：47 条路由与 `api/openapi.yaml` 逐条一致；`TestEndToEnd` 等覆盖登录、CSRF、If-Match（400/412）、订阅、304、重置、越权 404、限流 429、503、SSRF |
 | 存储可迁移性的设计写进决定 | ✅ | [0002](../decisions/0002-storage-and-service.md)；`TestMigrationsEquivalent`；`db copy` 在 SQLite → SQLite 上测试，**PostgreSQL 冒烟测试未运行**（本机没有实例） |
@@ -102,7 +102,7 @@
 | 注册开关、一次性邀请 | `internal/service/register.go`、`internal/api/register.go` | ✓ | `TestInvites`、`TestRegistrationAndInvites`；无前端，未在浏览器中走过 |
 | 服务编排、调度、托管 provider | `internal/service` | ✓ | API 端到端测试；后台调度器只在本机冒烟运行中启动，未长时间运行 |
 | HTTP API、订阅端点、安全响应头、限流 | `internal/api`、`api/openapi.yaml` | ✓ | 契约测试、端到端测试、内核加载测试 |
-| 镜像与部署 | `Dockerfile`、`compose.yaml` | ✓ | **未构建、未运行** |
+| 镜像与部署 | `Dockerfile`、`compose.yaml`、`.github/workflows/` | ✓ | CI 构建并发布多架构镜像；容器运行待首次部署验证 |
 | Web 前端 | `web/`（Svelte 5） | ✓ | Vitest 33 项（方案文档、差异、高亮、消息完整性、样式约束）；svelte-check 0 错误 0 警告；Playwright 见 M4 验收 |
 | 命令行 | `cmd/clash-launch`、`internal/workspace` | ✓ | 手动运行 `render -check -inputs`、`catalog export`、`serve`、`healthcheck` |
 | 工具 | `tools/catalog-extract`（scan、order、diff、coverage）、`tools/toolsync` | ✓ | 单元测试；toolsync 实际下载并校验 SHA-256 |
@@ -126,7 +126,7 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过（�
 真机验收（clash-launch serve）      → 订阅取回 200，mihomo -t 通过，实际启动监听，日志 0 error
 ```
 
-未验证：在 OpenClash 中实际导入（维护者验证）；Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
+未验证：在 OpenClash 中实际导入（维护者验证）；容器实际运行（镜像已构建）；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
 
 ## 已知限制
 

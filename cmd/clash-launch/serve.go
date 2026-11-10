@@ -79,7 +79,7 @@ func loadConfig() (config, error) {
 		return def
 	}
 	c := config{
-		Listen: get("LISTEN", ":8080"), DataDir: get("DATA_DIR", "/data"), PublicURL: strings.TrimSuffix(get("PUBLIC_URL", ""), "/"),
+		Listen: get("LISTEN", ":20230"), DataDir: get("DATA_DIR", "/data"), PublicURL: strings.TrimSuffix(get("PUBLIC_URL", ""), "/"),
 		TrustedProxies: get("TRUSTED_PROXIES", ""),
 		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"),
 		Mihomo: get("MIHOMO", "/opt/mihomo/mihomo"), Geodata: get("GEODATA", "/opt/mihomo/geodata"),

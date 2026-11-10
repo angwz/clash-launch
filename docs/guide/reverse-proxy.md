@@ -9,7 +9,7 @@
 ```caddy
 cl.example.com {
 	encode zstd gzip
-	reverse_proxy 127.0.0.1:8080
+	reverse_proxy 127.0.0.1:20230
 }
 ```
 
@@ -29,7 +29,7 @@ server {
     client_max_body_size 12m;           # 节点原文与导入的上限是 10 MiB
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:20230;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -39,7 +39,7 @@ server {
     # 访问日志中不记录订阅令牌（服务自身的日志只记前 6 个字符）
     location ~ ^/(s|p|r)/ {
         access_log off;
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:20230;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;

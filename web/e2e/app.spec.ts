@@ -58,6 +58,7 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
   await page.locator(".yaml").first().waitFor();
 
   await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused(); // 打开动画期间先等输入框获得焦点
   await page.keyboard.type("增强模式");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/section=dns/);
@@ -65,6 +66,7 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
 
   // 「原始编辑」不出现在普通搜索中，只在 > 命令模式中出现（第 16.4 节）
   await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused(); // 打开动画期间先等输入框获得焦点
   await page.keyboard.type("原始编辑");
   await expect(page.getByRole("option", { name: /原始编辑/ })).toHaveCount(0);
   await page.locator("dialog.palette input").fill(">原始编辑");

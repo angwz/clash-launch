@@ -29,11 +29,13 @@ const (
 // ErrWeakPassword 表示口令不满足策略。
 var ErrWeakPassword = errors.New("auth: 口令不满足要求")
 
-// 口令策略（反馈 #17：个人项目，口令可以简单）：至少 MinPasswordLen 个字符，且包含至少 MinPasswordClasses 类字符。
+// 口令策略（反馈 #17、#19：个人项目，口令可以简单）：至少 MinPasswordLen 个字符，至少 MinPasswordClasses 类字符；
+// 短于 LongPasswordLen 时其中一类必须是特殊字符（只有大小写字母与数字的短口令太容易被穷举）。
 // 弱口令的风险由登录退避与按 IP 限流兜底（见 backoff.go）。
 const (
 	MinPasswordLen     = 5
 	MinPasswordClasses = 2
+	LongPasswordLen    = 8
 )
 
 // CheckPassword 检查口令策略：长度、字符类别（小写字母、大写字母、数字、其他字符各算一类），
@@ -43,7 +45,10 @@ func CheckPassword(pw string) error {
 		return fmt.Errorf("%w：至少 %d 个字符", ErrWeakPassword, MinPasswordLen)
 	}
 	if PasswordClasses(pw) < MinPasswordClasses {
-		return fmt.Errorf("%w：至少包含 %d 类字符（小写字母、大写字母、数字、其他字符）", ErrWeakPassword, MinPasswordClasses)
+		return fmt.Errorf("%w：至少包含 %d 类字符（小写字母、大写字母、数字、特殊字符）", ErrWeakPassword, MinPasswordClasses)
+	}
+	if utf8.RuneCountInString(pw) < LongPasswordLen && !hasSpecial(pw) {
+		return fmt.Errorf("%w：少于 %d 个字符时必须包含特殊字符", ErrWeakPassword, LongPasswordLen)
 	}
 	if len(pw) > 1024 {
 		return fmt.Errorf("%w：过长", ErrWeakPassword)
@@ -54,24 +59,43 @@ func CheckPassword(pw string) error {
 	return nil
 }
 
-// PasswordClasses 返回口令包含的字符类别数：ASCII 小写字母、ASCII 大写字母、数字、其他字符（含空格与中文）。
-func PasswordClasses(pw string) int {
-	var lower, upper, digit, other bool
+// 字符类别：ASCII 小写字母、ASCII 大写字母、数字、特殊字符（其余一切，含空格与中文）。
+const (
+	classLower = iota
+	classUpper
+	classDigit
+	classSpecial
+)
+
+func classOf(r rune) int {
+	switch {
+	case r >= 'a' && r <= 'z':
+		return classLower
+	case r >= 'A' && r <= 'Z':
+		return classUpper
+	case r >= '0' && r <= '9':
+		return classDigit
+	}
+	return classSpecial
+}
+
+// hasSpecial 报告口令是否含有特殊字符。
+func hasSpecial(pw string) bool {
 	for _, r := range pw {
-		switch {
-		case r >= 'a' && r <= 'z':
-			lower = true
-		case r >= 'A' && r <= 'Z':
-			upper = true
-		case r >= '0' && r <= '9':
-			digit = true
-		default:
-			other = true
+		if classOf(r) == classSpecial {
+			return true
 		}
 	}
+	return false
+}
+
+// PasswordClasses 返回口令包含的字符类别数（见 classOf）。
+func PasswordClasses(pw string) int {
+	var seen [4]bool
 	n := 0
-	for _, b := range []bool{lower, upper, digit, other} {
-		if b {
+	for _, r := range pw {
+		if c := classOf(r); !seen[c] {
+			seen[c] = true
 			n++
 		}
 	}

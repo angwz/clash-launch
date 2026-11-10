@@ -1,7 +1,5 @@
 # Clash, Launch!
 
-> *Genshin Impact, Launch!* → *Clash, Launch!* 生成一份配置，然后——启动。
-
 一个由字段目录驱动的 Clash（mihomo）配置生成器，自托管、带网页界面。在网页里添加节点订阅、选择规则源（如 [domainrouter_v2](https://github.com/angwz/domainrouter_v2)、ACL4SSR），按官方文档逐字段设置，得到一条长期有效的订阅链接。每次生成的 YAML 都经过格式自检和 `mihomo -t` 检查。
 
 ```text
@@ -28,7 +26,7 @@ curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.ya
 docker compose up -d
 ```
 
-打开 `http://<服务器 IP>:8080`，第一个访问的人会进入「初始设置」并成为管理员。**启动后请尽快完成这一步**，之后这个入口自动关闭。
+打开 `http://<服务器 IP>:20230`，第一个访问的人会进入「初始设置」并成为管理员。**启动后请尽快完成这一步**，之后这个入口自动关闭。
 
 ### 更新
 
@@ -55,10 +53,10 @@ docker compose pull && docker compose up -d
 建议：
 
 1. **试用**：明文 HTTP 可以接受，但不要填入正在使用的真实订阅，或者只在局域网内访问。
-2. **正式使用**：在前面加一个 HTTPS 反向代理（Caddy 可以自动申请证书，见 [reverse-proxy](docs/guide/reverse-proxy.md)），把 `compose.yaml` 的端口改为 `127.0.0.1:8080:8080`，并设置 `CLASH_LAUNCH_PUBLIC_URL` 为 `https://你的域名`。
+2. **正式使用**：在前面加一个 HTTPS 反向代理（Caddy 可以自动申请证书，见 [reverse-proxy](docs/guide/reverse-proxy.md)），并设置 `CLASH_LAUNCH_PUBLIC_URL` 为 `https://你的域名`。反代与服务在同一台机器时，可以把 `compose.yaml` 的端口改为 `127.0.0.1:20230:20230`，让外部只能经 HTTPS 访问。
 3. **加上 HTTPS 后修改口令**，并在「订阅链接」页**重置**之前的链接：明文期间用过的口令与令牌都应视为已泄露。
 
-口令要求至少 5 位、包含 2 类字符；连续输错会触发逐次加长的等待，同一 IP 的失败次数也有上限。
+口令要求至少 5 位、包含 2 类字符（少于 8 位时其中一类必须是特殊字符）；连续输错会触发逐次加长的等待，同一 IP 的失败次数也有上限。
 
 ## 开发
 
