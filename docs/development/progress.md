@@ -4,8 +4,8 @@
 
 ## 现在
 
-- **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。**开发暂停**（2026-11-10，维护者要求）：下一轮先做核心路径——登录与生成适用于 OpenClash 的配置，其余功能后续迭代。
-- **待维护者**：① 确认下一轮的范围（见「下一步」）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
+- **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。本轮（反馈 #14–#16）的核心路径已完成：OpenClash 预设、字段目录补全、OpenClash 验收（见「核心路径验收」）。
+- **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
 
 ## 里程碑
@@ -17,8 +17,17 @@
 | M3 服务 | 🔄 | Docker 未验证，其余见下表 |
 | M4 Web | 🔄 | 第一阶段见下表；视觉由实施者决定（反馈 #13） |
 | M5 多用户与安全 | ✅ | 见下表；安全测试清单见 [security](../design/security.md) |
-| M6 目标与目录 | 🕓 | — |
+| M6 目标与目录 | 🔄 | OpenClash 预设与目录补全完成，其他客户端预设未开始 |
 | M7 发布 | ➖ | 由维护者决定何时进行 |
+
+## 核心路径验收（反馈 #15）
+
+| 验收条件 | 结果 | 证据 |
+| --- | :---: | --- |
+| OpenClash 预设有依据 | ✅ | [0006](../decisions/0006-openclash-preset.md)：参考 OpenClash@e553e82 的 `yml_change.sh` 等；内核为 mihomo Alpha，与 v1.19.33 只差 `tun.dns-mode` |
+| 几乎全部字段可在表单配置 | ✅ | `catalog-extract coverage`：v1.19.33 scan 的 2075 条路径中 2070 条类型化收录、3 条源码本身为 any、2 条登记为源码未读取；透传与缺失均为 0 |
+| 登录 → 订阅 → 规则源 → OpenClash → 订阅链接，服务端取回并通过 `mihomo -t` 与实际加载 | ✅ | 自动化：`TestKernelOpenClashFlow`（`-tags kernel`，规则源为 domainrouter_v2 的真实 toml）。真机：本机 `clash-launch serve`，订阅为本地提供的虚构节点，规则源为 domainrouter_v2 预设从 GitHub 实际拉取；取回 21 KB（4 节点、23 组、59 个规则集、66 条规则），`mihomo -t` 通过，实际启动后 mixed-port 监听，运行日志 0 error 0 warning |
+| 在 OpenClash 中导入 | ➖ | 由维护者验证 |
 
 ## M1 验收
 
@@ -76,7 +85,7 @@
 
 | 能力 | 位置 | 已实现 | 已验证 |
 | --- | --- | :---: | --- |
-| 字段目录：加载、片段、校验、键序、导出 | `catalog/mihomo/`、`internal/catalog` | ✓ | 单元测试；文档锚点对照 wiki 快照；顶层、dns、tun、sniffer、17 种协议、rule-provider 的顺序对照官方示例 |
+| 字段目录：加载、片段、校验、键序、导出 | `catalog/mihomo/`、`internal/catalog` | ✓ | 单元测试；文档锚点对照 wiki 快照；顶层、dns、tun、sniffer、28 种节点协议、20 种 listeners、rule-provider 的顺序对照官方示例；scan 覆盖率 100%（见核心路径验收） |
 | 安全 YAML 解析 | `internal/yamlx` | ✓ | 体积、节点数、别名展开、重复键经合并与渲染测试间接覆盖 |
 | 表单层校验与原始编辑合并 | `internal/layer` | ✓ | 表驱动、fuzz |
 | 目标适配（版本门槛、不支持、接管、弃用） | `internal/target` | ✓ | 端到端（`global-client-fingerprint` 移除警告）；预设 `mihomo`、`openclash`（[0006](../decisions/0006-openclash-preset.md)），`TestPresetManagedPathsInCatalog` 锁定接管路径 |
@@ -96,26 +105,28 @@
 | 镜像与部署 | `Dockerfile`、`compose.yaml` | ✓ | **未构建、未运行** |
 | Web 前端 | `web/`（Svelte 5） | ✓ | Vitest 33 项（方案文档、差异、高亮、消息完整性、样式约束）；svelte-check 0 错误 0 警告；Playwright 见 M4 验收 |
 | 命令行 | `cmd/clash-launch`、`internal/workspace` | ✓ | 手动运行 `render -check -inputs`、`catalog export`、`serve`、`healthcheck` |
-| 工具 | `tools/catalog-extract`、`tools/toolsync` | ✓ | 单元测试；toolsync 实际下载并校验 SHA-256 |
+| 工具 | `tools/catalog-extract`（scan、order、diff、coverage）、`tools/toolsync` | ✓ | 单元测试；toolsync 实际下载并校验 SHA-256 |
 
 ## 最近一次验证
 
-2026-11-10 · Windows 10 x64 · Go 1.27.3 · Node 26.13.0 · Edge 157
+2026-11-10 · Windows 10 x64 · Go 1.27.3 · Node 26.13.0 · Edge 157 · mihomo v1.19.33
 
 ```text
-gofmt -l                            → 无输出
+gofmt -l cmd internal tools        → 无输出
 go vet ./...                        → 通过
 staticcheck ./...                   → 通过
 golangci-lint run ./...             → 0 issues
-go test ./...                       → 15 个有测试的包全部通过
-go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（mihomo v1.19.33，含实际加载订阅链接）
+go test ./...                       → 全部通过
+go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（含 TestKernelOpenClashFlow）
+catalog-extract coverage            → 2075 条：covered 2070、free 3、skipped 2、passthrough 0、missing 0
 npm run check（svelte-check）       → 0 错误 0 警告
 vitest                              → 37 通过
-npm run budget                      → 首屏 51.4 KiB（预算 150 KiB）
+npm run build                       → 通过
 playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
+真机验收（clash-launch serve）      → 订阅取回 200，mihomo -t 通过，实际启动监听，日志 0 error
 ```
 
-未验证：Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
+未验证：在 OpenClash 中实际导入（维护者验证）；Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
 
 ## 已知限制
 
@@ -127,12 +138,10 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
 
 ## 下一步
 
-开发暂停中，下一轮在新对话中进行。方向见反馈 #14、#15：只做核心路径，其余功能留待后续迭代。
+本轮核心路径已完成，等待维护者在 OpenClash 中导入实测并决定下一轮范围。可选方向（未排序）：
 
-**下一轮范围（按顺序）**
-
-1. **OpenClash 预设**：对照 OpenClash 官方文档与源码（只读参考，记录提交），确认它使用的内核版本、接管或改写的字段（端口、DNS、TUN、external-controller、geo 等），加入 `catalog/mihomo/presets/openclash.yaml`；依据写进决定。
-2. **字段目录补全**：几乎全部 Clash（mihomo）字段都要能在表单中配置。优先补齐目前以 `any` 透传的部分（`listeners` 逐类型字段、xhttp、shadow-tls/restls/jls、realm、AmneziaWG 等节点子选项），以 `catalog-extract scan` 的覆盖率为准，目录说明中英齐全。
-3. **验收**：用真实数据走通「登录 → 添加订阅 → 选规则源 → 选 OpenClash → 订阅链接」，服务端取回订阅输出并通过 `mihomo -t`（含 `-tags kernel` 的实际加载）即算达标；在 OpenClash 中导入由维护者自行验证。
-
-**不在下一轮范围**：通行密钥的进一步工作（已实现并有测试，按 #15 不再投入；如需精简可在之后删除 `internal/auth/webauthn.go`、`internal/service/passkey.go`、`internal/api/passkey.go` 与前端对应组件）、配置导入、规则源编辑器与策略组预览、其他客户端预设、Docker 与 PostgreSQL 实测、M7。
+- 维护者导入后反馈的问题（优先）。
+- 其他客户端预设（Clash Verge Rev、Stash 等），按官方文档或源码逐项核对。
+- 配置导入、规则源编辑器与策略组预览（M4 剩余）。
+- Docker 与 PostgreSQL 实测（需要环境）。
+- 通行密钥按 #15 不再投入；如需精简，可删除 `internal/auth/webauthn.go`、`internal/service/passkey.go`、`internal/api/passkey.go` 与前端对应组件。

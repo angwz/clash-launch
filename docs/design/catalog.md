@@ -70,9 +70,9 @@ go run ./tools/catalog-extract coverage -o cov.json vX.json                     
 | 时间 | covered | free | skipped | passthrough | missing | 本次补齐 |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 2026-11-09（M1 结束，free 尚未单列，计入 passthrough） | 793 | 0 | 0 | 873 | 409 | — |
-| 2026-11-09 | 1012 | 4 | 1 | 781 | 277 | xhttp 全部细项（含 download-settings、reuse-settings）、shadow-tls/restls/jls、realm、AmneziaWG、ip-stack、vmess 的 mkcp/mekya/tlsmirror、hysteria 的 hop-interval 与 Stash 别名、override-expr |
-| 2026-11-09 | 1793 | 3 | 2 | 0 | 277 | listeners 全部 20 种类型（含 tun、hysteria2-realm）的逐类型字段；tun 字段改为片段 tun-fields，与 listeners 的 tun 共用（默认值不同的两个字段单独定义） |
-| 2026-11-09 | 2070 | 3 | 2 | 0 | 0 | 节点新增 11 种协议：reject、rematch、gost-relay、shadowquic、sudoku、masque、trusttunnel、openvpn、tailscale（需 with_gvisor 编译，官方发布版包含）、zerotier、easytier |
+| 2026-11-10 | 1012 | 4 | 1 | 781 | 277 | xhttp 全部细项（含 download-settings、reuse-settings）、shadow-tls/restls/jls、realm、AmneziaWG、ip-stack、vmess 的 mkcp/mekya/tlsmirror、hysteria 的 hop-interval 与 Stash 别名、override-expr |
+| 2026-11-10 | 1793 | 3 | 2 | 0 | 277 | listeners 全部 20 种类型（含 tun、hysteria2-realm）的逐类型字段；tun 字段改为片段 tun-fields，与 listeners 的 tun 共用（默认值不同的两个字段单独定义） |
+| 2026-11-10 | 2070 | 3 | 2 | 0 | 0 | 节点新增 11 种协议：reject、rematch、gost-relay、shadowquic、sudoku、masque、trusttunnel、openvpn、tailscale（需 with_gvisor 编译，官方发布版包含）、zerotier、easytier |
 
 早期记录（按目录中带说明的字段计数）：
 

@@ -64,7 +64,7 @@ func coverage(res Result, cat *catalog.Catalog) Coverage {
 		}
 		bySection[sec][st]++
 		if st == covPassthrough || st == covMissing {
-			cv.Gaps[st] = append(cv.Gaps[st], Gap{Path: f.Path, Type: f.Type, Source: f.Source})
+			cv.Gaps[st] = append(cv.Gaps[st], Gap(f))
 		}
 	}
 	for s, c := range bySection {

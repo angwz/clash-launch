@@ -1,6 +1,6 @@
 # 0006 · OpenClash 预设
 
-- 状态：已采纳（2026-11-09）
+- 状态：已采纳（2026-11-10）
 - 范围：`catalog/mihomo/presets/openclash.yaml` 的内核版本判断、接管字段与刻意不做的事
 - 参考：`vernesong/OpenClash@e553e82`（master，luci-app-openclash 0.48.002），只读放在 `.cache/ref/openclash/`；内核版本信息取自同仓库 `core` 分支 `88a4504`
 
