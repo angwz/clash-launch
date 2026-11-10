@@ -1,0 +1,45 @@
+# 每次推送与拉取请求：Go 与前端的检查与测试，以及用真实 mihomo 的内核测试（Linux）。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l cmd internal tools)"
+      - run: go vet ./...
+      - run: go test ./...
+      - name: 下载并校验 mihomo 与地理数据
+        run: go run ./tools/toolsync
+      - name: 内核测试（mihomo -t 与实际加载）
+        run: go test -tags kernel ./internal/kernel/ ./internal/api/
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: npm run budget

@@ -2,25 +2,33 @@
 
 Clash, Launch! 是一个单容器服务：一个静态二进制、内嵌的前端、固定版本的 mihomo（用于 `mihomo -t`）与地理数据。默认用 SQLite，数据全部在 `/data`。
 
-> **状态**：镜像与 compose 文件已编写，**尚未实际构建与运行**（见 [0002](../decisions/0002-storage-and-service.md#未验证)）。二进制本身已在本机以 `clash-launch serve` 运行验证。
+镜像由 GitHub Actions 构建并发布到 `ghcr.io/angwz/clash-launch`（amd64、arm64）：推送到 `main` 更新 `:latest`，推送 `v*` 标签发布版本号标签。
 
 ## 用 compose 启动
 
 ```sh
+curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.yaml
 docker compose up -d
-docker compose logs clash-launch | grep setup
 ```
 
-1. 修改 `compose.yaml` 中的 `CLASH_LAUNCH_PUBLIC_URL` 为你的对外地址（HTTPS）。
+1. 默认明文 HTTP、对所有 IP 开放 8080 端口，便于试用；风险与正式使用的做法见 README 的「安全」。
 2. 首次启动后打开对外地址，会自动进入**首次注册**：第一个访问者成为管理员，之后这个入口关闭。部署到公网时请在启动后尽快完成这一步。也可以用命令行：
 
    ```sh
    docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '至少 5 位、含 2 类字符的口令'
    ```
 
-3. 把 nginx 或 Caddy 反向代理到 `127.0.0.1:8080`，见 [reverse-proxy](reverse-proxy.md)。
+3. 正式使用：把 nginx 或 Caddy 反向代理到本机 8080（compose 的端口改为 `127.0.0.1:8080:8080`），设置 `CLASH_LAUNCH_PUBLIC_URL=https://你的域名`，见 [reverse-proxy](reverse-proxy.md)。
 
 4. 让别人注册：注册默认关闭。管理员可以在设置中打开注册，或者为每个人生成一次性邀请链接（可选有效期），见 [注册与邀请](#注册与邀请)。
+
+### 更新
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+不想手动执行时，可以在同一台机器上运行 [Watchtower](https://containrrr.dev/watchtower/) 定时检查新镜像；它会自动重启容器，适合个人使用，不适合需要控制升级时机的场合。
 
 ## 配置
 
