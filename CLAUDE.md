@@ -40,6 +40,7 @@ go test ./internal/render/ ./internal/engine/ -update  # 更新 golden（必须�
 gofmt -l . && go vet ./... && staticcheck ./... && golangci-lint run
 go run ./cmd/clash-launch render -check -mihomo .cache/tools/mihomo.exe -geodata .cache/tools/geodata testdata/profiles/m1-layers.yaml
 CLASH_LAUNCH_DATA_DIR=.cache/servedata CLASH_LAUNCH_LISTEN=127.0.0.1:18080 go run ./cmd/clash-launch serve   # 本机运行服务
+cd web && npm run check && npm test && npm run build && npm run budget && npm run e2e   # 前端（见 setup）
 go run ./tools/catalog-extract scan -src .cache/ref/mihomo -version v1.19.33 -o fields.json
 go run ./tools/catalog-extract order -src .cache/ref/mihomo > testdata/catalog/example-order.json
 ```

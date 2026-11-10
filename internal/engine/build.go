@@ -217,6 +217,7 @@ func providerEntry(s SourceInput, url, name string, out *diag.List) *yaml.Node {
 		yamlx.Set(p, "override", yamlx.Map("additional-prefix", pr.Prefix))
 	}
 	yamlx.Set(p, "health-check", yamlx.Map("enable", true, "url", "https://www.gstatic.com/generate_204", "interval", 600))
+	// lost 记录无法在 provider 模式下等价表达的整理设置；取值是 Processing 的 JSON 字段名，界面据此翻译。
 	var lost []string
 	if pr.Flags != node.FlagOff {
 		lost = append(lost, "flags")
@@ -225,13 +226,13 @@ func providerEntry(s SourceInput, url, name string, out *diag.List) *yaml.Node {
 		lost = append(lost, "rename")
 	}
 	if !pr.KeepInfo {
-		lost = append(lost, "info-node removal")
+		lost = append(lost, "keepInfo")
 	}
 	if !pr.KeepDup {
-		lost = append(lost, "deduplication")
+		lost = append(lost, "keepDuplicates")
 	}
 	if len(pr.RegionRules) > 0 || len(pr.Overrides) > 0 {
-		lost = append(lost, "manual regions and overrides")
+		lost = append(lost, "overrides")
 	}
 	if pr.Sort == "name" {
 		lost = append(lost, "sort")

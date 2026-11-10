@@ -14,6 +14,7 @@ import (
 	"github.com/angwz/clash-launch/internal/auth"
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/diag"
+	"github.com/angwz/clash-launch/internal/engine"
 	"github.com/angwz/clash-launch/internal/kernel"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
@@ -462,7 +463,7 @@ type profileReq struct {
 func (s *Server) toProfile(r *http.Request, owner string, p *store.Profile) profileDTO {
 	d := profileDTO{ID: p.ID, Name: p.Name, Doc: string(p.Doc), Version: p.Version, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
 	if x, err := s.Svc.Store.Renders().Get(r.Context(), owner, p.ID); err == nil {
-		d.Render = &renderDTO{Status: x.LastStatus, Error: x.LastError, GoodAt: tp(x.GoodAt), LastAt: tp(x.LastAt), Diagnostics: x.LastDiags}
+		d.Render = &renderDTO{Status: x.LastStatus, Error: x.LastError, GoodAt: tp(x.GoodAt), LastAt: tp(x.LastAt), Diagnostics: diagsJSON(x.LastDiags)}
 	} else {
 		d.Render = &renderDTO{Status: "pending", Diagnostics: json.RawMessage("[]")}
 	}
@@ -631,6 +632,10 @@ type previewResp struct {
 	Kernel      kernel.Result     `json:"kernel"`
 	Fatal       string            `json:"fatal,omitempty"`
 	Diff        []DiffLine        `json:"diff"`
+	// Numbering 是订阅的编号（GROUPID），由引擎计算；界面在源列表中显示，不自行推算。
+	Numbering []engine.Numbered `json:"numbering"`
+	// Nodes 是写入配置的节点数。
+	Nodes int `json:"nodes"`
 }
 
 // preview 用请求体中的草稿渲染并校验，不保存（第 12.2 节）。check=true 时执行内核检查。
@@ -652,7 +657,7 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, previewResp{YAML: string(res.YAML), Diagnostics: diag.Sorted(res.Diagnostics), Touched: res.Touched, Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML))})
+	writeJSON(w, http.StatusOK, previewResp{YAML: string(res.YAML), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Nodes: len(res.Nodes)})
 }
 
 // renderStatus 返回最近一次成功的结果与最近一次尝试的诊断。
@@ -670,7 +675,7 @@ func (s *Server) renderStatus(w http.ResponseWriter, r *http.Request, p *princip
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": x.LastStatus, "error": x.LastError, "yaml": string(x.GoodYAML), "goodAt": tp(x.GoodAt), "lastAt": tp(x.LastAt), "diagnostics": json.RawMessage(x.LastDiags)})
+	writeJSON(w, http.StatusOK, map[string]any{"status": x.LastStatus, "error": x.LastError, "yaml": string(x.GoodYAML), "goodAt": tp(x.GoodAt), "lastAt": tp(x.LastAt), "diagnostics": diagsJSON(x.LastDiags)})
 }
 
 // exportProfile 导出方案文档。文档中本来就没有凭据（源以引用代替）。
@@ -899,4 +904,21 @@ func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
 func jsonString(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
+}
+
+// nonNil 让空切片编码为 [] 而不是 null，与契约中的 required 数组一致。
+func nonNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
+// diagsJSON 规整已保存的诊断列表：空值与早期写入的 null 都返回 []。
+func diagsJSON(raw []byte) json.RawMessage {
+	s := strings.TrimSpace(string(raw))
+	if s == "" || s == "null" {
+		return json.RawMessage("[]")
+	}
+	return json.RawMessage(raw)
 }

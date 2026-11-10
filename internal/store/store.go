@@ -16,8 +16,11 @@ import (
 // ErrNotFound 表示资源不存在，或不属于当前用户（两者对调用方不可区分，避免泄露资源存在）。
 var ErrNotFound = errors.New("store: 不存在")
 
-// ErrConflict 表示版本不一致（ETag/If-Match）或唯一约束冲突。
+// ErrConflict 表示版本不一致（ETag/If-Match）。
 var ErrConflict = errors.New("store: 版本冲突")
+
+// ErrExists 表示违反唯一约束（如用户名已存在）。与版本冲突分开，API 分别返回 409 与 412。
+var ErrExists = errors.New("store: 已存在")
 
 // NewID 生成 UUIDv7（RFC 9562）：前 48 位为毫秒时间戳，其余为随机数。按时间有序，两种数据库通用。
 func NewID() string {

@@ -1,0 +1,325 @@
+/* 基础样式与通用控件。组件的私有样式写在各自的 .svelte 中（作用域隔离）。只用逻辑属性。 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--leading);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  font-size: var(--text-md);
+  background: var(--bg);
+  min-block-size: 100dvh;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  font-weight: 620;
+}
+
+h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--accent-fg);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 等宽文字关闭连字：配置中的 => != -> 必须按原样显示（Cascadia Code 等字体默认启用连字） */
+code,
+kbd,
+pre,
+samp,
+.mono,
+textarea,
+input {
+  font-variant-ligatures: none;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 配置值永远是 LTR（第 15.3 节） */
+.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.subtle {
+  color: var(--fg-subtle);
+}
+
+/* —— 按钮 —— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  block-size: 32px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 520;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn.danger {
+  color: var(--err);
+}
+
+.btn.sm {
+  block-size: 26px;
+  padding-inline: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.btn.icon {
+  inline-size: 32px;
+  padding: 0;
+}
+
+.btn.icon.sm {
+  inline-size: 26px;
+}
+
+/* —— 表单控件 —— */
+.input,
+.select,
+.textarea {
+  inline-size: 100%;
+  min-block-size: 32px;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-md);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: var(--fg-subtle);
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -1px;
+  border-color: var(--ring);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--fg-subtle);
+}
+
+.input[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--err);
+}
+
+.textarea {
+  padding-block: var(--space-2);
+  line-height: var(--leading);
+  resize: vertical;
+}
+
+.textarea.mono,
+.input.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.label {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 560;
+  color: var(--fg);
+}
+
+.hint {
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+}
+
+.field-error {
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--err);
+}
+
+/* —— 面板 —— */
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 1.4em;
+  padding-inline: 0.35em;
+  block-size: 1.4em;
+  border: 1px solid var(--border-strong);
+  border-block-end-width: 2px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  background: var(--bg-raised);
+}
+
+/* 表格 */
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  text-align: start;
+  font-weight: 560;
+  color: var(--fg-muted);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-block-end: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-block-end: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-block-end: 0;
+}

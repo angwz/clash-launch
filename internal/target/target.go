@@ -2,6 +2,7 @@
 package target
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"path"
@@ -19,17 +20,26 @@ import (
 
 // Preset 是一个目标客户端预设。
 type Preset struct {
-	ID       string            `yaml:"id"`
-	Label    map[string]string `yaml:"label"` // en、zh
-	Platform string            `yaml:"platform"`
-	Core     string            `yaml:"core"` // mihomo | stash
-	Docs     string            `yaml:"docs"`
+	ID       string            `yaml:"id" json:"id"`
+	Label    map[string]string `yaml:"label" json:"label"` // en、zh
+	Platform string            `yaml:"platform" json:"platform"`
+	Core     string            `yaml:"core" json:"core"` // mihomo | stash
+	Docs     string            `yaml:"docs" json:"docs"`
 	// Basis 列出 defaults 与 managed 每一项的依据链接（官方文档或源码）。查不到依据的项不写。
-	Basis    []string          `yaml:"basis"`
-	Defaults yaml.Node         `yaml:"defaults"` // 新建方案时的表单初值
-	Managed  []string          `yaml:"managed"`  // 由客户端或插件接管的字段路径
-	Notes    map[string]string `yaml:"notes"`
-	Kernel   bool              `yaml:"kernel"` // 是否有可用的 mihomo 内核检查
+	Basis    []string          `yaml:"basis" json:"basis,omitempty"`
+	Defaults yaml.Node         `yaml:"defaults" json:"-"`                // 新建方案时的表单初值
+	Managed  []string          `yaml:"managed" json:"managed,omitempty"` // 由客户端或插件接管的字段路径
+	Notes    map[string]string `yaml:"notes" json:"notes"`
+	Kernel   bool              `yaml:"kernel" json:"kernel"` // 是否有可用的 mihomo 内核检查
+}
+
+// MarshalJSON 把 Defaults 转换为普通 JSON 值（yaml.Node 本身的字段对前端没有意义）。
+func (p *Preset) MarshalJSON() ([]byte, error) {
+	type plain Preset
+	return json.Marshal(struct {
+		*plain
+		Defaults any `json:"defaults,omitempty"`
+	}{(*plain)(p), catalog.NodeJSON(&p.Defaults)})
 }
 
 // Load 加载格式包下的全部预设，按 ID 排序。

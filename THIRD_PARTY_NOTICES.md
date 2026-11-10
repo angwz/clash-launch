@@ -22,6 +22,19 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | --- | --- | --- | --- |
 | 浏览器 User-Agent 表 | MetaCubeX/mihomo@v1.19.33 `common/convert/util.go` | GPL-3.0 | `internal/kernel/useragents.go`（生成） |
 
+## 前端（编译进 web/dist）
+
+| 包 | 版本 | 许可 | 用途 |
+| --- | --- | --- | --- |
+| `svelte`（含其运行时依赖 `clsx`、`esm-env`） | 5.57.2 | MIT | 界面框架（编译后的运行时） |
+| `yaml` | 2.9.1 | ISC | 方案文档的结构编辑 |
+| `intl-messageformat` | 12.1.4 | BSD-3-Clause | ICU MessageFormat |
+| `@formatjs/*`（`intl-messageformat` 的依赖） | 见 `web/package-lock.json` | MIT | 消息解析 |
+| `@codemirror/*`、`@lezer/*`、`style-mod`、`w3c-keyname`、`crelt` | 见 `web/package-lock.json` | MIT | 原始编辑器 |
+| `qrcode-generator` | 2.0.4 | MIT | 本地生成二维码 |
+
+开发与测试依赖（Vite、Vitest、Playwright、svelte-check、openapi-typescript 等）不随产物分发，版本以 `web/package-lock.json` 为准。
+
 ## 随镜像分发（M3）
 
 | 组件 | 版本 | 许可 | 用途 |

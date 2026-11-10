@@ -117,14 +117,26 @@ type Variant struct {
 
 // Pack 是格式包元数据（pack.yaml）。
 type Pack struct {
-	ID        string   `yaml:"id"`
-	Label     string   `yaml:"label"`
-	DocRoot   string   `yaml:"doc-root"`
-	CoreMin   string   `yaml:"core-min"`
-	CoreMax   string   `yaml:"core-max"`
-	Reference string   `yaml:"reference"` // 示例配置的来源与版本
-	Order     []string `yaml:"order"`
-	Files     []string `yaml:"files"`
+	ID        string       `yaml:"id" json:"id"`
+	Label     string       `yaml:"label" json:"label"`
+	DocRoot   string       `yaml:"doc-root" json:"docRoot"`
+	CoreMin   string       `yaml:"core-min" json:"coreMin"`
+	CoreMax   string       `yaml:"core-max" json:"coreMax"`
+	Reference string       `yaml:"reference" json:"reference"` // 示例配置的来源与版本
+	Order     []string     `yaml:"order" json:"order"`
+	Files     []string     `yaml:"files" json:"-"`
+	Nav       []NavSection `yaml:"nav" json:"nav"`
+}
+
+// NavSection 是界面的一个分节（第 16.1 节「分节导航（来自目录）」）：把顶层键分组。
+// 每个顶层键恰好属于一个分节；分节内的显示顺序即 keys 的顺序。
+// Generated 表示该分节的内容由节点源或规则源生成，表单中只给出入口，不提供逐字段编辑。
+type NavSection struct {
+	ID        string   `yaml:"id" json:"id"`
+	ZH        string   `yaml:"zh" json:"zh"`
+	EN        string   `yaml:"en" json:"en"`
+	Generated string   `yaml:"generated,omitempty" json:"generated,omitempty"` // sources | rules
+	Keys      []string `yaml:"keys" json:"keys"`
 }
 
 type file struct {
@@ -183,12 +195,48 @@ func Load(fsys fs.FS, dir string) (*Catalog, error) {
 			return nil, fmt.Errorf("catalog: 顶层字段 %s 未出现在 pack.yaml 的 order 中", k)
 		}
 	}
+	if err := checkNav(pack.Nav, top); err != nil {
+		return nil, err
+	}
 	c := &Catalog{Pack: pack, Root: root}
 	l := &linker{c: c, fragments: fragments, expanding: map[string]bool{}, fragOf: map[*Field]string{}}
 	if err := l.object(root, ""); err != nil {
 		return nil, err
 	}
 	return c, nil
+}
+
+// checkNav 校验分节：ID 唯一、标题齐全、generated 取值合法，每个顶层键恰好出现一次。
+func checkNav(nav []NavSection, top map[string]*Field) error {
+	ids := map[string]bool{}
+	where := map[string]string{}
+	for _, s := range nav {
+		if s.ID == "" || s.ZH == "" || s.EN == "" || len(s.Keys) == 0 {
+			return fmt.Errorf("catalog: 分节 %q 缺少 id、标题或 keys", s.ID)
+		}
+		if ids[s.ID] {
+			return fmt.Errorf("catalog: 分节 %s 重复", s.ID)
+		}
+		ids[s.ID] = true
+		if s.Generated != "" && s.Generated != "sources" && s.Generated != "rules" {
+			return fmt.Errorf("catalog: 分节 %s 的 generated 只能是 sources 或 rules", s.ID)
+		}
+		for _, k := range s.Keys {
+			if _, ok := top[k]; !ok {
+				return fmt.Errorf("catalog: 分节 %s 引用了不存在的顶层字段 %s", s.ID, k)
+			}
+			if prev, dup := where[k]; dup {
+				return fmt.Errorf("catalog: 顶层字段 %s 同时出现在分节 %s 与 %s", k, prev, s.ID)
+			}
+			where[k] = s.ID
+		}
+	}
+	for k := range top {
+		if _, ok := where[k]; !ok {
+			return fmt.Errorf("catalog: 顶层字段 %s 不属于任何分节（pack.yaml 的 nav）", k)
+		}
+	}
+	return nil
 }
 
 func decodeFile(fsys fs.FS, name string, out any) error {

@@ -184,7 +184,7 @@ func notFound(err error) error {
 func affected(res sql.Result, err error, onZero error) error {
 	if err != nil {
 		if isUnique(err) {
-			return ErrConflict
+			return ErrExists
 		}
 		return err
 	}
@@ -266,7 +266,7 @@ func (r users) Create(ctx context.Context, u *User) error {
 	_, err := r.d.exec(ctx, "INSERT INTO users (id, username, username_norm, password_hash, role, disabled, lang, timezone, created_at, updated_at, version) VALUES (?,?,?,?,?,?,?,?,?,?,1)",
 		u.ID, u.Username, NormalizeUsername(u.Username), u.PasswordHash, u.Role, b2i(u.Disabled), u.Lang, u.Timezone, ms(now), ms(now))
 	if err != nil && isUnique(err) {
-		return ErrConflict
+		return ErrExists
 	}
 	return err
 }

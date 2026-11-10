@@ -3,7 +3,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -225,6 +224,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusNotFound, "not_found", "resource not found")
 	case errors.Is(err, store.ErrConflict):
 		problem(w, http.StatusPreconditionFailed, "conflict", "the resource was modified elsewhere")
+	case errors.Is(err, store.ErrExists):
+		problem(w, http.StatusConflict, "exists", "a resource with the same unique name already exists")
 	case errors.Is(err, auth.ErrWeakPassword):
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
@@ -306,23 +307,41 @@ func (l *limiter) allow(key string, now time.Time) (bool, int) {
 	return true, 0
 }
 
-// staticHandler 提供前端构建产物；未知路径回退到 index.html（单页应用）。
+// staticHandler 提供前端构建产物；未知的页面路径回退到 index.html（单页应用）。
+//   - assets/ 下带内容哈希的文件长期缓存；缺失时返回 404，不回退（否则脚本请求会拿到 HTML）；
+//   - index.html 每次重新验证，发布新版本后浏览器立即使用新资源；
+//   - /api/、/s/、/p/ 下未注册的路径返回 404，不回退到页面；点文件（.gitkeep 等）不提供。
 func staticHandler(fsys fs.FS) http.Handler {
 	files := http.FileServerFS(fsys)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, "/")
-		if p == "" {
-			p = "index.html"
+		for _, seg := range strings.Split(p, "/") {
+			if strings.HasPrefix(seg, ".") {
+				problem(w, http.StatusNotFound, "not_found", "resource not found")
+				return
+			}
 		}
-		if _, err := fs.Stat(fsys, p); err != nil {
-			r2 := r.Clone(context.Background())
-			r2.URL.Path = "/"
-			files.ServeHTTP(w, r2)
+		if strings.HasPrefix(p, "api/") || strings.HasPrefix(p, "s/") || strings.HasPrefix(p, "p/") {
+			problem(w, http.StatusNotFound, "not_found", "resource not found")
 			return
 		}
 		if strings.HasPrefix(p, "assets/") {
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable") // 带内容哈希的资源长期缓存
+			if _, err := fs.Stat(fsys, p); err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			files.ServeHTTP(w, r)
+			return
 		}
-		files.ServeHTTP(w, r)
+		if p != "" && p != "index.html" {
+			if st, err := fs.Stat(fsys, p); err == nil && !st.IsDir() {
+				files.ServeHTTP(w, r)
+				return
+			}
+		}
+		// 页面路径：一律返回 index.html，由前端路由处理
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFileFS(w, r, fsys, "index.html")
 	})
 }

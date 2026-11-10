@@ -119,3 +119,30 @@ func checkSubsequence(t *testing.T, where string, catalogOrder, example []string
 		last, lastKey = p, k
 	}
 }
+
+// 分节：每个顶层键恰好属于一个分节；缺键、重复、未知键与非法 generated 都在加载时报错。
+func TestNavCoversTopLevel(t *testing.T) {
+	c := load(t)
+	if len(c.Pack.Nav) == 0 {
+		t.Fatal("mihomo 目录没有分节")
+	}
+	top := map[string]*catalog.Field{"a": {}, "b": {}}
+	sec := func(id string, keys ...string) catalog.NavSection {
+		return catalog.NavSection{ID: id, ZH: id, EN: id, Keys: keys}
+	}
+	cases := map[string][]catalog.NavSection{
+		"缺少 b":         {sec("x", "a")},
+		"重复的键":         {sec("x", "a", "b"), sec("y", "a")},
+		"未知键":          {sec("x", "a", "b", "c")},
+		"重复的分节":        {sec("x", "a"), sec("x", "b")},
+		"非法 generated": {{ID: "x", ZH: "x", EN: "x", Generated: "nodes", Keys: []string{"a", "b"}}},
+	}
+	for name, nav := range cases {
+		if err := catalog.CheckNav(nav, top); err == nil {
+			t.Errorf("%s：应报错", name)
+		}
+	}
+	if err := catalog.CheckNav([]catalog.NavSection{sec("x", "a"), sec("y", "b")}, top); err != nil {
+		t.Errorf("合法分节报错：%v", err)
+	}
+}

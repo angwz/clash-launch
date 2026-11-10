@@ -88,3 +88,56 @@ order:
   - tuic-server
   - iptables               # 示例未列出
   - clash-for-android      # 示例未列出
+
+# nav 是界面的分节（第 16.1 节）：每个顶层键恰好属于一个分节，分节内按 keys 的顺序显示；
+# 渲染顺序仍以 order 为准。generated 的分节由节点源（sources）或规则源（rules）生成，
+# 表单中只给出入口；需要直接改写时使用原始编辑。
+nav:
+  - id: general
+    zh: 常规
+    en: General
+    keys: [mode, log-level, ipv6, unified-delay, find-process-mode, tcp-concurrent, interface-name, routing-mark,
+           disable-keep-alive, keep-alive-idle, keep-alive-interval, global-client-fingerprint, global-ua, etag-support,
+           hosts, profile, experimental]
+  - id: inbound
+    zh: 入站
+    en: Inbound
+    keys: [mixed-port, port, socks-port, redir-port, tproxy-port, inbound-tfo, inbound-mptcp, allow-lan, bind-address,
+           authentication, skip-auth-prefixes, lan-allowed-ips, lan-disallowed-ips, listeners, tunnels,
+           ss-config, vmess-config, tuic-server]
+  - id: controller
+    zh: 控制面板
+    en: Controller
+    keys: [external-controller, secret, external-controller-tls, tls, external-controller-cors, external-controller-unix,
+           external-controller-pipe, external-controller-routing-mark, external-ui, external-ui-name, external-ui-url,
+           external-doh-server]
+  - id: dns
+    zh: DNS
+    en: DNS
+    keys: [dns]
+  - id: tun
+    zh: TUN
+    en: TUN
+    keys: [tun]
+  - id: sniffer
+    zh: 域名嗅探
+    en: Sniffer
+    keys: [sniffer]
+  - id: geo
+    zh: 地理数据
+    en: Geodata
+    keys: [geox-url, geo-auto-update, geo-update-interval, geodata-mode, geodata-loader, geosite-matcher]
+  - id: proxies
+    zh: 节点与策略组
+    en: Proxies & groups
+    generated: sources
+    keys: [proxies, proxy-groups, proxy-providers]
+  - id: rules
+    zh: 规则
+    en: Rules
+    generated: rules
+    keys: [rules, rule-providers, sub-rules]
+  - id: platform
+    zh: 平台
+    en: Platform
+    keys: [ntp, iptables, clash-for-android]

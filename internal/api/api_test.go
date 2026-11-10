@@ -251,6 +251,16 @@ func TestEndToEnd(t *testing.T) {
 	if !strings.Contains(pv.YAML, "dns:") || len(pv.Diff) == 0 || !slices.Contains(pv.Touched, "dns") {
 		t.Errorf("预览：%+v", pv)
 	}
+	// 契约：数组字段即使为空也编码为 []，不是 null（没有原始编辑时 touched 为空）
+	raw := string(c.want(200, "POST", "/api/v1/profiles/"+pid+"/preview", map[string]string{"doc": p.Doc}))
+	for _, k := range []string{`"touched":[]`, `"numbering":[]`} {
+		if !strings.Contains(raw, k) {
+			t.Errorf("预览响应缺少 %s：%s", k, raw)
+		}
+	}
+	if strings.Contains(raw, `":null`) {
+		t.Errorf("预览响应中有 null 数组：%s", raw)
+	}
 	// 越权：另一个用户访问时得到 404（而不是 403，避免泄露资源存在，第 14.3 节）
 	if err := h.db.Users().Create(context.Background(), &store.User{Username: "bob", PasswordHash: mustHash("another long password"), Role: "user"}); err != nil {
 		t.Fatal(err)
@@ -358,9 +368,6 @@ func TestRegistrationAndInvites(t *testing.T) {
 	if r, _ := reg("carol", tok); r.StatusCode != 403 {
 		t.Errorf("邀请只能用一次：%d", r.StatusCode)
 	}
-	if r, _ := reg("Alice", ""); r.StatusCode == 201 {
-		t.Error("用户名应不区分大小写地唯一")
-	}
 	// 过期的邀请
 	tok2, inv2, _ := h.svc.CreateInvite(context.Background(), firstAdmin(t, h), time.Nanosecond, "")
 	time.Sleep(5 * time.Millisecond)
@@ -397,6 +404,9 @@ func TestRegistrationAndInvites(t *testing.T) {
 	}
 	if r, _ := reg("ab", ""); r.StatusCode != 422 {
 		t.Errorf("过短的用户名应拒绝：%d", r.StatusCode)
+	}
+	if r, b := reg("ALICE", ""); r.StatusCode != 409 || !strings.Contains(string(b), `"exists"`) {
+		t.Errorf("用户名应不区分大小写地唯一，且返回 409 exists：%d %s", r.StatusCode, b)
 	}
 }
 

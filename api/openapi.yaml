@@ -195,7 +195,7 @@ components:
         createdAt: {type: string, format: date-time}
     Preview:
       type: object
-      required: [yaml, diagnostics, touched, kernel, diff]
+      required: [yaml, diagnostics, touched, kernel, diff, numbering, nodes]
       properties:
         yaml: {type: string}
         diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
@@ -208,6 +208,11 @@ components:
             message: {type: string}
             path: {type: string}
         fatal: {type: string}
+        nodes: {type: integer, description: 写入配置的节点数}
+        numbering:
+          type: array
+          description: 订阅的编号（GROUPID），按方案中的顺序
+          items: {type: object, required: [ref, name, groupId], properties: {ref: {type: string}, name: {type: string}, groupId: {type: integer}}}
         diff:
           type: array
           items:

@@ -81,7 +81,7 @@ func TestOwnerIsolationAndCrypto(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := d.Users().Create(ctx, &User{Username: " BOB ", PasswordHash: "x", Role: "user"}); !errors.Is(err, ErrConflict) {
+	if err := d.Users().Create(ctx, &User{Username: " BOB ", PasswordHash: "x", Role: "user"}); !errors.Is(err, ErrExists) {
 		t.Errorf("用户名应不区分大小写地唯一：%v", err)
 	}
 	src := &Source{Name: "机场 A", Kind: "subscription", URL: "https://sub.example.com/x?token=secret-token", Headers: map[string]string{"Authorization": "Bearer t"}}

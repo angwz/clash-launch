@@ -97,9 +97,10 @@ func (l *List) Has(code Code) bool {
 
 // Sorted 返回按严重程度、代码、路径排序的副本，供界面稳定展示。
 // 管线内部保留产生顺序；排序只用于呈现。
+// 结果总是非 nil：编码为 JSON 时是 [] 而不是 null（API 契约中诊断列表是必有的数组）。
 func Sorted(ds []Diagnostic) []Diagnostic {
 	rank := map[Severity]int{Error: 0, Warning: 1, Info: 2}
-	out := slices.Clone(ds)
+	out := append([]Diagnostic{}, ds...)
 	slices.SortStableFunc(out, func(a, b Diagnostic) int {
 		return cmp.Or(cmp.Compare(rank[a.Severity], rank[b.Severity]), cmp.Compare(a.Code, b.Code), cmp.Compare(a.Path, b.Path))
 	})

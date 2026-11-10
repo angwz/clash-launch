@@ -69,13 +69,13 @@ func meta(f *Field) *MetaField {
 		m.Stability = ""
 	}
 	if f.Default.Kind != 0 {
-		m.Default = nodeValue(&f.Default)
+		m.Default = NodeJSON(&f.Default)
 	}
 	for _, e := range f.Enum {
 		m.Enum = append(m.Enum, e.Value)
 	}
 	for i := range f.Examples {
-		m.Examples = append(m.Examples, nodeValue(&f.Examples[i].Value))
+		m.Examples = append(m.Examples, NodeJSON(&f.Examples[i].Value))
 	}
 	for _, ch := range f.Fields {
 		m.Fields = append(m.Fields, meta(ch))
@@ -94,7 +94,8 @@ func meta(f *Field) *MetaField {
 	return m
 }
 
-func nodeValue(n *yaml.Node) any {
+// NodeJSON 把 YAML 节点转换为可被 encoding/json 编码的值；无法解码时返回 nil。
+func NodeJSON(n *yaml.Node) any {
 	var v any
 	if err := n.Decode(&v); err != nil {
 		return nil
