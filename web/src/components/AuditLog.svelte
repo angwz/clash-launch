@@ -11,6 +11,7 @@
 
 <script lang="ts">
   // 审计记录：scope="me" 为本人的记录；scope="all" 为管理员查看全部（附账号名）。按页加载。
+  import { untrack } from "svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -43,11 +44,15 @@
       loading = false;
     }
   }
+  // 只随 path 重新加载。more() 会同步读取 next：不放进 untrack 时，加载后设置 next 会再次触发本 effect，
+  // 清空列表并重新加载，形成无限循环（记录超过一页时出现）。
   $effect(() => {
     void path;
-    items = [];
-    next = undefined;
-    void more();
+    untrack(() => {
+      items = [];
+      next = undefined;
+      void more();
+    });
   });
 
   const label = (a: string) => (AUDIT_ACTIONS.includes(a) ? t("audit.action." + a) : a);

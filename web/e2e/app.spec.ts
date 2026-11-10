@@ -248,6 +248,6 @@ test("通行密钥：添加后可以免密码登录", async ({ browser, request,
   await page.goto("/login");
   await page.getByRole("button", { name: "使用通行密钥登录" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "方案" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "方案", exact: true })).toBeVisible();
   await ctx.close();
 });
