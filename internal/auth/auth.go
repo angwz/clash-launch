@@ -32,15 +32,15 @@ var ErrWeakPassword = errors.New("auth: 口令不满足要求")
 // MinPasswordLen 是口令的最短长度（第 14.1 节：最短 10 位，不限制字符类别）。
 const MinPasswordLen = 10
 
-// CheckPassword 检查口令策略：长度至少 10 个字符；拒绝常见弱口令（common 为常见口令集合，可为 nil）。
-func CheckPassword(pw string, common map[string]bool) error {
+// CheckPassword 检查口令策略：长度至少 10 个字符；拒绝随程序发布的常见口令表中的口令（不区分大小写，不联网）。
+func CheckPassword(pw string) error {
 	if utf8.RuneCountInString(pw) < MinPasswordLen {
 		return fmt.Errorf("%w：至少 %d 个字符", ErrWeakPassword, MinPasswordLen)
 	}
 	if len(pw) > 1024 {
 		return fmt.Errorf("%w：过长", ErrWeakPassword)
 	}
-	if common[strings.ToLower(pw)] {
+	if IsCommonPassword(pw) {
 		return fmt.Errorf("%w：这是常见口令", ErrWeakPassword)
 	}
 	return nil

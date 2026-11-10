@@ -77,7 +77,7 @@ func (s *Service) AdminSetDisabled(ctx context.Context, admin, id string, disabl
 
 // AdminResetPassword 为用户设置新口令，并注销其全部会话。
 func (s *Service) AdminResetPassword(ctx context.Context, admin, id, password string) error {
-	if err := auth.CheckPassword(password, CommonPasswords); err != nil {
+	if err := auth.CheckPassword(password); err != nil {
 		return err
 	}
 	u, err := s.Store.Users().ByID(ctx, id)

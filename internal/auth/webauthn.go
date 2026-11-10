@@ -220,8 +220,9 @@ func parseCOSEKey(b []byte) (int, crypto.PublicKey, error) {
 		if crv != 1 || len(x) != 32 || len(y) != 32 {
 			return 0, nil, waErr("ES256 公钥无效")
 		}
-		pub := &ecdsa.PublicKey{Curve: elliptic.P256(), X: new(big.Int).SetBytes(x), Y: new(big.Int).SetBytes(y)}
-		if !pub.Curve.IsOnCurve(pub.X, pub.Y) { //nolint:staticcheck // 只用于校验点在曲线上
+		// 未压缩点 0x04 ‖ x ‖ y；ParseUncompressedPublicKey 同时检查点在曲线上
+		pub, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), append(append([]byte{4}, x...), y...))
+		if err != nil {
 			return 0, nil, waErr("ES256 公钥不在曲线上")
 		}
 		return alg, pub, nil

@@ -250,7 +250,7 @@ func (r totps) RemainingCodes(ctx context.Context, userID string) (int, error) {
 
 type passkeys struct{ d *DB }
 
-const passkeyCols = "id, user_id, credential_id, public_key, sign_count, name, created_at, last_used"
+const passkeyCols = "id, user_id, credential_id, public_key, sign_count, name, created_at, last_used" //nolint:gosec // 列名列表，不是凭据
 
 func (r passkeys) Create(ctx context.Context, k *Passkey) error {
 	if k.ID == "" {

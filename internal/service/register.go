@@ -88,7 +88,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 	if err := CheckUsername(username); err != nil {
 		return nil, err
 	}
-	if err := auth.CheckPassword(password, CommonPasswords); err != nil {
+	if err := auth.CheckPassword(password); err != nil {
 		return nil, err
 	}
 	if err := auth.CheckQuestions(in.Questions, in.Answers); err != nil {

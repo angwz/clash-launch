@@ -220,3 +220,19 @@ func TestTickets(t *testing.T) {
 		t.Error("其他密钥签发的凭证应拒绝")
 	}
 }
+
+func TestCheckPassword(t *testing.T) {
+	for _, pw := range []string{"short", "Password123", "QWERTYUIOP", "1234567890", "woaini1314"} {
+		if err := CheckPassword(pw); err == nil {
+			t.Errorf("%q 应被拒绝", pw)
+		}
+	}
+	for _, pw := range []string{"correct horse battery", "一段足够长的中文口令", "Tr0ub4dor&3-extended"} {
+		if err := CheckPassword(pw); err != nil {
+			t.Errorf("%q 应被接受：%v", pw, err)
+		}
+	}
+	if n := len(commonSet()); n < 9000 {
+		t.Errorf("常见口令表过小：%d", n)
+	}
+}

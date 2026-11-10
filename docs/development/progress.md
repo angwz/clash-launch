@@ -4,8 +4,8 @@
 
 ## 现在
 
-- **阶段**：M1、M2 完成；M3 除 Docker 实测外完成；M4（Web）第一阶段完成——前端骨架、设计 token、方案编辑器与主要页面、端到端测试，见 [0004](../decisions/0004-web-frontend.md)。
-- **待维护者**：① 确认界面视觉风格（真实数据截图，第 16.5 节）；确认前不改动视觉，也不视为 M4 完成。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
+- **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。**开发暂停**（2026-11-10，维护者要求）：下一轮先做核心路径——登录与生成适用于 OpenClash 的配置，其余功能后续迭代。
+- **待维护者**：① 确认下一轮的范围（见「下一步」）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：尚未创建仓库；按维护者要求，远端操作（M7）暂不执行。
 
 ## 里程碑
@@ -15,8 +15,8 @@
 | M1 引擎 | ✅ | 见下表 |
 | M2 输入 | ✅ | 见下表 |
 | M3 服务 | 🔄 | Docker 未验证，其余见下表 |
-| M4 Web | 🔄 | 第一阶段见下表；视觉待确认 |
-| M5 多用户与安全 | 🕓 | — |
+| M4 Web | 🔄 | 第一阶段见下表；视觉由实施者决定（反馈 #13） |
+| M5 多用户与安全 | ✅ | 见下表；安全测试清单见 [security](../design/security.md) |
 | M6 目标与目录 | 🕓 | — |
 | M7 发布 | ➖ | 由维护者决定何时进行 |
 
@@ -56,10 +56,21 @@
 | 验收条件 | 结果 | 证据 |
 | --- | :---: | --- |
 | Playwright 桌面与手机视口全部通过 | ✅ | `npm run e2e`：11 通过、3 按设计跳过（键盘用例只在桌面，横向滚动检查只在手机）；Windows 10 上的 Edge 157，后端为真实二进制 + 临时数据目录。覆盖登录、编辑与保存、命令面板与原始编辑、键盘排序、邀请注册与复用、深色、伪 RTL、手机无横向滚动、全部页面无 CSP 违规与页面错误 |
-| 视觉经维护者确认 | ❌ 待确认 | 截图已生成，尚未确认 |
+| 视觉经维护者确认 | ➖ | 维护者授权由实施者决定（反馈 #13） |
 | 首屏 JavaScript ≤ 150 KiB（gzip） | ✅ | `npm run budget`：45.9 KiB（入口 37.2 + 登录页及依赖 2.3 + 语言包 6.5）；CodeMirror 约 136 KiB 按需加载 |
 | 导入（Clash YAML、Verge Merge、Stash 覆写） | 🕓 | 未开始；Verge 合并文档的官方地址尚未找到 |
 | 规则源编辑器（CodeMirror toml/ini）、策略组预览、选择器标签 | 🕓 | 规则源详情目前是纯文本框 |
+
+## M5 验收
+
+| 验收条件 | 结果 | 证据 |
+| --- | :---: | --- |
+| 安全测试清单逐项通过并记录 | ✅ | [security](../design/security.md) 的 A1–E2 共 37 项，每项对应自动化测试（单元、API 或端到端）；全部通过 |
+| 注册（安全问题、工作量证明）、找回 | ✅ | `TestAccountSecurity`、e2e 找回；工作量证明 20 位在桌面实测平均 0.74 s |
+| 通行密钥、TOTP | ✅ | `TestWebAuthn`、`TestPasskeys`、`TestTOTPVectors`、`TestTOTPFlow`；e2e 用 Chromium 虚拟认证器走通注册与免密码登录 |
+| SMTP 异常登录提醒 | ✅ | `TestMailer`（假 SMTP 服务器）、`TestSMTPSettingsAndAlerts`；**未对真实邮件服务商发送** |
+| 会话管理、配额、审计、限流、管理页 | ✅ | `TestQuotaAndAdmin`、`TestOwnerIsolationAllRoutes`（按路由表逐条检查他人资源为 404） |
+| 出站代理与拉取权限 | ➖ | 由 [0003](../decisions/0003-direct-fetch-and-invites.md) 取消 |
 
 ## 能力一览
 
@@ -89,24 +100,22 @@
 
 ## 最近一次验证
 
-2026-11-09 · Windows 10 x64 · Go 1.27.3
+2026-11-10 · Windows 10 x64 · Go 1.27.3 · Node 26.13.0 · Edge 157
 
 ```text
-gofmt -l .                         → 无输出
-go vet ./...                       → 通过
-staticcheck ./...                  → 通过（2026.2.2）
-golangci-lint run ./...            → 0 issues（v2.15.0）
-go test ./...                      → 全部 11 个有测试的包通过（含 TestInvites、TestRegistrationAndInvites、TestContract 47 条路由）
-go test -tags kernel ./internal/kernel/   → 通过（mihomo v1.19.33）
-go test -fuzz FuzzRender（180 s）  → 878,011 次执行无失败
-go test -fuzz FuzzMerge（60 s）    → 无失败
-go test -fuzz FuzzParse（120 s）   → 100,228 次执行无失败
-go test -fuzz FuzzMatchRange（20 s）→ 无失败
-go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（含实际加载订阅链接）
-clash-launch serve（本机）          → 迁移、设置链接、healthz、readyz、healthcheck 正常
+gofmt -l                            → 无输出
+go vet ./...                        → 通过
+staticcheck ./...                   → 通过
+golangci-lint run ./...             → 0 issues
+go test ./...                       → 15 个有测试的包全部通过
+go test -tags kernel ./internal/kernel/ ./internal/api/ → 通过（mihomo v1.19.33，含实际加载订阅链接）
+npm run check（svelte-check）       → 0 错误 0 警告
+vitest                              → 37 通过
+npm run budget                      → 首屏 51.4 KiB（预算 150 KiB）
+playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
 ```
 
-未验证：Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行（本机守护进程未运行）；PostgreSQL；与实际运行的 subconverter 对比。
+未验证：Linux 上的测试（CI 尚未创建）；Docker 镜像构建与 compose 运行；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
 
 ## 已知限制
 
@@ -118,6 +127,8 @@ clash-launch serve（本机）          → 迁移、设置链接、healthz、re
 
 ## 下一步
 
-1. 维护者确认视觉后：导入（Clash YAML、Verge Merge、Stash 覆写）；规则源页的 CodeMirror toml/ini 编辑器、策略组预览与可点选的选择器标签；方案的输出设置（时区、更新间隔、userinfo）。
-2. M5：安全问题、工作量证明、通行密钥、两步验证、SMTP 提醒、配额、威胁模型。
-3. Docker 可用后补做 M3 的镜像与 compose 验证。
+开发暂停中。维护者的方向（反馈 #14）：先打通核心路径，其余功能后续迭代。建议的下一轮范围：
+
+1. **OpenClash 预设**（M6 中提前的一项）：按 OpenClash 官方文档与源码核对它接管或改写的字段（端口、DNS、TUN、external-controller 等），加入 `catalog/mihomo/presets/openclash.yaml`，并用其内核版本做 `mihomo -t` 检查。
+2. **核心路径端到端**：登录 → 添加订阅 → 选择规则源 → 选择 OpenClash → 得到订阅链接，在 OpenClash 中实际导入验证（需要维护者的设备，或说明只做到内核检查）。
+3. 之后再按需继续：导入（Clash YAML、Verge Merge、Stash 覆写）、规则源编辑器与策略组预览、其余目标预设、目录补全、Docker 与 PostgreSQL 实测。

@@ -41,7 +41,7 @@ func (d *webAuthnDevice) authData(withCred bool) []byte {
 	b = binary.BigEndian.AppendUint32(b, d.count)
 	if withCred {
 		b = append(b, make([]byte, 16)...)
-		b = binary.BigEndian.AppendUint16(b, uint16(len(d.credID))) //nolint:gosec
+		b = binary.BigEndian.AppendUint16(b, uint16(len(d.credID)))
 		b = append(b, d.credID...)
 		pk, _ := cbor.Marshal(map[int]any{1: 2, 3: -7, -1: 1, -2: d.key.X.FillBytes(make([]byte, 32)), -3: d.key.Y.FillBytes(make([]byte, 32))})
 		b = append(b, pk...)

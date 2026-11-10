@@ -190,7 +190,7 @@ func (s *Service) Recover(ctx context.Context, username string, answers []string
 	if w := max(g.recoverUser.Wait(userKey(username), now), g.recoverIP.Wait("ip:"+ip, now)); w > 0 {
 		return &WaitError{Wait: w}
 	}
-	if err := auth.CheckPassword(newPassword, CommonPasswords); err != nil {
+	if err := auth.CheckPassword(newPassword); err != nil {
 		return err
 	}
 	if len(answers) != auth.QuestionCount {
@@ -255,7 +255,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID, current, next stri
 	if !auth.VerifyPassword(u.PasswordHash, current) {
 		return ErrWrongPassword
 	}
-	if err := auth.CheckPassword(next, CommonPasswords); err != nil {
+	if err := auth.CheckPassword(next); err != nil {
 		return err
 	}
 	if err := s.setPassword(ctx, u, next); err != nil {

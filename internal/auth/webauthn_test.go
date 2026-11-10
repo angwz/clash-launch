@@ -42,7 +42,7 @@ func (a *softAuthenticator) authData(flags byte, withCred bool) []byte {
 	b = binary.BigEndian.AppendUint32(b, a.count)
 	if withCred {
 		b = append(b, make([]byte, 16)...)
-		b = binary.BigEndian.AppendUint16(b, uint16(len(a.credID))) //nolint:gosec
+		b = binary.BigEndian.AppendUint16(b, uint16(len(a.credID)))
 		b = append(b, a.credID...)
 		b = append(b, a.coseKey()...)
 	}

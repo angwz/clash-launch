@@ -155,7 +155,7 @@ func (s *Service) NewSetup(ctx context.Context) (*Setup, error) {
 
 // CreateAdmin 创建管理员账号（admin create 命令与设置链接共用）。
 func (s *Service) CreateAdmin(ctx context.Context, username, password string) (*store.User, error) {
-	if err := auth.CheckPassword(password, CommonPasswords); err != nil {
+	if err := auth.CheckPassword(password); err != nil {
 		return nil, err
 	}
 	hash, err := auth.HashPassword(password)
@@ -168,11 +168,4 @@ func (s *Service) CreateAdmin(ctx context.Context, username, password string) (*
 	}
 	_ = s.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: u.ID, Action: "admin.create"})
 	return u, nil
-}
-
-// CommonPasswords 是常见弱口令表（M5 随程序发布完整的表；此处为最常见的若干个）。
-var CommonPasswords = map[string]bool{
-	"1234567890": true, "12345678910": true, "qwertyuiop": true, "password123": true, "password1234": true,
-	"iloveyou123": true, "0123456789": true, "1qaz2wsx3edc": true, "qwerty12345": true, "abc1234567": true,
-	"administrator": true, "letmein1234": true, "1111111111": true, "0000000000": true, "a123456789": true,
 }

@@ -28,7 +28,7 @@
 - 首个管理员：`clash-launch admin create`（口令从标准输入读取），或首次启动时打印在日志中的一次性设置链接（15 分钟有效，用后作废）。不存在默认口令。
 - 会话：32 字节随机令牌，只存 SHA-256；Cookie `HttpOnly`、`SameSite=Lax`、HTTPS 下 `Secure` 且名称带 `__Host-` 前缀；每次登录都是新的会话 ID；空闲 7 天、绝对 30 天过期（可配置）。
 - CSRF：会话绑定的同步令牌（登录与 `/me` 返回，写请求放在 `X-CSRF-Token`），并检查 `Origin` 与对外地址一致。没有采用规范中「双提交 Cookie」的写法：会话已经在服务端，同步令牌更简单且同样有效。
-- 注册开关与一次性邀请见 [0003](0003-direct-fetch-and-invites.md)。个人 API 令牌（Bearer）、找回、通行密钥、TOTP、SMTP 提醒、登录退避与配额在 M5。
+- 注册开关与一次性邀请见 [0003](0003-direct-fetch-and-invites.md)；找回、通行密钥、TOTP、SMTP 提醒、登录退避与配额见 [0005](0005-account-security.md) 与 [security](../design/security.md)。个人 API 令牌（Bearer）尚未实现。
 
 ## 订阅与托管地址（第 13 节）
 

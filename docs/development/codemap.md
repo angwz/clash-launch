@@ -54,6 +54,10 @@
 | 安全提醒的触发点 | `internal/service/alerts.go`（种类与 `notify`）；发送实现见 SMTP | — | [security](../design/security.md) |
 | 两步验证、第二步凭证 | `internal/auth/totp.go`、`ticket.go`；`internal/service/mfa.go`；`internal/api/mfa.go` | `TestTOTPVectors`、`TestTOTPFlow` | [0005](../decisions/0005-account-security.md) |
 | 通行密钥 | 验证 `internal/auth/webauthn.go`（规范步骤见注释）；流程 `internal/service/passkey.go`；HTTP `internal/api/passkey.go`；浏览器 `web/src/lib/webauthn.ts` | `TestWebAuthn`、`TestPasskeys`、e2e 虚拟认证器 | [0005](../decisions/0005-account-security.md) |
+| 个人 SMTP 提醒 | 发送 `internal/source/smtp.go`；设置与提醒文字 `internal/service/smtp.go`、`alerts.go`；HTTP `internal/api/smtp.go` | `TestMailer`、`TestSMTPSettingsAndAlerts`、`TestAlertTexts` | [security](../design/security.md) |
+| 配额、审计、管理 | `internal/service/quota.go`、`admin.go`；HTTP `internal/api/admin.go`；配额检查在各新建与修改接口的 `s.quota(...)` | `TestQuotaAndAdmin` | [security](../design/security.md) |
+| 常见口令表 | `internal/auth/common_passwords.txt`（`go run ./tools/commonpw` 生成，不手改） | `TestCheckPassword` | — |
+| 数据隔离 | 仓储方法以所有者为参数；新增带路径参数的路由时在 `TestOwnerIsolationAllRoutes` 的 `ids` 中补上资源 | `TestOwnerIsolationAllRoutes` | [security](../design/security.md) |
 | 账号安全的表 | `migrations/*/0003_security.sql`、`internal/store/security.go` | `TestSecurityRepos` | — |
 | 会话、登录、CSRF | `internal/api/session.go` | `api_test.go` | [0002](../decisions/0002-storage-and-service.md) |
 | 配置项（环境变量） | `cmd/clash-launch/serve.go` | — | [deploy](../guide/deploy.md) |
