@@ -52,6 +52,8 @@
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
 | 安全提醒的触发点 | `internal/service/alerts.go`（种类与 `notify`）；发送实现见 SMTP | — | [security](../design/security.md) |
+| 两步验证、第二步凭证 | `internal/auth/totp.go`、`ticket.go`；`internal/service/mfa.go`；`internal/api/mfa.go` | `TestTOTPVectors`、`TestTOTPFlow` | [0005](../decisions/0005-account-security.md) |
+| 通行密钥 | 验证 `internal/auth/webauthn.go`（规范步骤见注释）；流程 `internal/service/passkey.go`；HTTP `internal/api/passkey.go`；浏览器 `web/src/lib/webauthn.ts` | `TestWebAuthn`、`TestPasskeys`、e2e 虚拟认证器 | [0005](../decisions/0005-account-security.md) |
 | 账号安全的表 | `migrations/*/0003_security.sql`、`internal/store/security.go` | `TestSecurityRepos` | — |
 | 会话、登录、CSRF | `internal/api/session.go` | `api_test.go` | [0002](../decisions/0002-storage-and-service.md) |
 | 配置项（环境变量） | `cmd/clash-launch/serve.go` | — | [deploy](../guide/deploy.md) |

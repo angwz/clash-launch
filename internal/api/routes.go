@@ -38,6 +38,13 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/account/totp/enable", a(s.totpEnable)},
 		{"POST", "/api/v1/account/totp/disable", a(s.totpDisable)},
 		{"POST", "/api/v1/account/totp/recovery-codes", a(s.totpCodes)},
+		{"GET", "/api/v1/account/passkeys", a(s.listPasskeys)},
+		{"POST", "/api/v1/account/passkeys/begin", a(s.passkeyRegisterBegin)},
+		{"POST", "/api/v1/account/passkeys", a(s.passkeyRegisterFinish)},
+		{"PATCH", "/api/v1/account/passkeys/{id}", a(s.renamePasskey)},
+		{"POST", "/api/v1/account/passkeys/{id}/delete", a(s.deletePasskey)},
+		{"POST", "/api/v1/session/passkey/begin", s.sessionPasskeyBegin},
+		{"POST", "/api/v1/session/passkey", s.sessionPasskey},
 
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},

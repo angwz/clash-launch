@@ -301,6 +301,20 @@ components:
       properties:
         mfa: {type: array, items: {type: string, enum: [totp, passkey]}}
         ticket: {type: string}
+    PasskeyInfo:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        createdAt: {type: string, format: date-time}
+        lastUsed: {type: string, format: date-time}
+    WebAuthnBegin:
+      type: object
+      required: [options, ticket]
+      properties:
+        options: {type: object, description: WebAuthn 选项，二进制字段为 base64url}
+        ticket: {type: string, description: 签名的挑战凭证，5 分钟有效，只能使用一次}
     List:
       type: object
       required: [items]
@@ -452,6 +466,52 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RecoveryCodes'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/passkeys:
+    get:
+      tags: [account]
+      summary: 本人的通行密钥；available 为 false 表示服务未配置对外地址，通行密钥不可用
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items, available], properties: {items: {type: array, items: {$ref: '#/components/schemas/PasskeyInfo'}}, available: {type: boolean}}}}}}}
+    post:
+      tags: [account]
+      summary: 完成注册（navigator.credentials.create 的结果，二进制字段为 base64url）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [ticket, credential], properties: {ticket: {type: string}, name: {type: string}, credential: {type: object, required: [clientDataJSON, attestationObject], properties: {clientDataJSON: {type: string}, attestationObject: {type: string}}}}}}}}
+      responses: {'201': {description: 已添加, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyInfo'}}}}, '401': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/passkeys/begin:
+    post:
+      tags: [account]
+      summary: 开始注册：返回 PublicKeyCredentialCreationOptions（JSON 形式）与 5 分钟有效的凭证
+      security: [{session: [], csrf: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/WebAuthnBegin'}}}}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/passkeys/{id}:
+    patch:
+      tags: [account]
+      summary: 重命名
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [name], properties: {name: {type: string}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/passkeys/{id}/delete:
+    post:
+      tags: [account]
+      summary: 删除（需要口令）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/session/passkey/begin:
+    post:
+      tags: [session]
+      summary: 开始通行密钥登录。带 ticket（口令登录返回的第二步凭证）时用作第二步，否则为免密码登录
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {ticket: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/WebAuthnBegin'}}}}, '409': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/session/passkey:
+    post:
+      tags: [session]
+      summary: 用通行密钥完成登录（navigator.credentials.get 的结果）
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [ticket, credential], properties: {ticket: {type: string}, credential: {type: object, required: [id, clientDataJSON, authenticatorData, signature], properties: {id: {type: string}, clientDataJSON: {type: string}, authenticatorData: {type: string}, signature: {type: string}, userHandle: {type: string}}}}}}}}
+      responses: {'200': {description: 已登录, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/registration:
     get:
       tags: [admin]

@@ -5,6 +5,7 @@
   import QuestionFields, { blankQuestions, questionsValid, toPayload, type QuestionInput } from "../components/QuestionFields.svelte";
   import Icon from "../components/Icon.svelte";
   import TwoFactor from "../components/account/TwoFactor.svelte";
+  import Passkeys from "../components/account/Passkeys.svelte";
   import { api } from "../lib/api/client";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
@@ -139,6 +140,8 @@
       </form>
     {/if}
   </section>
+
+  <Passkeys />
 
   <TwoFactor />
 

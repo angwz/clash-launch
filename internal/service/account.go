@@ -23,6 +23,8 @@ var (
 	ErrRecoveryFailed = errors.New("service: 找回失败")
 	// ErrWrongPassword 表示需要当前口令的操作中口令错误。
 	ErrWrongPassword = errors.New("service: 当前口令错误")
+	// ErrQuota 表示超出配额。
+	ErrQuota = errors.New("service: 超出配额")
 )
 
 // WaitError 表示需要等待一段时间后再试（退避或锁定）。
@@ -62,6 +64,8 @@ type guardsState struct {
 	guards      *guards
 	ticketsOnce sync.Once
 	ticketsVal  *auth.Tickets
+	onceOnce    sync.Once
+	onceVal     *auth.Once
 }
 
 // —— 工作量证明 ——

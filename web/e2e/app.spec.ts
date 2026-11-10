@@ -216,11 +216,38 @@ test("两步验证：扫码启用、显示恢复码；之后登录需要验证�
   await p2.goto("/login");
   await p2.getByLabel("用户名").fill(user);
   await p2.getByLabel("口令", { exact: true }).fill("a long enough password");
-  await p2.getByRole("button", { name: "登录" }).click();
+  await p2.getByRole("button", { name: "登录", exact: true }).click();
   await expect(p2.getByRole("heading", { name: "两步验证" })).toBeVisible();
   // 启用时用过的时间步不能再用；下一个时间步（允许 ±1 的偏差）可以
   await p2.getByLabel("验证码").fill(totp(secret, step() + 1));
   await p2.getByRole("button", { name: "验证" }).click();
   await expect(p2).toHaveURL(/\/$/);
   await ctx2.close();
+});
+
+test("通行密钥：添加后可以免密码登录", async ({ browser, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "虚拟认证器只在桌面项目中配置");
+  const user = await createUser(request, baseURL!, "pk");
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  // Chromium 的虚拟认证器：支持可发现凭据与用户验证
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  await cdp.send("WebAuthn.addVirtualAuthenticator", {
+    options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
+  });
+  await login(page, { username: user, password: "a long enough password" });
+  await page.goto("/account");
+  await page.getByLabel("名称", { exact: true }).last().fill("虚拟认证器");
+  await page.getByRole("button", { name: "添加通行密钥" }).click();
+  await expect(page.getByText("通行密钥已添加")).toBeVisible();
+  await expect(page.locator(".keys li")).toHaveCount(1);
+
+  // 退出后用通行密钥登录（同一浏览器上下文中的认证器）
+  await page.evaluate(() => fetch("/api/v1/me").then((r) => r.json()).then((s) => fetch("/api/v1/session", { method: "DELETE", headers: { "X-CSRF-Token": s.csrf } })));
+  await page.goto("/login");
+  await page.getByRole("button", { name: "使用通行密钥登录" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "方案" })).toBeVisible();
+  await ctx.close();
 });

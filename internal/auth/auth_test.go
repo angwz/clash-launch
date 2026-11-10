@@ -212,6 +212,10 @@ func TestTickets(t *testing.T) {
 	if _, err := tk.Verify("other", x, now); err == nil {
 		t.Error("用途不同应拒绝")
 	}
+	y := tk.Issue("pk", "user-1|challenge", time.Minute, now)
+	if sub, err := tk.Verify("pk", y, now); err != nil || sub != "user-1|challenge" {
+		t.Errorf("主体含 | 时应原样返回：%q %v", sub, err)
+	}
 	if _, err := NewTickets().Verify("mfa", x, now); err == nil {
 		t.Error("其他密钥签发的凭证应拒绝")
 	}

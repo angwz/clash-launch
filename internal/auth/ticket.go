@@ -45,13 +45,15 @@ func (t *Tickets) Verify(purpose, ticket string, now time.Time) (string, error) 
 	if err != nil || !hmac.Equal([]byte(t.sign(string(raw))), []byte(ticket[dot+1:])) {
 		return "", ErrTicket
 	}
-	parts := strings.Split(string(raw), "|")
-	if len(parts) != 3 || parts[0] != purpose {
+	// 主体本身可以含有 |：用途取第一个 | 之前，过期时间取最后一个 | 之后
+	p := string(raw)
+	first, last := strings.IndexByte(p, '|'), strings.LastIndexByte(p, '|')
+	if first < 0 || first == last || p[:first] != purpose {
 		return "", ErrTicket
 	}
-	exp, err := strconv.ParseInt(parts[2], 10, 64)
+	exp, err := strconv.ParseInt(p[last+1:], 10, 64)
 	if err != nil || now.Unix() > exp {
 		return "", ErrTicket
 	}
-	return parts[1], nil
+	return p[first+1 : last], nil
 }

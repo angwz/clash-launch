@@ -10,7 +10,7 @@ export async function login(page: Page, user = ADMIN): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("用户名").fill(user.username);
   await page.getByLabel("口令", { exact: true }).fill(user.password);
-  await page.getByRole("button", { name: "登录" }).click();
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(/\/$|\/welcome$/);
 }
 

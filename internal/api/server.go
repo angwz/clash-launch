@@ -46,6 +46,7 @@ type Server struct {
 	limit        *limiter
 	regLimit     *limiter // 注册：每个 IP 每小时 10 次
 	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
+	passkeyLimit *limiter // 通行密钥登录的开始：每个 IP 每小时 120 次
 	mux          *http.ServeMux
 }
 
@@ -63,7 +64,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -249,6 +250,12 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnauthorized, "mfa.invalid", "verification code is invalid or expired")
 	case errors.Is(err, service.ErrMFAState):
 		problem(w, http.StatusConflict, "mfa.state", "two-step verification is not in a state that allows this")
+	case errors.Is(err, service.ErrPasskey):
+		problem(w, http.StatusUnauthorized, "passkey.invalid", "passkey verification failed")
+	case errors.Is(err, service.ErrPasskeyUnavailable):
+		problem(w, http.StatusConflict, "passkey.unavailable", "passkeys need CLASH_LAUNCH_PUBLIC_URL to be set")
+	case errors.Is(err, service.ErrQuota):
+		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
 	case errors.Is(err, service.ErrInvalidLogin):
 		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
 	case errors.As(err, &wait):

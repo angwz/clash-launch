@@ -12,7 +12,8 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: {
-    baseURL: `http://127.0.0.1:${port}`,
+    // localhost 而不是 127.0.0.1：WebAuthn 不接受 IP 地址作为 RP ID（通行密钥测试需要）
+    baseURL: `http://localhost:${port}`,
     locale: "zh-CN",
     trace: "retain-on-failure",
     ...(channel ? { channel } : {}),

@@ -31,12 +31,14 @@ func (s *Service) tickets() *auth.Tickets {
 	return s.ticketsVal
 }
 
-// SecondFactors 返回用户启用的第二因素：totp、passkey。为空表示只需要口令。
+// SecondFactors 返回口令登录后第二步可用的方式。只有启用了 TOTP 才需要第二步；
+// 此时若有通行密钥，也可以用它代替验证码。为空表示只需要口令（见 passkey.go 的说明）。
 func (s *Service) SecondFactors(ctx context.Context, userID string) []string {
-	var out []string
-	if t, err := s.Store.TOTP().Get(ctx, userID); err == nil && t.Enabled {
-		out = append(out, "totp")
+	t, err := s.Store.TOTP().Get(ctx, userID)
+	if err != nil || !t.Enabled {
+		return nil
 	}
+	out := []string{"totp"}
 	if ks, err := s.Store.Passkeys().List(ctx, userID); err == nil && len(ks) > 0 {
 		out = append(out, "passkey")
 	}

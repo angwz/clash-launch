@@ -6,6 +6,9 @@
   import { t } from "../lib/i18n/i18n.svelte";
   import { router } from "../lib/router.svelte";
   import { session, type MFAChallenge } from "../lib/session.svelte";
+  import { isCancelled, passkeyLogin, passkeysSupported } from "../lib/webauthn";
+
+  const canPasskey = passkeysSupported();
 
   let username = $state("");
   let password = $state("");
@@ -35,6 +38,20 @@
       if (!challenge) done();
     } catch (err) {
       error = errorText(err);
+    } finally {
+      busy = false;
+    }
+  }
+
+  // 通行密钥：无 challenge 时为免密码登录；有 challenge 时作为第二步
+  async function withPasskey() {
+    busy = true;
+    error = "";
+    try {
+      session.adopt(await passkeyLogin(challenge?.ticket ?? ""));
+      done();
+    } catch (err) {
+      if (!isCancelled(err)) error = errorText(err);
     } finally {
       busy = false;
     }
@@ -71,6 +88,10 @@
       <p class="forgot"><a href="/recover">{t("login.forgot")}</a></p>
       {#if error}<p class="field-error" role="alert">{error}</p>{/if}
       <button class="btn primary" type="submit" disabled={busy || !username || !password}>{busy ? t("login.busy") : t("login.submit")}</button>
+      {#if canPasskey}
+        <div class="or"><span>{t("login.or")}</span></div>
+        <button class="btn" type="button" disabled={busy} onclick={() => void withPasskey()}>{t("passkey.login")}</button>
+      {/if}
       {#if canRegister}
         <p class="alt">{t("login.no_account")} <a href="/register">{t("login.register")}</a></p>
       {/if}
@@ -87,6 +108,9 @@
       </div>
       {#if error}<p class="field-error" role="alert">{error}</p>{/if}
       <button class="btn primary" type="submit" disabled={busy || code.trim().length < 6}>{t("mfa.verify")}</button>
+      {#if canPasskey && challenge.mfa.includes("passkey")}
+        <button class="btn" type="button" disabled={busy} onclick={() => void withPasskey()}>{t("passkey.use")}</button>
+      {/if}
       <p class="alt"><button class="linkish" type="button" onclick={() => { challenge = null; code = ""; error = ""; }}>{t("mfa.back")}</button></p>
     </form>
   </AuthLayout>
@@ -102,6 +126,19 @@
     text-align: center;
     color: var(--fg-muted);
     font-size: var(--text-sm);
+  }
+  .or {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--fg-subtle);
+    font-size: var(--text-xs);
+  }
+  .or::before,
+  .or::after {
+    content: "";
+    flex: 1;
+    border-block-start: 1px solid var(--border);
   }
   .code {
     font-size: var(--text-xl);
