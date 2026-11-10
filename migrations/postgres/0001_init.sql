@@ -38,7 +38,6 @@ CREATE TABLE sources (
   ua           TEXT    NOT NULL DEFAULT '',
   interval_s   BIGINT NOT NULL DEFAULT 0,
   processing   TEXT    NOT NULL DEFAULT '{}',
-  allow_direct BIGINT NOT NULL DEFAULT 0,
   created_at   BIGINT NOT NULL,
   updated_at   BIGINT NOT NULL,
   version      BIGINT NOT NULL DEFAULT 1

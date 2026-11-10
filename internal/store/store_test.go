@@ -3,12 +3,14 @@ package store
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/angwz/clash-launch/migrations"
 )
@@ -49,7 +51,17 @@ func TestMigrationsEquivalent(t *testing.T) {
 		}
 		return out
 	}
-	a, b := shape("sqlite/0001_init.sql"), shape("postgres/0001_init.sql")
+	shapeAll := func(dir string) map[string][]string {
+		out := map[string][]string{}
+		files, _ := fs.Glob(migrations.FS, dir+"/*.sql")
+		for _, f := range files {
+			for k, v := range shape(f) {
+				out[k] = v
+			}
+		}
+		return out
+	}
+	a, b := shapeAll("sqlite"), shapeAll("postgres")
 	if len(a) != len(b) || len(a) != len(Tables) {
 		t.Fatalf("表数不一致：sqlite %d、postgres %d、Tables %d", len(a), len(b), len(Tables))
 	}
@@ -202,5 +214,43 @@ func TestKeyringRotateAndBackupCopy(t *testing.T) {
 	}
 	if _, err := Copy(ctx, src, dst); err == nil {
 		t.Error("目标非空时应拒绝复制")
+	}
+}
+
+// 邀请：只能使用一次；过期后不可用；不过期（expires_at=0）的邀请一直有效直到被使用。
+func TestInvites(t *testing.T) {
+	ctx := context.Background()
+	d := newDB(t)
+	admin := &User{Username: "admin", PasswordHash: "x", Role: "admin"}
+	if err := d.Users().Create(ctx, admin); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	never := &Invite{TokenHash: "h-never", CreatedBy: admin.ID, Note: "n"}
+	soon := &Invite{TokenHash: "h-soon", CreatedBy: admin.ID, ExpiresAt: now.Add(time.Hour)}
+	for _, inv := range []*Invite{never, soon} {
+		if err := d.Invites().Create(ctx, inv); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := d.Invites().Use(ctx, "h-soon", "u1", now.Add(2*time.Hour)); !errors.Is(err, ErrNotFound) {
+		t.Errorf("过期邀请应不可用：%v", err)
+	}
+	got, err := d.Invites().Use(ctx, "h-never", "u1", now.Add(1000*time.Hour))
+	if err != nil || got.UsedBy != "u1" || got.UsedAt.IsZero() || !got.ExpiresAt.IsZero() {
+		t.Fatalf("使用邀请：%+v %v", got, err)
+	}
+	if _, err := d.Invites().Use(ctx, "h-never", "u2", now); !errors.Is(err, ErrNotFound) {
+		t.Errorf("邀请只能用一次：%v", err)
+	}
+	all, err := d.Invites().List(ctx, Page{})
+	if err != nil || len(all) != 2 {
+		t.Fatalf("列表：%d %v", len(all), err)
+	}
+	if err := d.Invites().Delete(ctx, soon.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Invites().Delete(ctx, soon.ID); !errors.Is(err, ErrNotFound) {
+		t.Errorf("重复删除应 404：%v", err)
 	}
 }

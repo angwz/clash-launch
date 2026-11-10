@@ -1,5 +1,6 @@
-# Clash, Launch! + WARP 出口边车（第 18.3 节）。对外只暴露本机的 8080，由 nginx/Caddy 反向代理并提供 HTTPS。
+# Clash, Launch! 单容器部署。对外只暴露本机的 8080，由 nginx/Caddy 反向代理并提供 HTTPS。
 # 首次启动后查看日志中的一次性设置链接：docker compose logs clash-launch
+# 服务器直接拉取订阅：订阅提供方能看到本机的出口 IP（docs/decisions/0003）。
 services:
   clash-launch:
     image: ghcr.io/angwz/clash-launch:latest
@@ -12,13 +13,9 @@ services:
       - data:/data
     environment:
       CLASH_LAUNCH_PUBLIC_URL: https://cl.example.com   # 改为你的对外地址
-      CLASH_LAUNCH_EGRESS_PROXY: socks5h://warp:1080
-      CLASH_LAUNCH_EGRESS_KIND: warp
       CLASH_LAUNCH_TRUSTED_PROXIES: 172.16.0.0/12        # 反向代理所在网段；直连部署时删除
     ports:
       - "127.0.0.1:8080:8080"
-    depends_on:
-      - warp
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     healthcheck:
@@ -27,13 +24,5 @@ services:
       timeout: 5s
       retries: 3
 
-  warp:
-    build: deploy/warp
-    restart: unless-stopped
-    volumes:
-      - warp:/var/lib/cloudflare-warp
-    # 只在 compose 内部网络中提供 SOCKS5 :1080，不映射到宿主机。
-
 volumes:
   data:
-  warp:

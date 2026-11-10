@@ -10,7 +10,6 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | `go.yaml.in/yaml/v3` | v3.0.5 | MIT 与 Apache-2.0 | YAML 解析与格式自检 |
 | `github.com/pelletier/go-toml/v2` | v2.4.3 | MIT | groups.toml、rulesets.toml 解析 |
 | `github.com/dlclark/regexp2` | v1.12.0 | MIT | 与 mihomo `filter` 一致的正则 |
-| `golang.org/x/net` | v0.35.0 | BSD-3-Clause | SOCKS5 出站代理（`proxy`） |
 | `golang.org/x/crypto` | v0.33.0 | BSD-3-Clause | argon2id 口令哈希 |
 | `modernc.org/sqlite` | v1.36.1 | BSD-3-Clause | SQLite 驱动（纯 Go） |
 | `github.com/jackc/pgx/v5` | v5.7.2 | MIT | PostgreSQL 驱动 |

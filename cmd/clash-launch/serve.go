@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -36,21 +35,18 @@ import (
 // config 是服务的配置（第 18.2 节）。环境变量为主；CLASH_LAUNCH_CONFIG 指向的 TOML 文件提供默认值，
 // 同名设置以环境变量为准。TOML 的键为环境变量去掉前缀后的小写短横线形式（如 public-url）。
 type config struct {
-	Listen          string
-	DataDir         string
-	DatabaseURL     string
-	PublicURL       string
-	TrustedProxies  string
-	EgressProxy     string
-	EgressKind      string
-	FetchAllowlist  string
-	LogLevel        string
-	Mihomo          string
-	Geodata         string
-	AllowUserDirect bool
+	Listen         string
+	DataDir        string
+	DatabaseURL    string
+	PublicURL      string
+	TrustedProxies string
+	FetchAllowlist string
+	LogLevel       string
+	Mihomo         string
+	Geodata        string
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "EGRESS_PROXY", "EGRESS_KIND", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA", "ALLOW_USER_DIRECT"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -80,15 +76,11 @@ func loadConfig() (config, error) {
 	}
 	c := config{
 		Listen: get("LISTEN", ":8080"), DataDir: get("DATA_DIR", "/data"), PublicURL: strings.TrimSuffix(get("PUBLIC_URL", ""), "/"),
-		TrustedProxies: get("TRUSTED_PROXIES", ""), EgressProxy: get("EGRESS_PROXY", ""), EgressKind: get("EGRESS_KIND", ""),
+		TrustedProxies: get("TRUSTED_PROXIES", ""),
 		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"),
 		Mihomo: get("MIHOMO", "/opt/mihomo/mihomo"), Geodata: get("GEODATA", "/opt/mihomo/geodata"),
-		AllowUserDirect: get("ALLOW_USER_DIRECT", "false") == "true",
 	}
 	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
-	if c.EgressKind == "" && strings.Contains(strings.ToLower(c.EgressProxy), "warp") {
-		c.EgressKind = "warp"
-	}
 	return c, nil
 }
 
@@ -143,15 +135,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 	if err != nil {
 		return nil, nil, err
 	}
-	fc := source.Config{Guard: guard}
-	if c.EgressProxy != "" {
-		u, err := url.Parse(c.EgressProxy)
-		if err != nil {
-			return nil, nil, fmt.Errorf("CLASH_LAUNCH_EGRESS_PROXY: %w", err)
-		}
-		fc.Egress = u
-	}
-	fetcher, err := source.New(fc)
+	fetcher, err := source.New(source.Config{Guard: guard})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,12 +159,8 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	if fc.Egress == nil {
-		log.Warn("没有配置出站代理：只有管理员的订阅会由服务器直连拉取，这会暴露服务器 IP；普通用户的订阅只能交给客户端获取")
-	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL,
-		Policy: service.Policy{AllowUserDirect: c.AllowUserDirect}}
-	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), EgressKind: c.EgressKind, Guard: guard}, nil
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL}
+	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 
 func cmdServe(args []string) int {
@@ -221,7 +201,7 @@ func cmdServe(args []string) int {
 	hs := srv.HTTPServer(c.Listen)
 	errc := make(chan error, 1)
 	go func() { errc <- hs.ListenAndServe() }()
-	log.Info("Clash, Launch! 已启动", "version", version.Version, "listen", c.Listen, "database", db.Dialect(), "kernel", svc.Kernel != nil, "egress", c.EgressProxy != "")
+	log.Info("Clash, Launch! 已启动", "version", version.Version, "listen", c.Listen, "database", db.Dialect(), "kernel", svc.Kernel != nil)
 	select {
 	case <-ctx.Done():
 	case err := <-errc:

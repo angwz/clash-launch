@@ -236,6 +236,7 @@ func (d *DB) Links() LinkRepo             { return links{d} }
 func (d *DB) Renders() RenderRepo         { return renders{d} }
 func (d *DB) Audit() AuditRepo            { return audits{d} }
 func (d *DB) Settings() SettingsRepo      { return settings{d} }
+func (d *DB) Invites() InviteRepo         { return invites{d} }
 
 // —— 用户 ——
 
@@ -376,14 +377,14 @@ func (r sessions) List(ctx context.Context, userID string) ([]Session, error) {
 
 type sources struct{ d *DB }
 
-const sourceCols = "id, owner_id, name, kind, url_enc, content_enc, headers_enc, ua, interval_s, processing, allow_direct, created_at, updated_at, version"
+const sourceCols = "id, owner_id, name, kind, url_enc, content_enc, headers_enc, ua, interval_s, processing, created_at, updated_at, version"
 
 func (r sources) scan(row interface{ Scan(...any) error }) (*Source, error) {
 	var s Source
 	var urlEnc, contentEnc, headersEnc []byte
 	var proc string
-	var direct, c, u int64
-	if err := row.Scan(&s.ID, &s.OwnerID, &s.Name, &s.Kind, &urlEnc, &contentEnc, &headersEnc, &s.UA, &s.Interval, &proc, &direct, &c, &u, &s.Version); err != nil {
+	var c, u int64
+	if err := row.Scan(&s.ID, &s.OwnerID, &s.Name, &s.Kind, &urlEnc, &contentEnc, &headersEnc, &s.UA, &s.Interval, &proc, &c, &u, &s.Version); err != nil {
 		return nil, notFound(err)
 	}
 	var err error
@@ -398,7 +399,7 @@ func (r sources) scan(row interface{ Scan(...any) error }) (*Source, error) {
 		return nil, err
 	}
 	s.Headers = parseMap(h)
-	s.Processing, s.AllowDirect, s.CreatedAt, s.UpdatedAt = []byte(proc), direct == 1, fromMS(c), fromMS(u)
+	s.Processing, s.CreatedAt, s.UpdatedAt = []byte(proc), fromMS(c), fromMS(u)
 	return &s, nil
 }
 
@@ -433,8 +434,8 @@ func (r sources) Create(ctx context.Context, owner string, s *Source) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.d.exec(ctx, "INSERT INTO sources ("+sourceCols+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)",
-		s.ID, owner, s.Name, s.Kind, u, c, h, s.UA, s.Interval, procOrEmpty(s.Processing), b2i(s.AllowDirect), ms(now), ms(now))
+	_, err = r.d.exec(ctx, "INSERT INTO sources ("+sourceCols+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)",
+		s.ID, owner, s.Name, s.Kind, u, c, h, s.UA, s.Interval, procOrEmpty(s.Processing), ms(now), ms(now))
 	return err
 }
 
@@ -465,8 +466,8 @@ func (r sources) Update(ctx context.Context, owner string, s *Source) error {
 		return err
 	}
 	now := time.Now()
-	res, err := r.d.exec(ctx, "UPDATE sources SET name=?, kind=?, url_enc=?, content_enc=?, headers_enc=?, ua=?, interval_s=?, processing=?, allow_direct=?, updated_at=?, version=version+1 WHERE owner_id=? AND id=? AND version=?",
-		s.Name, s.Kind, u, c, h, s.UA, s.Interval, procOrEmpty(s.Processing), b2i(s.AllowDirect), ms(now), owner, s.ID, s.Version)
+	res, err := r.d.exec(ctx, "UPDATE sources SET name=?, kind=?, url_enc=?, content_enc=?, headers_enc=?, ua=?, interval_s=?, processing=?, updated_at=?, version=version+1 WHERE owner_id=? AND id=? AND version=?",
+		s.Name, s.Kind, u, c, h, s.UA, s.Interval, procOrEmpty(s.Processing), ms(now), owner, s.ID, s.Version)
 	if err := affected(res, err, r.missing(ctx, owner, s.ID)); err != nil {
 		return err
 	}
@@ -978,4 +979,63 @@ func (r settings) Set(ctx context.Context, key, value string) error {
 	}
 	_, err = r.d.exec(ctx, "INSERT INTO settings (key, value) VALUES (?,?)", key, value)
 	return err
+}
+
+// —— 邀请 ——
+
+type invites struct{ d *DB }
+
+func (r invites) Create(ctx context.Context, inv *Invite) error {
+	if inv.ID == "" {
+		inv.ID = NewID()
+	}
+	inv.CreatedAt = time.Now()
+	_, err := r.d.exec(ctx, "INSERT INTO invites (id, token_hash, created_by, note, created_at, expires_at, used_at, used_by) VALUES (?,?,?,?,?,?,0,'')",
+		inv.ID, inv.TokenHash, inv.CreatedBy, inv.Note, ms(inv.CreatedAt), ms(inv.ExpiresAt))
+	return err
+}
+
+func (r invites) List(ctx context.Context, p Page) ([]Invite, error) {
+	after := "ffffffff"
+	if p.After != "" {
+		after = p.After
+	}
+	rows, err := r.d.query(ctx, "SELECT id, token_hash, created_by, note, created_at, expires_at, used_at, used_by FROM invites WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Invite
+	for rows.Next() {
+		var v Invite
+		var c, e, u int64
+		if err := rows.Scan(&v.ID, &v.TokenHash, &v.CreatedBy, &v.Note, &c, &e, &u, &v.UsedBy); err != nil {
+			return nil, err
+		}
+		v.CreatedAt, v.ExpiresAt, v.UsedAt = fromMS(c), fromMS(e), fromMS(u)
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+func (r invites) Delete(ctx context.Context, id string) error {
+	res, err := r.d.exec(ctx, "DELETE FROM invites WHERE id=?", id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r invites) Use(ctx context.Context, tokenHash, userID string, now time.Time) (*Invite, error) {
+	n := ms(now)
+	res, err := r.d.exec(ctx, "UPDATE invites SET used_at=?, used_by=? WHERE token_hash=? AND used_at=0 AND (expires_at=0 OR expires_at>?)", n, userID, tokenHash, n)
+	if err := affected(res, err, ErrNotFound); err != nil {
+		return nil, err
+	}
+	var v Invite
+	var c, e, u int64
+	err = r.d.row(ctx, "SELECT id, token_hash, created_by, note, created_at, expires_at, used_at, used_by FROM invites WHERE token_hash=?", tokenHash).
+		Scan(&v.ID, &v.TokenHash, &v.CreatedBy, &v.Note, &c, &e, &u, &v.UsedBy)
+	if err != nil {
+		return nil, notFound(err)
+	}
+	v.CreatedAt, v.ExpiresAt, v.UsedAt = fromMS(c), fromMS(e), fromMS(u)
+	return &v, nil
 }

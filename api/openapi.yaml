@@ -16,6 +16,7 @@ tags:
   - {name: rule-sources}
   - {name: profiles}
   - {name: links}
+  - {name: admin}
   - {name: health}
 components:
   securitySchemes:
@@ -75,11 +76,10 @@ components:
         lastAttempt: {type: string, format: date-time}
         lastError: {type: string}
         failingSince: {type: string, format: date-time}
-        via: {type: string, enum: [egress, direct]}
         hash: {type: string}
     Source:
       type: object
-      required: [id, name, kind, interval, processing, allowDirect, fetch, version, createdAt, updatedAt]
+      required: [id, name, kind, interval, processing, version, createdAt, updatedAt]
       properties:
         id: {type: string}
         name: {type: string}
@@ -90,8 +90,6 @@ components:
         headers: {type: object, additionalProperties: {type: string}}
         interval: {type: integer}
         processing: {type: object}
-        allowDirect: {type: boolean}
-        fetch: {type: string, enum: [warp, proxy, direct, client, local], description: 订阅的获取方式（第 14.6 节）}
         version: {type: integer}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
@@ -108,7 +106,6 @@ components:
         headers: {type: object, additionalProperties: {type: string}}
         interval: {type: integer}
         processing: {type: object}
-        allowDirect: {type: boolean, description: 只有管理员能设置}
     Node:
       type: object
       required: [name, type, server, port, fingerprint, region, rate, origin]
@@ -230,6 +227,22 @@ components:
         lastAccess: {type: string, format: date-time}
         lastUa: {type: string}
         version: {type: integer}
+    Invite:
+      type: object
+      required: [id, note, createdAt, status]
+      properties:
+        id: {type: string}
+        url: {type: string, description: 只在创建时返回；令牌只以哈希存储}
+        note: {type: string}
+        createdAt: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time}
+        usedAt: {type: string, format: date-time}
+        status: {type: string, enum: [active, used, expired]}
+    Registration:
+      type: object
+      required: [open]
+      properties:
+        open: {type: boolean, description: 是否允许无邀请注册（默认关闭）}
     List:
       type: object
       required: [items]
@@ -284,6 +297,46 @@ paths:
       summary: 当前用户与 CSRF 令牌
       security: [{session: []}]
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}}
+  /api/v1/register:
+    get:
+      tags: [session]
+      summary: 注册是否开放（注册页据此决定是否要求邀请）
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}}
+    post:
+      tags: [session]
+      summary: 注册普通用户；注册关闭时需要有效的一次性邀请。按 IP 限速
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}, invite: {type: string}}}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: 用户名已存在}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/registration:
+    get:
+      tags: [admin]
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}, '404': {description: 不是管理员}}
+    put:
+      tags: [admin]
+      summary: 打开或关闭无邀请注册
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}}
+  /api/v1/admin/invites:
+    get:
+      tags: [admin]
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [admin]
+      summary: 生成一次性邀请链接
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {hours: {type: integer, minimum: 0, maximum: 2160, description: 有效期（小时），0 表示不过期}, note: {type: string}}}}}}
+      responses: {'201': {description: 已创建（url 只返回这一次）, content: {application/json: {schema: {$ref: '#/components/schemas/Invite'}}}}}
+  /api/v1/admin/invites/{id}:
+    delete:
+      tags: [admin]
+      summary: 撤销邀请
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/catalog/{pack}:
     get:
       tags: [catalog]

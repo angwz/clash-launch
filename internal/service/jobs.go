@@ -50,7 +50,7 @@ func (s *Service) tick(ctx context.Context) {
 		if err == nil && now.Sub(snap.LastAttempt) < every {
 			continue
 		}
-		if _, err := s.RefreshSource(ctx, src.OwnerID, src.ID); err != nil && !errors.Is(err, ErrDirectNotAllowed) {
+		if _, err := s.RefreshSource(ctx, src.OwnerID, src.ID); err != nil {
 			s.Log.Warn("scheduler: refresh", "source", src.ID, "error", err)
 		}
 	}
@@ -72,7 +72,7 @@ func (s *Service) tick(ctx context.Context) {
 			if err == nil && now.Sub(snap.LastAttempt) < every {
 				continue
 			}
-			if err := s.RefreshRuleSource(ctx, rs.OwnerID, rs.ID); err != nil && !errors.Is(err, ErrDirectNotAllowed) {
+			if err := s.RefreshRuleSource(ctx, rs.OwnerID, rs.ID); err != nil {
 				s.Log.Warn("scheduler: refresh rules", "rules", rs.ID, "error", err)
 			}
 		}

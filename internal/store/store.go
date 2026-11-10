@@ -60,20 +60,19 @@ type Session struct {
 
 // Source 是节点源。URL、内容与请求头在存储层加密。
 type Source struct {
-	ID          string
-	OwnerID     string
-	Name        string
-	Kind        string // single | batch | subscription | file
-	URL         string
-	Content     []byte
-	Headers     map[string]string
-	UA          string
-	Interval    int // 秒；0 表示默认
-	Processing  []byte
-	AllowDirect bool // 只有管理员能设置
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Version     int64
+	ID         string
+	OwnerID    string
+	Name       string
+	Kind       string // single | batch | subscription | file
+	URL        string
+	Content    []byte
+	Headers    map[string]string
+	UA         string
+	Interval   int // 秒；0 表示默认
+	Processing []byte
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Version    int64
 }
 
 // RuleSource 是规则源：URL 跟随更新，或在线编辑的文本。
@@ -188,6 +187,7 @@ type Store interface {
 	Renders() RenderRepo
 	Audit() AuditRepo
 	Settings() SettingsRepo
+	Invites() InviteRepo
 	// Tx 在一个事务中执行 fn；fn 返回错误时回滚。
 	Tx(ctx context.Context, fn func(Store) error) error
 	Close() error
@@ -282,4 +282,25 @@ type AuditRepo interface {
 type SettingsRepo interface {
 	Get(ctx context.Context, key string) (string, error)
 	Set(ctx context.Context, key, value string) error
+}
+
+// Invite 是一次性邀请。令牌只以哈希存储。
+type Invite struct {
+	ID        string
+	TokenHash string
+	CreatedBy string
+	Note      string
+	CreatedAt time.Time
+	ExpiresAt time.Time // 零值表示不过期
+	UsedAt    time.Time
+	UsedBy    string
+}
+
+// InviteRepo 管理邀请（管理员功能；Use 供注册使用）。
+type InviteRepo interface {
+	Create(ctx context.Context, inv *Invite) error
+	List(ctx context.Context, p Page) ([]Invite, error)
+	Delete(ctx context.Context, id string) error
+	// Use 原子地把未使用、未过期的邀请标记为已用；邀请无效时返回 ErrNotFound。
+	Use(ctx context.Context, tokenHash, userID string, now time.Time) (*Invite, error)
 }

@@ -2,22 +2,17 @@ package source
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
-	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"net/url"
-	"strconv"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 )
 
-// 安全测试清单（第 14.5 节）：SSRF 的各类地址、重定向、DNS rebinding、体积上限、出口不回退直连。
+// 安全测试清单（第 14.5 节）：SSRF 的各类地址、重定向、DNS rebinding、体积上限。
 
 func TestCheckAddr(t *testing.T) {
 	var g Guard
@@ -104,129 +99,29 @@ func TestDirectFetchAndLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/ok"}); !errors.Is(err, ErrNoEgress) {
-		t.Fatalf("没有出口且未允许直连时应拒绝：%v", err)
-	}
-	resp, err := f.Fetch(ctx, Request{URL: srv.URL + "/ok", Direct: true, Headers: map[string]string{"Referer": "x", "X-Forwarded-For": "1.2.3.4", "Authorization": "Bearer t"}})
+	resp, err := f.Fetch(ctx, Request{URL: srv.URL + "/ok", Headers: map[string]string{"Referer": "x", "X-Forwarded-For": "1.2.3.4", "Authorization": "Bearer t"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(resp.Body) != "ok" || resp.Headers["subscription-userinfo"] == "" || resp.Via != "direct" {
+	if string(resp.Body) != "ok" || resp.Headers["subscription-userinfo"] == "" {
 		t.Errorf("响应不符：%+v", resp)
 	}
 	if gotUA != DefaultUA || gotRef != "" || gotXFF != "" {
 		t.Errorf("请求头不应泄露身份信息：UA=%q Referer=%q XFF=%q", gotUA, gotRef, gotXFF)
 	}
-	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/big", Direct: true}); !errors.Is(err, ErrTooLarge) {
+	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/big"}); !errors.Is(err, ErrTooLarge) {
 		t.Errorf("超过上限应报错：%v", err)
 	}
-	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/redirect-internal", Direct: true}); !errors.Is(err, ErrBlocked) {
+	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/redirect-internal"}); !errors.Is(err, ErrBlocked) {
 		t.Errorf("重定向到内网应被拒绝：%v", err)
 	}
-	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/status", Direct: true}); !errors.Is(err, ErrStatus) {
+	if _, err := f.Fetch(ctx, Request{URL: srv.URL + "/status"}); !errors.Is(err, ErrStatus) {
 		t.Errorf("非 2xx 应报错：%v", err)
 	}
 	// 未加入白名单时，回环地址的测试服务器本身就应被拒绝
 	f2, _ := New(Config{})
-	if _, err := f2.Fetch(ctx, Request{URL: srv.URL, Direct: true}); !errors.Is(err, ErrBlocked) {
+	if _, err := f2.Fetch(ctx, Request{URL: srv.URL}); !errors.Is(err, ErrBlocked) {
 		t.Errorf("回环地址应被拒绝：%v", err)
-	}
-}
-
-// socks5Server 是测试用的最小 SOCKS5 服务器：记录客户端请求的目标（检查域名由代理解析），
-// 并把所有连接转发到 upstream。
-func socks5Server(t *testing.T, upstream string, seen *atomic.Value) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = ln.Close() })
-	go func() {
-		for {
-			c, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			go func(c net.Conn) {
-				defer func() { _ = c.Close() }()
-				buf := make([]byte, 262)
-				if _, err := io.ReadFull(c, buf[:2]); err != nil {
-					return
-				}
-				if _, err := io.ReadFull(c, buf[:buf[1]]); err != nil {
-					return
-				}
-				_, _ = c.Write([]byte{5, 0})
-				if _, err := io.ReadFull(c, buf[:4]); err != nil {
-					return
-				}
-				var host string
-				switch buf[3] {
-				case 3:
-					if _, err := io.ReadFull(c, buf[:1]); err != nil {
-						return
-					}
-					n := int(buf[0])
-					if _, err := io.ReadFull(c, buf[:n]); err != nil {
-						return
-					}
-					host = string(buf[:n])
-				case 1:
-					if _, err := io.ReadFull(c, buf[:4]); err != nil {
-						return
-					}
-					host = net.IP(buf[:4]).String()
-				}
-				if _, err := io.ReadFull(c, buf[:2]); err != nil {
-					return
-				}
-				seen.Store(host + ":" + strconv.Itoa(int(binary.BigEndian.Uint16(buf[:2]))))
-				up, err := net.Dial("tcp", upstream)
-				if err != nil {
-					return
-				}
-				defer func() { _ = up.Close() }()
-				_, _ = c.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0})
-				go func() { _, _ = io.Copy(up, c) }()
-				_, _ = io.Copy(c, up)
-			}(c)
-		}
-	}()
-	return ln.Addr().String()
-}
-
-func TestEgressSOCKS5(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("via-proxy")) }))
-	defer srv.Close()
-	var seen atomic.Value
-	addr := socks5Server(t, strings.TrimPrefix(srv.URL, "http://"), &seen)
-	eg, _ := url.Parse("socks5h://" + addr)
-	f, err := New(Config{Egress: eg})
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := f.Fetch(context.Background(), Request{URL: "http://sub.example.com/path"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(resp.Body) != "via-proxy" || resp.Via != "egress" {
-		t.Errorf("响应：%q %s", resp.Body, resp.Via)
-	}
-	if got, _ := seen.Load().(string); got != "sub.example.com:80" {
-		t.Errorf("域名应原样交给代理解析，代理收到 %q", got)
-	}
-}
-
-func TestEgressDownNoFallback(t *testing.T) {
-	ln, _ := net.Listen("tcp", "127.0.0.1:0")
-	dead := ln.Addr().String()
-	_ = ln.Close()
-	eg, _ := url.Parse("socks5h://" + dead)
-	f, _ := New(Config{Egress: eg, Timeout: 3 * time.Second})
-	_, err := f.Fetch(context.Background(), Request{URL: "http://sub.example.com/"})
-	if !errors.Is(err, ErrEgressDown) {
-		t.Fatalf("出口不可用时应返回 ErrEgressDown 且不回退直连：%v", err)
 	}
 }
 
@@ -234,7 +129,7 @@ func TestSnapshotUpdate(t *testing.T) {
 	t0 := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
 	ok := &Response{Body: []byte("a"), Hash: "h1", FetchedAt: t0}
 	s := Update(nil, ok, nil, true, "", t0)
-	s2 := Update(s, nil, ErrEgressDown, false, "", t0.Add(time.Hour))
+	s2 := Update(s, nil, ErrStatus, false, "", t0.Add(time.Hour))
 	if s2.Hash != "h1" || s2.LastError == "" || s2.FailingSince != t0.Add(time.Hour) {
 		t.Fatalf("失败时应沿用旧内容并记录原因：%+v", s2)
 	}

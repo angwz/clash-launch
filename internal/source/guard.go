@@ -117,7 +117,8 @@ func embeddedV4(a netip.Addr) (netip.Addr, bool) {
 }
 
 // CheckURL 检查 URL 本身：只允许 http/https；拒绝 localhost 类主机名与内部的字面 IP。
-// 使用 socks5h/http 出口时域名由代理解析，这是服务器端能做的全部检查（第 14.6 节第 4 条）。
+// 这只是连接前的快速拒绝；域名解析后的真实地址由 Dialer.Control 在每次连接时再检查，
+// 因此 DNS 重绑定与重定向到内网都会在连接阶段被拦下。
 func (g Guard) CheckURL(u *url.URL) error {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return fmt.Errorf("%w：只允许 http 与 https（得到 %q）", ErrBlocked, u.Scheme)

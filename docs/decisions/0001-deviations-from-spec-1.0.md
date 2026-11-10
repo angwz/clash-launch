@@ -26,7 +26,7 @@
 | 13 | groups.toml 的 `timeout` | 忽略并警告，不透传 | §6.2「同名映射」 |
 | 14 | rulesets.toml 的 `format` 键 | 本项目扩展：扩展名不能说明格式时显式指定（subconverter 忽略未知键） | §6.3（补充） |
 | 15 | 托管清洗 | 不实现：mihomo 逐行跳过 classical 列表中不认识的规则，provider 照常加载 | §6.5「可选的托管清洗」 |
-| 16 | SOCKS5 出口 | `socks5://` 与 `socks5h://` 都由代理解析域名 | §14.6（补充） |
+| 16 | ~~SOCKS5 出口~~ | 已由 [0003](0003-direct-fetch-and-invites.md) 取代：不再有出站代理 | §14.6 |
 | 17 | 依赖版本 | `golang.org/x/*` 固定在 mihomo v1.19.33 `go.mod` 中的版本（如 `x/net v0.35.0`），不随 `go get` 升级 | §17「Go 代码依赖与校验用的二进制使用同一版本」（补充） |
 | 18 | ini 的 `emoji=` | 国旗 emoji 转为源级地区规则；其他 emoji 不支持并说明 | §6.5「emoji 映射到节点整理」 |
 | 19 | 工作区与 CLI | 命令行离线渲染通过工作区文件（`clash-launch/workspace: v1`）提供源与规则源的快照；读文件的逻辑在 `internal/workspace`，引擎保持纯函数 | §19.1（补充） |
@@ -53,7 +53,7 @@
 | #12 GROUPID 等匹配器 | `matchRange` 的开区间：`n-` 为 ≤ n，`n+` 为 ≥ n；`!` 项覆盖之前的结论；`!!INSERT=` 比较的是取负后的 insert 编号；订阅编号在 fork 中按每个输入链接递增（本项目只对订阅编号，见 [parity](../design/subconverter-parity.md) #5）；`!!GROUP=` 搜索节点所属组名，`!!TYPE=` 对协议名整串匹配，`!!PORT=` 用 `matchRange`，`!!SERVER=` 搜索主机名 | `subexport.cpp`、`interfaces.cpp`、`nodemanip.cpp` |
 | #14 ini 与 select 表 | `custom_proxy_group` 末段为「间隔,超时,容差」（`parseGroupTimes`）；`!!PROVIDER=` 写入 use；`from_toml` 只读取已知键，因此 `select` 表与 `format` 键被 subconverter 忽略 | `binding.h` |
 | #15 规则预设 | 各预设的地址、文件格式与许可在 2026-11-09 实际访问核对，见 [rules](../design/rules.md#预设) | 各仓库 |
-| #16（部分）出口 | Go HTTP 客户端经 `golang.org/x/net/proxy` 的 SOCKS5 拨号器或 `http.ProxyURL` 走出口，测试中用最小 SOCKS5 服务器验证域名由代理解析；WARP 边车的选型在 M3 | `internal/source` |
+| #16 出口 | 已由 [0003](0003-direct-fetch-and-invites.md) 取代 | — |
 | #11 版本号 | Go 1.27.3（2026-11-09 的最新稳定版），Node.js 26.13.0 LTS（Lithium）；mihomo v1.19.33 仍是最新稳定版 | go.dev/dl、nodejs.org/dist、GitHub tags |
 | 示例中的地理数据 | `geoip.metadb`、`GeoSite.dat`、`ASN.mmdb` 的 SHA-256 与 domainrouter_v2 已核验的锁一致；`GeoIP.dat` 为本项目新增，取同一提交，首次下载时记录哈希 | `tools.lock.json` |
 

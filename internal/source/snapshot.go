@@ -12,7 +12,6 @@ type Snapshot struct {
 	Hash      string            `json:"hash"`
 	Headers   map[string]string `json:"headers,omitempty"`
 	FetchedAt time.Time         `json:"fetchedAt"` // 成功拉取的时间（渲染时作为文件头时间的来源）
-	Via       string            `json:"via,omitempty"`
 
 	LastError    string    `json:"lastError,omitempty"` // 最近一次失败的原因（已脱敏）
 	LastAttempt  time.Time `json:"lastAttempt"`
@@ -31,7 +30,7 @@ func Update(prev *Snapshot, resp *Response, err error, accept bool, reason strin
 	}
 	next.LastAttempt = now.UTC()
 	if err == nil && resp != nil && accept {
-		next.Content, next.Hash, next.Headers, next.FetchedAt, next.Via = resp.Body, resp.Hash, resp.Headers, resp.FetchedAt, resp.Via
+		next.Content, next.Hash, next.Headers, next.FetchedAt = resp.Body, resp.Hash, resp.Headers, resp.FetchedAt
 		next.LastError, next.FailingSince = "", time.Time{}
 		return next
 	}
@@ -57,10 +56,6 @@ func Reason(err error) string {
 	switch {
 	case errors.Is(err, ErrBlocked):
 		return "blocked by the fetch policy"
-	case errors.Is(err, ErrNoEgress):
-		return "no egress proxy is configured"
-	case errors.Is(err, ErrEgressDown):
-		return "egress proxy unavailable"
 	case errors.Is(err, ErrTooLarge):
 		return "response too large"
 	case errors.Is(err, ErrStatus):

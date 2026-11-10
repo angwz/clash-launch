@@ -132,7 +132,7 @@ func (d *DB) Backup(ctx context.Context, path string) error {
 }
 
 // Tables 是按依赖顺序排列的业务表（db copy 按此顺序复制）。
-var Tables = []string{"users", "sessions", "sources", "rule_sources", "snapshots", "profiles", "revisions", "links", "renders", "audit", "settings"}
+var Tables = []string{"users", "sessions", "sources", "rule_sources", "snapshots", "profiles", "revisions", "links", "renders", "audit", "settings", "invites"}
 
 // CopyStats 是一张表的复制结果。
 type CopyStats struct {

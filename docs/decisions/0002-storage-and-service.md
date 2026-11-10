@@ -28,7 +28,7 @@
 - 首个管理员：`clash-launch admin create`（口令从标准输入读取），或首次启动时打印在日志中的一次性设置链接（15 分钟有效，用后作废）。不存在默认口令。
 - 会话：32 字节随机令牌，只存 SHA-256；Cookie `HttpOnly`、`SameSite=Lax`、HTTPS 下 `Secure` 且名称带 `__Host-` 前缀；每次登录都是新的会话 ID；空闲 7 天、绝对 30 天过期（可配置）。
 - CSRF：会话绑定的同步令牌（登录与 `/me` 返回，写请求放在 `X-CSRF-Token`），并检查 `Origin` 与对外地址一致。没有采用规范中「双提交 Cookie」的写法：会话已经在服务端，同步令牌更简单且同样有效。
-- 个人 API 令牌（Bearer）、注册、找回、通行密钥、TOTP、SMTP 提醒、登录退避与配额在 M5。
+- 注册开关与一次性邀请见 [0003](0003-direct-fetch-and-invites.md)。个人 API 令牌（Bearer）、找回、通行密钥、TOTP、SMTP 提醒、登录退避与配额在 M5。
 
 ## 订阅与托管地址（第 13 节）
 
@@ -38,9 +38,9 @@
 ## 部署（第 18 节）
 
 - 镜像：前端构建（`node:26.13.0-bookworm-slim`）→ Go 交叉编译（`golang:1.27.3-bookworm`，`CGO_ENABLED=0`）并用 `tools/toolsync` 下载、校验目标架构的 mihomo 与地理数据 → `gcr.io/distroless/static-debian12:nonroot`，以 uid 65532 运行，只读根文件系统，可写位置为 `/data` 与 `tmpfs` 的 `/tmp`。基础镜像目前按标签固定，发布前（M7）改为摘要。
-- WARP 边车：使用 Cloudflare 官方 Linux 客户端（`pkg.cloudflareclient.com` 的 `cloudflare-warp` 包）的代理模式；代理模式只监听 `127.0.0.1:40000`，用 socat 在 compose 内部网络暴露为 `:1080`。不使用第三方 WARP 镜像。官方客户端只有 amd64 与 arm64。
+- 单容器部署；原先的 WARP 边车已由 [0003](0003-direct-fetch-and-invites.md) 取消。
 
 ## 未验证
 
-- **镜像构建与 compose 运行**：本机 Docker 守护进程未运行，未构建、未运行；WARP 边车的可行性（官方客户端在无特权容器中以代理模式运行是否需要额外的 capability）与 Cloudflare 免费版条款均未核实。
+- **镜像构建与 compose 运行**：本机 Docker 守护进程未运行，未构建、未运行。
 - **PostgreSQL**：驱动与迁移已就绪，`db copy` 在 SQLite → SQLite 上测试；本机没有 PostgreSQL 实例，冒烟测试未运行。

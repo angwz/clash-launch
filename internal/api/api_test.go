@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 
@@ -267,8 +268,6 @@ func TestEndToEnd(t *testing.T) {
 	if b := decode[list[sourceDTO]](t, bob.want(200, "GET", "/api/v1/sources", nil)); len(b.Items) != 0 {
 		t.Error("他人的源不应出现在列表中")
 	}
-	// 普通用户不能打开直连
-	bob.want(400, "POST", "/api/v1/sources", map[string]any{"name": "x", "kind": "subscription", "url": "https://sub.example.com/s", "allowDirect": true})
 	// SSRF：添加订阅时拒绝内部地址
 	c.want(400, "POST", "/api/v1/sources", map[string]any{"name": "x", "kind": "subscription", "url": "http://169.254.169.254/latest"})
 	// 节点表格：地址打码
@@ -315,11 +314,8 @@ func TestSubscriptionFetch(t *testing.T) {
 	h := newHarness(t, nil)
 	c, _ := h.setup()
 	s := decode[sourceDTO](t, c.want(201, "POST", "/api/v1/sources", map[string]any{"name": "机场", "kind": "subscription", "url": sub.URL + "/sub?token=example"}))
-	if s.Fetch != "direct" {
-		t.Errorf("没有出口时管理员的订阅为直连：%s", s.Fetch)
-	}
 	snap := decode[snapshotDTO](t, c.want(200, "POST", "/api/v1/sources/"+s.ID+"/refresh", nil))
-	if snap.LastError != "" || snap.Hash == "" || snap.Via != "direct" {
+	if snap.LastError != "" || snap.Hash == "" {
 		t.Fatalf("拉取：%+v", snap)
 	}
 	n := decode[map[string]json.RawMessage](t, c.want(200, "GET", "/api/v1/sources/"+s.ID+"/nodes", nil))
@@ -334,4 +330,80 @@ func mustHash(pw string) string {
 		panic(err)
 	}
 	return h
+}
+
+// 注册：默认关闭；关闭时只能凭有效的一次性邀请注册，邀请用过即作废、过期失效；
+// 管理员可以打开注册；普通用户访问管理接口得到 404。
+func TestRegistrationAndInvites(t *testing.T) {
+	h := newHarness(t, nil)
+	admin, _ := h.setup()
+	anon := h.client()
+	if st := decode[registrationDTO](t, anon.want(200, "GET", "/api/v1/register", nil)); st.Open {
+		t.Fatal("注册应默认关闭")
+	}
+	reg := func(user, invite string) (*http.Response, []byte) {
+		return anon.do("POST", "/api/v1/register", map[string]string{"username": user, "password": "a long enough password", "invite": invite})
+	}
+	if r, _ := reg("alice", ""); r.StatusCode != 403 {
+		t.Fatalf("关闭时无邀请应拒绝：%d", r.StatusCode)
+	}
+	inv := decode[inviteDTO](t, admin.want(201, "POST", "/api/v1/admin/invites", map[string]any{"hours": 24, "note": "给朋友"}))
+	tok := inv.URL[strings.Index(inv.URL, "#")+1:]
+	if !strings.Contains(inv.URL, "/register#") || inv.ExpiresAt == nil {
+		t.Fatalf("邀请：%+v", inv)
+	}
+	if r, b := reg("alice", tok); r.StatusCode != 201 {
+		t.Fatalf("凭邀请注册：%d %s", r.StatusCode, b)
+	}
+	if r, _ := reg("carol", tok); r.StatusCode != 403 {
+		t.Errorf("邀请只能用一次：%d", r.StatusCode)
+	}
+	if r, _ := reg("Alice", ""); r.StatusCode == 201 {
+		t.Error("用户名应不区分大小写地唯一")
+	}
+	// 过期的邀请
+	tok2, inv2, _ := h.svc.CreateInvite(context.Background(), firstAdmin(t, h), time.Nanosecond, "")
+	time.Sleep(5 * time.Millisecond)
+	if r, _ := reg("dave", tok2); r.StatusCode != 403 {
+		t.Errorf("过期的邀请应失效：%d", r.StatusCode)
+	}
+	list := decode[list[inviteDTO]](t, admin.want(200, "GET", "/api/v1/admin/invites", nil))
+	statuses := map[string]string{}
+	for _, x := range list.Items {
+		statuses[x.ID] = x.Status
+		if x.URL != "" {
+			t.Error("列表中不应再返回邀请链接")
+		}
+	}
+	if statuses[inv.ID] != "used" || statuses[inv2.ID] != "expired" {
+		t.Errorf("邀请状态：%v", statuses)
+	}
+	admin.want(204, "DELETE", "/api/v1/admin/invites/"+inv2.ID, nil)
+	// 普通用户看不到管理接口
+	alice := h.client()
+	alice.login("alice", "a long enough password")
+	alice.want(404, "GET", "/api/v1/admin/invites", nil)
+	alice.want(404, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
+	// 打开注册后无需邀请
+	admin.want(200, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
+	if r, b := reg("erin", ""); r.StatusCode != 201 {
+		t.Fatalf("开放注册：%d %s", r.StatusCode, b)
+	}
+	if r, _ := reg("frank", "stale-invite"); r.StatusCode != 201 {
+		t.Errorf("开放注册时应忽略邀请参数：%d", r.StatusCode)
+	}
+	if r, _ := reg(" bob", ""); r.StatusCode != 422 {
+		t.Errorf("首尾空白的用户名应报错而不是被改写：%d", r.StatusCode)
+	}
+	if r, _ := reg("ab", ""); r.StatusCode != 422 {
+		t.Errorf("过短的用户名应拒绝：%d", r.StatusCode)
+	}
+}
+
+func firstAdmin(t *testing.T, h *harness) string {
+	u, err := h.db.Users().ByUsername(context.Background(), "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u.ID
 }

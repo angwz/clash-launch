@@ -33,10 +33,8 @@ import (
 // 它只由 base64url 安全字符组成，替换为令牌后 YAML 的结构与引号不变。
 const LinkTokenPlaceholder = "LINKTOKEN-PLACEHOLDER-0000000000000000000000"
 
-// Policy 是拉取策略（第 14.6 节）。
+// Policy 是拉取策略。服务器直接拉取订阅与规则源（没有出站代理，见 docs/decisions/0003）。
 type Policy struct {
-	// AllowUserDirect：没有出站代理时，是否允许普通用户的源由服务器直连拉取（管理员明确打开，暴露服务器 IP）。
-	AllowUserDirect bool
 	StaleAfter      time.Duration // 连续失败多久后提示，默认 7 天
 	DefaultInterval time.Duration // 订阅与规则源的默认拉取间隔，默认 6 小时
 }
@@ -84,29 +82,6 @@ func or(d, def time.Duration) time.Duration {
 	return def
 }
 
-// ErrDirectNotAllowed 表示没有出站代理，且该用户不允许让服务器直连拉取。
-var ErrDirectNotAllowed = errors.New("service: 没有出站代理，订阅只能交给客户端获取")
-
-// fetchRequest 根据策略决定是否直连（第 14.6 节第 1、2 条）。
-func (s *Service) fetchRequest(ctx context.Context, owner, rawURL, ua string, headers map[string]string, allowDirect bool) (source.Request, error) {
-	req := source.Request{URL: rawURL, UA: ua, Headers: headers}
-	switch {
-	case allowDirect: // 仅管理员能为源打开
-		req.Direct = true
-	case s.Fetcher != nil && s.Fetcher.EgressConfigured():
-	default:
-		u, err := s.Store.Users().ByID(ctx, owner)
-		if err != nil {
-			return req, err
-		}
-		if u.Role != "admin" && !s.Policy.AllowUserDirect {
-			return req, ErrDirectNotAllowed
-		}
-		req.Direct = true
-	}
-	return req, nil
-}
-
 // RefreshSource 立即拉取一个订阅，更新快照，并重新渲染引用它的方案。
 func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.Snapshot, error) {
 	src, err := s.Store.Sources().Get(ctx, owner, id)
@@ -117,11 +92,7 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 		return nil, fmt.Errorf("service: 只有订阅需要拉取")
 	}
 	prev, _ := s.Store.Snapshots().Get(ctx, owner, SourceKey(id))
-	var resp *source.Response
-	req, err := s.fetchRequest(ctx, owner, src.URL, src.UA, src.Headers, src.AllowDirect)
-	if err == nil {
-		resp, err = s.Fetcher.Fetch(ctx, req)
-	}
+	resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: src.URL, UA: src.UA, Headers: src.Headers})
 	accept, reason := false, ""
 	if err == nil {
 		var l diag.List
@@ -166,11 +137,7 @@ func (s *Service) RefreshRuleSource(ctx context.Context, owner, id string) error
 			continue
 		}
 		prev, _ := s.Store.Snapshots().Get(ctx, owner, RuleKey(id, part))
-		var resp *source.Response
-		req, err := s.fetchRequest(ctx, owner, u, "", nil, false)
-		if err == nil {
-			resp, err = s.Fetcher.Fetch(ctx, req)
-		}
+		resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: u})
 		if err != nil && firstErr == nil {
 			firstErr = err
 		}
@@ -204,11 +171,11 @@ func toSourceSnap(s *store.Snapshot) *source.Snapshot {
 	if s == nil {
 		return nil
 	}
-	return &source.Snapshot{Content: s.Content, Hash: s.Hash, Headers: s.Headers, FetchedAt: s.FetchedAt, Via: s.Via, LastError: s.LastError, LastAttempt: s.LastAttempt, FailingSince: s.FailingSince}
+	return &source.Snapshot{Content: s.Content, Hash: s.Hash, Headers: s.Headers, FetchedAt: s.FetchedAt, LastError: s.LastError, LastAttempt: s.LastAttempt, FailingSince: s.FailingSince}
 }
 
 func fromSourceSnap(key, owner string, s *source.Snapshot) *store.Snapshot {
-	return &store.Snapshot{Key: key, OwnerID: owner, Content: s.Content, Hash: s.Hash, Headers: s.Headers, FetchedAt: s.FetchedAt, Via: s.Via, LastError: s.LastError, LastAttempt: s.LastAttempt, FailingSince: s.FailingSince}
+	return &store.Snapshot{Key: key, OwnerID: owner, Content: s.Content, Hash: s.Hash, Headers: s.Headers, FetchedAt: s.FetchedAt, LastError: s.LastError, LastAttempt: s.LastAttempt, FailingSince: s.FailingSince}
 }
 
 // Result 是一次渲染（或预览）的结果。

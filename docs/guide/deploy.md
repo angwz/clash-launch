@@ -7,7 +7,7 @@ Clash, Launch! 是一个单容器服务：一个静态二进制、内嵌的前�
 ## 用 compose 启动
 
 ```sh
-docker compose up -d          # 本服务 + WARP 出口边车（compose.yaml）
+docker compose up -d
 docker compose logs clash-launch | grep setup
 ```
 
@@ -20,7 +20,7 @@ docker compose logs clash-launch | grep setup
 
 3. 把 nginx 或 Caddy 反向代理到 `127.0.0.1:8080`，见 [reverse-proxy](reverse-proxy.md)。
 
-不需要出口边车时用 `compose.minimal.yaml`。
+4. 让别人注册：注册默认关闭。管理员可以在设置中打开注册，或者为每个人生成一次性邀请链接（可选有效期），见 [注册与邀请](#注册与邀请)。
 
 ## 配置
 
@@ -34,16 +34,22 @@ docker compose logs clash-launch | grep setup
 | `CLASH_LAUNCH_PUBLIC_URL` | — | 对外地址；生成的订阅链接与 Cookie 的 `Secure` 以它为准。未设置时根据请求推断 |
 | `CLASH_LAUNCH_MASTER_KEY` / `_FILE` | — | 主密钥；都没有时生成 `/data/master.key` |
 | `CLASH_LAUNCH_TRUSTED_PROXIES` | — | 受信任的反向代理网段，逗号分隔；只有来自这些地址的请求才采信 `X-Forwarded-For`/`-Proto` |
-| `CLASH_LAUNCH_EGRESS_PROXY` | compose 中为 `socks5h://warp:1080` | 出站代理：`socks5h://`、`socks5://` 或 `http://` |
-| `CLASH_LAUNCH_EGRESS_KIND` | 地址含 `warp` 时为 `warp` | 向用户说明订阅的获取方式：`warp` 或 `proxy` |
-| `CLASH_LAUNCH_ALLOW_USER_DIRECT` | `false` | 没有出站代理时，是否允许普通用户的订阅由服务器直连拉取（暴露服务器 IP） |
 | `CLASH_LAUNCH_FETCH_ALLOWLIST` | — | SSRF 白名单：网段、IP 或主机名 |
 | `CLASH_LAUNCH_MIHOMO` · `_GEODATA` | `/opt/mihomo/mihomo` · `/opt/mihomo/geodata` | 内核检查用的 mihomo 与地理数据 |
 | `CLASH_LAUNCH_LOG_LEVEL` | `info` | `debug`、`info`、`warn`、`error` |
 
-## 出站隐私
+## 注册与邀请
 
-服务器拉取订阅时，对方能看到服务器的出口 IP。默认的 compose 把所有出站连接交给 WARP 边车，对方看到的是 Cloudflare 的地址；出口不可用时**不会回退直连**，而是沿用上次成功的快照。细节见 [network](../design/network.md)。
+| 方式 | 做法 |
+| --- | --- |
+| 关闭注册（默认） | 只有持有邀请链接的人能注册。管理员生成 `<对外地址>/register#<令牌>`：有效期 1 小时到 90 天或不过期，可附备注；用过一次即作废，未使用的可以撤销 |
+| 开放注册 | 任何能访问服务的人都可以注册普通账号；每个 IP 每小时最多 10 次 |
+
+接口见 [`openapi.yaml`](../../api/openapi.yaml) 的 `admin` 标签；设计见 [0003](../decisions/0003-direct-fetch-and-invites.md)。
+
+## 出站与服务器 IP
+
+服务器直接拉取订阅与规则源，对方能看到服务器的出口 IP；能添加订阅的用户也可以借此得知它。需要隐藏时，在宿主机或网络层让整台服务器经代理出网。SSRF 防护与请求头约束见 [network](../design/network.md)。
 
 ## 备份与升级
 

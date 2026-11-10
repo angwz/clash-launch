@@ -55,38 +55,34 @@ type snapshotDTO struct {
 	LastAttempt  *time.Time `json:"lastAttempt,omitempty"`
 	LastError    string     `json:"lastError,omitempty"`
 	FailingSince *time.Time `json:"failingSince,omitempty"`
-	Via          string     `json:"via,omitempty"`
 	Hash         string     `json:"hash,omitempty"`
 }
 
 type sourceDTO struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Kind        string            `json:"kind"`
-	URL         string            `json:"url,omitempty"`
-	Content     string            `json:"content,omitempty"`
-	UA          string            `json:"ua,omitempty"`
-	Headers     map[string]string `json:"headers,omitempty"`
-	Interval    int               `json:"interval"`
-	Processing  json.RawMessage   `json:"processing"`
-	AllowDirect bool              `json:"allowDirect"`
-	Fetch       string            `json:"fetch"` // 获取方式：warp | proxy | direct | client（第 14.6 节第 5 条）
-	Version     int64             `json:"version"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
-	Snapshot    *snapshotDTO      `json:"snapshot,omitempty"`
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Kind       string            `json:"kind"`
+	URL        string            `json:"url,omitempty"`
+	Content    string            `json:"content,omitempty"`
+	UA         string            `json:"ua,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+	Interval   int               `json:"interval"`
+	Processing json.RawMessage   `json:"processing"`
+	Version    int64             `json:"version"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
+	Snapshot   *snapshotDTO      `json:"snapshot,omitempty"`
 }
 
 type sourceReq struct {
-	Name        string            `json:"name"`
-	Kind        string            `json:"kind"`
-	URL         string            `json:"url"`
-	Content     string            `json:"content"`
-	UA          string            `json:"ua"`
-	Headers     map[string]string `json:"headers"`
-	Interval    int               `json:"interval"`
-	Processing  json.RawMessage   `json:"processing"`
-	AllowDirect bool              `json:"allowDirect"`
+	Name       string            `json:"name"`
+	Kind       string            `json:"kind"`
+	URL        string            `json:"url"`
+	Content    string            `json:"content"`
+	UA         string            `json:"ua"`
+	Headers    map[string]string `json:"headers"`
+	Interval   int               `json:"interval"`
+	Processing json.RawMessage   `json:"processing"`
 }
 
 func tp(t time.Time) *time.Time {
@@ -96,30 +92,13 @@ func tp(t time.Time) *time.Time {
 	return &t
 }
 
-func (s *Server) fetchMode(u *store.User, src *store.Source) string {
-	switch {
-	case src.Kind != "subscription":
-		return "local"
-	case src.AllowDirect:
-		return "direct"
-	case s.Svc.Fetcher != nil && s.Svc.Fetcher.EgressConfigured():
-		if s.Cfg.EgressKind == "warp" {
-			return "warp"
-		}
-		return "proxy"
-	case u.Role == "admin" || s.Svc.Policy.AllowUserDirect:
-		return "direct"
-	}
-	return "client"
-}
-
 func (s *Server) toSource(r *http.Request, u *store.User, src *store.Source) sourceDTO {
-	d := sourceDTO{ID: src.ID, Name: src.Name, Kind: src.Kind, URL: src.URL, Content: string(src.Content), UA: src.UA, Headers: src.Headers, Interval: src.Interval, Processing: src.Processing, AllowDirect: src.AllowDirect, Fetch: s.fetchMode(u, src), Version: src.Version, CreatedAt: src.CreatedAt, UpdatedAt: src.UpdatedAt}
+	d := sourceDTO{ID: src.ID, Name: src.Name, Kind: src.Kind, URL: src.URL, Content: string(src.Content), UA: src.UA, Headers: src.Headers, Interval: src.Interval, Processing: src.Processing, Version: src.Version, CreatedAt: src.CreatedAt, UpdatedAt: src.UpdatedAt}
 	if len(d.Processing) == 0 {
 		d.Processing = json.RawMessage("{}")
 	}
 	if snap, err := s.Svc.Store.Snapshots().Get(r.Context(), u.ID, service.SourceKey(src.ID)); err == nil {
-		d.Snapshot = &snapshotDTO{FetchedAt: tp(snap.FetchedAt), LastAttempt: tp(snap.LastAttempt), LastError: snap.LastError, FailingSince: tp(snap.FailingSince), Via: snap.Via, Hash: snap.Hash}
+		d.Snapshot = &snapshotDTO{FetchedAt: tp(snap.FetchedAt), LastAttempt: tp(snap.LastAttempt), LastError: snap.LastError, FailingSince: tp(snap.FailingSince), Hash: snap.Hash}
 	}
 	return d
 }
@@ -129,9 +108,6 @@ var sourceKinds = []string{"single", "batch", "subscription", "file"}
 func (s *Server) applySource(p *principal, req sourceReq, src *store.Source) error {
 	if strings.TrimSpace(req.Name) == "" || !slices.Contains(sourceKinds, req.Kind) {
 		return badRequest("name and a valid kind (single, batch, subscription, file) are required")
-	}
-	if req.AllowDirect && p.User.Role != "admin" {
-		return badRequest("only administrators can allow direct fetching")
 	}
 	if req.Kind == "subscription" {
 		u, err := url.Parse(req.URL)
@@ -150,7 +126,7 @@ func (s *Server) applySource(p *principal, req sourceReq, src *store.Source) err
 			return badRequest("invalid processing: %v", err)
 		}
 	}
-	src.Name, src.Kind, src.URL, src.UA, src.Headers, src.Interval, src.Processing, src.AllowDirect = strings.TrimSpace(req.Name), req.Kind, req.URL, req.UA, req.Headers, req.Interval, req.Processing, req.AllowDirect
+	src.Name, src.Kind, src.URL, src.UA, src.Headers, src.Interval, src.Processing = strings.TrimSpace(req.Name), req.Kind, req.URL, req.UA, req.Headers, req.Interval, req.Processing
 	src.Content = nil
 	if req.Kind != "subscription" {
 		src.Content, src.URL = []byte(req.Content), ""
@@ -258,7 +234,7 @@ func (s *Server) refreshSource(w http.ResponseWriter, r *http.Request, p *princi
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, snapshotDTO{FetchedAt: tp(snap.FetchedAt), LastAttempt: tp(snap.LastAttempt), LastError: snap.LastError, FailingSince: tp(snap.FailingSince), Via: snap.Via, Hash: snap.Hash})
+	writeJSON(w, http.StatusOK, snapshotDTO{FetchedAt: tp(snap.FetchedAt), LastAttempt: tp(snap.LastAttempt), LastError: snap.LastError, FailingSince: tp(snap.FailingSince), Hash: snap.Hash})
 }
 
 type nodeDTO struct {

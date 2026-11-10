@@ -33,19 +33,19 @@ type Config struct {
 	MaxBody        int64          // 默认 1 MiB（上传另行放宽）
 	SubRate        int            // 每个 IP+令牌每分钟的订阅请求上限，默认 30
 	Static         fs.FS          // 前端构建产物（web/dist）；nil 时只提供 API
-	EgressKind     string         // warp | proxy | 空：用于向用户说明订阅的获取方式（第 14.6 节第 5 条）
 	Guard          source.Guard   // 添加订阅时的 URL 检查（与拉取层同一策略）
 }
 
 // Server 是 HTTP 服务。
 type Server struct {
-	Svc   *service.Service
-	Cfg   Config
-	Log   *slog.Logger
-	setup *service.Setup
-	mu    sync.Mutex
-	limit *limiter
-	mux   *http.ServeMux
+	Svc      *service.Service
+	Cfg      Config
+	Log      *slog.Logger
+	setup    *service.Setup
+	mu       sync.Mutex
+	limit    *limiter
+	regLimit *limiter // 注册：每个 IP 每小时 10 次
+	mux      *http.ServeMux
 }
 
 // New 构造服务并注册路由。
@@ -62,7 +62,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -229,8 +229,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
 		problem(w, http.StatusBadRequest, "bad_request", strings.TrimPrefix(err.Error(), errBadRequest.Error()+": "))
-	case errors.Is(err, service.ErrDirectNotAllowed):
-		problem(w, http.StatusConflict, "fetch.no_egress", err.Error())
+	case errors.Is(err, service.ErrRegistrationClosed):
+		problem(w, http.StatusForbidden, "register.closed", "registration is closed; a valid invite is required")
+	case errors.Is(err, service.ErrUsername):
+		problem(w, http.StatusUnprocessableEntity, "register.username", err.Error())
 	default:
 		s.Log.Error("request failed", "error", err)
 		problem(w, http.StatusInternalServerError, "internal", "internal error")
