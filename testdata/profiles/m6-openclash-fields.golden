@@ -42,3 +42,59 @@ proxy-groups:
 
 rules:
   - MATCH,PROXY
+
+listeners:
+  - name: mixed-in
+    type: mixed
+    port: 17890
+    listen: 127.0.0.1
+    udp: true
+    users:
+      - username: example
+        password: example-password
+  - name: ss-in
+    type: shadowsocks
+    port: 17891,17892
+    listen: 127.0.0.1
+    password: example-password
+    cipher: aes-128-gcm
+    shadow-tls:
+      enable: true
+      version: 3
+      users:
+        - name: example
+          password: example-password
+      handshake:
+        dest: www.example.com:443
+  - name: vless-in
+    type: vless
+    port: 17893
+    listen: 127.0.0.1
+    users:
+      - username: example
+        uuid: 00000000-0000-4000-8000-000000000004
+        flow: ''
+    xhttp-config:
+      path: /xhttp
+      mode: auto
+      no-sse-header: false
+      sc-max-buffered-posts: '30'
+    reality-config:
+      dest: www.example.com:443
+      private-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      short-id:
+        - 0123456789abcdef
+      server-names:
+        - www.example.com
+      limit-fallback-upload:
+        after-bytes: 0
+        bytes-per-sec: 0
+        burst-bytes-per-sec: 0
+  - name: tunnel-in
+    type: tunnel
+    port: 17894
+    listen: 127.0.0.1
+    network:
+      - tcp
+      - udp
+    target: 192.0.2.30:53

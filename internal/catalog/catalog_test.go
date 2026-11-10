@@ -93,6 +93,17 @@ func TestTopLevelOrderFollowsExample(t *testing.T) {
 		}
 		checkSubsequence(t, "proxies."+v.Value, order, orders["proxies."+v.Value])
 	}
+	// listeners：hysteria2 与 tuic 的示例把 TLS 等字段缩进在 users 之下（注释排版所致），不参与比较。
+	for _, v := range c.Root.Child("listeners", nil).Items.Variants {
+		if v.Value == "hysteria2" || v.Value == "tuic" {
+			continue
+		}
+		order := make([]string, len(v.Fields))
+		for i, f := range v.Fields {
+			order[i] = f.Key
+		}
+		checkSubsequence(t, "listeners."+v.Value, order, orders["listeners."+v.Value])
+	}
 	rp := c.Root.Child("rule-providers", nil).Values.KeyOrder(nil)
 	checkSubsequence(t, "rule-providers", rp, orders["rule-providers.*"])
 }

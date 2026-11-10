@@ -1,13 +1,723 @@
 # 入站：listeners 与旧式的单项入站配置。
-# listeners 的逐类型字段在 M6 补齐（见 docs/development/progress.md）；在此之前按 any 透传，由内核检查把关。
+# listeners 的字段依据 listener/inbound/*.go（mihomo v1.19.33）与官方示例 docs/config.yaml 的注释；
+# 各类型的键顺序与示例一致（catalog 测试锁定）。与节点同构的参数复用 proxies/common.yaml 中的片段。
+fragments:
+  in-base:
+    - {key: name, type: string, importance: core, doc: "inbound/listeners#name",
+       zh: [名称, "入站名称，必须唯一。"], en: [Name, "Listener name; must be unique."]}
+    - {key: type, type: string, importance: core, doc: "inbound/listeners#type",
+       zh: [类型, "入站协议类型。"], en: [Type, "Inbound protocol type."]}
+    - {key: port, type: anyOf, of: [{type: int}, {type: string}], importance: core, doc: "inbound/listeners#port", ui: {widget: port},
+       zh: [端口, "监听端口；也可写多个端口与范围，如 200,204,401-429。"], en: [Port, "Listen port; multiple ports and ranges such as 200,204,401-429 are allowed."]}
+    - {key: listen, type: string, default: 0.0.0.0, importance: recommended, doc: "inbound/listeners#listen",
+       zh: [监听地址, "监听的本机地址。"], en: [Listen address, "Local address to listen on."]}
+    - {key: routing-mark, type: int, importance: expert, doc: "inbound/listeners#routing-mark",
+       zh: [路由标记, "为监听 socket 设置 routing-mark（仅 Linux）。"], en: [Routing mark, "routing-mark of the listening socket (Linux only)."]}
+    - {key: rule, type: string, importance: optional, doc: "inbound/listeners#rule", related: [sub-rules],
+       zh: [子规则, "使用的 sub-rules 名称；留空或找不到时使用 rules。"], en: [Sub-rule, "sub-rules set to use; rules when empty or not found."]}
+    - {key: proxy, type: string, importance: optional, doc: "inbound/listeners#proxy", related: [proxies, proxy-groups],
+       zh: [直接出站, "填写后，该入站的流量直接交给这个节点或策略组，名称必须存在。"], en: [Proxy, "When set, traffic of this listener goes straight to this proxy or group, which must exist."]}
+  in-udp:
+    - {key: udp, type: bool, default: true, importance: optional, doc: inbound/listeners,
+       zh: [UDP, "是否接受 UDP。"], en: [UDP, "Accept UDP."]}
+  in-users-auth:
+    - key: users
+      type: list
+      importance: recommended
+      doc: inbound/listeners
+      zh: [用户, "不填写时遵从全局 authentication，填写后忽略全局设置；写 [] 可跳过认证。"]
+      en: [Users, "Follows the global authentication when absent and overrides it when set; [] disables authentication."]
+      items:
+        type: object
+        fields:
+          - {key: username, type: string, importance: core, zh: [用户名, "用户名。"], en: [Username, "Username."]}
+          - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "密码。"], en: [Password, "Password."]}
+  in-users-map:
+    - {key: users, type: map, values: {type: string}, importance: core, sensitive: true, doc: inbound/listeners,
+       zh: [用户, "用户名（或 UUID）到密码的映射。"], en: [Users, "Map of username (or UUID) to password."]}
+  in-tls:
+    - {key: certificate, type: string, importance: recommended, doc: inbound/listeners,
+       zh: [证书, "服务端证书（PEM 或路径）；与 private-key 同时填写时启用 TLS。"], en: [Certificate, "Server certificate (PEM or path); TLS is enabled when set together with private-key."]}
+    - {key: private-key, type: string, importance: recommended, sensitive: true, doc: inbound/listeners,
+       zh: [私钥, "证书对应的私钥（PEM 或路径）。"], en: [Private key, "Private key of the certificate (PEM or path)."]}
+    - {key: client-auth-type, type: string, importance: expert, doc: inbound/listeners,
+       zh: [客户端认证, "mTLS 方式：留空、request、require-any、verify-if-given 或 require-and-verify；后两者需要 client-auth-cert。"], en: [Client auth, "mTLS mode: empty, request, require-any, verify-if-given or require-and-verify; the last two need client-auth-cert."]}
+    - {key: client-auth-cert, type: string, importance: expert, doc: inbound/listeners,
+       zh: [客户端 CA, "校验客户端证书使用的证书（PEM 或路径）。"], en: [Client CA, "Certificate used to verify clients (PEM or path)."]}
+    - {key: ech-key, type: string, importance: expert, sensitive: true, doc: inbound/listeners,
+       zh: [ECH 密钥, "填写后启用 ECH；可由 mihomo generate ech-keypair <域名> 生成。"], en: [ECH key, "Enables ECH; generate with mihomo generate ech-keypair <domain>."]}
+  in-allow-insecure:
+    - {key: allow-insecure, type: bool, default: false, importance: expert, doc: inbound/listeners,
+       zh: [允许不加密, "允许不启用任何 TLS 类加密；只用于有 nginx、caddy 等前置的情况。"], en: [Allow insecure, "Allow running without any TLS-like encryption; only behind nginx, caddy or similar."]}
+  in-transport:
+    - {key: ws-path, type: string, importance: optional, doc: inbound/listeners,
+       zh: [WebSocket 路径, "填写后启用 WebSocket 传输。"], en: [WebSocket path, "Enables the WebSocket transport when set."]}
+    - {key: grpc-service-name, type: string, importance: optional, doc: inbound/listeners,
+       zh: [gRPC 服务名, "填写后启用 gRPC 传输。"], en: [gRPC service name, "Enables the gRPC transport when set."]}
+  in-reality:
+    - key: reality-config
+      type: object
+      importance: optional
+      doc: inbound/listeners
+      zh: [REALITY, "填写后启用 REALITY；不能与 certificate、private-key 同时使用。"]
+      en: [REALITY, "Enables REALITY; cannot be combined with certificate and private-key."]
+      fields:
+        - {key: dest, type: string, importance: core, zh: [目标, "伪装目标 host:port。"], en: [Destination, "Camouflage target host:port."]}
+        - {key: private-key, type: string, importance: core, sensitive: true, zh: [私钥, "REALITY 私钥；可由 mihomo generate reality-keypair 生成。"], en: [Private key, "REALITY private key; generate with mihomo generate reality-keypair."]}
+        - {key: short-id, type: list, items: {type: string}, importance: core, zh: [Short ID, "允许的 short-id 列表。"], en: [Short IDs, "Accepted short IDs."]}
+        - {key: server-names, type: list, items: {type: string}, importance: core, zh: [服务器名称, "允许的 SNI 列表。"], en: [Server names, "Accepted SNIs."]}
+        - {key: max-time-difference, type: int, importance: expert, zh: [最大时间差, "允许的客户端时间偏差（毫秒）；0 不检查。"], en: [Max time difference, "Allowed client clock skew in milliseconds; 0 disables the check."]}
+        - {key: proxy, type: string, importance: expert, zh: [回落代理, "连接伪装目标时使用的代理。"], en: [Fallback proxy, "Proxy used to reach the camouflage target."]}
+        - key: limit-fallback-upload
+          type: object
+          importance: expert
+          zh: [回落上行限速, "对未通过验证的回落连接限速；回落限速本身是一种特征，不建议启用。"]
+          en: [Fallback upload limit, "Rate-limit unauthenticated fallback traffic; the limit itself is a fingerprint and not recommended."]
+          fields:
+            - {include: in-reality-limit}
+        - key: limit-fallback-download
+          type: object
+          importance: expert
+          zh: [回落下行限速, "对未通过验证的回落连接限速。"]
+          en: [Fallback download limit, "Rate-limit unauthenticated fallback traffic."]
+          fields:
+            - {include: in-reality-limit}
+  in-reality-limit:
+    - {key: after-bytes, type: int, default: 0, importance: expert, zh: [起始字节, "传输这么多字节后开始限速。"], en: [After bytes, "Start limiting after this many bytes."]}
+    - {key: bytes-per-sec, type: int, default: 0, importance: expert, zh: [基准速率, "字节/秒；0 不限速。"], en: [Bytes per second, "Bytes per second; 0 disables the limit."]}
+    - {key: burst-bytes-per-sec, type: int, default: 0, importance: expert, zh: [突发速率, "字节/秒；大于基准速率时生效。"], en: [Burst rate, "Bytes per second; effective when above the base rate."]}
+  in-shadow-tls:
+    - key: shadow-tls
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [ShadowTLS, "ShadowTLS 服务端；与 res-tls、jls-config 互斥。"]
+      en: [ShadowTLS, "ShadowTLS server; mutually exclusive with res-tls and jls-config."]
+      fields:
+        - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用 ShadowTLS。"], en: [Enable, "Enable ShadowTLS."]}
+        - {key: version, type: int, importance: core, zh: [版本, "协议版本 1、2 或 3。"], en: [Version, "Protocol version 1, 2 or 3."]}
+        - {key: password, type: string, importance: optional, sensitive: true, zh: [密码, "v2 使用的密码。"], en: [Password, "Password used by v2."]}
+        - key: users
+          type: list
+          importance: optional
+          zh: [用户, "v3 使用的用户。"]
+          en: [Users, "Users for v3."]
+          items:
+            type: object
+            fields:
+              - {key: name, type: string, importance: core, zh: [名称, "用户名称。"], en: [Name, "User name."]}
+              - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "用户密码。"], en: [Password, "User password."]}
+        - key: handshake
+          type: object
+          importance: core
+          zh: [握手目标, "转发握手的真实 TLS 服务器。"]
+          en: [Handshake, "Real TLS server the handshake is relayed to."]
+          fields:
+            - {include: in-shadow-tls-hs}
+        - key: handshake-for-server-name
+          type: map
+          importance: expert
+          zh: [按 SNI 的握手目标, "按 SNI 选择不同的握手目标。"]
+          en: [Handshake per SNI, "Pick a different handshake target per SNI."]
+          values:
+            type: object
+            fields:
+              - {include: in-shadow-tls-hs}
+        - {key: strict-mode, type: bool, default: false, importance: expert, zh: [严格模式, "严格校验握手，拒绝不符合协议的连接。"], en: [Strict mode, "Validate the handshake strictly and reject non-conforming connections."]}
+        - {key: wildcard-sni, type: string, importance: expert, zh: [通配 SNI, "接受任意 SNI 时的处理方式（v3）。"], en: [Wildcard SNI, "How arbitrary SNIs are handled (v3)."]}
+  in-shadow-tls-hs:
+    - {key: dest, type: string, importance: core, zh: [目标, "握手服务器 host:port。"], en: [Destination, "Handshake server host:port."]}
+    - {key: proxy, type: string, importance: expert, zh: [代理, "连接握手服务器时使用的代理。"], en: [Proxy, "Proxy used to reach the handshake server."]}
+  in-res-tls:
+    - key: res-tls
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [Restls, "Restls 服务端；与 shadow-tls、jls-config 互斥。"]
+      en: [Restls, "Restls server; mutually exclusive with shadow-tls and jls-config."]
+      fields:
+        - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用 Restls。"], en: [Enable, "Enable Restls."]}
+        - {key: dest, type: string, importance: core, zh: [目标, "伪装目标 host:port。"], en: [Destination, "Camouflage target host:port."]}
+        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Restls 密码。"], en: [Password, "Restls password."]}
+        - {key: restls-script, type: string, importance: expert, zh: [Restls 脚本, "控制报文长度与时序的脚本；留空使用默认。"], en: [Restls script, "Script controlling record lengths and timing; default when empty."]}
+        - {key: min-record-len, type: int, default: 0, importance: expert, zh: [最小记录长度, "TLS 记录的最小长度。"], en: [Min record length, "Minimum TLS record length."]}
+        - {key: proxy, type: string, importance: expert, zh: [回落代理, "连接伪装目标时使用的代理。"], en: [Fallback proxy, "Proxy used to reach the camouflage target."]}
+        - {key: rate-limit, type: int, default: 0, importance: expert, zh: [回落限速, "回落双向转发限速（bit/s）；0 不限速。"], en: [Fallback rate limit, "Fallback relay limit in bit/s; 0 means unlimited."]}
+  in-jls:
+    - key: jls-config
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [JLS, "JLS 服务端，替代普通 TLS；认证失败或普通 TLS 连接透明回落到 dest。"]
+      en: [JLS, "JLS server replacing plain TLS; failed authentication or plain TLS falls back to dest transparently."]
+      fields:
+        - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用 JLS。"], en: [Enable, "Enable JLS."]}
+        - key: users
+          type: list
+          importance: core
+          zh: [用户, "JLS 用户。"]
+          en: [Users, "JLS users."]
+          items:
+            type: object
+            fields:
+              - {key: username, type: string, importance: core, zh: [用户名, "JLS 用户名。"], en: [Username, "JLS username."]}
+              - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "JLS 密码。"], en: [Password, "JLS password."]}
+        - {key: sni, type: string, importance: optional, zh: [SNI, "伪装使用的 SNI；留空时从 dest 推导。"], en: [SNI, "SNI for camouflage; derived from dest when empty."]}
+        - {key: dest, type: string, importance: core, zh: [回落目标, "回落目标 host:port。"], en: [Fallback target, "Fallback target host:port."]}
+        - {key: alpn, type: list, items: {type: string}, importance: optional, zh: [ALPN, "ALPN 列表。"], en: [ALPN, "ALPN list."]}
+        - {key: proxy, type: string, importance: expert, zh: [回落代理, "连接回落目标时使用的代理。"], en: [Fallback proxy, "Proxy used to reach the fallback target."]}
+        - {key: rate-limit, type: int, default: 0, importance: expert, zh: [回落限速, "回落转发限速（bit/s）；0 不限速。"], en: [Fallback rate limit, "Fallback relay limit in bit/s; 0 means unlimited."]}
+  in-mux:
+    - key: mux-option
+      type: object
+      importance: expert
+      doc: inbound/listeners
+      zh: [多路复用, "sing-mux 服务端选项。"]
+      en: [Multiplexing, "sing-mux server options."]
+      fields:
+        - {key: padding, type: bool, default: false, importance: expert, zh: [填充, "启用填充。"], en: [Padding, "Enable padding."]}
+        - key: brutal
+          type: object
+          importance: expert
+          zh: [Brutal, "TCP Brutal 拥塞控制。"]
+          en: [Brutal, "TCP Brutal congestion control."]
+          fields:
+            - {key: enabled, type: bool, default: false, importance: expert, zh: [启用, "启用 Brutal。"], en: [Enabled, "Enable Brutal."]}
+            - {key: up, type: string, importance: expert, zh: [上行, "上行带宽，如 50 Mbps。"], en: [Up, "Upload bandwidth such as 50 Mbps."]}
+            - {key: down, type: string, importance: expert, zh: [下行, "下行带宽，如 100 Mbps。"], en: [Down, "Download bandwidth such as 100 Mbps."]}
+  in-kcp-tun:
+    - key: kcp-tun
+      type: object
+      importance: expert
+      stability: experimental
+      doc: inbound/listeners
+      zh: [kcptun, "以 kcptun 方式承载 Shadowsocks；参数须与客户端一致。"]
+      en: [kcptun, "Carry Shadowsocks over kcptun; parameters must match the client."]
+      fields:
+        - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用 kcptun。"], en: [Enable, "Enable kcptun."]}
+        - {key: key, type: string, importance: core, sensitive: true, zh: [密钥, "客户端与服务端的预共享密钥。"], en: [Key, "Pre-shared secret between client and server."]}
+        - {key: crypt, type: string, default: aes, importance: optional, zh: [加密, "aes、aes-128、aes-128-gcm、aes-192、salsa20、blowfish、twofish、cast5、3des、tea、xtea、xor、none 或 null。"], en: [Cipher, "aes, aes-128, aes-128-gcm, aes-192, salsa20, blowfish, twofish, cast5, 3des, tea, xtea, xor, none or null."]}
+        - {key: mode, type: string, default: fast, importance: optional, zh: [模式, "预设档：fast3、fast2、fast、normal 或 manual。"], en: [Mode, "Profile: fast3, fast2, fast, normal or manual."]}
+        - {key: conn, type: int, default: 1, importance: expert, zh: [连接数, "到服务端的 UDP 连接数。"], en: [Connections, "Number of UDP connections to the server."]}
+        - {key: autoexpire, type: int, default: 0, importance: expert, zh: [自动过期, "单个 UDP 连接的过期秒数；0 禁用。"], en: [Auto expire, "Expiry in seconds for one UDP connection; 0 disables."]}
+        - {key: scavengettl, type: int, default: 600, importance: expert, zh: [过期保留, "过期连接继续存活的秒数。"], en: [Scavenge TTL, "Seconds an expired connection may live."]}
+        - {key: ratelimit, type: int, default: 0, importance: expert, zh: [限速, "单个 KCP 连接的最大发送速度（字节/秒）；0 禁用。"], en: [Rate limit, "Maximum outgoing speed per KCP connection in bytes/s; 0 disables."]}
+        - {key: mtu, type: int, default: 1350, importance: expert, zh: [MTU, "UDP 包的最大传输单元。"], en: [MTU, "Maximum transmission unit of UDP packets."]}
+        - {key: sndwnd, type: int, default: 128, importance: expert, zh: [发送窗口, "发送窗口（包数）。"], en: [Send window, "Send window in packets."]}
+        - {key: rcvwnd, type: int, default: 512, importance: expert, zh: [接收窗口, "接收窗口（包数）。"], en: [Receive window, "Receive window in packets."]}
+        - {key: datashard, type: int, default: 10, importance: expert, zh: [数据分片, "Reed-Solomon 纠删码的数据分片数。"], en: [Data shards, "Reed-Solomon data shards."]}
+        - {key: parityshard, type: int, default: 3, importance: expert, zh: [校验分片, "Reed-Solomon 纠删码的校验分片数。"], en: [Parity shards, "Reed-Solomon parity shards."]}
+        - {key: dscp, type: int, default: 0, importance: expert, zh: [DSCP, "DSCP 值（6 位）。"], en: [DSCP, "DSCP value (6 bits)."]}
+        - {key: nocomp, type: bool, default: false, importance: expert, zh: [禁用压缩, "关闭压缩。"], en: [No compression, "Disable compression."]}
+        - {key: acknodelay, type: bool, default: false, importance: expert, zh: [立即确认, "收到包后立即发送 ACK。"], en: [ACK no delay, "Flush ACKs as soon as a packet arrives."]}
+        - {key: nodelay, type: int, default: 0, importance: expert, zh: [nodelay, "KCP 的 nodelay 参数（manual 模式）。"], en: [nodelay, "KCP nodelay parameter (manual mode)."]}
+        - {key: interval, type: int, default: 50, importance: expert, zh: [内部间隔, "KCP 内部更新间隔（毫秒，manual 模式）。"], en: [Interval, "KCP update interval in milliseconds (manual mode)."]}
+        - {key: resend, type: int, default: 0, importance: expert, zh: [快速重传, "KCP 快速重传参数（manual 模式）。"], en: [Resend, "KCP fast resend parameter (manual mode)."]}
+        - {key: nc, type: int, importance: expert, zh: [关闭流控, "KCP 的 nc 参数：1 关闭拥塞控制（manual 模式）。"], en: [No congestion, "KCP nc parameter: 1 disables congestion control (manual mode)."]}
+        - {key: sockbuf, type: int, default: 4194304, importance: expert, zh: [socket 缓冲, "每个 socket 的缓冲区（字节）。"], en: [Socket buffer, "Per-socket buffer in bytes."]}
+        - {key: smuxver, type: int, default: 1, importance: expert, zh: [smux 版本, "smux 版本 1 或 2。"], en: [smux version, "smux version 1 or 2."]}
+        - {key: smuxbuf, type: int, default: 4194304, importance: expert, zh: [smux 缓冲, "smux 总的解复用缓冲（字节）。"], en: [smux buffer, "Overall smux de-mux buffer in bytes."]}
+        - {key: framesize, type: int, default: 8192, importance: expert, zh: [帧大小, "smux 最大帧大小。"], en: [Frame size, "Maximum smux frame size."]}
+        - {key: streambuf, type: int, default: 2097152, importance: expert, zh: [流缓冲, "每个流的接收缓冲（字节，smux v2+）。"], en: [Stream buffer, "Per-stream receive buffer in bytes (smux v2+)."]}
+        - {key: keepalive, type: int, default: 10, importance: expert, zh: [心跳, "心跳间隔秒数。"], en: [Keepalive, "Seconds between heartbeats."]}
+  in-mkcp:
+    - key: mkcp-config
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [mKCP, "设置 enable: true 时启用 v2ray 兼容的 mKCP 入站。"]
+      en: [mKCP, "Enables a v2ray-compatible mKCP inbound with enable: true."]
+      fields:
+        - {include: in-enable}
+        - {include: kcp-params}
+  in-enable:
+    - {key: enable, type: bool, default: false, importance: core, zh: [启用, "启用此功能。"], en: [Enable, "Enable this feature."]}
+  # QUIC 类入站（tuic、shadowquic、hysteria2、trusttunnel）共用的拥塞控制与 ALPN 参数。
+  in-quic-bbr:
+    - {key: bbr-profile, type: string, default: standard, importance: expert, doc: inbound/listeners,
+       zh: [BBR 配置, "使用 BBR 时的配置档：standard、conservative 或 aggressive。"], en: [BBR profile, "Profile when BBR is used: standard, conservative or aggressive."]}
+  in-cwnd:
+    - {key: cwnd, type: int, importance: expert, doc: inbound/listeners,
+       zh: [初始窗口, "拥塞窗口初值。"], en: [Initial window, "Initial congestion window."]}
+  in-alpn-h3:
+    - {key: alpn, type: list, items: {type: string}, default: [h3], importance: expert, doc: inbound/listeners,
+       zh: [ALPN, "QUIC 的 ALPN 列表。"], en: [ALPN, "QUIC ALPN list."]}
+  in-brutal-bw:
+    - {key: up, type: string, importance: optional, doc: inbound/listeners,
+       zh: [上行带宽, "服务端上行（客户端下行）带宽，如 30 Mbps；不写单位时为 Mbps。"], en: [Upload, "Server upload (client download) bandwidth such as 30 Mbps; Mbps when no unit."]}
+    - {key: down, type: string, importance: optional, doc: inbound/listeners,
+       zh: [下行带宽, "服务端下行（客户端上行）带宽，如 200 Mbps；不写单位时为 Mbps。"], en: [Download, "Server download (client upload) bandwidth such as 200 Mbps; Mbps when no unit."]}
+    - {key: ignore-client-bandwidth, type: bool, default: false, importance: expert, doc: inbound/listeners,
+       zh: [忽略客户端带宽, "忽略客户端声明的带宽，使用本端设置。"], en: [Ignore client bandwidth, "Ignore the bandwidth announced by clients and use the local setting."]}
+  in-mekya:
+    - key: mekya-config
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [mekya, "设置 enable: true 时启用 v2ray 兼容的 mekya 入站；不能与 mkcp、ws、grpc 同时使用。"]
+      en: [mekya, "Enables a v2ray-compatible mekya inbound with enable: true; cannot be combined with mkcp, ws or grpc."]
+      fields:
+        - {include: in-enable}
+        - {key: url, type: string, importance: expert, zh: [地址, "客户端参数，服务端忽略。"], en: [URL, "Client-side parameter; ignored by the server."]}
+        - {key: h2-pool-size, type: int, importance: expert, zh: [HTTP/2 连接池, "客户端参数，服务端忽略。"], en: [HTTP/2 pool size, "Client-side parameter; ignored by the server."]}
+        - {key: max-write-delay, type: int, importance: expert, zh: [最大聚合等待, "客户端参数，服务端忽略。"], en: [Max write delay, "Client-side parameter; ignored by the server."]}
+        - {key: max-request-size, type: int, importance: expert, zh: [单次请求上限, "客户端参数，服务端忽略。"], en: [Max request size, "Client-side parameter; ignored by the server."]}
+        - {key: polling-interval-initial, type: int, importance: expert, zh: [轮询间隔, "客户端参数，服务端忽略。"], en: [Polling interval, "Client-side parameter; ignored by the server."]}
+        - {key: max-write-size, type: int, importance: optional, zh: [单次写回上限, "单个响应写回的最大负载（字节）。"], en: [Max write size, "Maximum payload per response write in bytes."]}
+        - {key: max-write-duration-ms, type: int, importance: optional, zh: [单次写回时长, "单个响应写回的最长时间（毫秒）。"], en: [Max write duration, "Maximum duration of one response write in milliseconds."]}
+        - {key: max-simultaneous-write-connection, type: int, importance: optional, zh: [同时写回请求数, "同一会话允许同时等待写回的请求数。"], en: [Simultaneous writers, "Requests per session allowed to wait for writes at once."]}
+        - {key: packet-writing-buffer, type: int, importance: optional, zh: [写包缓冲, "写包缓冲区大小。"], en: [Packet writing buffer, "Size of the packet writing buffer."]}
+        - key: kcp
+          type: object
+          importance: optional
+          zh: [mKCP 参数, "mekya 内部的 mKCP 参数。"]
+          en: [mKCP parameters, "mKCP parameters inside mekya."]
+          fields:
+            - {include: kcp-params}
+  in-tlsmirror:
+    - key: tlsmirror-config
+      type: object
+      importance: expert
+      stability: experimental
+      doc: inbound/listeners
+      zh: [tlsmirror, "填写后启用 tlsmirror；不能与 certificate、private-key 同时使用。"]
+      en: [tlsmirror, "Enables tlsmirror; cannot be combined with certificate and private-key."]
+      fields:
+        - {key: dest, type: string, importance: core, zh: [目标, "镜像的真实 TLS 服务器 host:port。"], en: [Destination, "Real TLS server host:port to mirror."]}
+        - {key: primary-key, type: string, importance: core, sensitive: true, zh: [主密钥, "32 字节主密钥的 base64 编码；必填。"], en: [Primary key, "Base64 of the 32-byte primary key; required."]}
+        - {key: proxy, type: string, importance: expert, zh: [代理, "连接 dest 时使用的代理。"], en: [Proxy, "Proxy used to reach dest."]}
+        - {include: tlsmirror-common}
+  in-xhttp:
+    - key: xhttp-config
+      type: object
+      importance: optional
+      stability: experimental
+      doc: inbound/listeners
+      zh: [XHTTP, "填写后启用 XHTTP 传输；参数须与客户端的 xhttp-opts 一致。"]
+      en: [XHTTP, "Enables the XHTTP transport; parameters must match the client's xhttp-opts."]
+      fields:
+        - {key: path, type: string, default: /, importance: core, zh: [路径, "接受请求的路径。"], en: [Path, "Path that accepts requests."]}
+        - {key: host, type: string, importance: optional, zh: [主机, "只接受该 Host 的请求；留空不限制。"], en: [Host, "Accept only requests with this Host; any when empty."]}
+        - key: mode
+          type: enum
+          default: auto
+          importance: optional
+          enum:
+            - {value: auto, en: Auto, zh: 自动}
+            - {value: stream-one, en: Stream one, zh: 单流（stream-one）}
+            - {value: stream-up, en: Stream up, zh: 上行流（stream-up）}
+            - {value: packet-up, en: Packet up, zh: 上行分包（packet-up）}
+          zh: [模式, "接受的 XHTTP 模式；auto 接受全部。"]
+          en: [Mode, "XHTTP modes accepted; auto accepts all."]
+        - {key: no-sse-header, type: bool, default: false, importance: expert, zh: [不带 SSE 头, "下行响应不发送 text/event-stream 头。"], en: [No SSE header, "Do not send the text/event-stream header on downlink responses."]}
+        - {include: xhttp-core, keys: [x-padding-bytes, x-padding-obfs-mode, x-padding-key, x-padding-header, x-padding-placement, x-padding-method, uplink-http-method, session-placement, session-key, seq-placement, seq-key, uplink-data-placement, uplink-data-key, uplink-chunk-size]}
+        - {key: sc-max-buffered-posts, type: string, default: "30", importance: expert, zh: [最多缓存上行, "packet-up 每个会话最多缓存的 POST 数。"], en: [Max buffered posts, "Maximum buffered packet-up POSTs per session."]}
+        - {key: sc-stream-up-server-secs, type: string, default: 20-80, importance: expert, zh: [stream-up 保活, "stream-up 下服务端发送保活填充的间隔秒数（可写范围）。"], en: [Stream-up keepalive, "Seconds between server keepalive padding in stream-up (a range is allowed)."]}
+        - {include: xhttp-core, keys: [sc-max-each-post-bytes]}
 fields:
   - key: listeners
     type: list
-    items: {type: any, reason: 逐类型的入站字段尚未编入目录（M6）；内容按原样输出并交给内核检查}
     importance: optional
     doc: inbound/listeners
     zh: [入站监听, "按类型配置的多个入站（mixed、socks、tun、shadowsocks 等）。"]
     en: [Listeners, "Typed inbound listeners (mixed, socks, tun, shadowsocks and more)."]
+    items:
+      type: oneOf
+      discriminator: type
+      variants:
+        - value: socks
+          zh: [SOCKS]
+          en: [SOCKS]
+          fields:
+            - {include: in-base}
+            - {include: in-udp}
+            - {include: in-users-auth}
+            - {include: in-tls}
+            - {include: in-reality}
+        - value: http
+          zh: [HTTP]
+          en: [HTTP]
+          fields:
+            - {include: in-base}
+            - {include: in-users-auth}
+            - {include: in-tls}
+            - {include: in-reality}
+        - value: mixed
+          zh: [混合（HTTP 与 SOCKS）]
+          en: [Mixed (HTTP and SOCKS)]
+          fields:
+            - {include: in-base}
+            - {include: in-udp}
+            - {include: in-users-auth}
+            - {include: in-tls}
+            - {include: in-reality}
+        - value: redir
+          zh: [透明代理（redir）]
+          en: [Transparent (redir)]
+          fields:
+            - {include: in-base}
+        - value: tproxy
+          zh: [透明代理（TProxy）]
+          en: [Transparent (TProxy)]
+          fields:
+            - {include: in-base}
+            - {include: in-udp}
+        - value: shadowsocks
+          zh: [Shadowsocks]
+          en: [Shadowsocks]
+          fields:
+            - {include: in-base}
+            - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Shadowsocks 密码（2022 系列为 base64 密钥）。"], en: [Password, "Shadowsocks password (a base64 key for the 2022 ciphers)."]}
+            - {key: cipher, type: string, importance: core, zh: [加密方式, "如 2022-blake3-aes-256-gcm、aes-128-gcm。"], en: [Cipher, "For example 2022-blake3-aes-256-gcm or aes-128-gcm."]}
+            - {include: in-udp}
+            - key: simple-obfs
+              type: object
+              importance: optional
+              zh: [simple-obfs, "simple-obfs 混淆。"]
+              en: [simple-obfs, "simple-obfs obfuscation."]
+              fields:
+                - {include: in-enable}
+                - key: mode
+                  type: enum
+                  importance: core
+                  enum: [{value: http, en: HTTP, zh: HTTP}, {value: tls, en: TLS, zh: TLS}]
+                  zh: [模式, "混淆方式。"]
+                  en: [Mode, "Obfuscation mode."]
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-jls}
+            - {include: in-kcp-tun}
+            - {include: in-mux}
+        - value: snell
+          zh: [Snell]
+          en: [Snell]
+          fields:
+            - {include: in-base, keys: [name, type, port, listen, routing-mark]}
+            - {key: psk, type: string, importance: core, sensitive: true, zh: [预共享密钥, "Snell 预共享密钥。"], en: [PSK, "Snell pre-shared key."]}
+            - {key: version, type: int, importance: recommended, zh: [版本, "Snell 协议版本 1–5。"], en: [Version, "Snell protocol version 1–5."]}
+            - {include: in-udp}
+            - key: obfs-opts
+              type: object
+              importance: optional
+              zh: [混淆, "Snell 混淆。"]
+              en: [Obfuscation, "Snell obfuscation."]
+              fields:
+                - key: mode
+                  type: enum
+                  importance: core
+                  enum: [{value: http, en: HTTP, zh: HTTP}, {value: tls, en: TLS, zh: TLS}]
+                  zh: [模式, "混淆方式。"]
+                  en: [Mode, "Obfuscation mode."]
+                - {key: host, type: string, importance: optional, zh: [主机, "混淆使用的主机名。"], en: [Host, "Host used for obfuscation."]}
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-jls}
+            - {include: in-base, keys: [rule, proxy]}
+        - value: vmess
+          zh: [VMess]
+          en: [VMess]
+          fields:
+            - {include: in-base}
+            - key: users
+              type: list
+              importance: core
+              zh: [用户, "VMess 用户。"]
+              en: [Users, "VMess users."]
+              items:
+                type: object
+                fields:
+                  - {key: username, type: string, importance: optional, zh: [用户名, "用户名称。"], en: [Username, "User name."]}
+                  - {key: uuid, type: string, importance: core, sensitive: true, zh: [UUID, "用户 UUID。"], en: [UUID, "User UUID."]}
+                  - {key: alterId, type: int, importance: optional, zh: [alterId, "额外 ID 数；0 使用 AEAD。"], en: [alterId, "Alter ID count; 0 uses AEAD."]}
+            - {include: in-transport}
+            - {include: in-mekya}
+            - {include: in-mkcp}
+            - {include: in-tls}
+            - {include: in-jls}
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-reality}
+            - {include: in-tlsmirror}
+            - {include: in-mux}
+        - value: vless
+          zh: [VLESS]
+          en: [VLESS]
+          fields:
+            - {include: in-base}
+            - key: users
+              type: list
+              importance: core
+              zh: [用户, "VLESS 用户。"]
+              en: [Users, "VLESS users."]
+              items:
+                type: object
+                fields:
+                  - {key: username, type: string, importance: optional, zh: [用户名, "用户名称。"], en: [Username, "User name."]}
+                  - {key: uuid, type: string, importance: core, sensitive: true, zh: [UUID, "用户 UUID。"], en: [UUID, "User UUID."]}
+                  - {key: flow, type: string, importance: optional, zh: [流控, "如 xtls-rprx-vision。"], en: [Flow, "For example xtls-rprx-vision."]}
+            - {include: in-transport, keys: [ws-path, grpc-service-name]}
+            - {include: in-xhttp}
+            - {key: decryption, type: string, importance: expert, sensitive: true, zh: [VLESS Encryption, "VLESS Encryption 的服务端参数，格式见官方示例；可由 mihomo generate vless-x25519 / vless-mlkem768 生成密钥。"], en: [VLESS Encryption, "Server parameters of VLESS Encryption (format in the official example); keys come from mihomo generate vless-x25519 / vless-mlkem768."]}
+            - {include: in-tls}
+            - {include: in-jls}
+            - {include: in-reality}
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-allow-insecure}
+            - {include: in-mux}
+        - value: trojan
+          zh: [Trojan]
+          en: [Trojan]
+          fields:
+            - {include: in-base}
+            - key: users
+              type: list
+              importance: core
+              zh: [用户, "Trojan 用户。"]
+              en: [Users, "Trojan users."]
+              items:
+                type: object
+                fields:
+                  - {key: username, type: string, importance: optional, zh: [用户名, "用户名称。"], en: [Username, "User name."]}
+                  - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "用户密码。"], en: [Password, "User password."]}
+            - {include: in-transport}
+            - {include: in-tls}
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-jls}
+            - {include: in-reality}
+            - key: ss-option
+              type: object
+              importance: expert
+              zh: [Shadowsocks 加密层, "类似 trojan-go 的 shadowsocks 设置。"]
+              en: [Shadowsocks layer, "Like the shadowsocks setting of trojan-go."]
+              fields:
+                - {key: enabled, type: bool, default: false, importance: core, zh: [启用, "启用 Shadowsocks 加密层。"], en: [Enabled, "Enable the Shadowsocks layer."]}
+                - {key: method, type: string, importance: core, zh: [加密方式, "aes-128-gcm、aes-256-gcm 或 chacha20-ietf-poly1305。"], en: [Method, "aes-128-gcm, aes-256-gcm or chacha20-ietf-poly1305."]}
+                - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Shadowsocks 密码。"], en: [Password, "Shadowsocks password."]}
+            - {include: in-allow-insecure}
+            - {include: in-mux}
+        - value: tuic
+          zh: [TUIC]
+          en: [TUIC]
+          fields:
+            - {include: in-base}
+            - {key: token, type: list, items: {type: string}, importance: optional, sensitive: true, zh: [令牌, "TUIC v4 的认证令牌（可与 users 同时填写）。"], en: [Tokens, "TUIC v4 authentication tokens (can coexist with users)."]}
+            - {key: users, type: map, values: {type: string}, importance: core, sensitive: true, zh: [用户, "TUIC v5 的 UUID 到密码的映射。"], en: [Users, "TUIC v5 map of UUID to password."]}
+            - {include: in-tls}
+            - {key: congestion-controller, type: string, importance: optional, zh: [拥塞控制, "cubic、new_reno 或 bbr。"], en: [Congestion control, "cubic, new_reno or bbr."]}
+            - {include: in-quic-bbr}
+            - {key: max-idle-time, type: int, default: 15000, importance: expert, zh: [最大空闲, "连接最大空闲毫秒数。"], en: [Max idle time, "Maximum idle time in milliseconds."]}
+            - {key: authentication-timeout, type: int, default: 1000, importance: expert, zh: [认证超时, "认证超时毫秒数。"], en: [Auth timeout, "Authentication timeout in milliseconds."]}
+            - {include: in-alpn-h3}
+            - {key: max-udp-relay-packet-size, type: int, default: 1500, importance: expert, zh: [UDP 包上限, "UDP 中继的最大包大小。"], en: [Max UDP packet, "Maximum UDP relay packet size."]}
+            - {include: in-cwnd}
+            - {include: in-mux}
+        - value: shadowquic
+          zh: [ShadowQUIC]
+          en: [ShadowQUIC]
+          fields:
+            - {include: in-base}
+            - key: users
+              type: list
+              importance: core
+              zh: [用户, "ShadowQUIC 用户。"]
+              en: [Users, "ShadowQUIC users."]
+              items:
+                type: object
+                fields:
+                  - {key: username, type: string, importance: core, zh: [用户名, "用户名。"], en: [Username, "Username."]}
+                  - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "密码。"], en: [Password, "Password."]}
+            - key: jls-upstream
+              type: object
+              importance: core
+              zh: [JLS 伪装上游, "未通过 JLS 认证的连接转发到这个 QUIC 上游。"]
+              en: [JLS upstream, "Connections failing JLS authentication are relayed to this QUIC upstream."]
+              fields:
+                - {key: addr, type: string, importance: core, zh: [地址, "伪装上游 host:port。"], en: [Address, "Camouflage upstream host:port."]}
+                - {key: sni, type: string, importance: optional, zh: [SNI, "伪装目标 SNI；留空时从 addr 推导。"], en: [SNI, "Camouflage SNI; derived from addr when empty."]}
+                - {key: proxy, type: string, importance: expert, zh: [代理, "连接伪装上游时使用的代理。"], en: [Proxy, "Proxy used to reach the upstream."]}
+                - {key: rate-limit, type: int, default: 0, importance: expert, zh: [限速, "转发限速（bit/s）；0 不限速。"], en: [Rate limit, "Relay limit in bit/s; 0 means unlimited."]}
+            - {include: in-alpn-h3}
+            - {key: quic-versions, type: list, items: {type: string}, importance: expert, zh: [QUIC 版本, "支持的 QUIC 版本：v1、v2。"], en: [QUIC versions, "Supported QUIC versions: v1 and v2."]}
+            - {key: zero-rtt, type: bool, importance: optional, zh: [0-RTT, "允许 0-RTT。"], en: [0-RTT, "Allow 0-RTT."]}
+            - {key: congestion-controller, type: string, default: cubic, importance: optional, zh: [拥塞控制, "cubic、new_reno 或 bbr。"], en: [Congestion control, "cubic, new_reno or bbr."]}
+            - {include: in-brutal-bw}
+            - {include: in-cwnd}
+            - {include: in-quic-bbr}
+            - {key: max-idle-time, type: int, importance: expert, zh: [最大空闲, "连接最大空闲毫秒数。"], en: [Max idle time, "Maximum idle time in milliseconds."]}
+            - {key: max-datagram-frame-size, type: int, importance: expert, zh: [数据报帧上限, "QUIC 数据报帧的最大大小。"], en: [Max datagram frame, "Maximum QUIC datagram frame size."]}
+            - {key: recv-window-conn, type: int, importance: expert, zh: [流接收窗口, "QUIC 流接收窗口；0 为默认。"], en: [Stream window, "QUIC stream receive window; 0 for the default."]}
+            - {key: recv-window, type: int, importance: expert, zh: [连接接收窗口, "QUIC 连接接收窗口；0 为默认。"], en: [Connection window, "QUIC connection receive window; 0 for the default."]}
+            - {key: disable-mtu-discovery, type: bool, default: false, importance: expert, zh: [禁用 MTU 探测, "禁用路径 MTU 探测。"], en: [Disable MTU discovery, "Disable path MTU discovery."]}
+            - {include: in-mux}
+        - value: hysteria2
+          zh: [Hysteria2]
+          en: [Hysteria2]
+          fields:
+            - {include: in-base}
+            - {key: users, type: map, values: {type: string}, importance: core, sensitive: true, zh: [用户, "用户名到密码的映射。"], en: [Users, "Map of username to password."]}
+            - {include: in-tls}
+            - {include: in-brutal-bw}
+            - {key: obfs, type: string, importance: optional, zh: [混淆, "留空不混淆；支持 salamander 与 gecko。"], en: [Obfs, "Empty for none; salamander and gecko are supported."]}
+            - {key: obfs-password, type: string, importance: optional, sensitive: true, zh: [混淆密码, "混淆使用的密码。"], en: [Obfs password, "Obfuscation password."]}
+            - {key: obfs-min-packet-size, type: int, importance: expert, zh: [混淆最小包, "线上数据包最小字节数（仅 gecko）。"], en: [Obfs min packet, "Minimum wire packet size in bytes (gecko only)."]}
+            - {key: obfs-max-packet-size, type: int, importance: expert, zh: [混淆最大包, "线上数据包最大字节数（仅 gecko）。"], en: [Obfs max packet, "Maximum wire packet size in bytes (gecko only)."]}
+            - {include: in-quic-bbr}
+            - {key: max-idle-time, type: int, default: 15000, importance: expert, zh: [最大空闲, "连接最大空闲毫秒数。"], en: [Max idle time, "Maximum idle time in milliseconds."]}
+            - {include: in-alpn-h3}
+            - {key: masquerade, type: string, importance: optional, zh: [伪装, "认证失败时的行为：file:///路径 作为文件服务器，http(s)://地址 作为反向代理；留空返回 404。"], en: [Masquerade, "Behaviour on failed authentication: file:///path serves files, http(s)://address reverse-proxies; 404 when empty."]}
+            - key: realm-opts
+              type: object
+              importance: expert
+              stability: experimental
+              zh: [Realm, "向 Realm 会合服务器登记，供 NAT 后的客户端打洞连接。"]
+              en: [Realm, "Register with a Realm rendezvous server so clients can hole-punch through NAT."]
+              fields:
+                - {include: realm-fields, keys: [enable, server-url, token, realm-id, stun-servers]}
+                - {key: proxy, type: string, importance: expert, zh: [代理, "连接 server-url 时使用的代理。"], en: [Proxy, "Proxy used to reach server-url."]}
+                - {include: realm-fields, keys: [sni, skip-cert-verify, name-cert-verify, fingerprint, certificate, private-key, alpn]}
+            - {include: in-cwnd}
+            - {key: udp-mtu, type: int, importance: expert, zh: [UDP MTU, "QUIC 数据包的 MTU。"], en: [UDP MTU, "MTU of QUIC packets."]}
+            - {key: initial-stream-receive-window, type: int, importance: expert, zh: [初始流窗口, "QUIC 初始流接收窗口。"], en: [Initial stream window, "Initial QUIC stream receive window."]}
+            - {key: max-stream-receive-window, type: int, importance: expert, zh: [最大流窗口, "QUIC 最大流接收窗口。"], en: [Max stream window, "Maximum QUIC stream receive window."]}
+            - {key: initial-connection-receive-window, type: int, importance: expert, zh: [初始连接窗口, "QUIC 初始连接接收窗口。"], en: [Initial connection window, "Initial QUIC connection receive window."]}
+            - {key: max-connection-receive-window, type: int, importance: expert, zh: [最大连接窗口, "QUIC 最大连接接收窗口。"], en: [Max connection window, "Maximum QUIC connection receive window."]}
+            - {include: in-mux}
+        - value: hysteria2-realm
+          zh: [Hysteria2 Realm 服务器]
+          en: [Hysteria2 Realm server]
+          fields:
+            - {include: in-base, keys: [name, type, port, listen, routing-mark]}
+            - {key: token, type: string, importance: core, sensitive: true, zh: [令牌, "hysteria2 入站与出站以 Authorization: Bearer 出示的令牌。"], en: [Token, "Bearer token presented by hysteria2 inbounds and outbounds."]}
+            - {key: max-realms, type: int, default: 65536, importance: optional, zh: [最多 Realm, "Realm 总数上限；0 不限制。"], en: [Max realms, "Maximum total realms; 0 means unlimited."]}
+            - {key: max-realms-per-ip, type: int, default: 4, importance: optional, zh: [每 IP 上限, "每个客户端 IP 的 Realm 上限；0 不限制。"], en: [Max realms per IP, "Maximum realms per client IP; 0 means unlimited."]}
+            - {key: trusted-proxy-header, type: string, importance: expert, zh: [真实 IP 请求头, "从该请求头读取客户端真实 IP，如 X-Forwarded-For。"], en: [Trusted proxy header, "Header to read the real client IP from, e.g. X-Forwarded-For."]}
+            - {key: realm-name-pattern, type: string, importance: expert, zh: [Realm 名称规则, "Realm 名称必须匹配的正则。"], en: [Realm name pattern, "Regex realm names must match."]}
+            - {include: in-tls}
+            - {key: alpn, type: list, items: {type: string}, importance: expert, zh: [ALPN, "HTTPS 的 ALPN，如 h2、http/1.1。"], en: [ALPN, "ALPN for HTTPS such as h2 and http/1.1."]}
+        - value: anytls
+          zh: [AnyTLS]
+          en: [AnyTLS]
+          fields:
+            - {include: in-base}
+            - {include: in-users-map}
+            - {include: in-tls}
+            - {include: in-shadow-tls}
+            - {include: in-res-tls}
+            - {include: in-jls}
+            - {include: in-allow-insecure}
+            - {key: padding-scheme, type: string, importance: expert, zh: [填充方案, "AnyTLS 的填充方案；留空使用默认。"], en: [Padding scheme, "AnyTLS padding scheme; default when empty."]}
+        - value: mieru
+          zh: [mieru]
+          en: [mieru]
+          fields:
+            - {include: in-base}
+            - key: transport
+              type: enum
+              importance: core
+              enum: [{value: TCP, en: TCP, zh: TCP}, {value: UDP, en: UDP, zh: UDP}]
+              zh: [传输协议, "TCP 或 UDP。"]
+              en: [Transport, "TCP or UDP."]
+            - {include: in-users-map}
+            - {key: traffic-pattern, type: string, importance: expert, zh: [流量模式, "微调网络行为的 base64 字符串。"], en: [Traffic pattern, "Base64 string that fine-tunes network behaviour."]}
+            - {key: user-hint-is-mandatory, type: bool, default: false, importance: expert, zh: [必须用户提示, "开启后拒绝不发送用户提示的客户端。"], en: [User hint mandatory, "Reject clients that do not send a user hint."]}
+        - value: sudoku
+          zh: [Sudoku]
+          en: [Sudoku]
+          fields:
+            - {include: in-base}
+            - {key: key, type: string, importance: core, sensitive: true, zh: [密钥, "使用 sudoku 生成的 ED25519 密钥对时填公钥；也可以用任意 UUID。"], en: [Key, "The public key of a sudoku ED25519 key pair, or any UUID."]}
+            - key: aead-method
+              type: enum
+              importance: recommended
+              enum:
+                - {value: chacha20-poly1305, en: ChaCha20-Poly1305, zh: ChaCha20-Poly1305}
+                - {value: aes-128-gcm, en: AES-128-GCM, zh: AES-128-GCM}
+                - {value: none, en: None (no AEAD protection), zh: 无（不提供 AEAD 保护）}
+              zh: [AEAD 方式, "none 不提供 AEAD 保护，不建议使用。"]
+              en: [AEAD method, "none provides no AEAD protection and is not recommended."]
+            - {key: padding-min, type: int, importance: optional, zh: [最小填充率, "0–100。"], en: [Min padding, "0–100."]}
+            - {key: padding-max, type: int, importance: optional, zh: [最大填充率, "0–100，不小于 padding-min。"], en: [Max padding, "0–100, not below padding-min."]}
+            - key: table-type
+              type: enum
+              importance: optional
+              enum:
+                - {value: prefer_ascii, en: Prefer ASCII, zh: 偏向 ASCII}
+                - {value: prefer_entropy, en: Prefer entropy, zh: 偏向高熵}
+                - {value: up_ascii_down_entropy, en: "ASCII up, entropy down", zh: 上行 ASCII、下行高熵}
+                - {value: up_entropy_down_ascii, en: "Entropy up, ASCII down", zh: 上行高熵、下行 ASCII}
+              zh: [编码表, "数据的编码风格。"]
+              en: [Table type, "Encoding style of the data."]
+            - {key: custom-table, type: string, importance: expert, zh: [自定义布局, "自定义字节布局，含 2 个 x、2 个 p、4 个 v，如 xpxvvpvv；只对 entropy 方向生效。"], en: [Custom table, "Custom byte layout with two x, two p and four v, e.g. xpxvvpvv; entropy direction only."]}
+            - {key: custom-tables, type: list, items: {type: string}, importance: expert, zh: [自定义布局列表, "用于多表轮换；非空时覆盖 custom-table。"], en: [Custom tables, "Layouts rotated across connections; overrides custom-table when non-empty."]}
+            - {key: handshake-timeout, type: int, importance: optional, zh: [握手超时, "握手超时秒数。"], en: [Handshake timeout, "Handshake timeout in seconds."]}
+            - {key: enable-pure-downlink, type: bool, default: false, importance: optional, zh: [纯 Sudoku 下行, "false 为带宽优化的下行，true 为纯 Sudoku 下行。"], en: [Pure downlink, "false uses the bandwidth-optimised downlink, true the pure Sudoku downlink."]}
+            - key: httpmask
+              type: object
+              importance: optional
+              zh: [HTTP 伪装, "统一管理 HTTP 伪装与隧道，优先于旧的 disable-http-mask、http-mask-mode、path-root。"]
+              en: [HTTP mask, "HTTP camouflage and tunnel settings; takes precedence over the legacy disable-http-mask, http-mask-mode and path-root."]
+              fields:
+                - {key: disable, type: bool, default: false, importance: optional, zh: [禁用, "禁用全部 HTTP 伪装与隧道。"], en: [Disable, "Disable all HTTP camouflage and tunnels."]}
+                - key: mode
+                  type: enum
+                  default: legacy
+                  importance: optional
+                  enum:
+                    - {value: legacy, en: Legacy, zh: 旧版}
+                    - {value: stream, en: Split stream, zh: 分离流}
+                    - {value: poll, en: Poll, zh: 轮询}
+                    - {value: auto, en: Stream then poll, zh: 先 stream 再 poll}
+                    - {value: ws, en: WebSocket tunnel, zh: WebSocket 隧道}
+                  zh: [模式, "HTTP 伪装方式。"]
+                  en: [Mode, "HTTP camouflage mode."]
+                - {key: path-root, type: string, importance: expert, zh: [路径前缀, "HTTP 隧道端点的一级路径前缀，双方需一致。"], en: [Path root, "First-level path prefix of HTTP tunnel endpoints; both sides must match."]}
+            - {key: fallback, type: string, importance: optional, zh: [回落, "可连接请求的回落转发地址，如 127.0.0.1:80；可与其他服务共端口。"], en: [Fallback, "Fallback address for other requests such as 127.0.0.1:80; allows sharing the port."]}
+            - {key: disable-http-mask, type: bool, importance: expert, stability: deprecated, replacement: httpmask.disable, zh: [禁用 HTTP 伪装（旧）, "旧写法；httpmask 优先。"], en: [Disable HTTP mask (legacy), "Legacy spelling; httpmask takes precedence."]}
+            - {key: http-mask-mode, type: string, importance: expert, stability: deprecated, replacement: httpmask.mode, zh: [HTTP 伪装模式（旧）, "旧写法；httpmask 优先。"], en: [HTTP mask mode (legacy), "Legacy spelling; httpmask takes precedence."]}
+            - {key: path-root, type: string, importance: expert, stability: deprecated, replacement: httpmask.path-root, zh: [路径前缀（旧）, "旧写法；httpmask 优先。"], en: [Path root (legacy), "Legacy spelling; httpmask takes precedence."]}
+            - {include: in-mux}
+        - value: trusttunnel
+          zh: [TrustTunnel]
+          en: [TrustTunnel]
+          fields:
+            - {include: in-base}
+            - {include: in-users-auth}
+            - {include: in-tls, keys: [certificate, private-key]}
+            - {key: network, type: list, items: {type: string}, importance: optional, zh: [网络, "tcp 对应 HTTP/2，udp 对应 HTTP/3。"], en: [Network, "tcp means HTTP/2 and udp means HTTP/3."]}
+            - {key: congestion-controller, type: string, importance: optional, zh: [拥塞控制, "HTTP/3 的拥塞控制算法，如 bbr。"], en: [Congestion control, "HTTP/3 congestion controller such as bbr."]}
+            - {include: in-quic-bbr}
+            - {include: in-tls, keys: [client-auth-type, client-auth-cert, ech-key]}
+            - {include: in-cwnd}
+        - value: tunnel
+          zh: [端口转发（tunnel）]
+          en: [Port forward (tunnel)]
+          fields:
+            - {include: in-base}
+            - {key: network, type: list, items: {type: string}, importance: core, zh: [网络, "转发的协议：tcp、udp。"], en: [Network, "Protocols forwarded: tcp and udp."]}
+            - {key: target, type: string, importance: core, zh: [目标, "转发目标 host:port。"], en: [Target, "Forwarding target host:port."]}
+        - value: tun
+          zh: [TUN（高级）]
+          en: [TUN (advanced)]
+          fields:
+            - {include: in-base, keys: [name, type, rule, proxy]}
+            - {include: tun-fields, keys: [stack, dns-mode, dns-hijack]}
+            - {key: auto-detect-interface, type: bool, default: false, importance: recommended, doc: "inbound/tun#auto-detect-interface",
+               zh: [自动识别出口, "自动选择默认出口网卡，避免回环。"], en: [Auto-detect interface, "Pick the default outbound interface automatically to avoid loops."]}
+            - {include: tun-fields, keys: [auto-route, mtu]}
+            - {key: inet4-address, type: list, items: {type: string}, importance: core, doc: inbound/listeners,
+               zh: [IPv4 地址, "虚拟网卡的 IPv4 地址段；必须手动设置，如 198.19.0.1/30。"], en: [IPv4 address, "IPv4 prefix of the interface; must be set, e.g. 198.19.0.1/30."]}
+            - {key: inet6-address, type: list, items: {type: string}, importance: recommended, doc: inbound/listeners,
+               zh: [IPv6 地址, "虚拟网卡的 IPv6 地址段；必须手动设置。"], en: [IPv6 address, "IPv6 prefix of the interface; must be set."]}
+            - {include: tun-fields, keys: [strict-route, inet4-route-address, inet6-route-address, endpoint-independent-nat, include-uid, include-uid-range, exclude-uid, exclude-uid-range, include-mac-address, exclude-mac-address, include-android-user, include-package, exclude-package, disable-icmp-forwarding, congestion-controller]}
+            - {include: in-base, keys: [port, listen, routing-mark]}
+            - {include: tun-fields, keys: [device, gso, gso-max-size, iproute2-table-index, iproute2-rule-index, auto-redirect, auto-redirect-input-mark, auto-redirect-output-mark, auto-redirect-iproute2-fallback-rule-index, loopback-address, route-address, route-address-set, route-exclude-address, route-exclude-address-set, include-interface, exclude-interface, exclude-src-port, exclude-src-port-range, exclude-dst-port, exclude-dst-port-range, udp-timeout, icmp-timeout, file-descriptor, inet4-route-exclude-address, inet6-route-exclude-address, recvmsgx, sendmsgx, processors-per-channel]}
   - {key: ss-config, type: string, importance: expert, sensitive: true, doc: inbound/listeners,
      zh: [Shadowsocks 入站（旧）, "单行形式的 Shadowsocks 入站；新配置建议使用 listeners。"], en: [Shadowsocks inbound (legacy), "One-line Shadowsocks inbound; prefer listeners for new configs."]}
   - {key: vmess-config, type: string, importance: expert, sensitive: true, doc: inbound/listeners,

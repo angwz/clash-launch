@@ -18,9 +18,10 @@ const (
 	covSkipped     = "skipped"     // 有意不收录（见 skipped）
 )
 
-// skipped 是有意不收录的路径及原因。只登记查证过的情况：结构体中声明了却没有任何代码读取的字段。
+// skipped 是有意不收录的路径及原因。只登记查证过的情况：声明了却没有任何代码读取的字段（v1.19.33）。
 var skipped = map[string]string{
-	"proxies.vless.ws-headers": "v1.19.33 中声明于 VlessOption，但没有代码读取；请求头写在 ws-opts.headers",
+	"proxies.vless.ws-headers":                "v1.19.33 中声明于 VlessOption，但没有代码读取；请求头写在 ws-opts.headers",
+	"listeners.vmess.mekya-config.kcp.enable": "MKCPConfig 被 mekya 复用；transport/mkcp 不读取 enable，只有顶层 mkcp-config.enable 生效",
 }
 
 // Coverage 是 coverage 子命令的输出。
