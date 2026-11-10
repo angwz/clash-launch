@@ -267,3 +267,222 @@ fragments:
     - {key: certificate, type: string, importance: expert, zh: [客户端证书, "访问 server-url 时使用的客户端证书（mTLS）。"], en: [Client certificate, "Client certificate for server-url (mTLS)."]}
     - {key: private-key, type: string, importance: expert, sensitive: true, zh: [客户端私钥, "客户端证书的私钥。"], en: [Client key, "Private key of the client certificate."]}
     - {key: alpn, type: list, items: {type: string}, importance: expert, zh: [ALPN, "连接 server-url 时的 ALPN。"], en: [ALPN, "ALPN for server-url."]}
+  # —— 以下为 v1.19.33 新增或较新的协议（adapter/outbound 对应文件与官方示例注释） ——
+  p-gost-relay:
+    - {key: forward, type: bool, default: false, importance: optional, doc: proxies,
+       zh: [转发模式, "true 时由 relay 服务端决定转发目标；false 为动态模式，经 dialer-proxy 承载上层节点的目标。"], en: [Forward mode, "true lets the relay server pick its forwarding target; false is dynamic mode carrying the upper proxy's target via dialer-proxy."]}
+    - {key: mux, type: bool, default: false, importance: optional, doc: proxies,
+       zh: [多路复用, "与 tls 同时开启时为 relay+mtls。"], en: [Multiplexing, "relay+mtls when tls is also on."]}
+  p-shadowquic:
+    - {key: username, type: string, importance: core, doc: proxies, zh: [用户名, "ShadowQUIC 用户名。"], en: [Username, "ShadowQUIC username."]}
+    - {key: password, type: string, importance: core, sensitive: true, doc: proxies, zh: [密码, "ShadowQUIC 密码。"], en: [Password, "ShadowQUIC password."]}
+    - {key: quic-versions, type: list, items: {type: string}, default: [v1], importance: expert, doc: proxies, zh: [QUIC 版本, "支持 v1、v2。"], en: [QUIC versions, "v1 and v2 are supported."]}
+    - {key: zero-rtt, type: bool, default: false, importance: expert, doc: proxies, zh: [0-RTT, "启用 0-RTT；官方服务端可能在 JLS 认证完成前读取用户状态，遇到不通时在服务端关闭。"], en: [0-RTT, "Enable 0-RTT; the official server may read user state before JLS authentication, so disable it server-side if connections fail."]}
+    - {key: keep-alive-interval, type: int, importance: expert, doc: proxies, zh: [保活间隔, "QUIC 保活间隔（毫秒）。"], en: [Keep-alive interval, "QUIC keep-alive interval in milliseconds."]}
+    - {key: up, type: string, importance: optional, doc: proxies, zh: [上行带宽, "填写后经 mihomo 私有扩展协商 Brutal，如 100 Mbps；对端不支持时回落到 congestion-controller。"], en: [Upload, "Negotiates Brutal through a mihomo extension, e.g. 100 Mbps; falls back to congestion-controller when unsupported."]}
+    - {key: down, type: string, importance: optional, doc: proxies, zh: [下行带宽, "请求的下行速度，受服务端 up 限制。"], en: [Download, "Requested download speed, capped by the server's up."]}
+  p-sudoku:
+    - {key: key, type: string, importance: core, sensitive: true, doc: proxies, zh: [密钥, "使用 sudoku 生成的 ED25519 密钥对时填私钥，否则填与服务端相同的 UUID。"], en: [Key, "The private key of a sudoku ED25519 key pair, or the same UUID as the server."]}
+    - key: aead-method
+      type: enum
+      importance: recommended
+      doc: proxies
+      enum:
+        - {value: chacha20-poly1305, en: ChaCha20-Poly1305, zh: ChaCha20-Poly1305}
+        - {value: aes-128-gcm, en: AES-128-GCM, zh: AES-128-GCM}
+        - {value: none, en: None (no AEAD protection), zh: 无（不提供 AEAD 保护）}
+      zh: [AEAD 方式, "none 不提供 AEAD 保护，不建议使用。"]
+      en: [AEAD method, "none provides no AEAD protection and is not recommended."]
+    - {key: padding-min, type: int, importance: optional, doc: proxies, zh: [最小填充率, "0–100。"], en: [Min padding, "0–100."]}
+    - {key: padding-max, type: int, importance: optional, doc: proxies, zh: [最大填充率, "0–100，不小于 padding-min。"], en: [Max padding, "0–100, not below padding-min."]}
+    - key: table-type
+      type: enum
+      importance: optional
+      doc: proxies
+      enum:
+        - {value: prefer_ascii, en: Prefer ASCII, zh: 偏向 ASCII}
+        - {value: prefer_entropy, en: Prefer entropy, zh: 偏向高熵}
+        - {value: up_ascii_down_entropy, en: "ASCII up, entropy down", zh: 上行 ASCII、下行高熵}
+        - {value: up_entropy_down_ascii, en: "Entropy up, ASCII down", zh: 上行高熵、下行 ASCII}
+      zh: [编码表, "数据的编码风格，须与服务端一致。"]
+      en: [Table type, "Encoding style of the data; must match the server."]
+    - {key: custom-table, type: string, importance: expert, doc: proxies, zh: [自定义布局, "含 2 个 x、2 个 p、4 个 v 的字节布局，如 xpxvvpvv；只对 entropy 方向生效。"], en: [Custom table, "Byte layout with two x, two p and four v, e.g. xpxvvpvv; entropy direction only."]}
+    - {key: custom-tables, type: list, items: {type: string}, importance: expert, doc: proxies, zh: [自定义布局列表, "多表轮换；非空时覆盖 custom-table。"], en: [Custom tables, "Rotated layouts; overrides custom-table when non-empty."]}
+    - key: multiplex
+      type: enum
+      default: "off"
+      importance: optional
+      doc: proxies
+      enum:
+        - {value: "off", en: "Off", zh: 关闭}
+        - {value: auto, en: Reuse HTTPMask connections, zh: 只复用 HTTPMask 底层连接}
+        - {value: "on", en: Session mux, zh: 单会话多目标复用}
+      zh: [多路复用, "on 在原始 TCP 或 HTTPMask 上启用 Sudoku 单会话多目标复用。"]
+      en: [Multiplexing, "on enables Sudoku session multiplexing over raw TCP or HTTPMask."]
+    - key: httpmask
+      type: object
+      importance: optional
+      doc: proxies
+      zh: [HTTP 伪装, "统一管理 HTTP 伪装与隧道，优先于旧的 http-mask* 与 path-root。"]
+      en: [HTTP mask, "HTTP camouflage and tunnel settings; takes precedence over the legacy http-mask* and path-root."]
+      fields:
+        - {key: disable, type: bool, default: false, importance: optional, zh: [禁用, "禁用全部 HTTP 伪装与隧道。"], en: [Disable, "Disable all HTTP camouflage and tunnels."]}
+        - key: mode
+          type: enum
+          default: legacy
+          importance: optional
+          enum:
+            - {value: legacy, en: Legacy, zh: 旧版}
+            - {value: stream, en: Split stream, zh: 分离流}
+            - {value: poll, en: Poll, zh: 轮询}
+            - {value: auto, en: Stream then poll, zh: 先 stream 再 poll}
+            - {value: ws, en: WebSocket tunnel, zh: WebSocket 隧道}
+          zh: [模式, "HTTP 伪装方式。"]
+          en: [Mode, "HTTP camouflage mode."]
+        - {key: tls, type: bool, default: false, importance: optional, zh: [HTTPS, "按需使用 HTTPS 或 WSS。"], en: [HTTPS, "Use HTTPS or WSS."]}
+        - {key: host, type: string, importance: optional, zh: [主机, "覆盖 Host 与 SNI（example.com 或 example.com:443）；只在 stream、poll、auto、ws 下生效。"], en: [Host, "Override Host and SNI (example.com or example.com:443); only for stream, poll, auto and ws."]}
+        - {key: path-root, type: string, importance: expert, zh: [路径前缀, "HTTP 隧道端点的一级路径前缀，双方需一致。"], en: [Path root, "First-level path prefix of HTTP tunnel endpoints; both sides must match."]}
+        - {key: multiplex, type: string, importance: expert, zh: [多路复用（兼容）, "兼容旧配置；设置时优先于外层 multiplex。"], en: [Multiplexing (compat), "For old configs; overrides the outer multiplex when set."]}
+    - {key: enable-pure-downlink, type: bool, default: false, importance: optional, doc: proxies, zh: [纯 Sudoku 下行, "false 为带宽优化的下行，true 为纯 Sudoku 下行；须与服务端一致。"], en: [Pure downlink, "false uses the bandwidth-optimised downlink, true the pure Sudoku downlink; must match the server."]}
+    - {key: http-mask, type: bool, importance: expert, stability: deprecated, replacement: httpmask.disable, doc: proxies, zh: [HTTP 伪装（旧）, "旧写法；false 等同 httpmask.disable: true。"], en: [HTTP mask (legacy), "Legacy spelling; false equals httpmask.disable: true."]}
+    - {key: http-mask-mode, type: string, importance: expert, stability: deprecated, replacement: httpmask.mode, doc: proxies, zh: [HTTP 伪装模式（旧）, "旧写法；httpmask 优先。"], en: [HTTP mask mode (legacy), "Legacy spelling; httpmask takes precedence."]}
+    - {key: http-mask-tls, type: bool, importance: expert, stability: deprecated, replacement: httpmask.tls, doc: proxies, zh: [HTTP 伪装 TLS（旧）, "旧写法；httpmask 优先。"], en: [HTTP mask TLS (legacy), "Legacy spelling; httpmask takes precedence."]}
+    - {key: http-mask-host, type: string, importance: expert, stability: deprecated, replacement: httpmask.host, doc: proxies, zh: [HTTP 伪装主机（旧）, "旧写法；httpmask 优先。"], en: [HTTP mask host (legacy), "Legacy spelling; httpmask takes precedence."]}
+    - {key: path-root, type: string, importance: expert, stability: deprecated, replacement: httpmask.path-root, doc: proxies, zh: [路径前缀（旧）, "旧写法；httpmask 优先。"], en: [Path root (legacy), "Legacy spelling; httpmask takes precedence."]}
+    - {key: http-mask-multiplex, type: string, importance: expert, stability: deprecated, replacement: multiplex, doc: proxies, zh: [多路复用（旧）, "multiplex 的旧写法。"], en: [Multiplexing (legacy), "Legacy alias of multiplex."]}
+  p-masque:
+    - {key: private-key, type: string, importance: core, sensitive: true, doc: proxies, zh: [私钥, "本端的 ECDSA 私钥（base64 DER）。"], en: [Private key, "Local ECDSA private key (base64 DER)."]}
+    - {key: public-key, type: string, importance: core, doc: proxies, zh: [对端公钥, "服务端的 ECDSA 公钥（base64 DER）。"], en: [Peer public key, "Server ECDSA public key (base64 DER)."]}
+    - {key: ip, type: string, importance: recommended, doc: proxies, zh: [IPv4 地址, "隧道内本端的 IPv4 地址。"], en: [IPv4 address, "Local IPv4 address inside the tunnel."]}
+    - {key: ipv6, type: string, importance: optional, doc: proxies, zh: [IPv6 地址, "隧道内本端的 IPv6 地址。"], en: [IPv6 address, "Local IPv6 address inside the tunnel."]}
+    - {key: uri, type: string, importance: expert, doc: proxies, zh: [URI, "CONNECT 请求使用的 URI；留空使用默认。"], en: [URI, "URI of the CONNECT request; default when empty."]}
+    - key: network
+      type: string
+      importance: optional
+      doc: proxies
+      examples: [{value: h2, en: HTTP/2, zh: HTTP/2}, {value: h3-l4proxy, en: HTTP/3 layer-4 proxy, zh: HTTP/3 四层代理}]
+      zh: [承载方式, "留空为 HTTP/3；h2 为 HTTP/2；h3-l4proxy 为 HTTP/3 四层代理（不支持 UDP）。"]
+      en: [Network, "HTTP/3 when empty; h2 for HTTP/2; h3-l4proxy for an HTTP/3 layer-4 proxy (no UDP)."]
+  p-handshake-timeout:
+    - {key: handshake-timeout, type: int, default: 0, importance: expert, doc: proxies, zh: [握手超时, "握手超时秒数；设置后握手不受外层连接超时影响，0 只使用外层超时。"], en: [Handshake timeout, "Handshake timeout in seconds; when set the outer dial timeout no longer applies, 0 uses only the outer timeout."]}
+  p-openvpn:
+    - key: proto
+      type: enum
+      default: udp
+      importance: recommended
+      doc: proxies
+      enum: [{value: udp, en: UDP, zh: UDP}, {value: tcp, en: TCP, zh: TCP}]
+      zh: [传输协议, "连接服务端的协议。"]
+      en: [Protocol, "Protocol used to reach the server."]
+    - {key: dev, type: string, default: tun, importance: expert, doc: proxies, zh: [设备类型, "目前只支持 tun。"], en: [Device, "Only tun is supported."]}
+    - {key: cipher, type: string, default: AES-128-GCM, importance: optional, doc: proxies, zh: [加密, "AES-128/192/256-GCM、AES-128/192/256-CBC 或 CHACHA20-POLY1305；AES-CBC 按 AES-128-CBC 处理。"], en: [Cipher, "AES-128/192/256-GCM, AES-128/192/256-CBC or CHACHA20-POLY1305; AES-CBC is treated as AES-128-CBC."]}
+    - {key: data-ciphers, type: list, items: {type: string}, importance: optional, doc: proxies, zh: [数据通道加密列表, "发给服务端的 IV_CIPHERS；与服务端推送的列表取交集中的第一项。"], en: [Data ciphers, "Sent as IV_CIPHERS; the first entry shared with the server's pushed list wins."]}
+    - {key: data-ciphers-fallback, type: string, importance: expert, doc: proxies, zh: [回退加密, "协商失败时使用的加密（对应 --data-ciphers-fallback）。"], en: [Fallback cipher, "Cipher used when negotiation fails (like --data-ciphers-fallback)."]}
+    - {key: auth, type: string, default: SHA256, importance: optional, doc: proxies, zh: [HMAC 算法, "MD5、SHA1、SHA256、SHA384 或 SHA512；AEAD 加密时忽略。"], en: [HMAC digest, "MD5, SHA1, SHA256, SHA384 or SHA512; ignored by AEAD ciphers."]}
+    - key: comp-lzo
+      type: enum
+      importance: expert
+      doc: proxies
+      enum: [{value: "yes", en: "Yes", zh: 是}, {value: "no", en: "No", zh: 否}, {value: adaptive, en: Adaptive, zh: 自适应}]
+      zh: [LZO 压缩, "对应 --comp-lzo。"]
+      en: [LZO compression, "Same as --comp-lzo."]
+    - {key: username, type: string, importance: optional, doc: proxies, zh: [用户名, "auth-user-pass 模式的用户名；与 cert、key 二选一。"], en: [Username, "Username for auth-user-pass; alternative to cert and key."]}
+    - {key: password, type: string, importance: optional, sensitive: true, doc: proxies, zh: [密码, "auth-user-pass 模式的密码。"], en: [Password, "Password for auth-user-pass."]}
+    - {key: ca, type: string, importance: core, doc: proxies, zh: [CA 证书, ".ovpn 中 <ca> 标签内的内容（不含标签）。"], en: [CA, "Contents inside <ca> of the .ovpn file, without the tags."]}
+    - {key: cert, type: string, importance: optional, doc: proxies, zh: [客户端证书, ".ovpn 中 <cert> 标签内的内容；auth-user-pass 时可省略。"], en: [Client certificate, "Contents inside <cert>; optional with auth-user-pass."]}
+    - {key: key, type: string, importance: optional, sensitive: true, doc: proxies, zh: [客户端私钥, ".ovpn 中 <key> 标签内的内容。"], en: [Client key, "Contents inside <key>."]}
+    - {key: tls-auth, type: string, importance: optional, sensitive: true, doc: proxies, zh: [tls-auth, ".ovpn 中 <tls-auth> 内的内容；与 tls-crypt 互斥。"], en: [tls-auth, "Contents inside <tls-auth>; exclusive with tls-crypt."]}
+    - {key: key-direction, type: string, importance: optional, doc: proxies, zh: [密钥方向, "tls-auth 使用，\"0\" 或 \"1\"；留空为双向。"], en: [Key direction, "For tls-auth, \"0\" or \"1\"; bidirectional when empty."]}
+    - {key: tls-crypt, type: string, importance: optional, sensitive: true, doc: proxies, zh: [tls-crypt, ".ovpn 中 <tls-crypt> 内的内容；与 tls-auth、tls-crypt-v2 互斥。"], en: [tls-crypt, "Contents inside <tls-crypt>; exclusive with tls-auth and tls-crypt-v2."]}
+    - {key: tls-crypt-v2, type: string, importance: optional, sensitive: true, doc: proxies, zh: [tls-crypt-v2, ".ovpn 中 <tls-crypt-v2> 内的客户端密钥；与 tls-auth、tls-crypt 互斥。"], en: [tls-crypt-v2, "Client key inside <tls-crypt-v2>; exclusive with tls-auth and tls-crypt."]}
+    - {key: peer-info, type: map, values: {type: string}, importance: expert, doc: proxies, zh: [peer-info, "追加发给服务端的 peer-info 键值对，供服务端准入判断。"], en: [peer-info, "Extra peer-info pairs sent to the server for admission decisions."]}
+    - {key: ping, type: int, default: 0, importance: optional, doc: proxies, zh: [心跳间隔, "对应 --ping（秒）。"], en: [Ping, "Same as --ping (seconds)."]}
+    - {key: ping-restart, type: int, default: 0, importance: optional, doc: proxies, zh: [心跳重启, "对应 --ping-restart（秒）。"], en: [Ping restart, "Same as --ping-restart (seconds)."]}
+    - {key: tran-window, type: int, default: 3600, importance: expert, doc: proxies, zh: [旧密钥保留, "rekey 后旧数据密钥保留的秒数；显式写 0 立即过期，应与服务端 --tran-window 一致。"], en: [Transition window, "Seconds the old data key survives a rekey; an explicit 0 expires it at once; match the server's --tran-window."]}
+  p-tailscale:
+    - {key: hostname, type: string, importance: optional, doc: proxies, zh: [设备名, "Tailscale 设备名；默认由 tsnet 决定。"], en: [Hostname, "Tailscale device name; chosen by tsnet by default."]}
+    - {key: auth-key, type: string, importance: recommended, sensitive: true, doc: proxies, zh: [认证密钥, "可选；不填写时首次启动会输出交互式登录 URL。"], en: [Auth key, "Optional; without it the first start prints an interactive login URL."]}
+    - {key: control-url, type: string, importance: optional, doc: proxies, zh: [控制服务器, "自定义 Headscale 或 Tailscale 控制服务器。"], en: [Control URL, "Custom Headscale or Tailscale control server."]}
+    - {key: state-dir, type: string, default: tailscale, importance: optional, doc: proxies, zh: [状态目录, "tsnet 的状态目录。"], en: [State directory, "tsnet state directory."]}
+    - {key: ephemeral, type: bool, default: false, importance: optional, doc: proxies, zh: [临时节点, "以 ephemeral 节点登录。"], en: [Ephemeral, "Log in as an ephemeral node."]}
+  p-tailscale-tail:
+    - {key: accept-routes, type: bool, importance: optional, doc: proxies, zh: [接受子网路由, "接受 Tailnet 中发布的 subnet routes。"], en: [Accept routes, "Accept subnet routes advertised in the tailnet."]}
+    - {key: exit-node, type: string, importance: optional, doc: proxies, zh: [出口节点, "使用的 exit node IP，也可写 auto:any；目标不在 Tailscale 路由内时连接直接报错，不回退直连。"], en: [Exit node, "Exit node IP or auto:any; destinations outside tailscale routes fail instead of falling back to direct."]}
+    - {key: exit-node-allow-lan-access, type: bool, importance: optional, doc: proxies, zh: [允许访问局域网, "使用 exit node 时仍允许访问本地局域网。"], en: [Allow LAN access, "Keep local LAN reachable while using an exit node."]}
+  p-zerotier:
+    - {key: network, type: string, importance: core, doc: proxies, zh: [网络 ID, "16 位十六进制的 ZeroTier 网络 ID。"], en: [Network ID, "16-digit hexadecimal ZeroTier network ID."]}
+    - {key: state-dir, type: string, importance: optional, doc: proxies, zh: [状态目录, "持久化节点状态与默认身份；默认按网络与节点名派生独立目录。"], en: [State directory, "Persistent node state and default identity; defaults to a directory derived from the network and proxy name."]}
+    - {key: identity-secret, type: string, importance: optional, sensitive: true, doc: proxies, zh: [身份密钥, "完整的 identity.secret 内容；覆盖 state-dir 中的身份且不写入。"], en: [Identity secret, "Full identity.secret contents; overrides the identity in state-dir without being written there."]}
+    - {key: planet, type: string, importance: expert, doc: proxies, zh: [私有 planet, "私有 planet 文件，替换内置的 Earth。"], en: [Planet, "Private planet file replacing the built-in Earth."]}
+    - {key: physical-mtu, type: int, default: 1432, importance: expert, doc: proxies, zh: [物理 MTU, "ZeroTier UDP 载荷 MTU（510–10324）。"], en: [Physical MTU, "ZeroTier UDP payload MTU (510–10324)."]}
+    - {key: primary-port, type: int, default: 0, importance: expert, doc: proxies, zh: [主端口, "主 UDP 端口；0 自动选择。"], en: [Primary port, "Primary UDP port; 0 picks one."]}
+    - {key: secondary-port, type: int, default: 0, importance: expert, doc: proxies, zh: [副端口, "第二个 UDP 端口；0 自动选择，-1 禁用。"], en: [Secondary port, "Second UDP port; 0 picks one, -1 disables it."]}
+    - key: tcp-fallback-mode
+      type: enum
+      default: auto
+      importance: expert
+      doc: proxies
+      enum:
+        - {value: auto, en: Relay after UDP fails, zh: UDP 失败后使用中继}
+        - {value: force, en: Relay only, zh: 只用中继}
+        - {value: disable, en: No relay, zh: 不用中继}
+      zh: [TCP 回退, "UDP 不通时是否经 TCP 中继。"]
+      en: [TCP fallback, "Whether to use the TCP relay when UDP fails."]
+    - {key: tcp-fallback-relay, type: string, importance: expert, doc: proxies, zh: [TCP 中继, "TCP 中继地址，如 204.80.128.1:443。"], en: [TCP relay, "TCP relay address such as 204.80.128.1:443."]}
+    - {key: remote-trace-target, type: string, importance: expert, doc: proxies, zh: [诊断接收节点, "接收全局诊断追踪的节点 ID。"], en: [Trace target, "Node ID receiving global diagnostic traces."]}
+    - {key: remote-trace-level, type: int, default: 0, importance: expert, doc: proxies, zh: [诊断级别, "0 普通、10 详细、15 规则、20 调试、30 全部。"], en: [Trace level, "0 normal, 10 verbose, 15 rules, 20 debug, 30 insane."]}
+    - {key: low-bandwidth, type: bool, default: false, importance: expert, doc: proxies, zh: [低带宽, "减少后台流量与网络配置刷新频率。"], en: [Low bandwidth, "Reduce background traffic and network config refreshes."]}
+    - {key: encrypted-hello, type: bool, default: false, importance: expert, doc: proxies, zh: [加密 HELLO, "对发出的 HELLO 使用 protocol-13 扩展加密。"], en: [Encrypted HELLO, "Use protocol-13 extended encryption for outgoing HELLO packets."]}
+    - key: orbit
+      type: list
+      importance: expert
+      doc: proxies
+      zh: [联邦根（moon）, "可选的联邦根世界。"]
+      en: [Orbit (moons), "Optional federated root worlds."]
+      items:
+        type: object
+        fields:
+          - {key: world, type: string, importance: core, zh: [世界 ID, "16 位 moon 世界 ID。"], en: [World ID, "16-digit moon world ID."]}
+          - {key: seed, type: string, importance: core, zh: [种子节点, "某个 moon 根节点的 10 位节点 ID。"], en: [Seed, "10-digit node ID of one moon root."]}
+  p-easytier:
+    - {key: network-name, type: string, importance: core, doc: proxies, zh: [网络名, "EasyTier 网络名称。"], en: [Network name, "EasyTier network name."]}
+    - {key: network-secret, type: string, importance: core, sensitive: true, doc: proxies, zh: [网络密钥, "EasyTier 网络密钥。"], en: [Network secret, "EasyTier network secret."]}
+    - {key: hostname, type: string, importance: optional, doc: proxies, zh: [主机名, "本节点名称。"], en: [Hostname, "Name of this node."]}
+    - {key: ipv4, type: string, importance: optional, doc: proxies, zh: [IPv4 地址, "overlay 中的 IPv4，如 10.144.0.1/24；overlay 只支持 IPv4。"], en: [IPv4 address, "Overlay IPv4 such as 10.144.0.1/24; the overlay is IPv4 only."]}
+    - {key: dhcp, type: bool, importance: optional, doc: proxies, zh: [DHCP, "ipv4 为空时默认开启，否则没有 overlay IPv4。"], en: [DHCP, "On by default when ipv4 is empty; otherwise there is no overlay IPv4."]}
+    - {key: peers, type: list, items: {type: string}, importance: core, doc: proxies, zh: [入口节点, "如 tcp://192.0.2.10:11010；可在 URI 中加 peer-public-key 锁定公钥。没有 listeners 时至少填一个。"], en: [Peers, "Such as tcp://192.0.2.10:11010; add peer-public-key to the URI to pin the key. At least one is needed without listeners."]}
+    - {key: secure-mode, type: bool, importance: optional, doc: proxies, zh: [端到端加密, "Noise E2EE；配置 local-*-key 或 peer-public-key 时自动开启。"], en: [Secure mode, "Noise E2EE; enabled automatically with local-*-key or peer-public-key."]}
+    - {key: local-private-key, type: string, importance: expert, sensitive: true, doc: proxies, zh: [本机私钥, "base64 X25519 私钥，固定本机身份。"], en: [Local private key, "Base64 X25519 private key that pins this node's identity."]}
+    - {key: local-public-key, type: string, importance: expert, doc: proxies, zh: [本机公钥, "通常可由私钥派生。"], en: [Local public key, "Usually derived from the private key."]}
+    - {key: listeners, type: list, items: {type: string}, importance: optional, doc: proxies, zh: [监听, "本节点的监听地址，如 tcp://0.0.0.0:11010。"], en: [Listeners, "Listen addresses of this node, e.g. tcp://0.0.0.0:11010."]}
+    - {key: no-listener, type: bool, default: true, importance: optional, doc: proxies, zh: [不监听, "默认不监听，listeners 为空。"], en: [No listener, "Do not listen by default; listeners is empty."]}
+    - {key: mapped-listeners, type: list, items: {type: string}, importance: expert, doc: proxies, zh: [映射监听, "对外公布的监听地址。"], en: [Mapped listeners, "Listen addresses announced to others."]}
+    - {key: exit-nodes, type: list, items: {type: string}, importance: optional, doc: proxies, zh: [出口节点, "作为出口的 overlay 节点 IP。"], en: [Exit nodes, "Overlay node IPs used as exits."]}
+    - {key: proxy-networks, type: list, items: {type: string}, importance: optional, doc: proxies, zh: [代理子网, "经 overlay 访问的子网，如 10.0.0.0/24。"], en: [Proxy networks, "Subnets reached through the overlay, e.g. 10.0.0.0/24."]}
+    - {key: instance-name, type: string, importance: expert, doc: proxies, zh: [实例名, "EasyTier 实例名称。"], en: [Instance name, "EasyTier instance name."]}
+    - {key: state-dir, type: string, importance: optional, doc: proxies, zh: [状态目录, "默认 easytier/<name>，用于持久化 instance_id。"], en: [State directory, "Defaults to easytier/<name>; persists instance_id."]}
+  p-easytier-tail:
+    - {key: accept-dns, type: bool, default: false, importance: optional, doc: proxies, zh: [接受 DNS, "使用 overlay 提供的 DNS。"], en: [Accept DNS, "Use DNS provided by the overlay."]}
+    - {key: enable-exit-node, type: bool, default: false, importance: optional, doc: proxies, zh: [作为出口, "允许其他节点把本节点作为出口。"], en: [Enable exit node, "Allow other nodes to exit through this one."]}
+    - {key: enable-encryption, type: bool, default: true, importance: optional, doc: proxies, zh: [加密, "加密 overlay 流量。"], en: [Encryption, "Encrypt overlay traffic."]}
+    - {key: encryption-algorithm, type: string, default: aes-gcm, importance: expert, doc: proxies, zh: [加密算法, "overlay 使用的加密算法。"], en: [Encryption algorithm, "Cipher used by the overlay."]}
+    - {key: private-mode, type: bool, default: false, importance: expert, doc: proxies, zh: [私有模式, "只与同一网络的节点通信。"], en: [Private mode, "Talk only to nodes in the same network."]}
+    - {key: latency-first, type: bool, default: false, importance: expert, doc: proxies, zh: [延迟优先, "选择路径时以延迟为先。"], en: [Latency first, "Prefer low-latency paths."]}
+    - {key: disable-p2p, type: bool, default: false, importance: expert, doc: proxies, zh: [禁用 P2P, "只经中继通信。"], en: [Disable P2P, "Communicate through relays only."]}
+    - {key: enable-kcp-proxy, type: bool, default: false, importance: expert, doc: proxies, zh: [KCP 代理, "用 KCP 承载 TCP。"], en: [KCP proxy, "Carry TCP over KCP."]}
+    - {key: disable-kcp-input, type: bool, default: false, importance: expert, doc: proxies, zh: [拒绝 KCP 输入, "不接受其他节点的 KCP 代理流量。"], en: [Disable KCP input, "Refuse KCP proxy traffic from other nodes."]}
+    - {key: enable-quic-proxy, type: bool, default: false, importance: expert, doc: proxies, zh: [QUIC 代理, "用 QUIC 承载 TCP。"], en: [QUIC proxy, "Carry TCP over QUIC."]}
+    - {key: disable-quic-input, type: bool, default: false, importance: expert, doc: proxies, zh: [拒绝 QUIC 输入, "不接受其他节点的 QUIC 代理流量。"], en: [Disable QUIC input, "Refuse QUIC proxy traffic from other nodes."]}
+    - {key: mtu, type: int, default: 1380, importance: expert, doc: proxies, zh: [MTU, "overlay MTU。"], en: [MTU, "Overlay MTU."]}
+    - {key: tld-dns-zone, type: string, importance: expert, doc: proxies, zh: [DNS 区域, "overlay 主机名使用的顶级域，如 et.net.。"], en: [DNS zone, "Top-level zone for overlay host names, e.g. et.net.."]}
+  p-trusttunnel:
+    - {key: health-check, type: bool, importance: optional, doc: proxies, zh: [健康检查, "定期检查与服务端的连接。"], en: [Health check, "Check the connection to the server periodically."]}
+    - {key: quic, type: bool, default: false, importance: optional, doc: proxies, zh: [QUIC, "使用 HTTP/3（QUIC）承载。"], en: [QUIC, "Carry traffic over HTTP/3 (QUIC)."]}
+    - {key: max-connections, type: int, importance: expert, doc: proxies, zh: [最大连接, "底层连接上限；与 max-streams 冲突。"], en: [Max connections, "Maximum underlying connections; conflicts with max-streams."]}
+    - {key: min-streams, type: int, importance: expert, doc: proxies, zh: [最少流, "开新连接前单连接的最少流数；与 max-streams 冲突。"], en: [Min streams, "Streams on a connection before opening another; conflicts with max-streams."]}
+    - {key: max-streams, type: int, importance: expert, doc: proxies, zh: [最多流, "单连接的最多流数；与 max-connections、min-streams 冲突。"], en: [Max streams, "Maximum streams per connection; conflicts with max-connections and min-streams."]}
+  p-rematch:
+    - {key: target-rematch-name, type: string, importance: core, doc: proxies, zh: [重匹配名, "覆盖连接的 rematch-name（可用 REMATCH-NAME 规则匹配）。"], en: [Rematch name, "Overrides the connection's rematch-name (matched by REMATCH-NAME rules)."]}
+    - {key: target-sub-rule, type: string, importance: optional, doc: proxies, related: [sub-rules], zh: [子规则, "接着用这个 sub-rule 匹配；不存在或为空时回到主 rules。"], en: [Sub-rule, "Continue matching with this sub-rule; back to the main rules when missing or empty."]}
+  p-quic-cc:
+    - {key: congestion-controller, type: string, importance: optional, doc: proxies, zh: [拥塞控制, "QUIC 拥塞控制算法，如 bbr；留空使用默认。"], en: [Congestion control, "QUIC congestion controller such as bbr; default when empty."]}

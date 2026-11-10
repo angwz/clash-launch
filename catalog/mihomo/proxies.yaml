@@ -245,3 +245,145 @@ fields:
             - {include: head, keys: [name, type, server, port]}
             - {include: udp, keys: [udp]}
             - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: reject
+          doc: proxies
+          zh: [拒绝]
+          en: [Reject]
+          fields:
+            - {include: head, keys: [name, type]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: rematch
+          doc: proxies
+          zh: [重新匹配]
+          en: [Rematch]
+          fields:
+            - {include: head, keys: [name, type]}
+            - {include: p-rematch, keys: [target-rematch-name, target-sub-rule]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: gost-relay
+          doc: proxies
+          zh: [GOST relay]
+          en: [GOST relay]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-gost-relay, keys: [forward]}
+            - {include: udp, keys: [udp]}
+            - {include: tls-switch, keys: [tls]}
+            - {include: p-gost-relay, keys: [mux]}
+            - {include: sni, keys: [sni]}
+            - {include: p-userpass, keys: [username, password]}
+            - {include: tls-verify, keys: [client-fingerprint, fingerprint, certificate, private-key, skip-cert-verify, name-cert-verify]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: shadowquic
+          doc: proxies
+          zh: [ShadowQUIC]
+          en: [ShadowQUIC]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-shadowquic, keys: [username, password]}
+            - {include: sni, keys: [sni]}
+            - {include: alpn, keys: [alpn]}
+            - {include: p-shadowquic, keys: [quic-versions]}
+            - {include: p-tuic-tail, keys: [udp-over-stream]}
+            - {include: p-shadowquic, keys: [zero-rtt, keep-alive-interval]}
+            - {include: p-tuic, keys: [congestion-controller]}
+            - {include: p-shadowquic, keys: [up, down]}
+            - {include: p-tuic, keys: [cwnd, bbr-profile]}
+            - {include: p-tuic-tail, keys: [max-datagram-frame-size]}
+            - {include: p-tuic, keys: [max-open-streams]}
+            - {include: p-tuic-tail, keys: [recv-window-conn, recv-window, disable-mtu-discovery]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: sudoku
+          doc: proxies
+          zh: [Sudoku]
+          en: [Sudoku]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-sudoku, keys: [key, aead-method, padding-min, padding-max, table-type, custom-table, custom-tables, multiplex, httpmask, enable-pure-downlink, http-mask, http-mask-mode, http-mask-tls, http-mask-host, path-root, http-mask-multiplex]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: masque
+          doc: proxies
+          zh: [MASQUE]
+          en: [MASQUE]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-masque, keys: [private-key, public-key, ip, ipv6]}
+            - {include: p-wireguard, keys: [mtu]}
+            - {include: udp, keys: [udp]}
+            - {include: p-wireguard, keys: [ip-stack]}
+            - {include: p-masque, keys: [network, uri]}
+            - {include: sni, keys: [sni]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify]}
+            - {include: dial, keys: [dialer-proxy]}
+            - {include: p-wireguard, keys: [remote-dns-resolve, dns]}
+            - {include: p-quic-cc, keys: [congestion-controller]}
+            - {include: p-tuic, keys: [cwnd, bbr-profile]}
+            - {include: p-handshake-timeout, keys: [handshake-timeout]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp]}
+        - value: trusttunnel
+          doc: proxies
+          zh: [TrustTunnel]
+          en: [TrustTunnel]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-userpass, keys: [username, password]}
+            - {include: tls-verify, keys: [client-fingerprint]}
+            - {include: p-trusttunnel, keys: [health-check]}
+            - {include: udp, keys: [udp]}
+            - {include: sni, keys: [sni]}
+            - {include: alpn, keys: [alpn]}
+            - {include: tls-verify, keys: [skip-cert-verify, name-cert-verify, fingerprint, certificate, private-key]}
+            - {include: tls-ext, keys: [ech-opts]}
+            - {include: p-trusttunnel, keys: [quic]}
+            - {include: p-quic-cc, keys: [congestion-controller]}
+            - {include: p-tuic, keys: [cwnd, bbr-profile]}
+            - {include: p-trusttunnel, keys: [max-connections, min-streams, max-streams]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
+        - value: openvpn
+          doc: proxies
+          zh: [OpenVPN]
+          en: [OpenVPN]
+          fields:
+            - {include: head, keys: [name, type, server, port]}
+            - {include: p-openvpn, keys: [proto, dev, cipher, data-ciphers, data-ciphers-fallback, auth, comp-lzo, username, password, ca, cert, key, tls-auth, key-direction, tls-crypt, tls-crypt-v2, peer-info, ping, ping-restart, tran-window]}
+            - {include: p-handshake-timeout, keys: [handshake-timeout]}
+            - {include: p-wireguard, keys: [mtu]}
+            - {include: udp, keys: [udp]}
+            - {include: p-wireguard, keys: [ip-stack]}
+            - {include: dial, keys: [dialer-proxy]}
+            - {include: p-wireguard, keys: [remote-dns-resolve, dns]}
+            - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp]}
+        - value: tailscale
+          doc: proxies
+          zh: [Tailscale]
+          en: [Tailscale]
+          fields:
+            - {include: head, keys: [name, type]}
+            - {include: p-tailscale, keys: [hostname, auth-key, control-url, state-dir, ephemeral]}
+            - {include: udp, keys: [udp]}
+            - {include: p-tailscale-tail, keys: [accept-routes, exit-node, exit-node-allow-lan-access]}
+            - {include: dial, keys: [dialer-proxy, interface-name, routing-mark, ip-version, tfo, mptcp]}
+        - value: zerotier
+          doc: proxies
+          zh: [ZeroTier]
+          en: [ZeroTier]
+          fields:
+            - {include: head, keys: [name, type]}
+            - {include: p-zerotier, keys: [network, state-dir, identity-secret, planet]}
+            - {include: p-wireguard, keys: [mtu]}
+            - {include: p-zerotier, keys: [physical-mtu]}
+            - {include: p-wireguard, keys: [ip-stack]}
+            - {include: p-zerotier, keys: [primary-port, secondary-port, tcp-fallback-mode, tcp-fallback-relay, remote-trace-target, remote-trace-level, low-bandwidth, encrypted-hello, orbit]}
+            - {include: udp, keys: [udp]}
+            - {include: p-wireguard, keys: [remote-dns-resolve, dns]}
+            - {include: dial, keys: [dialer-proxy, interface-name, routing-mark, ip-version, tfo, mptcp]}
+        - value: easytier
+          doc: proxies
+          zh: [EasyTier]
+          en: [EasyTier]
+          fields:
+            - {include: head, keys: [name, type]}
+            - {include: p-easytier, keys: [network-name, network-secret, hostname, ipv4, dhcp, peers, secure-mode, local-private-key, local-public-key, listeners, no-listener, mapped-listeners, exit-nodes, proxy-networks, instance-name, state-dir]}
+            - {include: udp, keys: [udp]}
+            - {include: p-easytier-tail, keys: [accept-dns, enable-exit-node, enable-encryption, encryption-algorithm, private-mode, latency-first, disable-p2p, enable-kcp-proxy, disable-kcp-input, enable-quic-proxy, disable-quic-input, mtu, tld-dns-zone]}
+            - {include: dial, keys: [dialer-proxy, interface-name, routing-mark, ip-version, tfo, mptcp]}

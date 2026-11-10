@@ -123,7 +123,22 @@ raw: |
       udp: true
       ip-stack: {mode: auto, congestion-controller: cubic}
       amnezia-wg-option: {version: 2, jc: 5, jmin: 500, jmax: 501, s1: 30, s2: 40, h1: "123456", h2: "67543", h3: "123123", h4: "32345"}
+    - {name: reject-drop, type: reject}
+    - {name: rematch, type: rematch, target-rematch-name: rematch1}
+    - {name: gost-hop, type: gost-relay, server: relay.example.com, port: 443, udp: true, tls: true, sni: relay.example.com}
+    - {name: shadowquic, type: shadowquic, server: sq.example.com, port: 443, username: example, password: example-password, sni: sq.example.com, congestion-controller: bbr}
+    - name: sudoku
+      type: sudoku
+      server: sudoku.example.com
+      port: 443
+      key: 00000000-0000-4000-8000-000000000005
+      aead-method: chacha20-poly1305
+      padding-min: 2
+      padding-max: 7
+      table-type: prefer_ascii
+      httpmask: {disable: false, mode: legacy}
+    - {name: trusttunnel, type: trusttunnel, server: 192.0.2.40, port: 443, username: example, password: example-password, udp: true, health-check: true}
   proxy-groups:
-    - {name: PROXY, type: select, proxies: [vless-xhttp, trojan-shadowtls, vmess-restls, vmess-mkcp, hy2-realm, awg, DIRECT]}
+    - {name: PROXY, type: select, proxies: [vless-xhttp, trojan-shadowtls, vmess-restls, vmess-mkcp, hy2-realm, awg, gost-hop, shadowquic, sudoku, trusttunnel, rematch, reject-drop, DIRECT]}
   rules:
     - MATCH,PROXY
