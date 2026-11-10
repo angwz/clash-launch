@@ -127,8 +127,12 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
 
 ## 下一步
 
-开发暂停中。维护者的方向（反馈 #14）：先打通核心路径，其余功能后续迭代。建议的下一轮范围：
+开发暂停中，下一轮在新对话中进行。方向见反馈 #14、#15：只做核心路径，其余功能留待后续迭代。
 
-1. **OpenClash 预设**（M6 中提前的一项）：按 OpenClash 官方文档与源码核对它接管或改写的字段（端口、DNS、TUN、external-controller 等），加入 `catalog/mihomo/presets/openclash.yaml`，并用其内核版本做 `mihomo -t` 检查。
-2. **核心路径端到端**：登录 → 添加订阅 → 选择规则源 → 选择 OpenClash → 得到订阅链接，在 OpenClash 中实际导入验证（需要维护者的设备，或说明只做到内核检查）。
-3. 之后再按需继续：导入（Clash YAML、Verge Merge、Stash 覆写）、规则源编辑器与策略组预览、其余目标预设、目录补全、Docker 与 PostgreSQL 实测。
+**下一轮范围（按顺序）**
+
+1. **OpenClash 预设**：对照 OpenClash 官方文档与源码（只读参考，记录提交），确认它使用的内核版本、接管或改写的字段（端口、DNS、TUN、external-controller、geo 等），加入 `catalog/mihomo/presets/openclash.yaml`；依据写进决定。
+2. **字段目录补全**：几乎全部 Clash（mihomo）字段都要能在表单中配置。优先补齐目前以 `any` 透传的部分（`listeners` 逐类型字段、xhttp、shadow-tls/restls/jls、realm、AmneziaWG 等节点子选项），以 `catalog-extract scan` 的覆盖率为准，目录说明中英齐全。
+3. **验收**：用真实数据走通「登录 → 添加订阅 → 选规则源 → 选 OpenClash → 订阅链接」，服务端取回订阅输出并通过 `mihomo -t`（含 `-tags kernel` 的实际加载）即算达标；在 OpenClash 中导入由维护者自行验证。
+
+**不在下一轮范围**：通行密钥的进一步工作（已实现并有测试，按 #15 不再投入；如需精简可在之后删除 `internal/auth/webauthn.go`、`internal/service/passkey.go`、`internal/api/passkey.go` 与前端对应组件）、配置导入、规则源编辑器与策略组预览、其他客户端预设、Docker 与 PostgreSQL 实测、M7。
