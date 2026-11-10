@@ -79,7 +79,7 @@
 | 字段目录：加载、片段、校验、键序、导出 | `catalog/mihomo/`、`internal/catalog` | ✓ | 单元测试；文档锚点对照 wiki 快照；顶层、dns、tun、sniffer、17 种协议、rule-provider 的顺序对照官方示例 |
 | 安全 YAML 解析 | `internal/yamlx` | ✓ | 体积、节点数、别名展开、重复键经合并与渲染测试间接覆盖 |
 | 表单层校验与原始编辑合并 | `internal/layer` | ✓ | 表驱动、fuzz |
-| 目标适配（版本门槛、不支持、接管、弃用） | `internal/target` | ✓ | 端到端（`global-client-fingerprint` 移除警告）；预设只有 `mihomo` |
+| 目标适配（版本门槛、不支持、接管、弃用） | `internal/target` | ✓ | 端到端（`global-client-fingerprint` 移除警告）；预设 `mihomo`、`openclash`（[0006](../decisions/0006-openclash-preset.md)），`TestPresetManagedPathsInCatalog` 锁定接管路径 |
 | 渲染与格式自检 | `internal/render` | ✓ | 刁钻标量表、golden、fuzz |
 | 内核检查（离线 `mihomo -t`） | `internal/kernel` | ✓ | mihomo v1.19.33 实测：合法配置通过，坏节点失败并定位到 `proxies[0]` |
 | 方案文档 | `internal/profile` | ✓ | 经引擎测试覆盖 |
@@ -120,7 +120,7 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过
 ## 已知限制
 
 - 目录：`listeners` 的逐类型字段，以及 xhttp 细项、shadow-tls/restls/jls、realm、AmneziaWG 等节点子选项暂以 `any` 透传（M6 补齐）；详细说明与示例覆盖率在 M6 前补齐。
-- 目标预设只有 `mihomo`；其余预设在 M6 按客户端官方文档逐项核对后加入。
+- 目标预设有 `mihomo` 与 `openclash`；其余客户端预设在 M6 按官方文档或源码逐项核对后加入。
 - `geoip.dat` 的哈希是首次下载时记录的，没有上游公布的校验值可对照。
 - sing-box：`multiplex` 不转换为 `smux`；只读取 `outbounds`，不读取 `endpoints` 中的 WireGuard。
 - groups.toml 中组的透传键按键名排序输出（go-toml 解码为 map 时丢失原顺序）；目录内的键由渲染器按目录顺序排列，不受影响。

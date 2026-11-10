@@ -53,6 +53,7 @@ git clone --depth 1 --branch v1.19.33 https://github.com/MetaCubeX/mihomo .cache
 git clone --depth 1 --branch v1.19.32 https://github.com/MetaCubeX/mihomo .cache/ref/mihomo-1.19.32
 git clone https://github.com/angwz/subconverter .cache/ref/subconverter && git -C .cache/ref/subconverter checkout a33d49e
 git clone --depth 1 https://github.com/ACL4SSR/ACL4SSR .cache/ref/acl4ssr
+git clone https://github.com/vernesong/OpenClash .cache/ref/openclash && git -C .cache/ref/openclash checkout e553e82e01c697aefbe1555261a503f425e00ccd
 ```
 
 `TestScanMihomo` 在 `.cache/ref/mihomo` 存在时运行，否则跳过。

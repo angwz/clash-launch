@@ -16,7 +16,7 @@
 ## 硬性边界
 
 - 远端操作（创建仓库、推送、发布镜像、创建 Release、配置 Actions secret、接入 Weblate）只在维护者明确要求时进行；仓库元数据先经维护者确认。
-- 参考资料只读，放在 `.cache/ref/`：domainrouter_v2@2c812f9、mihomo@v1.19.33、angwz/subconverter@a33d49e、ACL4SSR（记录提交）。不运行其中的脚本，不修改，不推送。
+- 参考资料只读，放在 `.cache/ref/`：domainrouter_v2@2c812f9、mihomo@v1.19.33、angwz/subconverter@a33d49e、ACL4SSR（记录提交）、OpenClash@e553e82。不运行其中的脚本，不修改，不推送。
 - 只按官方文档或源码实现语义；查不到就列为限制，不猜。没有正式规范的输入格式不支持。
 - 用户写下的内容是有意为之：节点名、组名、正则、手写规则、原始编辑中的值按原样保留，看似不规范时只报告。
 - 不静默丢弃：被跳过、改写、删除或无法验证的内容都进入诊断（`internal/diag`）。
