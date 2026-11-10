@@ -65,7 +65,7 @@
 
 | 验收条件 | 结果 | 证据 |
 | --- | :---: | --- |
-| 安全测试清单逐项通过并记录 | ✅ | [security](../design/security.md) 的 A1–E2 共 37 项，每项对应自动化测试（单元、API 或端到端）；全部通过 |
+| 安全测试清单逐项通过并记录 | ✅ | [security](../design/security.md) 的 A1–E2 共 38 项，每项对应自动化测试（单元、API 或端到端）；全部通过 |
 | 注册（安全问题、工作量证明）、找回 | ✅ | `TestAccountSecurity`、e2e 找回；工作量证明 20 位在桌面实测平均 0.74 s |
 | 通行密钥、TOTP | ✅ | `TestWebAuthn`、`TestPasskeys`、`TestTOTPVectors`、`TestTOTPFlow`；e2e 用 Chromium 虚拟认证器走通注册与免密码登录 |
 | SMTP 异常登录提醒 | ✅ | `TestMailer`（假 SMTP 服务器）、`TestSMTPSettingsAndAlerts`；**未对真实邮件服务商发送** |
