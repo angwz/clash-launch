@@ -7,6 +7,8 @@
   import { catalog, type MetaField } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
+  import { slide } from "svelte/transition";
+  import { dur } from "../../lib/motion";
 
   let {
     field,
@@ -21,6 +23,12 @@
   const set = $derived(editor.isSet(path));
   const raw = $derived(editor.touched(path));
   const isGroup = $derived(field.type === "object" && !!field.fields?.length);
+  // 总开关：同一对象下有 bool 类型的 enable 且它没有打开时，其余字段变淡（仍可编辑，只是暂不生效）
+  const switchPath = $derived([...path.slice(0, -1), "enable"]);
+  const switchField = $derived(path.length > 1 && field.key !== "enable" ? catalog.field(switchPath.join(".")) : undefined);
+  const inactive = $derived(
+    switchField?.type === "bool" && (editor.isSet(switchPath) ? editor.value(switchPath) : switchField.default) !== true,
+  );
   const inline = $derived(
     field.type === "bool" || field.type === "int" || (field.type === "enum" && (field.enum?.length ?? 0) <= 6) || (field.type === "string" && !field.sensitive),
   );
@@ -59,7 +67,7 @@
 </script>
 
 {#if isGroup}
-  <section class="group" id={"f-" + pathKey} data-path={pathKey}>
+  <section class="group" class:inactive id={"f-" + pathKey} data-path={pathKey} title={inactive ? t("field.inactive_hint") : undefined}>
     <button class="group-head" type="button" aria-expanded={groupOpen || onlySet} onclick={() => (groupOpen = !groupOpen)}>
       <Icon name={groupOpen || onlySet ? "chevron-down" : "chevron-right"} size={15} />
       <span class="title" id={labelId}>{catalog.title(field)}</span>
@@ -69,7 +77,7 @@
     </button>
     {#if catalog.summary(field)}<p class="group-sum">{catalog.summary(field)}</p>{/if}
     {#if groupOpen || onlySet}
-      <div class="group-body">
+      <div class="group-body" transition:slide={{ duration: dur(220) }}>
         {#each field.fields ?? [] as f (f.key)}
           {#if childVisible(f)}
             <FieldCard field={f} path={[...path, f.key]} {editor} {core} {onlySet} />
@@ -79,7 +87,7 @@
     {/if}
   </section>
 {:else}
-  <article class="card" class:is-set={set} class:is-raw={raw} id={"f-" + pathKey} data-path={pathKey}>
+  <article class="card" class:is-set={set} class:is-raw={raw} class:inactive id={"f-" + pathKey} data-path={pathKey} title={inactive ? t("field.inactive_hint") : undefined}>
     <div class="head">
       <div class="text">
         <div class="title-row">
@@ -147,7 +155,22 @@
     scroll-margin-block: var(--space-6);
     transition: border-color var(--dur-fast) var(--ease);
   }
-  .card.is-set::before {
+  /* 总开关关闭时变淡；悬停或聚焦时恢复一些，便于继续编辑 */
+  .card,
+  .group {
+    transition:
+      opacity var(--dur) var(--ease),
+      border-color var(--dur-fast) var(--ease);
+  }
+  .inactive {
+    opacity: 0.5;
+  }
+  .inactive:hover,
+  .inactive:focus-within {
+    opacity: 0.8;
+  }
+  /* 已设置标记：竖条从中间展开 */
+  .card::before {
     content: "";
     position: absolute;
     inset-block: 10px;
@@ -155,8 +178,13 @@
     inline-size: 3px;
     border-radius: 0 3px 3px 0;
     background: var(--accent);
+    transform: scaleY(0);
+    transition: transform var(--dur) var(--ease-spring);
   }
-  :global([dir="rtl"]) .card.is-set::before {
+  .card.is-set::before {
+    transform: scaleY(1);
+  }
+  :global([dir="rtl"]) .card::before {
     border-radius: 3px 0 0 3px;
   }
   .card.is-raw {

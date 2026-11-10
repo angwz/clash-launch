@@ -5,9 +5,12 @@
  * 对比度：正文 ≥ 7:1，次要文字 ≥ 4.5:1，边框与控件轮廓 ≥ 3:1（WCAG 2.2 AA）。
  */
 :root {
-  /* 字体：系统字体栈，不加载任何外部字体 */
-  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* 字体：系统字体栈；只加载随程序发布的国旗字体（public/fonts，不访问第三方） */
+  /* 国旗用自带的 Twemoji Country Flags（unicode-range 只覆盖国旗字符；Windows 自带字体没有国旗），
+     其余 emoji 回落到系统的彩色 emoji 字体 */
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --font-sans: "Twemoji Country Flags", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans", var(--font-emoji), sans-serif;
+  --font-mono: "Twemoji Country Flags", ui-monospace, "Cascadia Code", "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", var(--font-emoji), monospace;
 
   /* 字号：14px 为正文基准，信息密度优先 */
   --text-xs: 0.75rem;
@@ -41,10 +44,12 @@
   --preview-w: 440px;
   --content-max: 880px;
 
-  /* 动效：只用于状态变化 */
+  /* 动效：只用于状态变化与内容出现；弹性曲线只用于开关这类小位移 */
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --dur-fast: 120ms;
-  --dur: 200ms;
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
 
   color-scheme: light dark;
 }
@@ -191,9 +196,13 @@
   }
 }
 
+/* 系统要求减少动画（Windows 关闭「动画效果」时浏览器也会报告）：保留短暂的颜色与透明度过渡，
+   去掉弹性与较长的位移，不完全关掉——状态切换没有任何反馈反而难以察觉（反馈 #18）。 */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --dur-fast: 0ms;
-    --dur: 0ms;
+    --ease-spring: var(--ease);
+    --dur-fast: 90ms;
+    --dur: 120ms;
+    --dur-slow: 140ms;
   }
 }

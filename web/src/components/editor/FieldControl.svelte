@@ -8,12 +8,17 @@
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
   import Icon from "../Icon.svelte";
+  import { toasts } from "../../lib/toast.svelte";
 
   let { field, path, editor, labelId }: { field: MetaField; path: string[]; editor: EditorState; labelId: string } = $props();
 
   const value = $derived(editor.value(path));
   const set = $derived(editor.isSet(path));
-  const isScalarList = $derived(field.type === "list" && !!field.items && ["string", "int", "enum"].includes(field.items.type));
+  // 「数字或字符串」的标量联合（如嗅探端口：443 或 8080-8880）也按一行一项编辑：纯整数存为数字
+  const intOrString = $derived(
+    field.items?.type === "anyOf" && (field.items.of ?? []).every((o) => o.type === "int" || o.type === "string") && (field.items.of ?? []).some((o) => o.type === "int"),
+  );
+  const isScalarList = $derived(field.type === "list" && !!field.items && (["string", "int", "enum"].includes(field.items.type) || intOrString));
   const kind = $derived(
     field.type === "bool"
       ? "bool"
@@ -73,7 +78,7 @@
     if (kind === "lines") {
       const items = s.split("\n").map((x) => x.trim()).filter(Boolean);
       if (!items.length) return reset();
-      const out = field.items?.type === "int" ? items.map(Number) : items;
+      const out = field.items?.type === "int" ? items.map(Number) : intOrString ? items.map((x) => (/^-?[0-9]+$/.test(x) ? Number(x) : x)) : items;
       if (field.items?.type === "int" && out.some((x) => !Number.isInteger(x))) return void (error = t("field.err_int_list"));
       error = "";
       editor.set(path, out);
@@ -91,6 +96,26 @@
         error = t("field.err_yaml", { detail: e instanceof Error ? e.message.split("\n")[0] : String(e) });
       }
     }
+  }
+
+  // 开关：打开对象的总开关（enable）时，把该对象尚未设置的子字段填为目录中的推荐值；已设置的值不动。
+  function toggle() {
+    const next = !(effective === true);
+    editor.set(path, next);
+    if (next && field.key === "enable") fillRecommended();
+  }
+
+  function fillRecommended() {
+    const base = path.slice(0, -1);
+    const rec = catalog.field(base.join("."))?.recommended;
+    if (!rec) return;
+    let n = 0;
+    for (const [k, v] of Object.entries(rec)) {
+      if (editor.isSet([...base, k])) continue;
+      editor.set([...base, k], $state.snapshot(v));
+      n++;
+    }
+    if (n) toasts.push("info", t("field.recommended_filled", { n }));
   }
 
   function reset() {
@@ -130,7 +155,7 @@
     aria-checked={effective === true}
     aria-labelledby={labelId}
     data-set={set}
-    onclick={() => editor.set(path, !(effective === true))}
+    onclick={toggle}
   >
     <span class="knob"></span>
   </button>
@@ -206,7 +231,16 @@
     border-radius: var(--radius-full);
     background: var(--border-strong);
     cursor: pointer;
-    transition: background var(--dur-fast) var(--ease);
+    transition:
+      background var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease),
+      outline-color var(--dur) var(--ease);
+  }
+  .switch:active .knob {
+    inline-size: 20px;
+  }
+  .switch[aria-checked="true"]:active .knob {
+    inset-inline-start: 12px;
   }
   .switch[aria-checked="true"] {
     background: var(--accent);
@@ -237,7 +271,10 @@
     border-radius: 50%;
     background: #fff;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
-    transition: inset-inline-start var(--dur-fast) var(--ease);
+    transition:
+      inset-inline-start var(--dur) var(--ease-spring),
+      inline-size var(--dur-fast) var(--ease),
+      background var(--dur) var(--ease);
   }
   .switch[aria-checked="true"] .knob {
     inset-inline-start: 16px;
@@ -251,6 +288,11 @@
     background: var(--bg-sunken);
   }
   .seg button {
+    transition:
+      background var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease),
+      outline-color var(--dur-fast) var(--ease);
     block-size: 26px;
     padding-inline: var(--space-3);
     border: 0;

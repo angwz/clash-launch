@@ -40,6 +40,7 @@
 - `type: any` 只用于目录暂时无法精确描述的位置，必须写 `reason`。
 - 片段（`fragments`）在 `fields` 中以 `{include: 片段名}` 或 `{include: 片段名, keys: [...]}` 引用；片段字段的 ID 以片段为根（`fragments.tls-verify.skip-cert-verify`），所有引用处共用一份说明。
 - 加载时校验：每个字段都有中英文标题与摘要、`importance`、文档链接；枚举有取值；ID 不重复；`order` 与文件中的顶层字段一一对应。
+- `recommended`（只用于带 bool 型 `enable` 的对象）：用户打开 `enable` 时，界面把尚未设置的子字段填为这些值，已设置的值不动。取值只来自官方示例 `docs/config.yaml` 中通用、可移植的部分，不收演示用的规则集名、网卡名与地区专属设置；`TestRecommendedValuesPassForm` 检查它们能通过表单校验。目前有 `dns`、`sniffer`、`tun`。
 
 ## 顺序的来源
 

@@ -87,3 +87,17 @@ describe("ProfileDoc", () => {
     expect(() => new ProfileDoc("name: a\nname: b\n")).toThrow();
   });
 });
+
+describe("输出格式", () => {
+  it("proxies-block 写入 output 并可移除，不影响其他输出设置", () => {
+    const d = new ProfileDoc('clash-launch/profile: v1\nname: x\ntarget: { pack: mihomo, preset: mihomo, core: "1.19.33" }\noutput: { timezone: Asia/Shanghai }\n');
+    expect(d.proxiesBlock).toBe(false);
+    d.proxiesBlock = true;
+    expect(d.proxiesBlock).toBe(true);
+    expect(d.toString()).toContain("proxies-block: true");
+    d.proxiesBlock = false;
+    expect(d.proxiesBlock).toBe(false);
+    expect(d.toString()).toContain("Asia/Shanghai");
+    expect(d.toString()).not.toContain("proxies-block");
+  });
+});

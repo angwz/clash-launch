@@ -1,12 +1,14 @@
 <script lang="ts">
-  // 一个分节（第 16.2 节）：core 与 recommended 默认展开，optional 与 expert 折叠在「更多」中；
-  // 已设置或来自原始编辑的字段总是显示。分节只有一个对象键（如 dns）时直接展开其字段。
+  // 一个分节（第 16.2 节）：core 与 recommended 在上，optional 与 expert 在「更多设置」中（默认展开）。
+  // 字段的位置只由重要程度决定，设置后不移动（反馈 #18：设置后跳到上方会打断编辑）。分节只有一个对象键（如 dns）时直接展开其字段。
   import FieldCard from "./FieldCard.svelte";
   import Icon from "../Icon.svelte";
   import Menu from "../Menu.svelte";
   import { catalog, type MetaField, type NavSection } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
+  import { slide } from "svelte/transition";
+  import { dur } from "../../lib/motion";
 
   let {
     section,
@@ -16,7 +18,7 @@
   }: { section: NavSection; editor: EditorState; core: string; onRaw: (section: NavSection) => void } = $props();
 
   let onlySet = $state(false);
-  let more = $state(false);
+  let more = $state(true);
 
   interface Entry {
     field: MetaField;
@@ -35,8 +37,8 @@
 
   const prominent = (e: Entry) => e.field.importance === "core" || e.field.importance === "recommended";
   const active = (e: Entry) => editor.isSet(e.path) || editor.touched(e.path);
-  const primary = $derived(entries.filter((e) => (onlySet ? active(e) : prominent(e) || active(e))));
-  const rest = $derived(onlySet ? [] : entries.filter((e) => !prominent(e) && !active(e)));
+  const primary = $derived(entries.filter((e) => (onlySet ? active(e) : prominent(e))));
+  const rest = $derived(onlySet ? [] : entries.filter((e) => !prominent(e)));
   const setCount = $derived(entries.filter(active).length);
   // 定位到折叠在「更多」中的字段时展开
   $effect(() => {
@@ -45,7 +47,7 @@
   });
 </script>
 
-<section class="section" aria-labelledby={"sec-" + section.id}>
+<section class="section enter" aria-labelledby={"sec-" + section.id}>
   <header class="head">
     <div>
       <h2 id={"sec-" + section.id}>{catalog.navTitle(section)}</h2>
@@ -89,7 +91,7 @@
       {t("editor.more_fields", { n: rest.length })}
     </button>
     {#if more}
-      <div class="cards">
+      <div class="cards" transition:slide={{ duration: dur(260) }}>
         {#each rest as e (e.path.join("."))}
           <FieldCard field={e.field} path={e.path} {editor} {core} />
         {/each}
@@ -143,7 +145,7 @@
     align-items: center;
     gap: var(--space-2);
     justify-self: start;
-    margin-block-start: var(--space-2);
+    margin-block-start: var(--space-5);
     padding-block: var(--space-2);
     padding-inline: var(--space-1) var(--space-3);
     border: 0;

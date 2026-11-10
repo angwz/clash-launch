@@ -159,6 +159,23 @@ export class ProfileDoc {
     this.doc.set("rules", m);
   }
 
+  // —— 输出格式 ——
+
+  /** output.proxies-block：节点用多行块格式（与官方示例一致）；默认每个节点一行。 */
+  get proxiesBlock(): boolean {
+    return this.doc.getIn(["output", "proxies-block"]) === true;
+  }
+
+  set proxiesBlock(v: boolean) {
+    this.#dirty = true;
+    if (v) {
+      if (!this.doc.has("output")) this.doc.set("output", this.doc.createNode({}));
+      this.doc.setIn(["output", "proxies-block"], true);
+      return;
+    }
+    if (this.doc.hasIn(["output", "proxies-block"])) this.doc.deleteIn(["output", "proxies-block"]);
+  }
+
   // —— 原始编辑（后备隐藏能源）——
 
   get raw(): string {

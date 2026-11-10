@@ -6,6 +6,12 @@ fields:
     doc: sniff
     zh: [域名嗅探, "从 TLS、HTTP、QUIC 流量中识别域名，供规则匹配使用。"]
     en: [Sniffer, "Recover domain names from TLS, HTTP and QUIC traffic for rule matching."]
+    # 开启 enable 时填入的推荐值：官方示例中 sniff 的端口设置（含示例里注释给出的 TLS、QUIC 端口）。
+    recommended:
+      sniff:
+        HTTP: {ports: [80, 8080-8880], override-destination: true}
+        TLS: {ports: [443, 8443]}
+        QUIC: {ports: [443]}
     fields:
       - {key: enable, type: bool, default: false, importance: recommended, doc: "sniff#enable", zh: [启用, "启用域名嗅探。"], en: [Enable, "Enable sniffing."]}
       - {key: force-dns-mapping, type: bool, default: true, importance: optional, doc: "sniff#force-dns-mapping",
@@ -19,7 +25,7 @@ fields:
         values:
           type: object
           fields:
-            - {key: ports, type: list, items: {type: string}, importance: optional, zh: [端口, "需要嗅探的端口或端口范围。"], en: [Ports, "Ports or port ranges to sniff."]}
+            - {key: ports, type: list, items: {type: anyOf, of: [{type: int}, {type: string}]}, importance: optional, zh: [端口, "需要嗅探的端口（数字）或端口范围（如 8080-8880）。"], en: [Ports, "Ports (numbers) or port ranges such as 8080-8880."]}
             - {key: override-destination, type: bool, importance: optional, zh: [覆盖目标, "覆盖全局的 override-destination。"], en: [Override destination, "Overrides the global override-destination."]}
         importance: recommended
         doc: "sniff#sniff"

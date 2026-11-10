@@ -49,6 +49,15 @@
     <span class="spacer"></span>
     {#if editor.previewing}<span class="busy" aria-live="polite">{t("preview.updating")}</span>{/if}
     {#if tab === "yaml" && p}
+      <button
+        class="btn ghost sm fmt"
+        type="button"
+        aria-pressed={editor.proxiesBlock}
+        title={t("preview.proxies_block_hint")}
+        onclick={() => editor.setProxiesBlock(!editor.proxiesBlock)}
+      >{editor.proxiesBlock ? t("preview.proxies_block_on") : t("preview.proxies_block_off")}</button>
+    {/if}
+    {#if tab === "yaml" && p}
       <button class="btn ghost icon sm" type="button" aria-label={t("common.copy")} title={t("common.copy")} onclick={copy}><Icon name="copy" size={14} /></button>
     {/if}
   </div>

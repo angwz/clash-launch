@@ -7,6 +7,13 @@ fields:
     doc: dns
     zh: [DNS, "内置 DNS 服务器与解析策略。"]
     en: [DNS, "Built-in DNS server and resolution policy."]
+    # 开启 enable 时填入的推荐值：官方示例 docs/config.yaml 中通用的部分（不含演示用的规则集与网卡名）。
+    recommended:
+      enhanced-mode: fake-ip
+      fake-ip-range: 198.18.0.1/16
+      fake-ip-filter: ["*.lan", localhost.ptlogin2.qq.com]
+      default-nameserver: [114.114.114.114, 8.8.8.8, "tls://1.12.12.12:853", "tls://223.5.5.5:853"]
+      nameserver: [114.114.114.114, 8.8.8.8, "tls://223.5.5.5:853", "https://doh.pub/dns-query"]
     fields:
       - key: cache-algorithm
         type: enum

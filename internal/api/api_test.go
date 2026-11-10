@@ -443,3 +443,31 @@ func solvePoW(t *testing.T, c *client, purpose string) map[string]string {
 	}](t, c.want(200, "GET", "/api/v1/pow?purpose="+purpose, nil))
 	return map[string]string{"challenge": ch.Challenge, "nonce": auth.Solve(ch.Challenge, ch.Bits)}
 }
+
+// 预览与订阅输出必须一致：两者走同一个 service.Render，文件头的 UPDATED 之外逐字节相同。
+// 节点名带国旗 emoji，覆盖多字节字符在两条路径上的处理。
+func TestPreviewMatchesSubscription(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	doc := p.Doc + "raw: |\n  proxies: !append\n    - {name: \"🇭🇰 香港 99\", type: ss, server: 192.0.2.9, port: 8388, cipher: aes-128-gcm, password: example-pw}\n"
+	c.want(200, "PUT", "/api/v1/profiles/"+pid, map[string]string{"doc": doc}, "If-Match", `"v1"`)
+	pv := decode[previewResp](t, c.want(200, "POST", "/api/v1/profiles/"+pid+"/preview", map[string]string{"doc": doc}))
+	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+pid+"/links", map[string]string{}))
+	_, body := h.client().do("GET", strings.TrimPrefix(l.URL, h.http.URL), nil)
+	strip := func(s string) string {
+		var out []string
+		for _, line := range strings.Split(s, "\n") {
+			if !strings.HasPrefix(line, "# UPDATED:") {
+				out = append(out, line)
+			}
+		}
+		return strings.Join(out, "\n")
+	}
+	if strip(pv.YAML) != strip(string(body)) {
+		t.Fatalf("预览与订阅不一致：\n--- 预览\n%s\n--- 订阅\n%s", pv.YAML, body)
+	}
+	if !strings.Contains(string(body), "🇭🇰 香港 99") {
+		t.Fatalf("订阅中缺少 emoji 节点名：\n%s", body)
+	}
+}

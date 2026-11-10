@@ -23,6 +23,7 @@ type MetaField struct {
 	Removed    string            `json:"removed,omitempty"`
 	Replace    string            `json:"replacement,omitempty"`
 	Default    any               `json:"default,omitempty"`
+	Recommend  any               `json:"recommended,omitempty"` // 对象的推荐值：开启 enable 时填入未设置的子字段
 	Enum       []string          `json:"enum,omitempty"`
 	Examples   []any             `json:"examples,omitempty"`
 	Related    []string          `json:"related,omitempty"`
@@ -70,6 +71,9 @@ func meta(f *Field) *MetaField {
 	}
 	if f.Default.Kind != 0 {
 		m.Default = NodeJSON(&f.Default)
+	}
+	if f.Recommended.Kind != 0 {
+		m.Recommend = NodeJSON(&f.Recommended)
 	}
 	for _, e := range f.Enum {
 		m.Enum = append(m.Enum, e.Value)

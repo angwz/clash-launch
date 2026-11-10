@@ -98,6 +98,17 @@ export class EditorState {
     this.#changed();
   }
 
+  get proxiesBlock(): boolean {
+    void this.rev;
+    return this.doc?.proxiesBlock ?? false;
+  }
+
+  setProxiesBlock(v: boolean): void {
+    if (!this.doc) return;
+    this.doc.proxiesBlock = v;
+    this.#changed();
+  }
+
   get raw(): string {
     void this.rev;
     return this.doc?.raw ?? "";

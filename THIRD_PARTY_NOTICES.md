@@ -22,6 +22,7 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | --- | --- | --- | --- |
 | 常见口令表（长度 ≥ 10 的条目） | danielmiessler/SecLists@a1a06ab `Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt` | MIT | `internal/auth/common_passwords.txt`（由 `tools/commonpw` 生成） |
 | 浏览器 User-Agent 表 | MetaCubeX/mihomo@v1.19.33 `common/convert/util.go` | GPL-3.0 | `internal/kernel/useragents.go`（生成） |
+| 国旗字体 Twemoji Country Flags | talkjs/country-flag-emoji-polyfill 0.1.10 的 `dist/TwemojiCountryFlags.woff2`（SHA-256 `9f04f144…54e3b8`）；图形来自 Twitter Twemoji | 图形 CC-BY-4.0（© Twitter, Inc. 及其他贡献者，https://github.com/twitter/twemoji）；包代码 MIT | `web/public/fonts/twemoji-country-flags.woff2`，只用于显示国旗 |
 
 ## 前端（编译进 web/dist）
 

@@ -16,6 +16,8 @@ export interface MetaField {
   removed?: string;
   replacement?: string;
   default?: unknown;
+  /** 对象的推荐值：开启其 enable 时填入尚未设置的子字段 */
+  recommended?: Record<string, unknown>;
   enum?: string[];
   examples?: unknown[];
   related?: string[];

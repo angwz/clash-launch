@@ -22,7 +22,8 @@ proxies:
 ```
 
 - 缩进 2 个空格，块序列缩进在父键之下；LF 换行，文件以单个换行结尾；顶层分节之间空一行。
-- `proxies` 中每个节点一行（流式映射）；方案设置 `output.proxies-block: true` 时改为块格式。其余部分使用块格式，空集合写 `{}`、`[]`。
+- `proxies` 中每个节点一行（流式映射，订阅转换工具的常见写法）；方案设置 `output.proxies-block: true`（界面：预览上方「节点：多行」）时改为与官方示例一致的块格式。其余部分使用块格式，空集合写 `{}`、`[]`。
+- 预览与订阅输出走同一个 `service.Render`，除文件头的 `UPDATED` 外逐字节一致（`TestPreviewMatchesSubscription`）。
 - 文件头键名大写；`UPDATED` 取自输入快照，时区取方案设置（默认 UTC），没有快照时间时省略。
 
 ## 引号

@@ -386,6 +386,10 @@
     min-inline-size: 0;
     outline: none;
   }
+  /* 页面切换：新页面挂载时淡入（App.svelte 按路由重新挂载页面，动画随之重放） */
+  .main > :global(*) {
+    animation: enter var(--dur) var(--ease) both;
+  }
 
   .scrim {
     display: none;

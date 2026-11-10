@@ -121,5 +121,11 @@ fields:
     doc: inbound/tun
     zh: [TUN, "虚拟网卡模式：接管系统流量，无需应用支持代理。"]
     en: [TUN, "Virtual network interface that captures system traffic without per-app proxy settings."]
+    # 开启 enable 时填入的推荐值：官方示例中的栈与 DNS 劫持，以及示例注释给出的自动路由与自动识别出口网卡。
+    recommended:
+      stack: mips
+      dns-hijack: ["0.0.0.0:53"]
+      auto-route: true
+      auto-detect-interface: true
     fields:
       - {include: tun-fields}

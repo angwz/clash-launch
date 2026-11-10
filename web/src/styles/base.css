@@ -1,4 +1,13 @@
 /* 基础样式与通用控件。组件的私有样式写在各自的 .svelte 中（作用域隔离）。只用逻辑属性。 */
+
+/* 国旗字体：Twemoji Country Flags（country-flag-emoji-polyfill 0.1.10；图形 CC-BY 4.0，见 THIRD_PARTY_NOTICES.md）。
+   unicode-range 只覆盖区域指示符与旗帜标签字符，其他文字不受影响，也只有页面出现国旗时才会下载。 */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  src: url("/fonts/twemoji-country-flags.woff2") format("woff2");
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+  font-display: swap;
+}
 *,
 *::before,
 *::after {
@@ -150,7 +159,15 @@ samp {
   cursor: pointer;
   transition:
     background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease);
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+/* 按下时轻微下沉，给点击一个即时反馈 */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn:hover:not(:disabled) {
@@ -322,4 +339,22 @@ samp {
 
 .table tr:last-child td {
   border-block-end: 0;
+}
+
+/* —— 内容出现：切换页面与分节时淡入并轻微上移（减少动画模式下只剩短暂淡入） —— */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes enter {
+    from {
+      opacity: 0;
+    }
+  }
+}
+.enter {
+  animation: enter var(--dur) var(--ease) both;
 }

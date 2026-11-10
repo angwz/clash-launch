@@ -64,15 +64,18 @@ type Example struct {
 
 // Field 是目录中的一个字段定义。
 type Field struct {
-	Key           string            `yaml:"key"`
-	Include       string            `yaml:"include"` // 仅在 fields 列表中出现：在此位置展开片段
-	Keys          []string          `yaml:"keys"`    // 与 include 搭配：只按此顺序取片段中的这些字段
-	Type          string            `yaml:"type"`
-	Items         *Field            `yaml:"items"`
-	Values        *Field            `yaml:"values"` // map 的值类型
-	Of            []*Field          `yaml:"of"`     // anyOf 的候选类型
-	Enum          []EnumValue       `yaml:"enum"`
-	Default       yaml.Node         `yaml:"default"` // Kind 为 0 表示没有默认值
+	Key     string      `yaml:"key"`
+	Include string      `yaml:"include"` // 仅在 fields 列表中出现：在此位置展开片段
+	Keys    []string    `yaml:"keys"`    // 与 include 搭配：只按此顺序取片段中的这些字段
+	Type    string      `yaml:"type"`
+	Items   *Field      `yaml:"items"`
+	Values  *Field      `yaml:"values"` // map 的值类型
+	Of      []*Field    `yaml:"of"`     // anyOf 的候选类型
+	Enum    []EnumValue `yaml:"enum"`
+	Default yaml.Node   `yaml:"default"` // Kind 为 0 表示没有默认值
+	// Recommended 只用于带 enable 开关的对象：用户打开 enable 时，界面把其中尚未设置的子字段填为这些值
+	// （取自官方示例中通用、可移植的部分，见 docs/design/catalog.md）。
+	Recommended   yaml.Node         `yaml:"recommended"`
 	Importance    string            `yaml:"importance"`
 	Stability     string            `yaml:"stability"`
 	Since         string            `yaml:"since"`
@@ -399,11 +402,38 @@ func (l *linker) field(f *Field, id, inheritedDoc string) error {
 			}
 		}
 	case TObject:
-		return l.object(f, id)
+		if err := l.object(f, id); err != nil {
+			return err
+		}
+		return checkRecommended(f, id)
 	case TOneOf:
 		return l.oneOf(f, id)
 	default:
 		return fmt.Errorf("catalog: %s 的类型 %q 无效", id, f.Type)
+	}
+	if f.Recommended.Kind != 0 {
+		return fmt.Errorf("catalog: %s 不是对象，不能写 recommended", id)
+	}
+	return nil
+}
+
+// checkRecommended 检查推荐值：对象必须有 bool 类型的 enable 子字段，推荐值是映射且每个键都是子字段（不能是 enable 本身）。
+// 值的类型由 internal/engine 的测试经表单校验检查。
+func checkRecommended(f *Field, id string) error {
+	if f.Recommended.Kind == 0 {
+		return nil
+	}
+	if en := f.index["enable"]; en == nil || en.Type != TBool {
+		return fmt.Errorf("catalog: %s 写了 recommended，但没有 bool 类型的 enable", id)
+	}
+	if f.Recommended.Kind != yaml.MappingNode {
+		return fmt.Errorf("catalog: %s 的 recommended 必须是映射", id)
+	}
+	for i := 0; i+1 < len(f.Recommended.Content); i += 2 {
+		k := f.Recommended.Content[i].Value
+		if k == "enable" || f.index[k] == nil {
+			return fmt.Errorf("catalog: %s 的 recommended 中的 %s 不是可推荐的子字段", id, k)
+		}
 	}
 	return nil
 }

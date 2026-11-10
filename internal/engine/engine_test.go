@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	catalogdata "github.com/angwz/clash-launch/catalog"
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/diag"
@@ -137,4 +139,48 @@ func TestDependencyDirection(t *testing.T) {
 			}
 		}
 	}
+}
+
+// 目录中的推荐值（recommended）连同 enable: true 写入表单后，必须通过表单校验：类型或键名写错时，
+// 界面会把无效值填进用户的方案。
+func TestRecommendedValuesPassForm(t *testing.T) {
+	in := input(t, "../../testdata/profiles/m1-layers.yaml")
+	n := 0
+	for _, f := range in.Catalog.Root.Fields {
+		if f.Recommended.Kind == 0 {
+			continue
+		}
+		n++
+		body, err := yaml.Marshal(&f.Recommended)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc := "clash-launch/profile: v1\ntarget: {preset: mihomo}\nform:\n  " + f.Key + ":\n    enable: true\n" + indent(string(body), "    ")
+		var l diag.List
+		p, err := profile.Parse([]byte(doc), &l)
+		if err != nil {
+			t.Fatalf("%s: %v\n%s", f.Key, err, doc)
+		}
+		in.Profile = p
+		out, err := Render(in)
+		if err != nil {
+			t.Fatalf("%s: %v %v", f.Key, err, out.Diagnostics)
+		}
+		for _, d := range out.Diagnostics {
+			if strings.HasPrefix(string(d.Code), "form.") {
+				t.Errorf("%s 的推荐值没有通过表单校验：%s %s", f.Key, d.Code, d.Path)
+			}
+		}
+	}
+	if n < 3 {
+		t.Fatalf("推荐值过少：%d", n)
+	}
+}
+
+func indent(s, pre string) string {
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	for i := range lines {
+		lines[i] = pre + lines[i]
+	}
+	return strings.Join(lines, "\n") + "\n"
 }
