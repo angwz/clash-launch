@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -469,5 +471,38 @@ func TestPreviewMatchesSubscription(t *testing.T) {
 	}
 	if !strings.Contains(string(body), "🇭🇰 香港 99") {
 		t.Fatalf("订阅中缺少 emoji 节点名：\n%s", body)
+	}
+}
+
+// 粘贴的文本优先于地址拉取的快照；清空文本后回到快照；清空地址后残留快照不再生效。
+func TestRuleTextOverridesURL(t *testing.T) {
+	remote := strings.Replace(rulesetsToml, "GEOIP,CN", "GEOIP,JP", 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(remote)) }))
+	defer srv.Close()
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	rs := decode[ruleSourceDTO](t, c.want(201, "POST", "/api/v1/rule-sources", map[string]any{
+		"name": "混合", "kind": "toml", "groupsText": groupsToml, "rulesetsUrl": srv.URL + "/rulesets.toml", "rulesetsText": rulesetsToml,
+	}))
+	c.want(200, "POST", "/api/v1/rule-sources/"+rs.ID+"/refresh", nil)
+	doc := regexp.MustCompile(`rules: \{ref: [^}]+\}`).ReplaceAllString(p.Doc, "rules: {ref: "+rs.ID+"}")
+	yamlOf := func() string {
+		return decode[previewResp](t, c.want(200, "POST", "/api/v1/profiles/"+pid+"/preview", map[string]string{"doc": doc})).YAML
+	}
+	if y := yamlOf(); !strings.Contains(y, "GEOIP,CN") || strings.Contains(y, "GEOIP,JP") {
+		t.Fatalf("粘贴文本应优先：\n%s", y)
+	}
+	put := func(body map[string]any) {
+		cur := decode[ruleSourceDTO](t, c.want(200, "GET", "/api/v1/rule-sources/"+rs.ID, nil))
+		c.want(200, "PUT", "/api/v1/rule-sources/"+rs.ID, body, "If-Match", fmt.Sprintf(`"v%d"`, cur.Version))
+	}
+	put(map[string]any{"name": "混合", "kind": "toml", "groupsText": groupsToml, "rulesetsUrl": srv.URL + "/rulesets.toml"})
+	if y := yamlOf(); !strings.Contains(y, "GEOIP,JP") {
+		t.Fatalf("文本为空时应使用快照：\n%s", y)
+	}
+	put(map[string]any{"name": "混合", "kind": "toml", "groupsText": groupsToml})
+	if y := yamlOf(); strings.Contains(y, "GEOIP,JP") {
+		t.Fatalf("清空地址后残留快照不应生效：\n%s", y)
 	}
 }

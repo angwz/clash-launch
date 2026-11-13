@@ -15,6 +15,7 @@
   let error = $state("");
   let customOpen = $state(false);
   let custom = $state<RuleSourceInput>({ name: "", kind: "toml" });
+  let via = $state<"url" | "text">("url");
 
   $effect(() => {
     void Promise.all([listAll<RuleSource>("/api/v1/rule-sources"), catalog.load()])
@@ -35,8 +36,14 @@
 
   async function createCustom(e: SubmitEvent) {
     e.preventDefault();
+    // 只提交当前方式（地址或粘贴）对应的字段，避免切换方式后残留的另一组值一起保存。
+    const c = custom;
+    const body: RuleSourceInput =
+      c.kind === "ini"
+        ? { name: c.name, kind: "ini", ...(via === "url" ? { iniUrl: c.iniUrl } : { iniText: c.iniText }) }
+        : { name: c.name, kind: "toml", ...(via === "url" ? { groupsUrl: c.groupsUrl, rulesetsUrl: c.rulesetsUrl } : { groupsText: c.groupsText, rulesetsText: c.rulesetsText }) };
     try {
-      const rs = await api.post<RuleSource>("/api/v1/rule-sources", custom);
+      const rs = await api.post<RuleSource>("/api/v1/rule-sources", body);
       customOpen = false;
       router.go("/rules/" + rs.id);
     } catch (err) {
@@ -50,7 +57,7 @@
 <div class="page">
   <PageHeader title={t("rules.title")} subtitle={t("rules.subtitle")}>
     {#snippet actions()}
-      <button class="btn" type="button" onclick={() => { custom = { name: "", kind: "toml" }; customOpen = true; }}><Icon name="plus" size={15} />{t("rules.custom")}</button>
+      <button class="btn" type="button" onclick={() => { custom = { name: "", kind: "toml" }; via = "url"; customOpen = true; }}><Icon name="plus" size={15} />{t("rules.custom")}</button>
     {/snippet}
   </PageHeader>
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
@@ -106,7 +113,11 @@
       <label><input type="radio" bind:group={custom.kind} value="toml" />groups.toml + rulesets.toml</label>
       <label><input type="radio" bind:group={custom.kind} value="ini" />{t("rules.ini")}</label>
     </div>
-    {#if custom.kind === "toml"}
+    <div class="seg-row" role="radiogroup" aria-label={t("rules.via")}>
+      <label><input type="radio" bind:group={via} value="url" />{t("rules.via_url")}</label>
+      <label><input type="radio" bind:group={via} value="text" />{t("rules.via_text")}</label>
+    </div>
+    {#if custom.kind === "toml" && via === "url"}
       <div>
         <label class="label" for="nr-g">groups.toml URL</label>
         <input id="nr-g" class="input mono ltr" bind:value={custom.groupsUrl} placeholder="https://example.com/groups.toml" />
@@ -115,13 +126,27 @@
         <label class="label" for="nr-r">rulesets.toml URL</label>
         <input id="nr-r" class="input mono ltr" bind:value={custom.rulesetsUrl} placeholder="https://example.com/rulesets.toml" />
       </div>
-      <p class="hint">{t("rules.paste_later")}</p>
-    {:else}
+    {:else if custom.kind === "toml"}
+      <div>
+        <label class="label" for="nr-gt">groups.toml</label>
+        <textarea id="nr-gt" class="textarea mono ltr" rows="8" bind:value={custom.groupsText} spellcheck="false" placeholder={"[[custom_groups]]\nname = \"PROXY\"\ntype = \"select\"\nrule = [\".*\"]"}></textarea>
+      </div>
+      <div>
+        <label class="label" for="nr-rt">rulesets.toml</label>
+        <textarea id="nr-rt" class="textarea mono ltr" rows="8" bind:value={custom.rulesetsText} spellcheck="false" placeholder={"[[rulesets]]\ngroup = \"PROXY\"\nruleset = \"[]MATCH\""}></textarea>
+      </div>
+    {:else if via === "url"}
       <div>
         <label class="label" for="nr-i">INI URL</label>
         <input id="nr-i" class="input mono ltr" bind:value={custom.iniUrl} placeholder="https://example.com/config.ini" />
       </div>
+    {:else}
+      <div>
+        <label class="label" for="nr-it">ini</label>
+        <textarea id="nr-it" class="textarea mono ltr" rows="12" bind:value={custom.iniText} spellcheck="false" placeholder={"[custom]\nruleset=DIRECT,[]GEOIP,CN\nruleset=PROXY,[]FINAL\ncustom_proxy_group=PROXY`select`.*"}></textarea>
+      </div>
     {/if}
+    <p class="hint">{t("rules.via_hint")}</p>
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (customOpen = false)}>{t("common.cancel")}</button>

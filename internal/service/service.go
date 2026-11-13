@@ -265,7 +265,13 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 			return in, nil, latest, nil, ds, err
 		} else {
 			ri := &engine.RulesInput{Name: rs.Name, Groups: []byte(rs.GroupsText), Rulesets: []byte(rs.RulesetsText), INI: []byte(rs.INIText), Updated: rs.UpdatedAt}
+			// 粘贴的文本优先；文本为空且配置了地址时才用拉取快照。
+			// 地址被清空后残留的快照不再生效，避免界面说明与实际输出不一致。
+			urls := map[string]string{"groups": rs.GroupsURL, "rulesets": rs.RulesetsURL, "ini": rs.INIURL}
 			for part, dst := range map[string]*[]byte{"groups": &ri.Groups, "rulesets": &ri.Rulesets, "ini": &ri.INI} {
+				if len(bytes.TrimSpace(*dst)) > 0 || urls[part] == "" {
+					continue
+				}
 				if snap, err := s.Store.Snapshots().Get(ctx, owner, RuleKey(rs.ID, part)); err == nil && snap.Hash != "" {
 					*dst = snap.Content
 					if snap.FetchedAt.After(ri.Updated) {
