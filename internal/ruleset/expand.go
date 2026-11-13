@@ -141,8 +141,8 @@ func expandGroup(g Group, in ExpandInput, out *diag.List) *yaml.Node {
 		}
 		providerRule(mt, g, in.Providers, &plan, out)
 	}
-	if usedGroupID {
-		out.Add(diag.GroupIDShift, g.Where, "name", g.Name, "range", groupIDRanges(g.Rule), "numbering", in.Numbering)
+	if usedGroupID || len(selectorGroupIDs(g.Select)) > 0 {
+		out.Add(diag.GroupIDShift, g.Where, "name", g.Name, "range", groupIDRanges(g.Rule, g.Select), "numbering", in.Numbering)
 	}
 	pickSelect() // 没有写「@select」时追加在全部条目之后
 
@@ -280,12 +280,27 @@ func sourceMatchProvider(want []string, p ProviderSource) bool {
 	return false
 }
 
-func groupIDRanges(rules []string) string {
+// groupIDRanges 汇总组内按订阅编号选择的写法：!!GROUPID= 的范围与现代选择器的 #N。
+func groupIDRanges(rules []string, sel *Selector) string {
 	var out []string
 	for _, r := range rules {
 		if strings.HasPrefix(r, "!!GROUPID=") {
 			out = append(out, parseMatcher(r).target)
 		}
 	}
+	out = append(out, selectorGroupIDs(sel)...)
 	return strings.Join(out, " ")
+}
+
+// selectorGroupIDs 返回选择器（含 exclude）中以 # 开头的来源条件。
+func selectorGroupIDs(sel *Selector) []string {
+	var out []string
+	for ; sel != nil; sel = sel.Exclude {
+		for _, w := range sel.Source {
+			if strings.HasPrefix(w, "#") {
+				out = append(out, w)
+			}
+		}
+	}
+	return out
 }

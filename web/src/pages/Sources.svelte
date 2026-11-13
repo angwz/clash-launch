@@ -71,7 +71,8 @@
     }
   }
 
-  const kindIcon = (k: string) => (k === "subscription" ? "link" : k === "file" ? "file" : "server") as "link" | "file" | "server";
+  // 后端只区分订阅与手动（单条、批量、文件都按内容自动识别），界面也只呈现这两类。
+  const kindIcon = (k: string) => (k === "subscription" ? "link" : "server") as "link" | "server";
 </script>
 
 <div class="page">
@@ -129,7 +130,7 @@
 <Dialog bind:open title={t("sources.new")} wide>
   <form id="new-source" class="form" onsubmit={create}>
     <div class="kinds" role="radiogroup" aria-label={t("sources.col_kind")}>
-      {#each ["subscription", "batch", "single", "file"] as k (k)}
+      {#each ["subscription", "batch"] as k (k)}
         <label class="kind-opt" class:on={form.kind === k}>
           <input type="radio" name="kind" value={k} bind:group={form.kind} />
           <Icon name={kindIcon(k)} size={16} />

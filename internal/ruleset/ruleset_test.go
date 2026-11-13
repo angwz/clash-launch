@@ -496,3 +496,18 @@ func TestParityGroups(t *testing.T) {
 		}
 	}
 }
+
+// 现代选择器按 #N 选择订阅时也给出编号提示，界面据此显示订阅编号。
+func TestSelectorGroupIDNotice(t *testing.T) {
+	src := "[[custom_groups]]\nname = \"A\"\ntype = \"select\"\nrule = [\"@select\"]\n[custom_groups.select]\nsource = [\"#1\"]\n"
+	var l diag.List
+	Expand(ExpandInput{Groups: ParseGroups([]byte(src), "g.toml", &l), Nodes: testNodes()}, &l)
+	if !l.Has(diag.GroupIDShift) {
+		t.Error("#N 选择器应给出 GROUPID 编号提示")
+	}
+	var l2 diag.List
+	Expand(ExpandInput{Groups: ParseGroups([]byte(strings.Replace(src, "#1", "机场", 1)), "g.toml", &l2), Nodes: testNodes()}, &l2)
+	if l2.Has(diag.GroupIDShift) {
+		t.Error("按名称选择时不应提示")
+	}
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
   // 方案内的有序源列表（第 16.1 节「源列表」）：顺序即节点顺序，可拖动或用按钮排序；
-  // 订阅旁显示编号（GROUPID，来自后端预览，不在前端推算），单条 / 批量 / 文件显示「—」。
+  // 左侧数字只表示位置（即节点顺序）。订阅编号（GROUPID，来自后端预览，不在前端推算）
+  // 只在规则源用到 !!GROUPID 或选择器 #N 时（预览出现 group.groupid_shift）才作为标签显示。
   // 每个源可以选择写法：写入配置（服务器解析节点）或交给客户端（只写 proxy-providers），也可以停用。
   import Icon from "../Icon.svelte";
   import type { Source } from "../../lib/api/client";
@@ -14,6 +15,7 @@
   const refs = $derived(editor.sourceRefs);
   const byId = $derived(new Map(editor.sources.map((s) => [s.id, s])));
   const numbering = $derived(new Map((editor.preview?.numbering ?? []).map((n) => [n.ref, n.groupId])));
+  const usesGroupId = $derived((editor.preview?.diagnostics ?? []).some((d) => d.code === "group.groupid_shift"));
   const available = $derived(editor.sources.filter((s) => !refs.some((r) => r.ref === s.id)));
   let adding = $state("");
   let dragFrom = $state<number | null>(null);
@@ -52,7 +54,7 @@
   }
 
   function kindIcon(s: Source | undefined) {
-    return s?.kind === "subscription" ? "link" : s?.kind === "file" ? "file" : "server";
+    return s?.kind === "subscription" ? "link" : "server";
   }
 
   function onHandleKey(e: KeyboardEvent, i: number) {
@@ -98,10 +100,10 @@
           <button class="handle" type="button" aria-label={t("editor.reorder", { name: s?.name ?? r.ref })} onkeydown={(e) => onHandleKey(e, i)}>
             <Icon name="grip" size={16} />
           </button>
-          <span class="gid mono" title={t("editor.groupid_hint")}>{gid === undefined ? "—" : gid}</span>
+          <span class="gid mono" aria-hidden="true">{i + 1}</span>
           <span class="kind" title={s ? t("source.kind." + s.kind) : ""}><Icon name={kindIcon(s)} size={15} /></span>
           <span class="name">
-            {#if s}<a href={"/sources/" + s.id}>{s.name}</a>{:else}<span class="missing">{t("editor.source_missing", { ref: r.ref })}</span>{/if}
+            {#if s}<a href={"/sources/" + s.id}>{s.name}</a>{#if usesGroupId && gid !== undefined}<span class="chip mono" title={t("editor.groupid_hint")}>GROUPID {gid}</span>{/if}{:else}<span class="missing">{t("editor.source_missing", { ref: r.ref })}</span>{/if}
           </span>
           <div class="mode" role="radiogroup" aria-label={t("editor.mode")}>
             <button type="button" role="radio" aria-checked={r.mode !== "provider"} class:on={r.mode !== "provider"} onclick={() => update(i, { mode: undefined })}>{t("mode.inline")}</button>
@@ -216,6 +218,14 @@
   }
   .handle:hover {
     background: var(--bg-hover);
+  }
+  .chip {
+    margin-inline-start: var(--space-2);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
   }
   .gid {
     display: inline-grid;

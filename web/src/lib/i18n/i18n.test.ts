@@ -24,7 +24,7 @@ const dynamic: Record<string, string[]> = {
   "role.": ["admin", "user"],
   "render.": ["ok", "failed", "pending"],
   "source.kind.": ["single", "batch", "subscription", "file"],
-  "source.kind_hint.": ["single", "batch", "subscription", "file"],
+  "source.kind_hint.": ["batch", "subscription"],
   "region.why.": ["flag", "keyword", "route", "manual", "rule", "unknown"],
   "region.kind.": ["flag", "keyword", "route", "manual", "rule", "unknown"],
   "severity.": ["error", "warning", "info"],
