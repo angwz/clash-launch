@@ -1,6 +1,7 @@
 # 规则源与策略组
 
 [`internal/ruleset`](../../internal/ruleset/) 把三种规则源——`rulesets.toml` + `groups.toml`、subconverter 外部配置 ini（如 ACL4SSR）、规则文件仓库的预设——转换为同一个模型，再展开为 `proxy-groups`、`rule-providers` 与 `rules`。与 subconverter 的逐条差异见 [subconverter-parity](subconverter-parity.md)。
+
 规则源的每个文件（groups、rulesets、ini）可以给地址、粘贴文本或两者：粘贴文本非空时以它为准；为空且有地址时用最近一次拉取的快照；地址清空后旧快照不再生效。
 
 ## 有序源与订阅编号
