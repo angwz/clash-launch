@@ -4,13 +4,9 @@
 # UPDATED: 2026-11-09 06:08:31 (UTC+8)
 
 mixed-port: 7890
-
 allow-lan: false
-
 mode: rule
-
 log-level: info
-
 global-client-fingerprint: chrome
 
 experimental:
@@ -23,7 +19,12 @@ dns:
     - tls://192.0.2.53:853
 
 proxies:
-  - {name: 🪐 示例, type: ss, server: 192.0.2.1, port: 8388, cipher: aes-128-gcm, password: example}
+  - name: 🪐 示例
+    type: ss
+    server: 192.0.2.1
+    port: 8388
+    cipher: aes-128-gcm
+    password: example
 
 proxy-groups:
   - name: PROXY

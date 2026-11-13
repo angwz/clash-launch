@@ -100,7 +100,7 @@ export class EditorState {
 
   get proxiesBlock(): boolean {
     void this.rev;
-    return this.doc?.proxiesBlock ?? false;
+    return this.doc?.proxiesBlock ?? true;
   }
 
   setProxiesBlock(v: boolean): void {

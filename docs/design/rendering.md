@@ -11,6 +11,7 @@
 # UPDATED: 2026-11-09 06:08:31 (UTC+8)
 
 mixed-port: 7890
+mode: rule
 
 dns:
   enable: true
@@ -18,11 +19,30 @@ dns:
     - '*.lan'
 
 proxies:
-  - {name: 🇸🇬 广港 IEPL 新加坡 01, type: vmess, server: 192.0.2.10, port: 443, uuid: …, tls: true, network: ws, ws-opts: {path: /ray}}
+  - name: 🇸🇬 广港 IEPL 新加坡 01
+    type: vmess
+    server: 192.0.2.10
+    port: 443
+    network: ws
+    ws-opts:
+      path: /ray
+
+  - name: 🇯🇵 日本 02
+    type: ss
+    server: 192.0.2.11
+    port: 8388
+
+proxy-groups:
+  - name: 节点选择
+    type: select
+    proxies:
+      - 🇸🇬 广港 IEPL 新加坡 01
+      - 🇯🇵 日本 02
 ```
 
-- 缩进 2 个空格，块序列缩进在父键之下；LF 换行，文件以单个换行结尾；顶层分节之间空一行。
-- `proxies` 中每个节点一行（流式映射，订阅转换工具的常见写法）；方案设置 `output.proxies-block: true`（界面：预览上方「节点：多行」）时改为与官方示例一致的块格式。其余部分使用块格式，空集合写 `{}`、`[]`。
+- 缩进 2 个空格，块序列缩进在父键之下；LF 换行，文件以单个换行结尾。
+- 空行：连续的顶层简单键（标量、空集合）挨着写，映射与列表分节前后空一行；`proxies` 与 `proxy-groups` 的条目之间空一行，与官方示例一致（反馈 #23）。
+- `proxies` 默认用块格式，每个键一行；方案设置 `output.proxies-flow: true`（界面：预览上方「节点：单行」）时每个节点写成一行流式映射，条目之间不空行。其余部分使用块格式，空集合写 `{}`、`[]`。
 - 预览与订阅输出走同一个 `service.Render`，除文件头的 `UPDATED` 外逐字节一致（`TestPreviewMatchesSubscription`）。
 - 文件头键名大写；`UPDATED` 取自输入快照，时区取方案设置（默认 UTC），没有快照时间时省略。
 

@@ -373,7 +373,7 @@
   "preview.loading": "Generating preview…",
   "preview.no_diagnostics": "No diagnostics",
   "preview.no_diff": "Same as the current version",
-  "preview.proxies_block_hint": "How proxies are written: one line each (compact) or multi-line blocks like the official example; both are equivalent",
+  "preview.proxies_block_hint": "How proxies are written: multi-line blocks like the official example (default) or one line each (compact); both are equivalent",
   "preview.proxies_block_off": "Proxies: one line",
   "preview.proxies_block_on": "Proxies: blocks",
   "preview.title": "Preview",

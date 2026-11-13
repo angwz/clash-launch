@@ -4,9 +4,7 @@
 # UPDATED: 2026-11-09 08:00:00 (UTC+8)
 
 mixed-port: 7890
-
 mode: rule
-
 log-level: info
 
 dns:
@@ -16,14 +14,90 @@ dns:
     - https://doh.example.com/dns-query
 
 proxies:
-  - {name: 🇭🇰 香港 01, type: vmess, server: 192.0.2.11, port: 443, uuid: 11111111-2222-3333-4444-555555555555, alterId: 0, cipher: auto, xudp: true, udp: true, tls: true, skip-cert-verify: false, servername: cdn.example.com, network: ws, ws-opts: {path: /ray, headers: {Host: cdn.example.com}}}
-  - {name: 🇸🇬 广港 IEPL 新加坡 01, type: trojan, server: 192.0.2.12, port: 443, password: example-trojan, client-fingerprint: chrome, udp: true, sni: example.com, skip-cert-verify: false}
-  - {name: 🇯🇵 日本 东京 02, type: ss, server: 192.0.2.13, port: 8388, cipher: aes-128-gcm, password: example-ss, udp: true}
-  - {name: 🇺🇸 美国 洛杉矶 03, type: vless, server: 192.0.2.14, port: 443, uuid: 11111111-2222-3333-4444-666666666666, network: ws, servername: example.com, encryption: none, xudp: true, tls: true, udp: true, client-fingerprint: chrome, ws-opts: {path: /v, headers: {Host: cdn.example.com, User-Agent: 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}}}
-  - {name: 🎐 自建 VPS, type: wireguard, server: 192.0.2.20, port: 51820, ip: 172.16.0.2, public-key: QD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiE=, private-key: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=, udp: true}
-  - {name: 🇭🇰 HK Hysteria2 01, type: hysteria2, server: hy2.example.com, port: 443, password: example-hy2, sni: hy2.example.com}
-  - {name: 🇯🇵 JP TUIC 01, type: tuic, server: tuic.example.com, port: 443, uuid: 11111111-2222-3333-4444-777777777777, password: example-tuic, sni: tuic.example.com}
-  - {name: 🇺🇸 US 02 x2, type: ss, server: 192.0.2.30, port: 8388, cipher: aes-128-gcm, password: example-ss2}
+  - name: 🇭🇰 香港 01
+    type: vmess
+    server: 192.0.2.11
+    port: 443
+    uuid: 11111111-2222-3333-4444-555555555555
+    alterId: 0
+    cipher: auto
+    xudp: true
+    udp: true
+    tls: true
+    skip-cert-verify: false
+    servername: cdn.example.com
+    network: ws
+    ws-opts:
+      path: /ray
+      headers:
+        Host: cdn.example.com
+
+  - name: 🇸🇬 广港 IEPL 新加坡 01
+    type: trojan
+    server: 192.0.2.12
+    port: 443
+    password: example-trojan
+    client-fingerprint: chrome
+    udp: true
+    sni: example.com
+    skip-cert-verify: false
+
+  - name: 🇯🇵 日本 东京 02
+    type: ss
+    server: 192.0.2.13
+    port: 8388
+    cipher: aes-128-gcm
+    password: example-ss
+    udp: true
+
+  - name: 🇺🇸 美国 洛杉矶 03
+    type: vless
+    server: 192.0.2.14
+    port: 443
+    uuid: 11111111-2222-3333-4444-666666666666
+    network: ws
+    servername: example.com
+    encryption: none
+    xudp: true
+    tls: true
+    udp: true
+    client-fingerprint: chrome
+    ws-opts:
+      path: /v
+      headers:
+        Host: cdn.example.com
+        User-Agent: Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36
+
+  - name: 🎐 自建 VPS
+    type: wireguard
+    server: 192.0.2.20
+    port: 51820
+    ip: 172.16.0.2
+    public-key: QD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiE=
+    private-key: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=
+    udp: true
+
+  - name: 🇭🇰 HK Hysteria2 01
+    type: hysteria2
+    server: hy2.example.com
+    port: 443
+    password: example-hy2
+    sni: hy2.example.com
+
+  - name: 🇯🇵 JP TUIC 01
+    type: tuic
+    server: tuic.example.com
+    port: 443
+    uuid: 11111111-2222-3333-4444-777777777777
+    password: example-tuic
+    sni: tuic.example.com
+
+  - name: 🇺🇸 US 02 x2
+    type: ss
+    server: 192.0.2.30
+    port: 8388
+    cipher: aes-128-gcm
+    password: example-ss2
 
 proxy-groups:
   - name: 🌠 节点选择
@@ -35,6 +109,7 @@ proxy-groups:
       - 🧊 新加坡专线
       - ✈️ 手动切换
       - DIRECT
+
   - name: ✈️ 手动切换
     type: select
     proxies:
@@ -47,6 +122,7 @@ proxy-groups:
       - 🇭🇰 HK Hysteria2 01
       - 🇯🇵 JP TUIC 01
       - 🇺🇸 US 02 x2
+
   - name: 🗨️ ChatGPT
     type: select
     proxies:
@@ -54,18 +130,21 @@ proxy-groups:
       - 🌺 日本专线
       - 🧊 新加坡专线
       - ✈️ 手动切换
+
   - name: 📺 哔哩哔哩
     type: select
     proxies:
       - DIRECT
       - 🛫 香港专线
       - ✈️ 手动切换
+
   - name: 🍎 Apple
     type: select
     proxies:
       - DIRECT
       - 🌠 节点选择
       - ⛳ 美国专线
+
   - name: 📱 TikTok
     type: select
     proxies:
@@ -73,6 +152,7 @@ proxy-groups:
       - 🧊 新加坡专线
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 🛸 Telegram
     type: select
     proxies:
@@ -80,12 +160,14 @@ proxy-groups:
       - 🌠 节点选择
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 💻 YouTube
     type: select
     proxies:
       - 🌠 节点选择
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 📩 Google
     type: select
     proxies:
@@ -94,6 +176,7 @@ proxy-groups:
       - 🧊 新加坡专线
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 🏖️ Community
     type: select
     proxies:
@@ -102,12 +185,14 @@ proxy-groups:
       - ⛳ 美国专线
       - 🌺 日本专线
       - ✈️ 手动切换
+
   - name: ⛅ OneDrive
     type: select
     proxies:
       - 🌠 节点选择
       - ⛳ 美国专线
       - DIRECT
+
   - name: 🎬 Netflix
     type: select
     proxies:
@@ -115,6 +200,7 @@ proxy-groups:
       - 🛫 香港专线
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 🪟 Microsoft
     type: select
     proxies:
@@ -122,6 +208,7 @@ proxy-groups:
       - ⛳ 美国专线
       - ✈️ 手动切换
       - DIRECT
+
   - name: 🛖 国际流媒体
     type: select
     proxies:
@@ -129,6 +216,7 @@ proxy-groups:
       - 🌺 日本专线
       - ⛳ 美国专线
       - ✈️ 手动切换
+
   - name: 🐳 漏网の鱼
     type: select
     proxies:
@@ -137,6 +225,7 @@ proxy-groups:
       - 🌺 日本专线
       - ✈️ 手动切换
       - DIRECT
+
   - name: 🛫 香港专线
     type: fallback
     proxies:
@@ -145,6 +234,7 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 97
     lazy: false
+
   - name: 🌺 日本专线
     type: fallback
     proxies:
@@ -153,6 +243,7 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 127
     lazy: false
+
   - name: 🧊 新加坡专线
     type: fallback
     proxies:
@@ -161,6 +252,7 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 177
     lazy: false
+
   - name: ⛳ 美国专线
     type: fallback
     proxies:
@@ -170,6 +262,7 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 233
     lazy: false
+
   - name: 🎇 香港高速
     type: select
     proxies:
@@ -177,17 +270,20 @@ proxy-groups:
       - 🇸🇬 广港 IEPL 新加坡 01
       - 🇭🇰 HK Hysteria2 01
       - ⛳ 美国专线
+
   - name: 🗾 日本高速
     type: select
     proxies:
       - 🇯🇵 日本 东京 02
       - 🇯🇵 JP TUIC 01
       - ⛳ 美国专线
+
   - name: 🦁 新加坡高速
     type: select
     proxies:
       - 🇸🇬 广港 IEPL 新加坡 01
       - ⛳ 美国专线
+
   - name: 🏞️ 美利坚高速
     type: select
     proxies:

@@ -2,11 +2,8 @@
 # TARGET: mihomo · mihomo 1.19.33
 
 mixed-port: 7890
-
 allow-lan: false
-
 mode: rule
-
 log-level: info
 
 experimental:
@@ -40,9 +37,37 @@ dns:
     +.example.org: 192.0.2.53
 
 proxies:
-  - {name: 🇸🇬 广港 IEPL 新加坡 01, type: vmess, server: 192.0.2.10, port: 443, uuid: 11111111-2222-3333-4444-555555555555, alterId: 0, cipher: auto, tls: true, servername: cdn.example.com, network: ws, ws-opts: {path: /ray, headers: {Host: cdn.example.com}}}
-  - {name: 🪐 未知地区, type: ss, server: '2001:db8::1', port: 8388, cipher: 2022-blake3-aes-128-gcm, password: MDEyMzQ1Njc4OWFiY2RlZg==, udp: true}
-  - {name: 'yes', type: trojan, server: example.com, port: 443, password: pw, udp: true, sni: example.com, x-unknown: 1}
+  - name: 🇸🇬 广港 IEPL 新加坡 01
+    type: vmess
+    server: 192.0.2.10
+    port: 443
+    uuid: 11111111-2222-3333-4444-555555555555
+    alterId: 0
+    cipher: auto
+    tls: true
+    servername: cdn.example.com
+    network: ws
+    ws-opts:
+      path: /ray
+      headers:
+        Host: cdn.example.com
+
+  - name: 🪐 未知地区
+    type: ss
+    server: 2001:db8::1
+    port: 8388
+    cipher: 2022-blake3-aes-128-gcm
+    password: MDEyMzQ1Njc4OWFiY2RlZg==
+    udp: true
+
+  - name: 'yes'
+    type: trojan
+    server: example.com
+    port: 443
+    password: pw
+    udp: true
+    sni: example.com
+    x-unknown: 1
 
 proxy-groups:
   - name: 🚀 节点选择
@@ -51,6 +76,7 @@ proxy-groups:
       - ♻️ 自动选择
       - 🇸🇬 广港 IEPL 新加坡 01
       - DIRECT
+
   - name: ♻️ 自动选择
     type: url-test
     proxies:
@@ -59,6 +85,7 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
+
   - name: 🐟 漏网之鱼
     type: select
     proxies:

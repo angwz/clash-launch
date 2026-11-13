@@ -58,12 +58,22 @@ func TestStyle(t *testing.T) {
 		"num", "0123",
 		"wild", "*.lan",
 		"empty", yamlx.Map(),
-		"proxies", yamlx.Seq(yamlx.Map("name", "🇭🇰 HK", "type", "ss", "port", 443)),
+		"proxies", yamlx.Seq(yamlx.Map("name", "🇭🇰 HK", "type", "ss", "port", 443), yamlx.Map("name", "JP", "type", "ss", "port", 443)),
+		"proxy-groups", yamlx.Seq(yamlx.Map("name", "G", "proxies", yamlx.StrSeq("🇭🇰 HK", "JP")), yamlx.Map("name", "H", "proxies", yamlx.StrSeq("G"))),
+		"mode", "rule",
 	)
+	// 默认：简单键挨着写；节点与策略组为块格式，条目之间空一行，嵌套列表不空行。
 	got := mustRender(t, root, Options{Header: []HeaderField{{"name", "测试"}}})
-	want := "# NAME: 测试\n\nname: 🇸🇬 新加坡\n\nflag: 'yes'\n\nnum: '0123'\n\nwild: '*.lan'\n\nempty: {}\n\nproxies:\n  - {name: 🇭🇰 HK, type: ss, port: 443}\n"
+	want := "# NAME: 测试\n\nname: 🇸🇬 新加坡\nflag: 'yes'\nnum: '0123'\nwild: '*.lan'\nempty: {}\n\n" +
+		"proxies:\n  - name: 🇭🇰 HK\n    type: ss\n    port: 443\n\n  - name: JP\n    type: ss\n    port: 443\n\n" +
+		"proxy-groups:\n  - name: G\n    proxies:\n      - 🇭🇰 HK\n      - JP\n\n  - name: H\n    proxies:\n      - G\n\nmode: rule\n"
 	if got != want {
 		t.Errorf("得到：\n%s\n期望：\n%s", got, want)
+	}
+	// 单行节点：每个节点一行，不空行。
+	got = mustRender(t, yamlx.Map("proxies", yamlx.Seq(yamlx.Map("name", "A", "type", "ss"), yamlx.Map("name", "B", "type", "ss"))), Options{ProxiesFlow: true})
+	if want := "proxies:\n  - {name: A, type: ss}\n  - {name: B, type: ss}\n"; got != want {
+		t.Errorf("单行：\n%s", got)
 	}
 }
 

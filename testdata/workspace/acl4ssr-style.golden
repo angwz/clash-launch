@@ -6,9 +6,41 @@
 mixed-port: 7890
 
 proxies:
-  - {name: 🇭🇰 香港 01, type: vmess, server: 192.0.2.11, port: 443, uuid: 11111111-2222-3333-4444-555555555555, alterId: 0, cipher: auto, xudp: true, udp: true, tls: true, skip-cert-verify: false, servername: cdn.example.com, network: ws, ws-opts: {path: /ray, headers: {Host: cdn.example.com}}}
-  - {name: 🇭🇰 广港 专线 新加坡 01, type: trojan, server: 192.0.2.12, port: 443, password: example-trojan, client-fingerprint: chrome, udp: true, sni: example.com, skip-cert-verify: false}
-  - {name: 🇯🇵 日本 东京 02, type: ss, server: 192.0.2.13, port: 8388, cipher: aes-128-gcm, password: example-ss, udp: true}
+  - name: 🇭🇰 香港 01
+    type: vmess
+    server: 192.0.2.11
+    port: 443
+    uuid: 11111111-2222-3333-4444-555555555555
+    alterId: 0
+    cipher: auto
+    xudp: true
+    udp: true
+    tls: true
+    skip-cert-verify: false
+    servername: cdn.example.com
+    network: ws
+    ws-opts:
+      path: /ray
+      headers:
+        Host: cdn.example.com
+
+  - name: 🇭🇰 广港 专线 新加坡 01
+    type: trojan
+    server: 192.0.2.12
+    port: 443
+    password: example-trojan
+    client-fingerprint: chrome
+    udp: true
+    sni: example.com
+    skip-cert-verify: false
+
+  - name: 🇯🇵 日本 东京 02
+    type: ss
+    server: 192.0.2.13
+    port: 8388
+    cipher: aes-128-gcm
+    password: example-ss
+    udp: true
 
 proxy-groups:
   - name: 🚀 节点选择
@@ -22,6 +54,7 @@ proxy-groups:
     use:
       - 机场 B
     filter: .*
+
   - name: ♻️ 自动选择
     type: url-test
     proxies:
@@ -34,6 +67,7 @@ proxy-groups:
     interval: 300
     tolerance: 50
     filter: .*
+
   - name: 🇭🇰 香港
     type: fallback
     proxies:
@@ -44,16 +78,19 @@ proxy-groups:
     url: https://www.gstatic.com/generate_204
     interval: 120
     filter: (港|HK)
+
   - name: 🎯 全球直连
     type: select
     proxies:
       - DIRECT
       - 🚀 节点选择
+
   - name: 🛑 全球拦截
     type: select
     proxies:
       - REJECT
       - DIRECT
+
   - name: 🐟 漏网之鱼
     type: select
     proxies:

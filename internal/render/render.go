@@ -31,8 +31,8 @@ type HeaderField struct{ Key, Value string }
 type Options struct {
 	Catalog *catalog.Catalog // 键顺序的来源；nil 时保持原有顺序
 	Header  []HeaderField
-	// ProxiesBlock 为 true 时 proxies 中的节点用块格式；默认每个节点一行（流式映射）。
-	ProxiesBlock bool
+	// ProxiesFlow 为 true 时 proxies 中每个节点一行（流式映射）；默认块格式，与官方示例一致。
+	ProxiesFlow bool
 	// LongLine 超过该字符数的行给出警告；0 表示 4096。
 	LongLine int
 }
@@ -48,7 +48,7 @@ func Render(root *yaml.Node, opt Options, out *diag.List) ([]byte, error) {
 		top = opt.Catalog.Root
 	}
 	tree := Order(root, top)
-	e := &emitter{flowProxies: !opt.ProxiesBlock, cache: map[string]string{}}
+	e := &emitter{flowProxies: opt.ProxiesFlow, cache: map[string]string{}}
 	for _, h := range opt.Header {
 		e.b.WriteString("# " + strings.ToUpper(h.Key) + ": " + oneLine(h.Value) + "\n")
 	}
@@ -129,21 +129,35 @@ func Order(n *yaml.Node, f *catalog.Field) *yaml.Node {
 type emitter struct {
 	b           bytes.Buffer
 	flowProxies bool
+	spaced      bool // 顶层列表的条目之间空一行（只作用于该列表的直接条目）
 	cache       map[string]string // 普通标量的解析结果缓存：值 → 规范标签
 }
 
 func (e *emitter) root(m *yaml.Node) error {
 	for i := 0; i+1 < len(m.Content); i += 2 {
-		if i > 0 {
-			e.b.WriteByte('\n') // 顶层分节之间空一行
-		}
 		k, v := m.Content[i], m.Content[i+1]
+		// 连续的顶层简单键（标量或空集合）挨着写，映射与列表分节前后空一行：
+		// 官方示例把 mixed-port、mode 这类开关聚在一起，大块之间用空行分开。
+		if i > 0 && !(isLeaf(v) && isLeaf(m.Content[i-1])) {
+			e.b.WriteByte('\n')
+		}
 		flowItems := e.flowProxies && k.Value == "proxies" && v.Kind == yaml.SequenceNode
+		// 节点与策略组是多行条目，条目之间空一行，与官方示例一致；流式单行时不空行。
+		e.spaced = !flowItems && (k.Value == "proxies" || k.Value == "proxy-groups") && v.Kind == yaml.SequenceNode
 		if err := e.pair(k, v, 0, flowItems); err != nil {
 			return err
 		}
+		e.spaced = false
 	}
 	return nil
+}
+
+// isLeaf 报告值是否只占一行：标量（不含多行块）或空集合。
+func isLeaf(v *yaml.Node) bool {
+	if v.Kind == yaml.ScalarNode {
+		return !strings.Contains(v.Value, "\n")
+	}
+	return len(v.Content) == 0
 }
 
 func (e *emitter) indent(n int) { e.b.WriteString(strings.Repeat(" ", n)) }
@@ -229,7 +243,13 @@ func (e *emitter) mapping(m *yaml.Node, ind int, inline bool) error {
 }
 
 func (e *emitter) sequence(s *yaml.Node, ind int, flowItems bool) error {
-	for _, it := range s.Content {
+	// spaced 只作用于这一层的直接条目：取出后立即清零，嵌套的列表不受影响。
+	spaced := e.spaced
+	e.spaced = false
+	for j, it := range s.Content {
+		if spaced && j > 0 {
+			e.b.WriteByte('\n')
+		}
 		e.indent(ind)
 		e.b.WriteString("- ")
 		switch {

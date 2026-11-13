@@ -161,19 +161,23 @@ export class ProfileDoc {
 
   // —— 输出格式 ——
 
-  /** output.proxies-block：节点用多行块格式（与官方示例一致）；默认每个节点一行。 */
+  /**
+   * 节点写法：默认多行块格式（与官方示例一致）；output.proxies-flow: true 时每个节点一行。
+   * 旧方案里的 output.proxies-block 已是默认值，任何一次切换都顺手移除它。
+   */
   get proxiesBlock(): boolean {
-    return this.doc.getIn(["output", "proxies-block"]) === true;
+    return this.doc.getIn(["output", "proxies-flow"]) !== true;
   }
 
   set proxiesBlock(v: boolean) {
     this.#dirty = true;
-    if (v) {
+    if (this.doc.hasIn(["output", "proxies-block"])) this.doc.deleteIn(["output", "proxies-block"]);
+    if (!v) {
       if (!this.doc.has("output")) this.doc.set("output", this.doc.createNode({}));
-      this.doc.setIn(["output", "proxies-block"], true);
+      this.doc.setIn(["output", "proxies-flow"], true);
       return;
     }
-    if (this.doc.hasIn(["output", "proxies-block"])) this.doc.deleteIn(["output", "proxies-block"]);
+    if (this.doc.hasIn(["output", "proxies-flow"])) this.doc.deleteIn(["output", "proxies-flow"]);
   }
 
   // —— 原始编辑（后备隐藏能源）——

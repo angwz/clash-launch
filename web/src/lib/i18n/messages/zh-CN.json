@@ -373,7 +373,7 @@
   "preview.loading": "正在生成预览…",
   "preview.no_diagnostics": "没有诊断",
   "preview.no_diff": "与当前版本相同",
-  "preview.proxies_block_hint": "节点列表的写法：每个节点一行（紧凑），或与官方示例相同的多行块格式；两种写法内容等价",
+  "preview.proxies_block_hint": "节点列表的写法：默认与官方示例相同的多行块格式，也可以每个节点一行（紧凑）；两种写法内容等价",
   "preview.proxies_block_off": "节点：单行",
   "preview.proxies_block_on": "节点：多行",
   "preview.title": "预览",

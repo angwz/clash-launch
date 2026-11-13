@@ -89,15 +89,16 @@ describe("ProfileDoc", () => {
 });
 
 describe("输出格式", () => {
-  it("proxies-block 写入 output 并可移除，不影响其他输出设置", () => {
-    const d = new ProfileDoc('clash-launch/profile: v1\nname: x\ntarget: { pack: mihomo, preset: mihomo, core: "1.19.33" }\noutput: { timezone: Asia/Shanghai }\n');
-    expect(d.proxiesBlock).toBe(false);
-    d.proxiesBlock = true;
+  it("默认多行；切到单行写入 proxies-flow，切回时移除，并清理旧的 proxies-block", () => {
+    const d = new ProfileDoc('clash-launch/profile: v1\nname: x\ntarget: { pack: mihomo, preset: mihomo, core: "1.19.33" }\noutput: { timezone: Asia/Shanghai, proxies-block: true }\n');
     expect(d.proxiesBlock).toBe(true);
-    expect(d.toString()).toContain("proxies-block: true");
     d.proxiesBlock = false;
     expect(d.proxiesBlock).toBe(false);
-    expect(d.toString()).toContain("Asia/Shanghai");
+    expect(d.toString()).toContain("proxies-flow: true");
     expect(d.toString()).not.toContain("proxies-block");
+    d.proxiesBlock = true;
+    expect(d.proxiesBlock).toBe(true);
+    expect(d.toString()).toContain("Asia/Shanghai");
+    expect(d.toString()).not.toContain("proxies-flow");
   });
 });

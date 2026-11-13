@@ -60,7 +60,10 @@ type RuleRef struct {
 // Output 是与渲染有关的方案设置。
 type Output struct {
 	Timezone     string `yaml:"timezone,omitempty"`      // 文件头时间的时区，默认 UTC
-	ProxiesBlock bool   `yaml:"proxies-block,omitempty"` // proxies 用块格式（默认每个节点一行）
+	// ProxiesFlow 为 true 时 proxies 每个节点写成一行（流式映射）；默认与官方示例一致用块格式。
+	ProxiesFlow bool `yaml:"proxies-flow,omitempty"`
+	// ProxiesBlock 是 1.0 的旧开关：块格式现在是默认值，保留字段只为旧方案能照常解析。
+	ProxiesBlock bool `yaml:"proxies-block,omitempty"`
 	// UpdateInterval 是订阅响应头 profile-update-interval（小时），默认 12。
 	UpdateInterval int `yaml:"update-interval,omitempty"`
 	// UserInfo 选择 subscription-userinfo：none（默认）| sum | source:<ref>。
