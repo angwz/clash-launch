@@ -96,9 +96,9 @@ func Render(in Input) (Output, error) {
 	}
 
 	text, err := render.Render(merged.Node, render.Options{
-		Catalog:      in.Catalog,
-		Header:       header(p, preset, in.Updated),
-		ProxiesFlow:  p.Output.ProxiesFlow,
+		Catalog:     in.Catalog,
+		Header:      header(p, preset, in.Updated),
+		ProxiesFlow: p.Output.ProxiesFlow,
 	}, &out)
 	res.Diagnostics = out.Items()
 	if err != nil {

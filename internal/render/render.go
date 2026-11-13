@@ -129,7 +129,7 @@ func Order(n *yaml.Node, f *catalog.Field) *yaml.Node {
 type emitter struct {
 	b           bytes.Buffer
 	flowProxies bool
-	spaced      bool // 顶层列表的条目之间空一行（只作用于该列表的直接条目）
+	spaced      bool              // 顶层列表的条目之间空一行（只作用于该列表的直接条目）
 	cache       map[string]string // 普通标量的解析结果缓存：值 → 规范标签
 }
 

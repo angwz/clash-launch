@@ -59,7 +59,7 @@ type RuleRef struct {
 
 // Output 是与渲染有关的方案设置。
 type Output struct {
-	Timezone     string `yaml:"timezone,omitempty"`      // 文件头时间的时区，默认 UTC
+	Timezone string `yaml:"timezone,omitempty"` // 文件头时间的时区，默认 UTC
 	// ProxiesFlow 为 true 时 proxies 每个节点写成一行（流式映射）；默认与官方示例一致用块格式。
 	ProxiesFlow bool `yaml:"proxies-flow,omitempty"`
 	// ProxiesBlock 是 1.0 的旧开关：块格式现在是默认值，保留字段只为旧方案能照常解析。
