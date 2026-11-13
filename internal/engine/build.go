@@ -56,6 +56,7 @@ type BuildInput struct {
 	Rules   *RulesInput
 	Catalog *catalog.Catalog
 	Tools   *node.Tools
+	Chains  []profile.Chain // 链式代理规则（方案顺序）
 }
 
 // Built 是生成阶段的结果。
@@ -65,6 +66,8 @@ type Built struct {
 	Updated     time.Time         // 输入快照中最新的时间戳
 	Nodes       []*node.Node      // 写入配置的节点（界面的节点表格使用）
 	Numbering   []Numbered        // 订阅编号
+	Chains      []ChainResult     // 每条链式代理规则实际套用到的节点与 provider（界面预览用）
+	Outbounds   []string          // 可作前置的名字：写入配置的节点与策略组
 }
 
 // Numbered 是一个订阅的编号。
@@ -161,6 +164,7 @@ func Build(in BuildInput) Built {
 			yamlx.Set(res.Generated, "rules", yamlx.StrSeq(rules...))
 		}
 	}
+	res.Chains, res.Outbounds = applyChains(in.Chains, res.Generated, all, providers, &out)
 	res.Diagnostics = out.Items()
 	return res
 }

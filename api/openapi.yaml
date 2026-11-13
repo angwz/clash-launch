@@ -196,7 +196,7 @@ components:
         createdAt: {type: string, format: date-time}
     Preview:
       type: object
-      required: [yaml, diagnostics, touched, kernel, diff, numbering, nodes]
+      required: [yaml, diagnostics, touched, kernel, diff, numbering, chains, outbounds, nodes]
       properties:
         yaml: {type: string}
         diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
@@ -214,6 +214,11 @@ components:
           type: array
           description: 订阅的编号（GROUPID），按方案中的顺序
           items: {type: object, required: [ref, name, groupId], properties: {ref: {type: string}, name: {type: string}, groupId: {type: integer}}}
+        chains:
+          type: array
+          description: 每条链式代理规则实际套用到的节点与 provider，按方案中的顺序
+          items: {type: object, required: [via, nodes, providers], properties: {via: {type: string}, nodes: {type: array, items: {type: string}}, providers: {type: array, items: {type: string}}}}
+        outbounds: {type: array, items: {type: string}, description: 可作前置的名字（写入配置的节点与策略组）}
         diff:
           type: array
           items:

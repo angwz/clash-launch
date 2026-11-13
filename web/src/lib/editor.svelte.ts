@@ -4,7 +4,7 @@
 import { api, ApiError, listAll, type Preview, type Profile, type RuleSource, type Source } from "./api/client";
 import { errorText } from "./errors";
 import { t } from "./i18n/i18n.svelte";
-import { ProfileDoc, type SourceRef } from "./profile-doc";
+import { ProfileDoc, type ChainRule, type SourceRef } from "./profile-doc";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 
@@ -84,6 +84,17 @@ export class EditorState {
   setSources(list: SourceRef[]): void {
     if (!this.doc) return;
     this.doc.sources = list;
+    this.#changed();
+  }
+
+  get chains(): ChainRule[] {
+    void this.rev;
+    return this.doc?.chains ?? [];
+  }
+
+  setChains(list: ChainRule[]): void {
+    if (!this.doc) return;
+    this.doc.chains = list;
     this.#changed();
   }
 

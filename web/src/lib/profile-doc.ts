@@ -13,6 +13,14 @@ export interface SourceRef {
   disabled?: boolean;
 }
 
+/** 链式代理规则（方案 chains）：被 select 选中的节点经 via 拨号（mihomo dialer-proxy）。 */
+export interface ChainRule {
+  via: string;
+  /** 与 groups.toml 现代选择器相同的键；界面编辑 source、region、name，其余键原样保留。 */
+  select?: Record<string, unknown>;
+  disabled?: boolean;
+}
+
 export interface Target {
   pack: string;
   preset: string;
@@ -141,6 +149,30 @@ export class ProfileDoc {
       seq.items.push(m);
     }
     this.doc.set("sources", seq);
+  }
+
+  get chains(): ChainRule[] {
+    const s = this.doc.get("chains", true);
+    if (!isSeq(s)) return [];
+    return (s.toJSON() as ChainRule[]).map((x) => ({ via: String(x?.via ?? ""), select: x?.select && typeof x.select === "object" ? x.select : undefined, disabled: x?.disabled || undefined }));
+  }
+
+  set chains(list: ChainRule[]) {
+    this.#dirty = true;
+    if (list.length === 0) {
+      this.doc.delete("chains");
+      return;
+    }
+    const seq = new YAMLSeq();
+    for (const c of list) {
+      // 空条件去掉：select 为空表示全部节点
+      const sel = c.select ? clean(Object.fromEntries(Object.entries(c.select).filter(([, v]) => !(v === "" || (Array.isArray(v) && v.length === 0))))) : undefined;
+      const m = this.doc.createNode(clean({ via: c.via, select: sel && Object.keys(sel).length ? sel : undefined, disabled: c.disabled || undefined })) as YAMLMap;
+      const sm = m.get("select", true);
+      if (sm instanceof YAMLMap) sm.flow = true;
+      seq.items.push(m);
+    }
+    this.doc.set("chains", seq);
   }
 
   get rules(): string | undefined {

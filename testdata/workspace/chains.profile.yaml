@@ -1,0 +1,22 @@
+clash-launch/profile: v1
+name: 链式代理
+target: { pack: mihomo, preset: mihomo, core: "1.19.33" }
+output: { timezone: Asia/Shanghai }
+sources:
+  - ref: src_airport_a
+  - ref: src_my_vps
+  - ref: src_airport_b
+    mode: provider
+rules: { ref: rs_domainrouter }
+chains:
+  # 机场 A 的香港节点经自建 VPS 出去
+  - via: 🎐 自建 VPS
+    select: { source: [机场 A], region: [HK] }
+  # 自建 VPS 以策略组作前置（组中不含它自己）
+  - via: 🛫 香港专线
+    select: { name: 自建 }
+  # 「交给客户端」的订阅只能整体设置前置
+  - via: 🎐 自建 VPS
+    select: { source: [机场 B] }
+form:
+  mixed-port: 7890

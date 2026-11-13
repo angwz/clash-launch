@@ -32,6 +32,7 @@
 | 输出格式（引号、空行、文件头） | `internal/render/render.go`；自检 `selfcheck.go` | golden + `FuzzRender`（`-update` 后人工审阅） | [rendering](../design/rendering.md)；改格式先给样例 |
 | 目标客户端预设与适配 | `catalog/mihomo/presets/`、`internal/target` | `internal/engine`、`TestKernelOpenClashFlow`（`-tags kernel`） | [catalog](../design/catalog.md)、依据写进决定（如 [0006](../decisions/0006-openclash-preset.md)） |
 | 节点解析、整理、地区识别 | `internal/node`（`node.go`、`process.go`、`region.go`、`singbox.go`）；地区表 `catalog/regions/` | `node_test.go`、`testdata/regions/tricky.yaml`、`FuzzParse` | [nodes](../design/nodes.md) |
+| 链式代理（dialer-proxy、循环检查） | `internal/engine/chain.go`；方案字段 `internal/profile`（`Chain`）；界面 `web/src/components/editor/ChainsPanel.svelte` | `chain_test.go`、`testdata/workspace/chains.profile.yaml`（`-tags kernel`） | [chains](../design/chains.md) |
 | 规则源、GROUPID、选择器、ini | `internal/ruleset`；有序源与编号在 `internal/engine/build.go` | `ruleset_test.go`、工作区 golden | [rules](../design/rules.md)、[parity](../design/subconverter-parity.md) |
 | 诊断代码与中英文消息 | `internal/diag/codes.go`（唯一登记处） | 引用处的测试 | 前端按代码显示，无需改前端 |
 | 内核检查 | `internal/kernel/check.go` | `-tags kernel` | [architecture](../design/architecture.md) |

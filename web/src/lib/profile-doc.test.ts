@@ -102,3 +102,17 @@ describe("输出格式", () => {
     expect(d.toString()).not.toContain("proxies-flow");
   });
 });
+
+describe("链式代理", () => {
+  it("chains 读写往返；空条件去掉，未知选择器键原样保留", () => {
+    const d = new ProfileDoc('clash-launch/profile: v1\nname: x\ntarget: { pack: mihomo, preset: mihomo, core: "1.19.33" }\nchains:\n  - via: VPS\n    select: { region: [HK], protocol: [ss] }\n');
+    expect(d.chains).toEqual([{ via: "VPS", select: { region: ["HK"], protocol: ["ss"] }, disabled: undefined }]);
+    d.chains = [{ via: "VPS", select: { region: ["HK"], protocol: ["ss"], source: [], name: "" } }, { via: "G", disabled: true }];
+    const s = d.toString();
+    expect(s).toContain("select: { region: [ HK ], protocol: [ ss ] }");
+    expect(s).not.toContain("source");
+    expect(d.chains[1]).toEqual({ via: "G", select: undefined, disabled: true });
+    d.chains = [];
+    expect(d.toString()).not.toContain("chains");
+  });
+});

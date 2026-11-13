@@ -127,6 +127,8 @@ func selectorFrom(m map[string]any, group, where string, out *diag.List, top boo
 
 func number(v any) (float64, bool) {
 	switch x := v.(type) {
+	case int: // 来自 YAML（方案文档中的链式代理）
+		return float64(x), true
 	case int64:
 		return float64(x), true
 	case float64:
@@ -223,4 +225,25 @@ func (s *Selector) String() string {
 		parts = append(parts, "name="+s.NameText)
 	}
 	return strings.Join(parts, " ")
+}
+
+// ParseSelector 解析 select 映射，供方案中的链式代理等复用；label 出现在诊断中。
+func ParseSelector(m map[string]any, label, where string, out *diag.List) *Selector {
+	return parseSelector(m, label, where, out)
+}
+
+// MatchesProvider 判断「交给客户端」的源整体是否被选中。服务器看不到 provider 里的节点，
+// 只能按 source 条件（名称或 #编号）判断；exact 为 false 表示还有按节点属性的条件，
+// 这些条件无法在 provider 上等价表达。
+func (s *Selector) MatchesProvider(sourceName string, groupID int) (match, exact bool) {
+	probe := &node.Node{SourceName: sourceName, GroupID: groupID}
+	match = len(s.Source) == 0 || sourceMatch(s.Source, probe)
+	exact = len(s.Region) == 0 && len(s.Protocol) == 0 && len(s.Tags) == 0 && s.Name == nil && s.RateMin == nil && s.RateMax == nil
+	if e := s.Exclude; e != nil {
+		if len(e.Source) > 0 && sourceMatch(e.Source, probe) {
+			match = false
+		}
+		exact = exact && len(e.Region) == 0 && len(e.Protocol) == 0 && len(e.Tags) == 0 && e.Name == nil
+	}
+	return match, exact
 }

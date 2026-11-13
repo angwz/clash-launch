@@ -22,6 +22,7 @@
 | [design/rendering.md](design/rendering.md) | 输出样式、引号规则、键顺序与格式自检 |
 | [design/nodes.md](design/nodes.md) | 内容识别、分享链接与校验、整理步骤、地区识别与装饰 emoji |
 | [design/rules.md](design/rules.md) | 有序源与订阅编号、groups.toml 与匹配器、现代选择器、rulesets、外部配置 ini、预设 |
+| [design/chains.md](design/chains.md) | 链式代理：dialer-proxy 语义依据、写法、套用规则、循环检查 |
 | [design/network.md](design/network.md) | 拉取、SSRF 防护与快照 |
 | [design/security.md](design/security.md) | 威胁模型、默认值与逐项的安全测试清单 |
 | [design/subconverter-parity.md](design/subconverter-parity.md) | 与 subconverter 的逐条差异及其性质 |

@@ -3077,6 +3077,14 @@ export interface components {
                 name: string;
                 groupId: number;
             }[];
+            /** @description 每条链式代理规则实际套用到的节点与 provider，按方案中的顺序 */
+            chains: {
+                via: string;
+                nodes: string[];
+                providers: string[];
+            }[];
+            /** @description 可作前置的名字（写入配置的节点与策略组） */
+            outbounds: string[];
             diff: {
                 /** @enum {string} */
                 op: " " | "-" | "+";

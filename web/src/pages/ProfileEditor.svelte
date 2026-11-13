@@ -7,6 +7,7 @@
   import RawEditor from "../components/editor/RawEditor.svelte";
   import SectionView from "../components/editor/SectionView.svelte";
   import SourcesPanel from "../components/editor/SourcesPanel.svelte";
+  import ChainsPanel from "../components/editor/ChainsPanel.svelte";
   import { catalog, type MetaField, type NavSection } from "../lib/catalog.svelte";
   import { EditorState } from "../lib/editor.svelte";
   import { errorText } from "../lib/errors";
@@ -205,6 +206,7 @@
           <RawEditor {editor} focusKey={rawKey} onClose={() => (rawOpen = false)} />
         {:else if section === "sources" || !current}
           <SourcesPanel {editor} />
+          <ChainsPanel {editor} />
         {:else if current.generated}
           <section class="generated">
             <h2>{catalog.navTitle(current)}</h2>

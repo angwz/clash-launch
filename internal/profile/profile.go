@@ -52,6 +52,16 @@ type SourceRef struct {
 	Disabled bool   `yaml:"disabled,omitempty"` // 停用：不参与编号与输出
 }
 
+// Chain 是一条链式代理规则：被选中的节点经由 Via 拨号（mihomo 的 dialer-proxy）。
+// 流量路径为 本机 → Via → 节点 → 目标。mihomo 1.19 已移除 relay 组，dialer-proxy 是唯一的链式写法。
+type Chain struct {
+	Via string `yaml:"via"` // 前置：节点名或策略组名（最终配置中的名字）
+	// Select 使用与 groups.toml 现代选择器相同的键（region、source、protocol、tags、name、exclude）；
+	// 省略表示全部节点。保持原始映射，由引擎按选择器规则解析并报告错误。
+	Select   map[string]any `yaml:"select,omitempty"`
+	Disabled bool           `yaml:"disabled,omitempty"`
+}
+
 // RuleRef 引用规则源。
 type RuleRef struct {
 	Ref string `yaml:"ref"`
@@ -76,12 +86,13 @@ type Profile struct {
 	Target  Target      `yaml:"target"`
 	Sources []SourceRef `yaml:"sources,omitempty"`
 	Rules   *RuleRef    `yaml:"rules,omitempty"`
+	Chains  []Chain     `yaml:"chains,omitempty"` // 链式代理：按顺序套用，后面的覆盖前面的
 	Output  Output      `yaml:"output,omitempty"`
 	Form    *yaml.Node  `yaml:"-"`
 	Raw     string      `yaml:"-"`
 }
 
-var knownKeys = []string{DocType, "name", "target", "sources", "rules", "output", "form", "raw"}
+var knownKeys = []string{DocType, "name", "target", "sources", "rules", "chains", "output", "form", "raw"}
 
 // Parse 解析方案文档。未知键给出警告（可能来自更新的版本）；结构错误给出 error 并返回错误。
 func Parse(text []byte, out *diag.List) (*Profile, error) {
@@ -108,7 +119,7 @@ func Parse(text []byte, out *diag.List) (*Profile, error) {
 		}
 	}
 	p := &Profile{}
-	for _, k := range []string{"name", "target", "sources", "rules", "output"} {
+	for _, k := range []string{"name", "target", "sources", "rules", "chains", "output"} {
 		v := yamlx.Get(root, k)
 		if v == nil {
 			continue
@@ -124,6 +135,8 @@ func Parse(text []byte, out *diag.List) (*Profile, error) {
 		case "rules":
 			p.Rules = &RuleRef{}
 			err = v.Decode(p.Rules)
+		case "chains":
+			err = v.Decode(&p.Chains)
 		case "output":
 			err = v.Decode(&p.Output)
 		}

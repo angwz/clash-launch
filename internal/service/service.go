@@ -191,15 +191,17 @@ func fromSourceSnap(key, owner string, s *source.Snapshot) *store.Snapshot {
 
 // Result 是一次渲染（或预览）的结果。
 type Result struct {
-	YAML        []byte            `json:"yaml"`
-	Diagnostics []diag.Diagnostic `json:"diagnostics"`
-	Touched     []string          `json:"touched"`
-	Kernel      kernel.Result     `json:"kernel"`
-	Key         string            `json:"key"`
-	Headers     map[string]string `json:"headers"`
-	Fatal       string            `json:"fatal,omitempty"`
-	Nodes       []*node.Node      `json:"-"`
-	Numbering   []engine.Numbered `json:"numbering"`
+	YAML        []byte               `json:"yaml"`
+	Diagnostics []diag.Diagnostic    `json:"diagnostics"`
+	Touched     []string             `json:"touched"`
+	Kernel      kernel.Result        `json:"kernel"`
+	Key         string               `json:"key"`
+	Headers     map[string]string    `json:"headers"`
+	Fatal       string               `json:"fatal,omitempty"`
+	Nodes       []*node.Node         `json:"-"`
+	Numbering   []engine.Numbered    `json:"numbering"`
+	Chains      []engine.ChainResult `json:"chains"`
+	Outbounds   []string             `json:"outbounds"`
 }
 
 // OK 报告结果可以发布：没有致命错误，内核检查没有失败。
@@ -210,7 +212,7 @@ func (r *Result) OK() bool {
 // assemble 从存储读取方案引用的源与规则源，得到引擎输入与缓存键。
 func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile, profileUpdated time.Time) (engine.BuildInput, []string, time.Time, map[string]map[string]string, diag.List, error) {
 	var ds diag.List
-	in := engine.BuildInput{Catalog: s.Catalog, Tools: s.Tools}
+	in := engine.BuildInput{Catalog: s.Catalog, Tools: s.Tools, Chains: p.Chains}
 	var hashes []string
 	latest := profileUpdated
 	headers := map[string]map[string]string{}
@@ -308,7 +310,7 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 		latest = built.Updated
 	}
 	out, rerr := engine.Render(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Diagnostics: append(ds.Items(), built.Diagnostics...), Updated: latest})
-	res := &Result{YAML: out.YAML, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering}
+	res := &Result{YAML: out.YAML, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds}
 	if rerr != nil {
 		res.Fatal = rerr.Error()
 		return res, nil

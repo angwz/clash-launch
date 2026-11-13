@@ -668,6 +668,9 @@ type previewResp struct {
 	Diff        []DiffLine        `json:"diff"`
 	// Numbering 是订阅的编号（GROUPID），由引擎计算；界面在源列表中显示，不自行推算。
 	Numbering []engine.Numbered `json:"numbering"`
+	// Chains 是每条链式代理规则实际套用到的节点与 provider；Outbounds 是可作前置的节点与策略组。
+	Chains    []engine.ChainResult `json:"chains"`
+	Outbounds []string             `json:"outbounds"`
 	// Nodes 是写入配置的节点数。
 	Nodes int `json:"nodes"`
 }
@@ -691,7 +694,7 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, previewResp{YAML: string(res.YAML), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Nodes: len(res.Nodes)})
+	writeJSON(w, http.StatusOK, previewResp{YAML: string(res.YAML), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Chains: nonNil(res.Chains), Outbounds: nonNil(res.Outbounds), Nodes: len(res.Nodes)})
 }
 
 // renderStatus 返回最近一次成功的结果与最近一次尝试的诊断。

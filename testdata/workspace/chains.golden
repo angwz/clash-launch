@@ -1,0 +1,770 @@
+# NAME: 链式代理
+# TARGET: mihomo · mihomo 1.19.33
+# GENERATOR: Clash, Launch! 1.0.0-dev · https://github.com/angwz/clash-launch
+# UPDATED: 2026-11-09 08:00:00 (UTC+8)
+
+mixed-port: 7890
+
+proxies:
+  - name: 🇭🇰 香港 01
+    type: vmess
+    server: 192.0.2.11
+    port: 443
+    uuid: 11111111-2222-3333-4444-555555555555
+    alterId: 0
+    cipher: auto
+    xudp: true
+    udp: true
+    tls: true
+    skip-cert-verify: false
+    servername: cdn.example.com
+    network: ws
+    ws-opts:
+      path: /ray
+      headers:
+        Host: cdn.example.com
+    dialer-proxy: 🎐 自建 VPS
+
+  - name: 🇸🇬 广港 IEPL 新加坡 01
+    type: trojan
+    server: 192.0.2.12
+    port: 443
+    password: example-trojan
+    client-fingerprint: chrome
+    udp: true
+    sni: example.com
+    skip-cert-verify: false
+
+  - name: 🇯🇵 日本 东京 02
+    type: ss
+    server: 192.0.2.13
+    port: 8388
+    cipher: aes-128-gcm
+    password: example-ss
+    udp: true
+
+  - name: 🇺🇸 美国 洛杉矶 03
+    type: vless
+    server: 192.0.2.14
+    port: 443
+    uuid: 11111111-2222-3333-4444-666666666666
+    network: ws
+    servername: example.com
+    encryption: none
+    xudp: true
+    tls: true
+    udp: true
+    client-fingerprint: chrome
+    ws-opts:
+      path: /v
+      headers:
+        Host: cdn.example.com
+        User-Agent: Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36
+
+  - name: 🎐 自建 VPS
+    type: wireguard
+    server: 192.0.2.20
+    port: 51820
+    ip: 172.16.0.2
+    public-key: QD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiE=
+    private-key: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=
+    udp: true
+    dialer-proxy: 🛫 香港专线
+
+proxy-groups:
+  - name: 🌠 节点选择
+    type: select
+    proxies:
+      - 🛫 香港专线
+      - ⛳ 美国专线
+      - 🌺 日本专线
+      - 🧊 新加坡专线
+      - ✈️ 手动切换
+      - DIRECT
+
+  - name: ✈️ 手动切换
+    type: select
+    proxies:
+      - ⛳ 美国专线
+      - 🇭🇰 香港 01
+      - 🇸🇬 广港 IEPL 新加坡 01
+      - 🇯🇵 日本 东京 02
+      - 🇺🇸 美国 洛杉矶 03
+      - 🎐 自建 VPS
+    use:
+      - 机场 B
+    filter: (.*)
+
+  - name: 🗨️ ChatGPT
+    type: select
+    proxies:
+      - ⛳ 美国专线
+      - 🌺 日本专线
+      - 🧊 新加坡专线
+      - ✈️ 手动切换
+
+  - name: 📺 哔哩哔哩
+    type: select
+    proxies:
+      - DIRECT
+      - 🛫 香港专线
+      - ✈️ 手动切换
+
+  - name: 🍎 Apple
+    type: select
+    proxies:
+      - DIRECT
+      - 🌠 节点选择
+      - ⛳ 美国专线
+
+  - name: 📱 TikTok
+    type: select
+    proxies:
+      - 🌺 日本专线
+      - 🧊 新加坡专线
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 🛸 Telegram
+    type: select
+    proxies:
+      - 🧊 新加坡专线
+      - 🌠 节点选择
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 💻 YouTube
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 📩 Google
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - 🗨️ ChatGPT
+      - 🧊 新加坡专线
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 🏖️ Community
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - 🧊 新加坡专线
+      - ⛳ 美国专线
+      - 🌺 日本专线
+      - ✈️ 手动切换
+
+  - name: ⛅ OneDrive
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - ⛳ 美国专线
+      - DIRECT
+
+  - name: 🎬 Netflix
+    type: select
+    proxies:
+      - 🌺 日本专线
+      - 🛫 香港专线
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 🪟 Microsoft
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+      - DIRECT
+
+  - name: 🛖 国际流媒体
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - 🌺 日本专线
+      - ⛳ 美国专线
+      - ✈️ 手动切换
+
+  - name: 🐳 漏网の鱼
+    type: select
+    proxies:
+      - 🌠 节点选择
+      - ⛳ 美国专线
+      - 🌺 日本专线
+      - ✈️ 手动切换
+      - DIRECT
+
+  - name: 🛫 香港专线
+    type: fallback
+    proxies:
+      - 🎇 香港高速
+      - 🧊 新加坡专线
+    url: https://www.gstatic.com/generate_204
+    interval: 97
+    lazy: false
+
+  - name: 🌺 日本专线
+    type: fallback
+    proxies:
+      - 🗾 日本高速
+      - ⛳ 美国专线
+    url: https://www.gstatic.com/generate_204
+    interval: 127
+    lazy: false
+
+  - name: 🧊 新加坡专线
+    type: fallback
+    proxies:
+      - 🦁 新加坡高速
+      - ⛳ 美国专线
+    url: https://www.gstatic.com/generate_204
+    interval: 177
+    lazy: false
+
+  - name: ⛳ 美国专线
+    type: fallback
+    proxies:
+      - 🏞️ 美利坚高速
+      - 🇺🇸 美国 洛杉矶 03
+    use:
+      - 机场 B
+    url: https://www.gstatic.com/generate_204
+    interval: 233
+    lazy: false
+    filter: (美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|US|us|United States)
+
+  - name: 🎇 香港高速
+    type: select
+    proxies:
+      - 🇭🇰 香港 01
+      - 🇸🇬 广港 IEPL 新加坡 01
+      - ⛳ 美国专线
+    use:
+      - 机场 B
+    filter: (港|HK|hk|Hong Kong|HongKong|hongkong)
+
+  - name: 🗾 日本高速
+    type: select
+    proxies:
+      - 🇯🇵 日本 东京 02
+      - ⛳ 美国专线
+    use:
+      - 机场 B
+    filter: (^(?=.*(日|东京|大阪|埼玉|JP|jp|Japan))(?!.*尼日利亚).*$)
+
+  - name: 🦁 新加坡高速
+    type: select
+    proxies:
+      - 🇸🇬 广港 IEPL 新加坡 01
+      - ⛳ 美国专线
+    use:
+      - 机场 B
+    filter: (新加坡|新|坡|狮城|SG|sg|Singapore)
+
+  - name: 🏞️ 美利坚高速
+    type: select
+    proxies:
+      - 🇺🇸 美国 洛杉矶 03
+    use:
+      - 机场 B
+    filter: (美|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|拉斯维加斯|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|US|us|United States)
+
+proxy-providers:
+  机场 B:
+    type: http
+    url: https://sub.example.com/api/v1/client/subscribe?token=example-token
+    interval: 3600
+    path: ./proxies/机场_B.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: https://www.gstatic.com/generate_204
+    dialer-proxy: 🎐 自建 VPS
+    exclude-filter: 测试
+
+rule-providers:
+  Direct:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Direct.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Direct.yaml
+    format: yaml
+  Direct-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Direct-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Direct-ipcidr.yaml
+    format: yaml
+  Direct-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Direct-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Direct-classic.yaml
+    format: yaml
+  NS:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/NS.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/NS.yaml
+    format: yaml
+  NS-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/NS-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/NS-classic.yaml
+    format: yaml
+  AI:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/AI.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/AI.yaml
+    format: yaml
+  AI-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/AI-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/AI-ipcidr.yaml
+    format: yaml
+  AI-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/AI-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/AI-classic.yaml
+    format: yaml
+  TikTok:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/TikTok.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/TikTok.yaml
+    format: yaml
+  TikTok-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/TikTok-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/TikTok-classic.yaml
+    format: yaml
+  Bilibili:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Bilibili.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Bilibili.yaml
+    format: yaml
+  Bilibili-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Bilibili-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Bilibili-ipcidr.yaml
+    format: yaml
+  Bilibili-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Bilibili-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Bilibili-classic.yaml
+    format: yaml
+  Tencent:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Tencent.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Tencent.yaml
+    format: yaml
+  Tencent-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Tencent-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Tencent-ipcidr.yaml
+    format: yaml
+  Tencent-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Tencent-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Tencent-classic.yaml
+    format: yaml
+  Netflix:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Netflix.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Netflix.yaml
+    format: yaml
+  Netflix-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Netflix-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Netflix-ipcidr.yaml
+    format: yaml
+  Netflix-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Netflix-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Netflix-classic.yaml
+    format: yaml
+  YouTube:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/YouTube.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/YouTube.yaml
+    format: yaml
+  YouTube-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/YouTube-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/YouTube-ipcidr.yaml
+    format: yaml
+  YouTube-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/YouTube-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/YouTube-classic.yaml
+    format: yaml
+  Google:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Google.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Google.yaml
+    format: yaml
+  Google-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Google-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Google-ipcidr.yaml
+    format: yaml
+  Google-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Google-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Google-classic.yaml
+    format: yaml
+  Telegram:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Telegram.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Telegram.yaml
+    format: yaml
+  Telegram-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Telegram-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Telegram-ipcidr.yaml
+    format: yaml
+  Telegram-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Telegram-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Telegram-classic.yaml
+    format: yaml
+  Japan:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Japan.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Japan.yaml
+    format: yaml
+  Japan-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Japan-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Japan-ipcidr.yaml
+    format: yaml
+  Japan-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Japan-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Japan-classic.yaml
+    format: yaml
+  HK:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/HK.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/HK.yaml
+    format: yaml
+  HK-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/HK-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/HK-ipcidr.yaml
+    format: yaml
+  HK-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/HK-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/HK-classic.yaml
+    format: yaml
+  Apple:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Apple.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Apple.yaml
+    format: yaml
+  Apple-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Apple-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Apple-ipcidr.yaml
+    format: yaml
+  Apple-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Apple-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Apple-classic.yaml
+    format: yaml
+  Singapore:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Singapore.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Singapore.yaml
+    format: yaml
+  Singapore-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Singapore-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Singapore-ipcidr.yaml
+    format: yaml
+  Singapore-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Singapore-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Singapore-classic.yaml
+    format: yaml
+  America:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/America.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/America.yaml
+    format: yaml
+  America-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/America-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/America-classic.yaml
+    format: yaml
+  ChinaMedia:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/ChinaMedia.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/ChinaMedia.yaml
+    format: yaml
+  ChinaMedia-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/ChinaMedia-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/ChinaMedia-ipcidr.yaml
+    format: yaml
+  ChinaMedia-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/ChinaMedia-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/ChinaMedia-classic.yaml
+    format: yaml
+  OneDrive:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/OneDrive.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/OneDrive.yaml
+    format: yaml
+  OneDrive-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/OneDrive-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/OneDrive-ipcidr.yaml
+    format: yaml
+  OneDrive-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/OneDrive-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/OneDrive-classic.yaml
+    format: yaml
+  Microsoft:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Microsoft.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Microsoft.yaml
+    format: yaml
+  Microsoft-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Microsoft-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Microsoft-classic.yaml
+    format: yaml
+  Media:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Media.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Media.yaml
+    format: yaml
+  Media-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Media-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Media-ipcidr.yaml
+    format: yaml
+  Media-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Media-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Media-classic.yaml
+    format: yaml
+  Proxy:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/Proxy.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Proxy.yaml
+    format: yaml
+  Proxy-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/Proxy-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Proxy-ipcidr.yaml
+    format: yaml
+  Proxy-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/Proxy-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Proxy-classic.yaml
+    format: yaml
+  China:
+    behavior: domain
+    interval: 21600
+    path: ./ruleset/China.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/China.yaml
+    format: yaml
+  China-ipcidr:
+    behavior: ipcidr
+    interval: 21600
+    path: ./ruleset/China-ipcidr.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/China-ipcidr.yaml
+    format: yaml
+  China-classic:
+    behavior: classical
+    interval: 21600
+    path: ./ruleset/China-classic.yaml
+    type: http
+    url: https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/China-classic.yaml
+    format: yaml
+
+rules:
+  - RULE-SET,Direct,DIRECT
+  - RULE-SET,Direct-ipcidr,DIRECT,no-resolve
+  - RULE-SET,Direct-classic,DIRECT
+  - RULE-SET,NS,🏖️ Community
+  - RULE-SET,NS-classic,🏖️ Community
+  - RULE-SET,AI,🗨️ ChatGPT
+  - RULE-SET,AI-ipcidr,🗨️ ChatGPT,no-resolve
+  - RULE-SET,AI-classic,🗨️ ChatGPT
+  - RULE-SET,TikTok,📱 TikTok
+  - RULE-SET,TikTok-classic,📱 TikTok
+  - RULE-SET,Bilibili,📺 哔哩哔哩
+  - RULE-SET,Bilibili-ipcidr,📺 哔哩哔哩,no-resolve
+  - RULE-SET,Bilibili-classic,📺 哔哩哔哩
+  - RULE-SET,Tencent,DIRECT
+  - RULE-SET,Tencent-ipcidr,DIRECT,no-resolve
+  - RULE-SET,Tencent-classic,DIRECT
+  - RULE-SET,Netflix,🎬 Netflix
+  - RULE-SET,Netflix-ipcidr,🎬 Netflix,no-resolve
+  - RULE-SET,Netflix-classic,🎬 Netflix
+  - RULE-SET,YouTube,💻 YouTube
+  - RULE-SET,YouTube-ipcidr,💻 YouTube,no-resolve
+  - RULE-SET,YouTube-classic,💻 YouTube
+  - RULE-SET,Google,📩 Google
+  - RULE-SET,Google-ipcidr,📩 Google,no-resolve
+  - RULE-SET,Google-classic,📩 Google
+  - RULE-SET,Telegram,🛸 Telegram
+  - RULE-SET,Telegram-ipcidr,🛸 Telegram,no-resolve
+  - RULE-SET,Telegram-classic,🛸 Telegram
+  - RULE-SET,Japan,🌺 日本专线
+  - RULE-SET,Japan-ipcidr,🌺 日本专线,no-resolve
+  - RULE-SET,Japan-classic,🌺 日本专线
+  - RULE-SET,HK,🛫 香港专线
+  - RULE-SET,HK-ipcidr,🛫 香港专线,no-resolve
+  - RULE-SET,HK-classic,🛫 香港专线
+  - RULE-SET,Apple,🍎 Apple
+  - RULE-SET,Apple-ipcidr,🍎 Apple,no-resolve
+  - RULE-SET,Apple-classic,🍎 Apple
+  - RULE-SET,Singapore,🧊 新加坡专线
+  - RULE-SET,Singapore-ipcidr,🧊 新加坡专线,no-resolve
+  - RULE-SET,Singapore-classic,🧊 新加坡专线
+  - RULE-SET,America,⛳ 美国专线
+  - RULE-SET,America-classic,⛳ 美国专线
+  - RULE-SET,ChinaMedia,DIRECT
+  - RULE-SET,ChinaMedia-ipcidr,DIRECT,no-resolve
+  - RULE-SET,ChinaMedia-classic,DIRECT
+  - RULE-SET,OneDrive,⛅ OneDrive
+  - RULE-SET,OneDrive-ipcidr,⛅ OneDrive,no-resolve
+  - RULE-SET,OneDrive-classic,⛅ OneDrive
+  - RULE-SET,Microsoft,🪟 Microsoft
+  - RULE-SET,Microsoft-classic,🪟 Microsoft
+  - RULE-SET,Media,🛖 国际流媒体
+  - RULE-SET,Media-ipcidr,🛖 国际流媒体,no-resolve
+  - RULE-SET,Media-classic,🛖 国际流媒体
+  - GEOIP,CLOUDFLARE,🛫 香港专线,no-resolve
+  - GEOIP,JP,🌺 日本专线,no-resolve
+  - GEOIP,CA,⛳ 美国专线,no-resolve
+  - GEOIP,US,⛳ 美国专线,no-resolve
+  - GEOIP,HK,🛫 香港专线,no-resolve
+  - RULE-SET,Proxy,🌠 节点选择
+  - RULE-SET,Proxy-ipcidr,🌠 节点选择,no-resolve
+  - RULE-SET,Proxy-classic,🌠 节点选择
+  - RULE-SET,China,DIRECT
+  - RULE-SET,China-ipcidr,DIRECT,no-resolve
+  - RULE-SET,China-classic,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,🐳 漏网の鱼
