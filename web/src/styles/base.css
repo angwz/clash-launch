@@ -358,3 +358,29 @@ samp {
 .enter {
   animation: enter var(--dur) var(--ease) both;
 }
+
+/* 滚动条（反馈 #42）：细、半透明、无轨道，悬停时加深；颜色随主题。
+   标准属性在 Chromium 121+ 与 Firefox 生效；Safari 回退到 webkit 伪元素。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+*:hover {
+  scrollbar-color: var(--scrollbar-hover) transparent;
+}
+::-webkit-scrollbar {
+  inline-size: 8px;
+  block-size: 8px;
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--scrollbar) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover) padding-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

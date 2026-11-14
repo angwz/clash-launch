@@ -371,6 +371,8 @@
   }
   .table-wrap {
     overflow-x: auto;
+    /* 让表内绝对定位的无障碍标签以此为包含块，否则会逃出滚动容器、撑宽页面（反馈 #41） */
+    position: relative;
   }
   .nname {
     white-space: nowrap;

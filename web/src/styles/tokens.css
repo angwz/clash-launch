@@ -71,6 +71,8 @@
 
   --border: #e2e2e7;
   --border-strong: #c9c9d1;
+  --scrollbar: rgb(0 0 0 / 0.18);
+  --scrollbar-hover: rgb(0 0 0 / 0.34);
   --ring: #5b57d1;
 
   --accent: #4f4bc6;
@@ -120,6 +122,8 @@
 
   --border: #26262d;
   --border-strong: #3a3a43;
+  --scrollbar: rgb(255 255 255 / 0.16);
+  --scrollbar-hover: rgb(255 255 255 / 0.3);
   --ring: #8d8af0;
 
   --accent: #6f6be6;
@@ -167,6 +171,8 @@
     --fg-on-accent: #ffffff;
     --border: #26262d;
     --border-strong: #3a3a43;
+    --scrollbar: rgb(255 255 255 / 0.16);
+    --scrollbar-hover: rgb(255 255 255 / 0.3);
     --ring: #8d8af0;
     --accent: #6f6be6;
     --accent-hover: #807cf0;

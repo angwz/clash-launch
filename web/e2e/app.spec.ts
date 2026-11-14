@@ -88,7 +88,7 @@ test("命令面板：搜索字段并定位；命令模式进入直接编辑 YAML
 
   // 「源与规则」：点击后以浮层显示，Esc 关闭
   await page.goto(`/profiles/${profile}?section=sources`);
-  await page.locator(".preview-toggle").click();
+  await page.locator(".topbar .preview-btn").click();
   await expect(page.locator("aside.preview .yaml")).toBeVisible();
   await page.screenshot({ path: "test-results/shot-floating.png" });
   await page.keyboard.press("Escape");
@@ -162,14 +162,17 @@ test("深色主题与伪 RTL", async ({ page, request, baseURL }) => {
   await expect(page.locator(".yaml").first()).toHaveCSS("direction", "ltr");
 });
 
-test("手机视口：没有横向滚动", async ({ page, request, baseURL }) => {
-  test.skip(test.info().project.name !== "mobile", "只在手机视口检查");
-  const { profile, source } = await seedProfile(request, baseURL!, "手机测试");
+test("没有横向滚动（页面与主区）", async ({ page, request, baseURL }) => {
+  const { profile, source } = await seedProfile(request, baseURL!, "横向滚动测试");
   await login(page);
-  for (const path of ["/", `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/sources`, `/sources/${source}`, `/rules`, `/admin`]) {
+  for (const path of ["/", `/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/sources`, `/sources/${source}`, `/rules`, `/admin`, `/help`]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    // 主区是滚动容器：只看 documentElement 会漏掉主区内的横向滚动条（反馈 #41）
+    const overflow = await page.evaluate(() => {
+      const m = document.querySelector("main")!;
+      return Math.max(document.documentElement.scrollWidth - window.innerWidth, m.scrollWidth - m.clientWidth);
+    });
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
 });

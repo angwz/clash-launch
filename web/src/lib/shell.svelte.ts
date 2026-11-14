@@ -11,6 +11,8 @@ export interface ProfileStatus {
   diagnostics: { errors: number; warnings: number };
   openRaw: () => void;
   runCheck: () => void;
+  /** 预览未停靠时由顶栏提供开关：按钮不放在滚动区内，避免被滚动条遮住（反馈 #42） */
+  preview: { available: boolean; open: boolean; toggle: () => void };
 }
 
 const RAIL_KEY = "cl.rail";

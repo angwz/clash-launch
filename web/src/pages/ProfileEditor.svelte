@@ -33,7 +33,9 @@
   const floating = $derived(!docked && !mobile);
 
   const nav = $derived(catalog.meta?.pack.nav ?? []);
-  const current = $derived(nav.find((s) => s.id === section));
+  // 「节点与策略组」「规则」两个生成分节只是指回「节点与分流」，与左侧主菜单重复，不再列出（反馈 #33）
+  const settingsNav = $derived(nav.filter((s) => !s.generated));
+  const current = $derived(settingsNav.find((s) => s.id === section));
   const core = $derived(editor.doc?.target.core || catalog.meta?.pack.coreMax || "");
 
   onMount(() => {
@@ -86,6 +88,7 @@
       diagnostics: editor.counts,
       openRaw: () => openRaw(),
       runCheck: () => void editor.runPreview(true),
+      preview: { available: !docked && !mobile, open: previewOpen, toggle: togglePreview },
     };
   });
 
@@ -190,11 +193,15 @@
 {:else}
   <div class="editor" class:preview-open={previewOpen} class:docked class:floating>
     <nav class="secnav" aria-label={t("editor.sections")}>
+      <!-- 配置名放在分节导航顶端，顶栏不再重复（反馈 #36） -->
       <div class="secnav-head">
         <span class="subtle label-sm">{t("editor.profile")}</span>
+        <strong class="pname" title={editor.profile.name}>
+          {editor.profile.name}
+          {#if editor.dirty}<span class="dirty" title={t("editor.unsaved")} aria-label={t("editor.unsaved")}></span>{/if}
+        </strong>
         <div class="profile-links">
           <a href={"/profiles/" + editor.profile.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
-          <a href={"/profiles/" + editor.profile.id + "/history"}><Icon name="history" size={14} />{t("profiles.history")}</a>
         </div>
       </div>
       <ul>
@@ -208,21 +215,34 @@
       </ul>
       <span class="subtle label-sm group-label">{t("editor.settings")}</span>
       <ul>
-        {#each nav as s (s.id)}
+        {#each settingsNav as s (s.id)}
           {@const n = sectionSetCount(s)}
           <li>
             <button type="button" class:active={section === s.id && !rawOpen} aria-current={section === s.id && !rawOpen ? "true" : undefined} onclick={() => select(s.id)}>
               <span class="t">{catalog.navTitle(s)}</span>
               {#if sectionHasRaw(s)}<span class="raw-dot" title={t("raw.badge_hint")}><Icon name="bolt" size={11} /></span>{/if}
-              {#if s.generated}<span class="gen" title={t("editor.generated_hint")}><Icon name="sparkle" size={12} /></span>{/if}
               <span class="n">{n || ""}</span>
             </button>
           </li>
         {/each}
       </ul>
-      <select class="select secnav-select" aria-label={t("editor.sections")} value={section} onchange={(e) => select(e.currentTarget.value)}>
+      <!-- 低频与兜底功能收在末端（反馈 #32、#43）：历史版本与直接编辑 YAML -->
+      <span class="subtle label-sm group-label">{t("editor.advanced")}</span>
+      <ul>
+        <li>
+          <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><Icon name="history" size={15} /><span class="t">{t("profiles.history")}</span></a>
+        </li>
+        <li>
+          <button type="button" class:active={rawOpen} aria-current={rawOpen ? "true" : undefined} onclick={() => openRaw()}>
+            <Icon name="bolt" size={15} /><span class="t">{t("raw.title")}</span>
+            {#if editor.raw.trim()}<span class="raw-dot" title={t("raw.indicator")}><Icon name="bolt" size={11} /></span>{/if}
+          </button>
+        </li>
+      </ul>
+      <select class="select secnav-select" aria-label={t("editor.sections")} value={rawOpen ? "@raw" : section} onchange={(e) => (e.currentTarget.value === "@raw" ? openRaw() : select(e.currentTarget.value))}>
         <option value="sources">{t("editor.sources_rules")}</option>
-        {#each nav as s (s.id)}<option value={s.id}>{catalog.navTitle(s)}</option>{/each}
+        {#each settingsNav as s (s.id)}<option value={s.id}>{catalog.navTitle(s)}</option>{/each}
+        <option value="@raw">{t("raw.title")}</option>
       </select>
       {#if catalog.meta}
         <!-- 兼容性提示：目录按某个 mihomo 版本编写，更新或更旧的内核不保证完全兼容（反馈 #19） -->
@@ -239,32 +259,9 @@
         {:else if section === "sources" || !current}
           <SourcesPanel {editor} />
           <ChainsPanel {editor} />
-        {:else if current.generated}
-          <section class="generated">
-            <h2>{catalog.navTitle(current)}</h2>
-            <div class="gen-card panel">
-              <Icon name="sparkle" size={20} />
-              <div>
-                <p>{current.generated === "sources" ? t("editor.generated_sources") : t("editor.generated_rules")}</p>
-                <div class="gen-actions">
-                  <button class="btn sm" type="button" onclick={() => select("sources")}>{t("editor.sources_rules")}</button>
-                  <a class="btn sm ghost" href={current.generated === "sources" ? "/sources" : "/rules"}>{current.generated === "sources" ? t("editor.manage_sources") : t("editor.manage_rules")}</a>
-                </div>
-                <p class="hint">{t("editor.generated_raw")}</p>
-              </div>
-            </div>
-            <ul class="gen-keys">
-              {#each current.keys as k (k)}
-                {@const f = catalog.top(k)}
-                {#if f}
-                  <li><code class="ltr">{k}</code><span>{catalog.title(f)}</span><span class="muted">{catalog.summary(f)}</span></li>
-                {/if}
-              {/each}
-            </ul>
-          </section>
         {:else}
           {#key current.id}
-            <SectionView section={current} {editor} {core} onRaw={(s) => openRaw(s)} />
+            <SectionView section={current} {editor} {core} />
           {/key}
         {/if}
       </div>
@@ -296,18 +293,14 @@
         {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
       </button>
     </div>
-    {#if !docked}
-      <button class="btn preview-toggle" type="button" aria-expanded={previewOpen} onclick={togglePreview}>
-        <Icon name="code" size={15} />{t("preview.title")}
-        {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
-      </button>
-    {/if}
   </div>
 {/if}
 
 <style>
   .editor {
     position: relative;
+    /* 隐藏的浮层预览带位移停在右缘外，不裁剪会撑出横向滚动条（反馈 #41） */
+    overflow: clip;
     display: grid;
     grid-template-columns: 208px minmax(0, 1fr);
     block-size: 100%;
@@ -337,6 +330,25 @@
     gap: var(--space-2);
     padding-inline: var(--space-2);
     margin-block-end: var(--space-3);
+  }
+  .pname {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-inline-size: 0;
+    font-size: var(--text-lg);
+    font-weight: 620;
+    overflow-wrap: anywhere;
+  }
+  .dirty {
+    flex: none;
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: 50%;
+    background: var(--warn);
+  }
+  .secnav a.item:hover {
+    text-decoration: none;
   }
   .profile-links {
     display: flex;
@@ -368,7 +380,8 @@
     display: grid;
     gap: 1px;
   }
-  .secnav button {
+  .secnav button,
+  .secnav a.item {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -384,7 +397,8 @@
     text-align: start;
     cursor: pointer;
   }
-  .secnav button:hover {
+  .secnav button:hover,
+  .secnav a.item:hover {
     background: var(--bg-hover);
     color: var(--fg);
   }
@@ -413,10 +427,6 @@
     border-radius: 50%;
     background: var(--raw-soft);
     color: var(--raw);
-  }
-  .gen {
-    display: grid;
-    color: var(--fg-subtle);
   }
   .secnav-select {
     display: none;
@@ -473,52 +483,12 @@
     opacity: 0.85;
   }
 
-  .generated {
-    display: grid;
-    gap: var(--space-4);
-  }
-  .generated h2 {
-    font-size: var(--text-xl);
-  }
-  .gen-card {
-    display: flex;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-5);
-    color: var(--fg-muted);
-  }
-  .gen-card > :global(.icon) {
-    color: var(--accent-fg);
-    margin-block-start: 2px;
-  }
-  .gen-card p:first-child {
-    color: var(--fg);
-  }
-  .gen-actions {
-    display: flex;
-    gap: var(--space-2);
-    margin-block: var(--space-3);
-  }
-  .gen-keys {
-    display: grid;
-    gap: var(--space-2);
-  }
-  .gen-keys li {
-    display: grid;
-    grid-template-columns: 9rem 8rem minmax(0, 1fr);
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-  }
-  .gen-keys code {
-    color: var(--fg-subtle);
-  }
-
   /* —— 预览栏 —— */
   .preview {
     min-block-size: 0;
     border-inline-start: 1px solid var(--border);
     overflow: hidden;
   }
-  .preview-toggle,
   .mobile-switch,
   .scrim {
     display: none;
@@ -541,14 +511,6 @@
     .editor {
       grid-template-columns: 196px minmax(0, 1fr);
     }
-  }
-  .preview-toggle {
-    display: inline-flex;
-    position: absolute;
-    z-index: 10;
-    inset-block-start: var(--space-3);
-    inset-inline-end: var(--space-4);
-    box-shadow: var(--shadow-sm);
   }
 
   /* 浮层：从右侧滑出，悬浮在编辑区上方（圆角卡片，四周留白），Esc 或点击外部关闭 */
@@ -637,8 +599,7 @@
     .preview-open .content {
       display: none;
     }
-    .preview-open .scrim,
-    .preview-toggle {
+    .preview-open .scrim {
       display: none;
     }
     .mobile-switch {
@@ -662,10 +623,6 @@
     .mobile-switch button[aria-selected="true"] {
       color: var(--accent-fg);
       box-shadow: inset 0 2px 0 var(--accent);
-    }
-    .gen-keys li {
-      grid-template-columns: 1fr;
-      gap: 0;
     }
   }
 </style>

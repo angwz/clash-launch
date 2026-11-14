@@ -59,11 +59,6 @@
     </a>
 
     {#if p}
-      <div class="crumb">
-        <Icon name="chevron-right" size={14} />
-        <span class="crumb-name">{p.name}</span>
-        {#if p.dirty}<span class="dot" title={t("editor.unsaved")} aria-label={t("editor.unsaved")}></span>{/if}
-      </div>
       <div class="status">
         <button
           class="pill"
@@ -81,6 +76,11 @@
             {#if p.diagnostics.errors}<span class="c-err"><Icon name="error" size={13} />{p.diagnostics.errors}</span>{/if}
             {#if p.diagnostics.warnings}<span class="c-warn"><Icon name="warning" size={13} />{p.diagnostics.warnings}</span>{/if}
           </span>
+        {/if}
+        {#if p.preview.available}
+          <button class="btn sm preview-btn" type="button" aria-expanded={p.preview.open} onclick={() => p.preview.toggle()}>
+            <Icon name="code" size={14} />{t("preview.title")}
+          </button>
         {/if}
         {#if p.raw}
           <button class="raw-flag" type="button" onclick={() => p.openRaw()} title={t("raw.indicator")} aria-label={t("raw.indicator")}>
@@ -136,6 +136,11 @@
       {/each}
     </ul>
     <div class="sidebar-foot">
+      <!-- 项目入口（反馈 #38） -->
+      <a class="gh" href="https://github.com/angwz/clash-launch" target="_blank" rel="noopener noreferrer" data-external title="GitHub">
+        <Icon name="github" size={16} />
+        <span class="label">GitHub</span>
+      </a>
       <button class="btn ghost sm collapse" type="button" onclick={() => shell.toggleRail()} aria-label={shell.rail ? t("shell.expand") : t("shell.collapse")} title={shell.rail ? t("shell.expand") : t("shell.collapse")}>
         <Icon name="panel" size={15} />
         <span class="label">{t("shell.collapse")}</span>
@@ -209,28 +214,6 @@
     background: var(--accent);
     color: var(--fg-on-accent);
   }
-  .crumb {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    color: var(--fg-subtle);
-    min-inline-size: 0;
-  }
-  .crumb-name {
-    color: var(--fg);
-    font-weight: 560;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-inline-size: 22ch;
-  }
-  .dot {
-    inline-size: 7px;
-    block-size: 7px;
-    border-radius: 50%;
-    background: var(--warn);
-    flex: none;
-  }
   .status {
     display: inline-flex;
     align-items: center;
@@ -290,6 +273,9 @@
   }
   .c-warn {
     color: var(--warn);
+  }
+  .preview-btn[aria-expanded="true"] {
+    background: var(--bg-active);
   }
   .raw-flag {
     display: grid;
@@ -372,6 +358,15 @@
     justify-content: center;
     padding-inline: 0;
   }
+  .sidebar-foot {
+    display: grid;
+    gap: 2px;
+  }
+  .sidebar .gh {
+    block-size: 30px;
+    color: var(--fg-subtle);
+    font-size: var(--text-sm);
+  }
   .collapse {
     inline-size: 100%;
     justify-content: flex-start;
@@ -431,7 +426,6 @@
       display: inline-flex;
     }
     .word,
-    .crumb,
     .counts {
       display: none;
     }

@@ -14,8 +14,7 @@
     section,
     editor,
     core,
-    onRaw,
-  }: { section: NavSection; editor: EditorState; core: string; onRaw: (section: NavSection) => void } = $props();
+  }: { section: NavSection; editor: EditorState; core: string } = $props();
 
   let onlySet = $state(false);
   let more = $state(true);
@@ -62,9 +61,6 @@
       </label>
       <Menu label={t("editor.section_menu")}>
         {#snippet items(close)}
-          <button type="button" role="menuitem" onclick={() => { close(); onRaw(section); }}>
-            <Icon name="code" size={15} />{t("raw.title")}
-          </button>
           {#if section.keys[0]}
             <a role="menuitem" href={catalog.top(section.keys[0])?.doc} target="_blank" rel="noopener noreferrer" data-external onclick={close}>
               <Icon name="external" size={15} />{t("field.docs")}

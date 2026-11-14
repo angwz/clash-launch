@@ -123,6 +123,9 @@
     {/if}
 
     <div class="foot">
+      <button type="button" class="link guide" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
+        <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />{expanded ? t("field.less") : t("field.more")}
+      </button>
       {#if field.suggest !== undefined}
         <!-- 建议值（反馈 #27）：未采用时点击即写入；已是建议值时只显示勾 -->
         {#if same(effective, field.suggest)}
@@ -143,14 +146,9 @@
       {/if}
       <span class="spacer"></span>
       {#if field.replacement}<span class="subtle">{t("badge.replacement", { key: field.replacement })}</span>{/if}
-      {#if !isGroup}
-        <button type="button" class="link" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>{expanded ? t("field.less") : t("field.more")}</button>
-      {/if}
-      {#if field.doc}
-        <a class="link" href={field.doc} target="_blank" rel="noopener noreferrer" data-external>{t("field.docs")}<Icon name="external" size={12} /></a>
-      {/if}
       {#if set}
-        <button type="button" class="link" onclick={() => editor.reset(path)}>{t("field.reset")}</button>
+        <!-- 恢复默认独占最右端，与左端的「说明与建议」分开，降低误触（反馈 #34）；官方文档链接只在展开面板里 -->
+        <button type="button" class="link reset" onclick={() => editor.reset(path)}><Icon name="refresh" size={13} />{t("field.reset")}</button>
       {/if}
     </div>
   </article>
@@ -356,6 +354,9 @@
     color: var(--fg-muted);
     font: inherit;
     cursor: pointer;
+  }
+  .link.reset {
+    padding-inline-start: var(--space-4);
   }
   .link:hover {
     color: var(--accent-fg);
