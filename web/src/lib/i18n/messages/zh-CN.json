@@ -73,6 +73,8 @@
   "admin.st_public": "对外地址",
   "admin.st_users": "用户数",
   "admin.st_version": "版本",
+  "admin.st_built": "构建于 {d}",
+  "admin.st_version_hint": "1.0.1 是正式版；1.0.1-7-g769fef4 表示 v1.0.1 之后第 7 次提交（提交 769fef4）的 main 分支构建。",
   "admin.status": "系统状态",
   "admin.subtitle": "注册方式与邀请。",
   "admin.title": "管理",

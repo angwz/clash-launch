@@ -11,6 +11,8 @@ RUN if [ -f package.json ]; then npm ci && npm run build; else mkdir -p dist; fi
 FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS build
 ARG TARGETOS TARGETARCH TARGETVARIANT
 ARG VERSION=1.0.0-dev
+ARG COMMIT=
+ARG BUILD_DATE=
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -18,7 +20,7 @@ COPY . .
 COPY --from=web /src/web/dist ./web/dist
 # 交叉编译（CGO_ENABLED=0：SQLite 驱动为纯 Go）。
 RUN GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" \
-    go build -trimpath -ldflags "-s -w -X github.com/angwz/clash-launch/internal/version.Version=${VERSION}" \
+    go build -trimpath -ldflags "-s -w -X github.com/angwz/clash-launch/internal/version.Version=${VERSION} -X github.com/angwz/clash-launch/internal/version.Commit=${COMMIT} -X github.com/angwz/clash-launch/internal/version.BuildDate=${BUILD_DATE}" \
     -o /out/clash-launch ./cmd/clash-launch
 # 按 tools.lock.json 下载并校验目标架构的 mihomo 与地理数据（toolsync 在构建机上运行）。
 RUN case "$TARGETARCH$TARGETVARIANT" in \

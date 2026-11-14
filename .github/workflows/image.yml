@@ -23,6 +23,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # git describe 需要完整历史与标签
+
+      # 版本号：标签构建为 1.2.3；main 构建为 1.2.3-14-g769fef4（v1.2.3 之后第 14 次提交）
+      - id: ver
+        run: |
+          v=$(git describe --tags --long --match 'v*' --abbrev=7)
+          case "$v" in *-0-g*) v=${v%-0-g*} ;; esac
+          echo "version=${v#v}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -53,6 +63,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ startsWith(github.ref, 'refs/tags/v') && steps.meta.outputs.version || format('edge-{0}', github.sha) }}
+            VERSION=${{ steps.ver.outputs.version }}
+            COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ steps.ver.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

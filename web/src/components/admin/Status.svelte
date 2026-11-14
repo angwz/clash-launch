@@ -7,6 +7,8 @@
 
   interface Status {
     version: string;
+    commit: string;
+    built: string;
     kernel: { available: boolean; version: string };
     catalog: { pack: string; coreMax: string; digest: string };
     keys: { current: string; count: number };
@@ -29,7 +31,12 @@
 {#if st}
   <dl class="status">
     <dt>{t("admin.st_version")}</dt>
-    <dd class="mono">{st.version}</dd>
+    <dd>
+      <span class="mono">{st.version}</span>
+      {#if st.commit}· <a class="mono" href={"https://github.com/angwz/clash-launch/commit/" + st.commit} target="_blank" rel="noopener noreferrer">{st.commit.slice(0, 7)}</a>{/if}
+      {#if st.built}· {t("admin.st_built", { d: new Date(st.built).toLocaleString() })}{/if}
+      <span class="hint ver-hint">{t("admin.st_version_hint")}</span>
+    </dd>
     <dt>{t("admin.st_kernel")}</dt>
     <dd>{st.kernel.available ? "mihomo " + st.kernel.version : t("admin.st_kernel_off")}</dd>
     <dt>{t("admin.st_catalog")}</dt>
@@ -59,6 +66,10 @@
   }
   dt {
     color: var(--fg-muted);
+  }
+  .ver-hint {
+    display: block;
+    font-size: var(--text-xs);
   }
   dd {
     min-inline-size: 0;

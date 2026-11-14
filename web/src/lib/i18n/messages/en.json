@@ -73,6 +73,8 @@
   "admin.st_public": "Public URL",
   "admin.st_users": "Users",
   "admin.st_version": "Version",
+  "admin.st_built": "built {d}",
+  "admin.st_version_hint": "1.0.1 is a release; 1.0.1-7-g769fef4 is a main build 7 commits after v1.0.1 (commit 769fef4).",
   "admin.status": "System status",
   "admin.subtitle": "Registration and invites.",
   "admin.title": "Admin",

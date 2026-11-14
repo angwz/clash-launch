@@ -162,6 +162,8 @@ func (s *Server) adminStatus(w http.ResponseWriter, r *http.Request, _ *principa
 	_, pkErr := s.Svc.RelyingParty()
 	writeJSON(w, http.StatusOK, map[string]any{
 		"version":   version.Version,
+		"commit":    version.Commit,
+		"built":     version.BuildDate,
 		"kernel":    map[string]any{"available": s.Svc.Kernel != nil, "version": kernelVersion},
 		"catalog":   map[string]any{"pack": s.Svc.Catalog.Pack.ID, "coreMax": s.Svc.Catalog.Pack.CoreMax, "digest": short(s.Svc.CatalogDigest)},
 		"keys":      map[string]any{"current": keyID, "count": keys},
