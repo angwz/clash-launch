@@ -10,6 +10,7 @@
 4. [docs/spec/](docs/spec/index.md) — 实施规范 1.0（实施完成后归档到 `docs/history/spec-1.0/`，只读）。
 5. [docs/design/architecture.md](docs/design/architecture.md) — 管线、包职责与依赖方向、验证层级。
 6. [docs/development/codemap.md](docs/development/codemap.md) — 改什么去哪里：按任务列出文件、测试与需要同步的文档。新增包或移动职责时同步更新。
+7. [docs/development/mihomo-upgrade.md](docs/development/mihomo-upgrade.md) — 跟进 mihomo 新版本的完整步骤与完成标准；涉及内核版本的任务按它执行。
 
 其余文档从 [docs/README.md](docs/README.md) 进入。进度记录可能过期：恢复工作时以实际代码、`git log`、`git status` 与重新运行的检查为准。
 

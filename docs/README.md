@@ -37,6 +37,7 @@
 | [development/feedback.md](development/feedback.md) | 维护者提出的每条意见及其处理结果 |
 | [development/setup.md](development/setup.md) | 工具链、内核与地理数据、只读参考资料、前端命令 |
 | [development/codemap.md](development/codemap.md) | 改什么去哪里：按任务列出文件、测试与需要同步的文档 |
+| [development/mihomo-upgrade.md](development/mihomo-upgrade.md) | 跟进 mihomo 新版本：版本固定的位置、字段差异提取、语义重新核验、完成标准 |
 
 ## 规范
 
