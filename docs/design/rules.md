@@ -27,7 +27,15 @@
 | `script:` | 不支持，报错 | 同左 |
 | `@select` | 现代选择器的结果放在这里 | — |
 
-条目顺序即组内顺序；同一成员只出现一次，位置取首次出现处。没有成员也没有 `use` 的组写入 `empty-fallback`（默认 `COMPATIBLE`）并警告。其余键按目录透传，`timeout`、`evaluate-before-use`、`persistent` 忽略并说明原因；`use` 引用的 provider 不存在时警告（原始编辑中仍可补上，最终由内核检查判定）。
+条目顺序即组内顺序；同一成员只出现一次，位置取首次出现处。没有成员也没有 `use` 的组按方案的 `output.empty-groups` 处理（[反馈 #45](../development/feedback.md)，实现见 `internal/ruleset/prune.go`）。mihomo 中空组使用 `empty-fallback`，默认 `COMPATIBLE`，即直连，且 `empty-fallback` 不能是策略组：
+
+| 模式 | 处理 |
+|---|---|
+| `prune`（默认） | 空组先从所有组的成员中移除（因此清空的组同样视为空组，直到稳定）；没有规则直接使用的删除（`group.pruned`），被规则使用的保留并改为指向 `MATCH` 的目标（`group.empty_fallback`），规则不改写 |
+| `fallback` | 同样从成员中移除，但全部保留并指向 `MATCH` 的目标 |
+| `keep` | 写入 `COMPATIBLE` 并警告（`group.empty`） |
+
+先从成员中移除是为了避免环：`MATCH` 的目标组若仍列出这个空组，指回去就成环，mihomo 拒绝。没有 `MATCH` 规则或其目标也为空时，无法确定兜底，保留 `COMPATIBLE` 并警告。规则模板为组显式写了 `empty-fallback` 时尊重该选择，不参与以上处理。判断「被规则使用」时，规则中除类型外的任一字段等于组名即算，宁可多保留。其余键按目录透传，`timeout`、`evaluate-before-use`、`persistent` 忽略并说明原因；`use` 引用的 provider 不存在时警告（原始编辑中仍可补上，最终由内核检查判定）。
 
 ## 现代选择器
 

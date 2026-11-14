@@ -10,7 +10,7 @@
   import { catalog } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
-  import type { SourceRef } from "../../lib/profile-doc";
+  import type { EmptyGroups, SourceRef } from "../../lib/profile-doc";
 
   let { editor }: { editor: EditorState } = $props();
 
@@ -163,9 +163,29 @@
   {#if editor.preview}
     <p class="hint">{t("editor.nodes_count", { n: editor.preview.nodes })}</p>
   {/if}
+  {#if editor.rulesRef}
+    <!-- 没有匹配到节点的策略组怎么处理（反馈 #45）：mihomo 默认让空组直连，这里默认移除 -->
+    <label class="empty-groups">
+      <span>{t("editor.empty_groups")}</span>
+      <select id="empty-groups" class="select" value={editor.emptyGroups} onchange={(e) => editor.setEmptyGroups(e.currentTarget.value as EmptyGroups)}>
+        {#each ["prune", "fallback", "keep"] as const as m (m)}<option value={m}>{t("empty_groups." + m)}</option>{/each}
+      </select>
+    </label>
+    <p class="hint">{t("empty_groups.hint." + editor.emptyGroups)}</p>
+  {/if}
 </section>
 
 <style>
+  .empty-groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+  }
+  .empty-groups .select {
+    inline-size: auto;
+  }
   .panel-sec {
     display: grid;
     gap: var(--space-3);

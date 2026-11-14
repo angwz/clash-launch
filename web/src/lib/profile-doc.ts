@@ -14,6 +14,8 @@ export interface SourceRef {
 }
 
 /** 链式代理规则（方案 chains）：被 select 选中的节点经 via 拨号（mihomo dialer-proxy）。 */
+export type EmptyGroups = "prune" | "fallback" | "keep";
+
 export interface ChainRule {
   via: string;
   /** 与 groups.toml 现代选择器相同的键；界面编辑 source、region、name，其余键原样保留。 */
@@ -211,6 +213,24 @@ export class ProfileDoc {
     }
     if (this.doc.hasIn(["output", "proxies-flow"])) this.doc.deleteIn(["output", "proxies-flow"]);
     // 不留下空的 output 映射
+    const out = this.doc.get("output");
+    if (isMap(out) && out.items.length === 0) this.doc.delete("output");
+  }
+
+  /** 空策略组的处理（反馈 #45）：prune 是默认值，不写入文档。 */
+  get emptyGroups(): EmptyGroups {
+    const v = this.doc.getIn(["output", "empty-groups"]);
+    return v === "fallback" || v === "keep" ? v : "prune";
+  }
+
+  set emptyGroups(v: EmptyGroups) {
+    this.#dirty = true;
+    if (v !== "prune") {
+      if (!this.doc.has("output")) this.doc.set("output", this.doc.createNode({}));
+      this.doc.setIn(["output", "empty-groups"], v);
+      return;
+    }
+    if (this.doc.hasIn(["output", "empty-groups"])) this.doc.deleteIn(["output", "empty-groups"]);
     const out = this.doc.get("output");
     if (isMap(out) && out.items.length === 0) this.doc.delete("output");
   }

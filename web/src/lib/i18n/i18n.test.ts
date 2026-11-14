@@ -32,6 +32,8 @@ const dynamic: Record<string, string[]> = {
   "invite.": ["active", "used", "expired"],
   "palette.kind.": ["page", "field", "command"],
   "mode.": ["inline", "provider"],
+  "empty_groups.": ["prune", "fallback", "keep"],
+  "empty_groups.hint.": ["prune", "fallback", "keep"],
   // 与后端写入的审计动作一致（components/AuditLog.svelte）
   "audit.action.": AUDIT_ACTIONS,
   // 与 internal/auth.BuiltinQuestions 一致

@@ -212,7 +212,7 @@ func (r *Result) OK() bool {
 // assemble 从存储读取方案引用的源与规则源，得到引擎输入与缓存键。
 func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile, profileUpdated time.Time) (engine.BuildInput, []string, time.Time, map[string]map[string]string, diag.List, error) {
 	var ds diag.List
-	in := engine.BuildInput{Catalog: s.Catalog, Tools: s.Tools, Chains: p.Chains}
+	in := engine.BuildInput{Catalog: s.Catalog, Tools: s.Tools, Chains: p.Chains, EmptyGroups: p.Output.EmptyGroups}
 	var hashes []string
 	latest := profileUpdated
 	headers := map[string]map[string]string{}

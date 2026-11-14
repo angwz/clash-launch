@@ -57,6 +57,8 @@ type BuildInput struct {
 	Catalog *catalog.Catalog
 	Tools   *node.Tools
 	Chains  []profile.Chain // 链式代理规则（方案顺序）
+	// EmptyGroups 是空策略组的处理方式：prune（默认）| fallback | keep，见 ruleset.PruneEmpty
+	EmptyGroups string
 }
 
 // Built 是生成阶段的结果。
@@ -148,15 +150,21 @@ func Build(in BuildInput) Built {
 	}
 	if rs != nil {
 		ruleset.CheckReferences(rs.Groups, &out)
+		empty := map[string]bool{}
 		groups := ruleset.Expand(ruleset.ExpandInput{
-			Groups: rs.Groups, Nodes: all, Providers: providers,
+			Groups: rs.Groups, Nodes: all, Providers: providers, Empty: empty,
 			GroupField: groupField(in.Catalog), Numbering: numbering(res.Numbering),
 			KnownProviders: append([]string{}, yamlx.Keys(providerMap)...),
 		}, &out)
+		rp, rules := ruleset.BuildRules(rs.Rulesets, &out)
+		where := map[string]string{}
+		for _, g := range rs.Groups {
+			where[g.Name] = g.Where
+		}
+		ruleset.PruneEmpty(groups, rules, empty, in.EmptyGroups, where, &out)
 		if len(groups.Content) > 0 {
 			yamlx.Set(res.Generated, "proxy-groups", groups)
 		}
-		rp, rules := ruleset.BuildRules(rs.Rulesets, &out)
 		if len(rp.Content) > 0 {
 			yamlx.Set(res.Generated, "rule-providers", rp)
 		}

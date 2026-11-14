@@ -78,7 +78,7 @@ func Build(path string, p *profile.Profile, cat *catalog.Catalog) (*yaml.Node, [
 		return os.ReadFile(filepath.Join(dir, rel))
 	}
 	var ds diag.List
-	in := engine.BuildInput{Catalog: cat, Chains: p.Chains}
+	in := engine.BuildInput{Catalog: cat, Chains: p.Chains, EmptyGroups: p.Output.EmptyGroups}
 	tools, err := node.LoadTools(catalogdata.FS)
 	if err != nil {
 		return nil, nil, time.Time{}, err

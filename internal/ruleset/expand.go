@@ -29,6 +29,9 @@ type ExpandInput struct {
 	GroupField func(groupType, key string) bool
 	// KnownProviders 是已生成的 proxy-provider 名；为 nil 时不检查 use 引用。
 	KnownProviders []string
+	// Empty 非 nil 时记录没有匹配到任何节点的组（写入了占位的 fallback），由 PruneEmpty 按方案选项处理并报告；
+	// 为 nil 时在这里直接报告 group.empty（单独使用 Expand 的场景）。
+	Empty map[string]bool
 	// Numbering 是订阅编号的说明（"0=机场 A, 1=机场 B"），用于 GROUPID 的提示。
 	Numbering string
 }
@@ -172,10 +175,16 @@ func expandGroup(g Group, in ExpandInput, out *diag.List) *yaml.Node {
 	}
 	if len(members) == 0 && len(use) == 0 {
 		fb := "COMPATIBLE"
+		explicit := false
 		if v, ok := g.Extra["empty-fallback"].(string); ok && v != "" {
-			fb = v
+			fb, explicit = v, true
 		}
-		out.Add(diag.GroupEmpty, g.Where, "name", g.Name, "fallback", fb)
+		// 规则模板为组写了 empty-fallback 时是有意的选择：不交给 PruneEmpty，照常写入并报告
+		if in.Empty != nil && !explicit {
+			in.Empty[g.Name] = true
+		} else {
+			out.Add(diag.GroupEmpty, g.Where, "name", g.Name, "fallback", fb)
+		}
 		members = []string{fb}
 	}
 	if len(members) > 0 {

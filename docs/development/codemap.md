@@ -52,6 +52,7 @@
 | 节点写法默认值与锁定 | `internal/service/nodemode.go`、`internal/api/nodemode.go`、`migrations/*/0004_user_invited.sql`、`web/src/components/editor/SourcesPanel.svelte` | `TestNodeModePolicy` | [feedback](feedback.md) #46 |
 | 自动保存与撤销 | `web/src/lib/editor.svelte.ts`、`web/src/lib/toast.svelte.ts`、`internal/store/sql.go`（`Autosave`）、`internal/api/resources.go` | `TestAutosaveCoalesces`、e2e「自动保存，可撤销」 | [feedback](feedback.md) #35 |
 | 菜单顺序（用户偏好） | `internal/api/prefs.go`、`web/src/lib/prefs.svelte.ts`、`web/src/components/OrderDialog.svelte` | `TestPrefs`、`prefs.test.ts`、e2e「调整菜单顺序」 | [feedback](feedback.md) #37 |
+| 空策略组处理 | `internal/ruleset/prune.go`、`internal/engine/build.go`、`web/src/components/editor/SourcesPanel.svelte` | `TestPruneEmpty*`、golden `testdata/workspace/empty-groups.*`（含内核检查） | [rules](../design/rules.md) |
 | 口令、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |

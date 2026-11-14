@@ -4,7 +4,7 @@
 import { api, ApiError, listAll, type Preview, type Profile, type RuleSource, type Source } from "./api/client";
 import { errorText } from "./errors";
 import { t } from "./i18n/i18n.svelte";
-import { ProfileDoc, type ChainRule, type SourceRef } from "./profile-doc";
+import { ProfileDoc, type ChainRule, type EmptyGroups, type SourceRef } from "./profile-doc";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 
@@ -126,6 +126,17 @@ export class EditorState {
   setProxiesBlock(v: boolean): void {
     if (!this.doc) return;
     this.doc.proxiesBlock = v;
+    this.#changed();
+  }
+
+  get emptyGroups(): EmptyGroups {
+    void this.rev;
+    return this.doc?.emptyGroups ?? "prune";
+  }
+
+  setEmptyGroups(v: EmptyGroups): void {
+    if (!this.doc) return;
+    this.doc.emptyGroups = v;
     this.#changed();
   }
 

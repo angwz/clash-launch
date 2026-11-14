@@ -21,7 +21,7 @@
 | 3 | provider 重名判断 | 区分大小写 | 不区分大小写，冲突时追加 `_2` | 有意 | 规范 §6.3；避免在不区分大小写的文件系统上缓存文件互相覆盖 |
 | 4 | 内联逻辑规则的组名位置 | 追加后套用 `^(.*?,.*?)(,.*)(,.*)$ → $1$3$2`，`AND,((A),(B))` 这类规则会被插进括号内 | 按 mihomo 规则语法：组名放在顶层条件之后、`no-resolve`/`src` 之前；括号内的逗号不参与拆分 | 有意 | 规范 §6.3；对 `GEOIP,CN,no-resolve` 等常见写法两者结果相同（差异测试覆盖） |
 | 5 | 单条与批量节点的编号 | 每个输入链接都占一个 GroupID | 只有订阅类型的源参与编号 0、1、2……；单条、批量、文件不编号但保留位置 | 有意 | 已确认的决定 #7、规范 §5.7 |
-| 6 | 正则未命中任何节点的组 | 写入 `DIRECT` | 写入 `empty-fallback` 的值（默认 `COMPATIBLE`）并警告 | 有意 | 规范 §6.2；`DIRECT` 会让本应走代理的流量直连；mihomo 的空组语义就是 `empty-fallback`，默认 `COMPATIBLE`（`adapter/outboundgroup/parser.go`） |
+| 6 | 正则未命中任何节点的组 | 写入 `DIRECT` | 默认移除未被规则使用的空组，被规则使用的指向 `MATCH` 目标；可选保持 `COMPATIBLE`（见 [rules](rules.md)） | 有意 | 规范 §6.2、反馈 #45；`DIRECT` 会让本应走代理的流量直连；mihomo 的空组语义就是 `empty-fallback`，默认 `COMPATIBLE`（`adapter/outboundgroup/parser.go`） |
 | 7 | `[]名称` 重复出现 | 不去重 | 同一成员只出现一次，位置取首次出现处 | 有意 | 规范 §6.2「只出现一次」 |
 | 8 | 组的其他键 | Clash 输出只写 `strategy`、`lazy`、`url`、`interval`、`tolerance`、`disable-udp` | 目录中的 mihomo 组字段（如 `icon`、`hidden`、`default-selected`、`empty-fallback`）原样透传；目录外的键透传并警告 | 有意 | 规范 §6.2；原则 1 |
 | 9 | `timeout` | 默认 5（秒），Clash 输出中不写 | 忽略并警告：mihomo 组的 `timeout` 单位是毫秒，原样透传会变成 5 毫秒 | 有意 | `binding.h`、`subexport.cpp`；mihomo `GroupCommonOption.TestTimeout`；需要时在原始编辑中设置 |

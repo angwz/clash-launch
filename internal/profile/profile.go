@@ -78,6 +78,8 @@ type Output struct {
 	UpdateInterval int `yaml:"update-interval,omitempty"`
 	// UserInfo 选择 subscription-userinfo：none（默认）| sum | source:<ref>。
 	UserInfo string `yaml:"userinfo,omitempty"`
+	// EmptyGroups 是没有匹配到节点的策略组的处理方式：prune（默认，移除）| fallback（指向 MATCH 目标）| keep（mihomo 默认）。
+	EmptyGroups string `yaml:"empty-groups,omitempty"`
 }
 
 // Profile 是解析后的方案文档。Form 与 Raw 保持原样：Form 是映射节点，Raw 是原文。
@@ -188,6 +190,12 @@ func (p *Profile) normalize(out *diag.List) error {
 			out.Add(diag.ProfileInvalid, yamlx.Index("sources", i)+".mode", "reason", "mode must be inline or provider")
 			return fmt.Errorf("profile: sources[%d].mode 无效：%s", i, s.Mode)
 		}
+	}
+	switch p.Output.EmptyGroups {
+	case "", "prune", "fallback", "keep":
+	default:
+		out.Add(diag.ProfileInvalid, "output.empty-groups", "reason", "empty-groups must be prune, fallback or keep")
+		return fmt.Errorf("profile: output.empty-groups 无效：%s", p.Output.EmptyGroups)
 	}
 	return nil
 }
