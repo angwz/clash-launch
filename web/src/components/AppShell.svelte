@@ -10,18 +10,40 @@
   import { theme } from "../lib/theme.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
   import Menu from "./Menu.svelte";
+  import OrderDialog from "./OrderDialog.svelte";
+  import { ordered, prefs } from "../lib/prefs.svelte";
+  import { errorText } from "../lib/errors";
+  import { toasts } from "../lib/toast.svelte";
 
   let { children }: { children: Snippet } = $props();
 
-  onMount(() => shell.init());
+  onMount(() => {
+    shell.init();
+    prefs.load().catch((e) => toasts.push("err", errorText(e)));
+  });
 
-  const nav = $derived<{ href: string; label: string; icon: IconName; active: boolean }[]>([
-    { href: "/", label: t("nav.profiles"), icon: "layers", active: ["home", "profile", "profile-links", "profile-history", "welcome"].includes(router.route.name) },
-    { href: "/sources", label: t("nav.sources"), icon: "server", active: router.route.name.startsWith("source") },
-    { href: "/rules", label: t("nav.rules"), icon: "rules", active: router.route.name.startsWith("rule") },
-    { href: "/help", label: t("nav.help"), icon: "file", active: router.route.name === "help" },
-    ...(session.isAdmin ? [{ href: "/admin", label: t("nav.admin"), icon: "shield" as IconName, active: router.route.name === "admin" }] : []),
+  // 调整菜单顺序（反馈 #37）：分节列表来自目录，打开时才加载
+  let orderOpen = $state(false);
+  async function openOrder() {
+    try {
+      await catalog.load();
+      orderOpen = true;
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+  const sectionItems = $derived(
+    ordered((catalog.meta?.pack.nav ?? []).filter((s) => !s.generated), (s) => s.id, prefs.data.sections).map((s) => ({ id: s.id, label: catalog.navTitle(s) })),
+  );
+
+  const defaultNav = $derived<{ id: string; href: string; label: string; icon: IconName; active: boolean }[]>([
+    { id: "profiles", href: "/", label: t("nav.profiles"), icon: "layers", active: ["home", "profile", "profile-links", "profile-history", "welcome"].includes(router.route.name) },
+    { id: "sources", href: "/sources", label: t("nav.sources"), icon: "server", active: router.route.name.startsWith("source") },
+    { id: "rules", href: "/rules", label: t("nav.rules"), icon: "rules", active: router.route.name.startsWith("rule") },
+    { id: "help", href: "/help", label: t("nav.help"), icon: "file", active: router.route.name === "help" },
+    ...(session.isAdmin ? [{ id: "admin", href: "/admin", label: t("nav.admin"), icon: "shield" as IconName, active: router.route.name === "admin" }] : []),
   ]);
+  const nav = $derived(ordered(defaultNav, (n) => n.id, prefs.data.nav));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
 
@@ -119,6 +141,7 @@
           <span class="muted">{t("role." + (session.user?.role ?? "user"))}</span>
         </div>
         <a href="/account" role="menuitem" onclick={close}><Icon name="settings" size={15} />{t("nav.account")}</a>
+        <button type="button" role="menuitem" onclick={() => { close(); void openOrder(); }}><Icon name="rules" size={15} />{t("order.title")}</button>
         <button type="button" role="menuitem" onclick={() => { close(); void logout(); }}><Icon name="logout" size={15} />{t("shell.logout")}</button>
       {/snippet}
     </Menu>
@@ -150,6 +173,8 @@
   {#if shell.drawer}
     <button class="scrim" type="button" aria-label={t("common.close")} onclick={() => (shell.drawer = false)}></button>
   {/if}
+
+  <OrderDialog bind:open={orderOpen} nav={nav.map((n) => ({ id: n.id, label: n.label }))} sections={sectionItems} />
 
   <main id="main" class="main" tabindex="-1">
     {@render children()}

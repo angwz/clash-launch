@@ -15,6 +15,7 @@
   import { palette, type PaletteItem } from "../lib/palette.svelte";
   import { router } from "../lib/router.svelte";
   import { shell } from "../lib/shell.svelte";
+  import { ordered, prefs } from "../lib/prefs.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
 
@@ -34,7 +35,8 @@
 
   const nav = $derived(catalog.meta?.pack.nav ?? []);
   // 「节点与策略组」「规则」两个生成分节只是指回「节点与分流」，与左侧主菜单重复，不再列出（反馈 #33）
-  const settingsNav = $derived(nav.filter((s) => !s.generated));
+  // 按用户偏好排序（反馈 #37）
+  const settingsNav = $derived(ordered(nav.filter((s) => !s.generated), (s) => s.id, prefs.data.sections));
   const current = $derived(settingsNav.find((s) => s.id === section));
   const core = $derived(editor.doc?.target.core || catalog.meta?.pack.coreMax || "");
 

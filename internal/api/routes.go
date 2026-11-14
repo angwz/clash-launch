@@ -32,6 +32,8 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/account/questions", a(s.myQuestions)},
 		{"PUT", "/api/v1/account/questions", a(s.setQuestions)},
 		{"PUT", "/api/v1/account/password", a(s.changePassword)},
+		{"GET", "/api/v1/account/prefs", a(s.getPrefs)},
+		{"PUT", "/api/v1/account/prefs", a(s.putPrefs)},
 		{"GET", "/api/v1/account/sessions", a(s.listSessions)},
 		{"DELETE", "/api/v1/account/sessions/{id}", a(s.deleteSession)},
 		{"POST", "/api/v1/session/totp", s.sessionTOTP},

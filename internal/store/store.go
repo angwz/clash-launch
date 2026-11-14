@@ -212,6 +212,9 @@ type UserRepo interface {
 	ByID(ctx context.Context, id string) (*User, error)
 	ByUsername(ctx context.Context, username string) (*User, error)
 	Update(ctx context.Context, u *User) error
+	// Prefs 与 SetPrefs 读写界面偏好（JSON 对象，反馈 #37）；不改变 version。
+	Prefs(ctx context.Context, id string) ([]byte, error)
+	SetPrefs(ctx context.Context, id string, prefs []byte) error
 	// SetInvited 记录账号是否经邀请注册（不改变 version：不是用户可编辑的资料）。
 	SetInvited(ctx context.Context, id string, invited bool) error
 	Count(ctx context.Context) (int, error)

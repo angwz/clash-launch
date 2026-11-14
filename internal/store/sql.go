@@ -291,6 +291,19 @@ func (r users) Update(ctx context.Context, u *User) error {
 	return nil
 }
 
+func (r users) Prefs(ctx context.Context, id string) ([]byte, error) {
+	var s string
+	if err := r.d.row(ctx, "SELECT prefs FROM users WHERE id=?", id).Scan(&s); err != nil {
+		return nil, notFound(err)
+	}
+	return []byte(s), nil
+}
+
+func (r users) SetPrefs(ctx context.Context, id string, prefs []byte) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET prefs=? WHERE id=?", string(prefs), id)
+	return affected(res, err, ErrNotFound)
+}
+
 func (r users) SetInvited(ctx context.Context, id string, invited bool) error {
 	res, err := r.d.exec(ctx, "UPDATE users SET invited=? WHERE id=?", b2i(invited), id)
 	return affected(res, err, ErrNotFound)

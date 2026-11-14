@@ -599,3 +599,18 @@ func TestAutosaveCoalesces(t *testing.T) {
 		t.Errorf("方案版本：%d", p.Version)
 	}
 }
+
+// 界面偏好（反馈 #37）：按用户保存；未知键、重复项被拒绝。
+func TestPrefs(t *testing.T) {
+	h := newHarness(t, nil)
+	c, _ := h.setup()
+	if b := string(c.want(200, "GET", "/api/v1/account/prefs", nil)); b != "{}\n" && b != "{}" {
+		t.Errorf("默认偏好：%q", b)
+	}
+	c.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"nav": []string{"help", "profiles"}, "sections": []string{"dns", "general"}})
+	if b := string(c.want(200, "GET", "/api/v1/account/prefs", nil)); !strings.Contains(b, `"nav":["help","profiles"]`) || !strings.Contains(b, `"sections":["dns","general"]`) {
+		t.Errorf("读回：%s", b)
+	}
+	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"nav": []string{"a", "a"}})
+	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"theme": "dark"})
+}

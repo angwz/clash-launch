@@ -250,6 +250,12 @@ components:
         expiresAt: {type: string, format: date-time}
         usedAt: {type: string, format: date-time}
         status: {type: string, enum: [active, used, expired]}
+    Prefs:
+      type: object
+      additionalProperties: false
+      properties:
+        nav: {type: array, maxItems: 64, items: {type: string}, description: 主菜单顺序（路由 ID）；未列出的项按默认顺序排在后面}
+        sections: {type: array, maxItems: 64, items: {type: string}, description: 内核设置分节顺序（目录分节 ID）}
     NodeMode:
       type: object
       required: [default, locked]
@@ -495,6 +501,18 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [current, password], properties: {current: {type: string}, password: {type: string}, logoutOthers: {type: boolean}}}}}}
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/prefs:
+    get:
+      tags: [account]
+      summary: 界面偏好（菜单与分节顺序）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Prefs'}}}}}
+    put:
+      tags: [account]
+      summary: 保存界面偏好；未知键、重复或超限的项返回 400
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Prefs'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Prefs'}}}}, '400': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/sessions:
     get:
       tags: [account]

@@ -299,3 +299,23 @@ test("帮助：教程切换、百科搜索与深链接", async ({ page }) => {
   await page.getByRole("searchbox").fill("dns.respect-rules");
   await expect(page.locator("details.entry")).toHaveCount(1);
 });
+
+test("调整菜单顺序：保存到账号，刷新后保持", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "侧栏在手机上是抽屉");
+  await login(page);
+  await page.goto("/");
+  await page.locator("header.topbar").getByRole("button", { name: "admin" }).click();
+  await page.getByRole("menuitem", { name: "调整菜单顺序" }).click();
+  const dlg = page.locator("dialog[open]");
+  // 把「帮助」上移到第一位
+  for (let i = 0; i < 3; i++) await dlg.getByRole("button", { name: "上移 帮助" }).click();
+  await dlg.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.locator("nav.sidebar li").first()).toContainText("帮助");
+  await page.reload();
+  await expect(page.locator("nav.sidebar li").first()).toContainText("帮助");
+  // 恢复默认
+  await page.locator("header.topbar").getByRole("button", { name: "admin" }).click();
+  await page.getByRole("menuitem", { name: "调整菜单顺序" }).click();
+  await page.locator("dialog[open]").getByRole("button", { name: "恢复默认顺序" }).click();
+  await expect(page.locator("nav.sidebar li").first()).toContainText("配置");
+});

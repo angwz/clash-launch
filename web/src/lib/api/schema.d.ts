@@ -355,6 +355,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/node-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前用户的节点写法策略：默认写法与能否在配置中自选（开放注册的普通用户只能用默认写法） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NodeMode"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/register": {
         parameters: {
             query?: never;
@@ -641,6 +677,67 @@ export interface paths {
                 204: components["responses"]["NoContent"];
                 403: components["responses"]["Problem"];
                 422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/prefs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 界面偏好（菜单与分节顺序） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Prefs"];
+                    };
+                };
+            };
+        };
+        /** 保存界面偏好；未知键、重复或超限的项返回 400 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["Prefs"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Prefs"];
+                    };
+                };
+                400: components["responses"]["Problem"];
             };
         };
         post?: never;
@@ -1716,6 +1813,50 @@ export interface paths {
                         "application/json": components["schemas"]["Registration"];
                     };
                 };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/node-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 设定全局默认的节点写法（inline 写入配置 / provider 交给客户端） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        default: "inline" | "provider";
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NodeMode"];
+                    };
+                };
+                400: components["responses"]["Problem"];
             };
         };
         post?: never;
@@ -3048,6 +3189,8 @@ export interface components {
         ProfileInput: {
             doc: string;
             note?: string;
+            /** @description 编辑器自动保存（只在更新时有效）；与上一个自动保存版本相隔不到 10 分钟时合并为同一个版本，备注为 autosave */
+            autosave?: boolean;
         };
         Revision: {
             n: number;
@@ -3115,6 +3258,21 @@ export interface components {
             usedAt?: string;
             /** @enum {string} */
             status: "active" | "used" | "expired";
+        };
+        Prefs: {
+            /** @description 主菜单顺序（路由 ID）；未列出的项按默认顺序排在后面 */
+            nav?: string[];
+            /** @description 内核设置分节顺序（目录分节 ID） */
+            sections?: string[];
+        };
+        NodeMode: {
+            /**
+             * @description 管理员设定的默认写法；新加入配置的源使用它
+             * @enum {string}
+             */
+            default: "inline" | "provider";
+            /** @description 为 true 时只能使用默认写法（开放注册的普通用户），生成时覆盖文档中的写法并报告 profile.mode_locked */
+            locked: boolean;
         };
         Registration: {
             /** @description 是否允许无邀请注册（默认关闭） */
