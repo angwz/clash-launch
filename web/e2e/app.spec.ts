@@ -55,7 +55,9 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
   const { profile } = await seedProfile(request, baseURL!, "面板测试");
   await login(page);
   await page.goto(`/profiles/${profile}`);
-  await page.locator(".yaml").first().waitFor();
+  await page.locator("#editor-main").waitFor();
+  // 「源与规则」默认不显示预览（反馈 #28）
+  await expect(page.locator("aside.preview .yaml")).toBeHidden();
 
   await page.keyboard.press("Control+K");
   await expect(page.locator("dialog.palette input")).toBeFocused(); // 打开动画期间先等输入框获得焦点
@@ -63,6 +65,8 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/section=dns/);
   await expect(page.locator("#f-dns\\.enhanced-mode")).toBeVisible();
+  // 设置分区在宽屏上停靠预览；悬停已设置的字段时高亮对应行
+  await expect(page.locator("aside.preview .yaml")).toBeVisible();
 
   // 「原始编辑」不出现在普通搜索中，只在 > 命令模式中出现（第 16.4 节）
   await page.keyboard.press("Control+K");
@@ -77,6 +81,18 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
   await expect(page.locator(".raw-flag")).toBeVisible(); // 顶栏 ⚡
   await page.getByRole("button", { name: "回到表单" }).click();
   await page.goto(`/profiles/${profile}?section=general`);
+  await page.goto(`/profiles/${profile}?section=inbound`);
+  await page.locator("#f-mixed-port").hover();
+  await expect(page.locator(".yaml tr.mark").first()).toContainText("mixed-port");
+  await page.screenshot({ path: "test-results/shot-docked.png" });
+
+  // 「源与规则」：点击后以浮层显示，Esc 关闭
+  await page.goto(`/profiles/${profile}?section=sources`);
+  await page.locator(".preview-toggle").click();
+  await expect(page.locator("aside.preview .yaml")).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-floating.png" });
+  await page.keyboard.press("Escape");
+  await expect(page.locator("aside.preview .yaml")).toBeHidden();
 });
 
 test("源排序：用键盘调整顺序", async ({ page, request, baseURL }) => {

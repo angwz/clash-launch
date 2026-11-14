@@ -2,16 +2,19 @@
   // 预览栏（第 16.1 节）：最终 YAML（只读）、与当前版本的差异、诊断列表（点击定位字段）。
   import Icon from "../Icon.svelte";
   import YamlView from "./YamlView.svelte";
+  import { yamlRange } from "../../lib/yaml-range";
   import { catalog } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
   import { toasts } from "../../lib/toast.svelte";
 
-  let { editor, onLocate }: { editor: EditorState; onLocate: (path: string) => void } = $props();
+  // onHide：停靠时「收起」，浮层时「关闭」；手机视图由底部切换控制，不传
+  let { editor, onLocate, onHide, floating = false }: { editor: EditorState; onLocate: (path: string) => void; onHide?: () => void; floating?: boolean } = $props();
 
   let tab = $state<"yaml" | "diff" | "diag">("yaml");
   const p = $derived(editor.preview);
   const lines = $derived(p ? p.yaml.split("\n") : []);
+  const mark = $derived(editor.hover && lines.length ? yamlRange(lines, editor.hover) : null);
   const changed = $derived(p ? p.diff.filter((d) => d.op !== " ").length : 0);
   const diffLines = $derived(p ? p.diff.map((d) => d.text) : []);
   const diffOps = $derived(p ? p.diff.map((d) => d.op) : []);
@@ -60,6 +63,9 @@
     {#if tab === "yaml" && p}
       <button class="btn ghost icon sm" type="button" aria-label={t("common.copy")} title={t("common.copy")} onclick={copy}><Icon name="copy" size={14} /></button>
     {/if}
+    {#if onHide}
+      <button class="btn ghost icon sm" type="button" aria-label={floating ? t("common.close") : t("preview.hide")} title={floating ? t("common.close") + " (Esc)" : t("preview.hide")} onclick={onHide}><Icon name={floating ? "x" : "chevron-right"} size={14} /></button>
+    {/if}
   </div>
 
   <div class="body" role="tabpanel">
@@ -74,7 +80,7 @@
         </div>
       </div>
     {:else if tab === "yaml"}
-      <YamlView {lines} />
+      <YamlView {lines} {mark} />
     {:else if tab === "diff"}
       {#if changed === 0}
         <p class="placeholder muted">{t("preview.no_diff")}</p>

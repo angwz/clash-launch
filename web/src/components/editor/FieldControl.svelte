@@ -146,7 +146,8 @@
 </script>
 
 {#if kind === "bool"}
-  {#if !set && field.default !== undefined}<span class="dflt-tag">{t("field.default_tag")}</span>{/if}
+  <!-- 未设置时用文字说明「这是默认值」，不再靠虚线框暗示（反馈 #29） -->
+  {#if !set && field.default !== undefined}<span class="dflt-tag">{t("field.default_is", { value: effective === true ? t("field.on") : t("field.off") })}</span>{/if}
   <button
     {id}
     type="button"
@@ -245,12 +246,10 @@
   .switch[aria-checked="true"] {
     background: var(--accent);
   }
-  /* 未设置：只是显示默认值，用虚线框与灰色区分于「已设置」（反馈 #17：默认值不能看起来像已选中） */
+  /* 未设置：只是显示默认值，用灰色空心与旁边的「默认：开/关」区分于「已设置」（反馈 #17、#29） */
   .switch[data-set="false"] {
     background: transparent;
     box-shadow: inset 0 0 0 1px var(--border-strong);
-    outline: 1px dashed var(--border-strong);
-    outline-offset: 2px;
   }
   .switch[data-set="false"] .knob {
     background: var(--border-strong);
@@ -312,11 +311,10 @@
     color: var(--fg);
     box-shadow: var(--shadow-sm);
   }
+  /* 默认值所在的选项：浅底、无阴影，弱于已设置的选中态 */
   .seg button.implicit {
     color: var(--fg-muted);
-    background: transparent;
-    outline: 1px dashed var(--border-strong);
-    outline-offset: -3px;
+    background: color-mix(in srgb, var(--bg-raised) 55%, transparent);
   }
   .ctl {
     inline-size: auto;

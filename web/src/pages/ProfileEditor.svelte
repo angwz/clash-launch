@@ -1,6 +1,6 @@
 <script lang="ts">
   // 方案编辑（第 16.1 节）：分节导航 · 字段卡片 · 预览栏。
-  // 宽 ≥ 1280 三栏；768–1279 预览栏改为抽屉；< 768 单栏，底部切换「设置 / 预览」（第 16.5 节）。
+  // 预览：宽屏编辑设置时停靠在右侧；「源与规则」与 768–1279 时收起，点击后浮层滑出；< 768 单栏，底部切换「设置 / 预览」。
   import { onMount, tick } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PreviewPane from "../components/editor/PreviewPane.svelte";
@@ -23,7 +23,14 @@
   let section = $state(new URLSearchParams(location.search).get("section") || "sources");
   let rawOpen = $state(false);
   let rawKey = $state<string | undefined>();
-  let previewOpen = $state(false); // 抽屉 / 手机视图中预览是否可见
+  let previewOpen = $state(false); // 浮层 / 手机视图中预览是否可见
+  // 预览的呈现（反馈 #28）：宽屏上编辑设置时停靠在右侧并高亮当前字段；
+  // 在「源与规则」与窄屏上默认收起，点击后以浮层滑出。停靠可手动收起，本次会话内记住。
+  let wide = $state(matchMedia("(min-width: 1280px)").matches);
+  let mobile = $state(matchMedia("(max-width: 767px)").matches);
+  let dockHidden = $state(false);
+  const docked = $derived(wide && !dockHidden && section !== "sources");
+  const floating = $derived(!docked && !mobile);
 
   const nav = $derived(catalog.meta?.pack.nav ?? []);
   const current = $derived(nav.find((s) => s.id === section));
@@ -32,7 +39,17 @@
   onMount(() => {
     void Promise.all([catalog.load(), editor.load(params.id!)]).catch((e) => (loadError = errorText(e)));
 
+    const mqWide = matchMedia("(min-width: 1280px)");
+    const mqMobile = matchMedia("(max-width: 767px)");
+    const onMq = () => ((wide = mqWide.matches), (mobile = mqMobile.matches));
+    mqWide.addEventListener("change", onMq);
+    mqMobile.addEventListener("change", onMq);
+
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && previewOpen && floating) {
+        previewOpen = false;
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void editor.save();
@@ -47,6 +64,8 @@
     const off = palette.register("editor", paletteItems);
     return () => {
       window.removeEventListener("keydown", onKey);
+      mqWide.removeEventListener("change", onMq);
+      mqMobile.removeEventListener("change", onMq);
       window.removeEventListener("beforeunload", onUnload);
       router.guard = null;
       off();
@@ -109,6 +128,17 @@
     }
   }
 
+  function togglePreview() {
+    if (wide && section !== "sources") dockHidden = false;
+    else previewOpen = !previewOpen;
+  }
+
+  // 预览高亮跟随鼠标所在或键盘聚焦的字段卡片（data-path）；离开主区时清除
+  function track(e: Event) {
+    const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-path]");
+    editor.hover = el?.dataset.path ?? "";
+  }
+
   // 命令面板：字段搜索（标题、键、摘要、详细说明全文）与命令模式中的「原始编辑」。
   function paletteItems(): PaletteItem[] {
     const out: PaletteItem[] = [
@@ -158,7 +188,7 @@
 {:else if !editor.profile || !catalog.meta}
   <div class="loading muted" aria-busy="true">{t("common.loading")}</div>
 {:else}
-  <div class="editor" class:preview-open={previewOpen}>
+  <div class="editor" class:preview-open={previewOpen} class:docked class:floating>
     <nav class="secnav" aria-label={t("editor.sections")}>
       <div class="secnav-head">
         <span class="subtle label-sm">{t("editor.profile")}</span>
@@ -200,7 +230,9 @@
       {/if}
     </nav>
 
-    <div class="content" id="editor-main">
+    <!-- 悬停只用于预览高亮，不是交互控件；键盘用户经 focusin 得到同样效果 -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="content" id="editor-main" onpointerover={track} onfocusin={track} onpointerleave={() => (editor.hover = "")}>
       <div class="content-inner">
         {#if rawOpen}
           <RawEditor {editor} focusKey={rawKey} onClose={() => (rawOpen = false)} />
@@ -251,7 +283,7 @@
     </div>
 
     <aside class="preview" aria-label={t("preview.title")}>
-      <PreviewPane {editor} onLocate={(p) => void locate(p)} />
+      <PreviewPane {editor} {floating} onLocate={(p) => void locate(p)} onHide={mobile ? undefined : docked ? () => (dockHidden = true) : () => (previewOpen = false)} />
     </aside>
     {#if previewOpen}
       <button class="scrim" type="button" aria-label={t("common.close")} onclick={() => (previewOpen = false)}></button>
@@ -264,10 +296,12 @@
         {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
       </button>
     </div>
-    <button class="btn preview-toggle" type="button" aria-expanded={previewOpen} onclick={() => (previewOpen = !previewOpen)}>
-      <Icon name="code" size={15} />{t("preview.title")}
-      {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
-    </button>
+    {#if !docked}
+      <button class="btn preview-toggle" type="button" aria-expanded={previewOpen} onclick={togglePreview}>
+        <Icon name="code" size={15} />{t("preview.title")}
+        {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -275,7 +309,7 @@
   .editor {
     position: relative;
     display: grid;
-    grid-template-columns: 208px minmax(0, 1fr) var(--preview-w);
+    grid-template-columns: 208px minmax(0, 1fr);
     block-size: 100%;
     min-block-size: 0;
   }
@@ -499,44 +533,67 @@
     text-align: center;
   }
 
-  /* 768–1279：预览栏改为抽屉 */
+  /* 停靠：三栏 */
+  .editor.docked {
+    grid-template-columns: 208px minmax(0, 1fr) var(--preview-w);
+  }
   @media (max-width: 1279px) {
     .editor {
       grid-template-columns: 196px minmax(0, 1fr);
     }
-    .preview {
-      position: absolute;
-      z-index: 20;
-      inset-block: 0;
-      inset-inline-end: 0;
-      inline-size: min(var(--preview-w), 92%);
-      border-inline-start: 1px solid var(--border);
-      box-shadow: var(--shadow-lg);
-      transform: translateX(105%);
-      transition: transform var(--dur) var(--ease);
-    }
-    :global([dir="rtl"]) .preview {
-      transform: translateX(-105%);
-    }
-    .preview-open .preview,
-    :global([dir="rtl"]) .preview-open .preview {
-      transform: none;
-    }
-    .preview-open .scrim {
-      display: block;
-      position: absolute;
-      inset: 0;
-      z-index: 15;
-      border: 0;
-      background: var(--scrim);
-    }
-    .preview-toggle {
-      display: inline-flex;
-      position: absolute;
-      z-index: 10;
-      inset-block-start: var(--space-3);
-      inset-inline-end: var(--space-4);
-      box-shadow: var(--shadow-sm);
+  }
+  .preview-toggle {
+    display: inline-flex;
+    position: absolute;
+    z-index: 10;
+    inset-block-start: var(--space-3);
+    inset-inline-end: var(--space-4);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 浮层：从右侧滑出，悬浮在编辑区上方（圆角卡片，四周留白），Esc 或点击外部关闭 */
+  .floating .preview {
+    position: absolute;
+    z-index: 20;
+    inset-block: var(--space-2);
+    inset-inline-end: var(--space-2);
+    inline-size: min(680px, calc(100% - var(--space-8)));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(24px);
+    transition:
+      transform var(--dur) var(--ease),
+      opacity var(--dur) var(--ease),
+      visibility 0s linear var(--dur);
+  }
+  :global([dir="rtl"]) .floating .preview {
+    transform: translateX(-24px);
+  }
+  .floating.preview-open .preview,
+  :global([dir="rtl"]) .floating.preview-open .preview {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition:
+      transform var(--dur) var(--ease),
+      opacity var(--dur) var(--ease);
+  }
+  .floating.preview-open .scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    border: 0;
+    background: var(--scrim);
+    backdrop-filter: blur(2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .floating .preview {
+      transition: none;
     }
   }
 

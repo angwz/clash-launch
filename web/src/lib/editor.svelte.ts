@@ -21,6 +21,8 @@ export class EditorState {
   ruleSources = $state.raw<RuleSource[]>([]);
   /** 需要定位的字段路径（点分）：折叠的组与「更多」据此展开。 */
   focus = $state("");
+  /** 鼠标悬停或键盘聚焦所在的字段路径，预览据此高亮对应行（反馈 #28）。 */
+  hover = $state("");
   doc: ProfileDoc | null = null;
 
   #timer: ReturnType<typeof setTimeout> | undefined;
