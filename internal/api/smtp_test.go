@@ -32,7 +32,7 @@ func (c *captured) has(kind service.Alert) bool {
 	return false
 }
 
-// 提醒邮件设置：只允许 25/465/587、拒绝换行注入、不返回口令、保存后回到未验证；
+// 提醒邮件设置：只允许 25/465/587、拒绝换行注入、不返回密码、保存后回到未验证；
 // 安全相关的变更产生对应的提醒事件。
 func TestSMTPSettingsAndAlerts(t *testing.T) {
 	h := newHarness(t, nil)
@@ -62,10 +62,10 @@ func TestSMTPSettingsAndAlerts(t *testing.T) {
 	if strings.Contains(got, "fake-smtp-password") || !strings.Contains(got, `"hasPassword":true`) || !strings.Contains(got, `"enabled":false`) {
 		t.Errorf("设置：%s", got)
 	}
-	// 口令留空：保留原口令
+	// 密码留空：保留原密码
 	admin.want(204, "PUT", "/api/v1/account/smtp", with("password", ""))
 	if s, _ := h.db.SMTP().Get(context.Background(), firstAdmin(t, h)); s.Password != "fake-smtp-password" {
-		t.Error("留空的口令应保留")
+		t.Error("留空的密码应保留")
 	}
 
 	// 安全事件

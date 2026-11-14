@@ -9,7 +9,7 @@ import (
 	"github.com/angwz/clash-launch/internal/store"
 )
 
-// 管理（第 14.1、14.7 节）：管理员可以查看用户的元数据与用量、停用账号、重置口令、调整配额；
+// 管理（第 14.1、14.7 节）：管理员可以查看用户的元数据与用量、停用账号、重置密码、调整配额；
 // 不能查看他人的节点凭据、订阅地址、链接或方案内容——这里只读取 users、user_quotas 与用量统计。
 
 // ErrSelf 表示管理员试图停用自己或取消自己的管理员角色。
@@ -75,7 +75,7 @@ func (s *Service) AdminSetDisabled(ctx context.Context, admin, id string, disabl
 	return nil
 }
 
-// AdminResetPassword 为用户设置新口令，并注销其全部会话。
+// AdminResetPassword 为用户设置新密码，并注销其全部会话。
 func (s *Service) AdminResetPassword(ctx context.Context, admin, id, password string) error {
 	if err := auth.CheckPassword(password); err != nil {
 		return err

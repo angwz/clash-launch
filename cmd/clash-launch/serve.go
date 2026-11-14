@@ -235,10 +235,10 @@ func cmdServe(args []string) int {
 	return 0
 }
 
-// cmdAdmin 实现 admin create：创建管理员；口令从标准输入的第一行读取（不出现在命令行参数与 shell 历史中）。
+// cmdAdmin 实现 admin create：创建管理员；密码从标准输入的第一行读取（不出现在命令行参数与 shell 历史中）。
 func cmdAdmin(args []string) int {
 	if len(args) < 1 || args[0] != "create" {
-		fmt.Fprintln(os.Stderr, "用法：clash-launch admin create -username <用户名>  （口令从标准输入读取）")
+		fmt.Fprintln(os.Stderr, "用法：clash-launch admin create -username <用户名>  （密码从标准输入读取）")
 		return 2
 	}
 	fs := flag.NewFlagSet("admin create", flag.ContinueOnError)
@@ -247,10 +247,10 @@ func cmdAdmin(args []string) int {
 		fmt.Fprintln(os.Stderr, "需要 -username")
 		return 2
 	}
-	fmt.Fprint(os.Stderr, "口令（至少 10 个字符）：")
+	fmt.Fprint(os.Stderr, "密码（至少 10 个字符）：")
 	pw, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil && pw == "" {
-		fmt.Fprintln(os.Stderr, "读取口令失败：", err)
+		fmt.Fprintln(os.Stderr, "读取密码失败：", err)
 		return 1
 	}
 	pw = strings.TrimRight(pw, "\r\n")

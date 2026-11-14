@@ -7,6 +7,7 @@ import { t } from "./i18n/i18n.svelte";
 import { ProfileDoc, type ChainRule, type EmptyGroups, type SourceRef } from "./profile-doc";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
+import { prefs } from "./prefs.svelte";
 
 // 停止编辑后多久自动保存（毫秒）
 const AUTOSAVE_DELAY = 1000;
@@ -50,7 +51,7 @@ export class EditorState {
     this.sources = sources;
     this.ruleSources = rules;
     this.#adopt(p);
-    void this.runPreview(false);
+    void this.runPreview(prefs.data.autoCheck !== false); // 打开时也自动检查（反馈 #64）
   }
 
   #adopt(p: Profile): void {
@@ -175,7 +176,8 @@ export class EditorState {
 
   // —— 预览与检查 ——
 
-  async runPreview(kernel: boolean): Promise<void> {
+  /** manual：用户主动点击「检查」。只有主动检查通过时才弹出庆祝提示，自动检查只更新顶栏状态。 */
+  async runPreview(kernel: boolean, manual = false): Promise<void> {
     if (!this.profile) return;
     this.#abort?.abort();
     const ac = new AbortController();
@@ -194,7 +196,7 @@ export class EditorState {
         const s = res.fatal ? "failed" : res.kernel.status;
         this.check = s === "passed" ? "passed" : s === "failed" || s === "timeout" ? "failed" : s === "unavailable" ? "unavailable" : "idle";
         // 主动检查通过时庆祝一下（反馈 #44）
-        if (this.check === "passed") toasts.push("ok", t("check.celebrate"), { emoji: "party", key: "check" });
+        if (manual && this.check === "passed") toasts.push("ok", t("check.celebrate"), { emoji: "party", key: "check" });
       }
     } catch (e) {
       // 被新的请求取代：内核检查被中止时恢复为未检查，否则检查按钮会一直停在「检查中」而不可点击（反馈 #53）
@@ -237,7 +239,8 @@ export class EditorState {
         toasts.push("ok", t("editor.autosaved"), { key: "autosave", action: { label: t("editor.undo"), run: () => void this.undo(before) } });
       }
       // 内核检查进行中时不发预览：内容相同，发了反而会中止检查
-      if (this.check !== "running") void this.runPreview(false);
+      // 保存后自动做内核检查（反馈 #64，可在设置中关闭）
+      if (this.check !== "running") void this.runPreview(prefs.data.autoCheck !== false);
       return true;
     } catch (e) {
       if (e instanceof ApiError && e.status === 412) {

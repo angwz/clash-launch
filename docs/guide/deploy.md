@@ -15,7 +15,7 @@ docker compose up -d
 2. 首次启动后打开对外地址，会自动进入**首次注册**：第一个访问者成为管理员，之后这个入口关闭。部署到公网时请在启动后尽快完成这一步。也可以用命令行：
 
    ```sh
-   docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '至少 5 位、含 2 类字符的口令'
+   docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '至少 5 位、含 2 类字符的密码'
    ```
 
 3. 正式使用：把 nginx 或 Caddy 反向代理到本机 20230（反代与服务在同一台机器时，可把 compose 的端口改为 `127.0.0.1:20230:20230`，只让反代访问），设置 `CLASH_LAUNCH_PUBLIC_URL=https://你的域名`，见 [reverse-proxy](reverse-proxy.md)。

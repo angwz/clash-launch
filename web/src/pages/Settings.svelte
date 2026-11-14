@@ -1,7 +1,7 @@
 <script lang="ts">
   // 设置（反馈 #57）：只影响你自己的界面与使用习惯。
   //   设置 —— 个人偏好：语言、主题、编辑器行为、菜单顺序；
-  //   账号与安全 —— 登录凭据与设备：口令、安全问题、两步验证、通行密钥、提醒、登录记录；
+  //   账号与安全 —— 登录凭据与设备：密码、安全问题、两步验证、通行密钥、提醒、登录记录；
   //   管理 —— 整个站点（仅管理员）：用户、邀请与注册、默认节点写法、系统状态。
   // 语言与主题存在当前浏览器（登录前也要生效）；其余存在账号中，换设备一致。
   import PageHeader from "../components/PageHeader.svelte";
@@ -30,6 +30,15 @@
   async function setLang(l: "en" | "zh-CN") {
     await i18n.set(l);
     if (catalog.meta) await catalog.loadMessages();
+  }
+
+  async function setAutoCheck(on: boolean) {
+    try {
+      // 开是默认值，不写入偏好
+      await prefs.save({ ...prefs.data, autoCheck: on ? undefined : false });
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
   }
 
   async function setClick(m: FieldClickMode) {
@@ -80,6 +89,13 @@
         </label>
       {/each}
     </fieldset>
+    <label class="choice">
+      <input id="st-autocheck" type="checkbox" checked={prefs.data.autoCheck !== false} onchange={(e) => void setAutoCheck(e.currentTarget.checked)} />
+      <span>
+        <strong>{t("settings.auto_check")}</strong>
+        <span class="muted">{t("settings.auto_check_hint")}</span>
+      </span>
+    </label>
   </section>
 
   <section class="panel box" aria-labelledby="st-menu">

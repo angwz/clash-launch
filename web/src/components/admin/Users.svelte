@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 用户管理：只显示元数据与用量（看不到任何人的内容）。停用 / 启用、重置口令、调整配额。
+  // 用户管理：只显示元数据与用量（看不到任何人的内容）。停用 / 启用、重置密码、调整配额。
   import Dialog from "../Dialog.svelte";
   import StatusBadge from "../StatusBadge.svelte";
   import { api } from "../../lib/api/client";

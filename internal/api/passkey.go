@@ -112,7 +112,7 @@ func (s *Server) deletePasskey(w http.ResponseWriter, r *http.Request, p *princi
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// sessionPasskeyBegin 开始通行密钥登录。带 ticket（口令登录返回的第二步凭证）时用作第二步。
+// sessionPasskeyBegin 开始通行密钥登录。带 ticket（密码登录返回的第二步凭证）时用作第二步。
 func (s *Server) sessionPasskeyBegin(w http.ResponseWriter, r *http.Request) {
 	if !s.publicLimited(w, r, s.passkeyLimit) {
 		return

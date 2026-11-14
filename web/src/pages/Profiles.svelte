@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { uniqueName } from "../lib/names";
   import Emoji from "../components/Emoji.svelte";
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
@@ -22,6 +23,13 @@
   let templates = $state<Template[]>([]);
   let managing = $state(false);
   const chosenTemplate = $derived(start.startsWith("t:") ? templates.find((x) => "t:" + x.id === start) : undefined);
+  // 默认名称（反馈 #65）：所选模板或客户端预设的名称，与已有配置不重复
+  const defaultProfileName = $derived(
+    uniqueName(
+      chosenTemplate?.name ?? (catalog.label(catalog.meta?.presets.find((x) => "p:" + x.id === start)?.label) || t("profiles.default_name")),
+      (items ?? []).map((p) => p.name),
+    ),
+  );
   const nodeKind = $derived(nodeInput(nodes, "")?.kind);
 
   async function loadTemplates() {
@@ -42,14 +50,19 @@
     start = d ? "t:" + d.id : "p:" + (catalog.meta?.presets[0]?.id ?? "mihomo");
   }
 
-  async function setDefault(x: Template) {
+  async function patchTemplate(x: Template, patch: { name?: string; note?: string; default?: boolean }) {
     try {
-      await api.patch<Template>("/api/v1/templates/" + x.id, { default: true });
+      if (patch.name !== undefined && !patch.name.trim()) throw new Error(t("templates.name_required"));
+      await api.patch<Template>("/api/v1/templates/" + x.id, patch);
       await loadTemplates();
     } catch (e) {
       toasts.push("err", errorText(e));
+      // 恢复为服务端的值（输入框里可能留着被拒绝的内容）
+      await loadTemplates().catch((e2) => toasts.push("err", errorText(e2)));
     }
   }
+
+  const setDefault = (x: Template) => patchTemplate(x, { default: true });
 
   async function removeTemplate(x: Template) {
     try {
@@ -83,7 +96,7 @@
     busy = true;
     try {
       const { profile, dropped } = await createProfileFrom({
-        name: name.trim(),
+        name: name.trim() || defaultProfileName,
         template: chosenTemplate,
         preset: start.startsWith("p:") ? start.slice(2) : undefined,
         nodes,
@@ -150,7 +163,7 @@
   <form id="new-profile" class="form" onsubmit={create}>
     <div>
       <label class="label" for="np-name">{t("profiles.name")}</label>
-      <input id="np-name" class="input" bind:value={name} required maxlength="80" placeholder={t("profiles.name_placeholder")} />
+      <input id="np-name" class="input" bind:value={name} maxlength="80" placeholder={defaultProfileName} />
     </div>
     <!-- 起点：模板（反馈 #51）或预设；默认模板预先选中 -->
     <div>
@@ -183,7 +196,7 @@
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (creating = false)}>{t("common.cancel")}</button>
-    <button class="btn primary" type="submit" form="new-profile" disabled={busy || !name.trim()}>{busy ? t("profiles.creating") : t("common.create")}</button>
+    <button class="btn primary" type="submit" form="new-profile" disabled={busy}>{busy ? t("profiles.creating") : t("common.create")}</button>
   {/snippet}
 </Dialog>
 
@@ -191,9 +204,10 @@
   <ul class="tpl-list">
     {#each templates as x (x.id)}
       <li>
+        <!-- 名称与说明直接在这里改，离开输入框即保存（反馈 #60） -->
         <div class="tpl-text">
-          <strong>{x.name}</strong>
-          {#if x.note}<span class="muted">{x.note}</span>{/if}
+          <input class="input" value={x.name} maxlength="64" aria-label={t("templates.name")} onchange={(e) => void patchTemplate(x, { name: e.currentTarget.value })} />
+          <input class="input note" value={x.note} maxlength="500" placeholder={t("templates.note_placeholder")} aria-label={t("templates.note")} onchange={(e) => void patchTemplate(x, { note: e.currentTarget.value })} />
         </div>
         {#if x.default}
           <span class="badge-default">{t("templates.default")}</span>
@@ -233,9 +247,17 @@
   }
   .tpl-text {
     display: grid;
+    gap: 4px;
     flex: 1;
     min-inline-size: 0;
     font-size: var(--text-sm);
+  }
+  .tpl-text .input {
+    block-size: 30px;
+    font-size: var(--text-sm);
+  }
+  .tpl-text .input.note {
+    color: var(--fg-muted);
   }
   .badge-default {
     padding-inline: var(--space-2);

@@ -21,9 +21,9 @@ import (
 
 // 发送提醒邮件（第 14.1、14.5 节）：连接用户填写的 SMTP 服务器。
 // 与拉取订阅一样经过 SSRF 防护：主机名检查 + 在 Dialer.Control 中检查实际连接的地址；只允许 25、465、587 端口。
-// 口令只在加密连接中发送：465 为隐式 TLS；25 与 587 必须支持 STARTTLS，否则拒绝发送。
+// 密码只在加密连接中发送：465 为隐式 TLS；25 与 587 必须支持 STARTTLS，否则拒绝发送。
 
-// ErrSMTP 表示邮件发送失败；错误信息经过分类，不包含口令。
+// ErrSMTP 表示邮件发送失败；错误信息经过分类，不包含密码。
 var ErrSMTP = errors.New("source: 邮件发送失败")
 
 // Mail 是一封邮件及其投递设置。
@@ -122,7 +122,7 @@ func (m *Mailer) Send(ctx context.Context, x Mail) error {
 	}
 	if x.Security == "starttls" {
 		if ok, _ := c.Extension("STARTTLS"); !ok {
-			return fmt.Errorf("%w：服务器不支持 STARTTLS，拒绝以明文发送口令", ErrSMTP)
+			return fmt.Errorf("%w：服务器不支持 STARTTLS，拒绝以明文发送密码", ErrSMTP)
 		}
 		if err := c.StartTLS(tlsCfg); err != nil {
 			return classifySMTP("STARTTLS", err)

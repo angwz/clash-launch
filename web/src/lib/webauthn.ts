@@ -49,7 +49,7 @@ export async function registerPasskey(name: string): Promise<void> {
   });
 }
 
-/** 用通行密钥登录。mfaTicket 为口令登录返回的第二步凭证；为空时是免密码登录。 */
+/** 用通行密钥登录。mfaTicket 为密码登录返回的第二步凭证；为空时是免密码登录。 */
 export async function passkeyLogin(mfaTicket = ""): Promise<Session> {
   const { options: o, ticket } = await api.post<Begin>("/api/v1/session/passkey/begin", { ticket: mfaTicket || undefined });
   const publicKey: PublicKeyCredentialRequestOptions = {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 登录：口令 →（启用了第二因素时）验证码或恢复码。
+  // 登录：密码 →（启用了第二因素时）验证码或恢复码。
   import AuthLayout from "../components/AuthLayout.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";

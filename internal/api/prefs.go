@@ -17,6 +17,8 @@ type prefsDTO struct {
 	Sections []string `json:"sections,omitempty"`
 	// FieldClick：「说明与建议」的点击范围 button | text | card；省略表示默认（card）。
 	FieldClick fieldClick `json:"fieldClick,omitempty"`
+	// AutoCheck：自动保存后自动做内核检查；省略表示默认（开）。
+	AutoCheck *bool `json:"autoCheck,omitempty"`
 }
 
 // fieldClick 兼容早期保存的布尔值（反馈 #50 的第一版）：false 读作 button，true 读作默认。

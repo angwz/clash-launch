@@ -13,16 +13,16 @@ import (
 	"github.com/angwz/clash-launch/internal/store"
 )
 
-// 账号安全（第 14.1 节）：登录退避、安全问题与找回、工作量证明、修改口令。
+// 账号安全（第 14.1 节）：登录退避、安全问题与找回、工作量证明、修改密码。
 // 退避与工作量证明的状态在进程内（单实例假设，见 docs/decisions/0002 #6）。
 
 var (
-	// ErrInvalidLogin 表示用户名或口令错误（不区分两者，不泄露用户是否存在）。
-	ErrInvalidLogin = errors.New("service: 用户名或口令错误")
+	// ErrInvalidLogin 表示用户名或密码错误（不区分两者，不泄露用户是否存在）。
+	ErrInvalidLogin = errors.New("service: 用户名或密码错误")
 	// ErrRecoveryFailed 表示找回失败：用户不存在、没有设置安全问题，或答对的少于 2 个（不区分）。
 	ErrRecoveryFailed = errors.New("service: 找回失败")
-	// ErrWrongPassword 表示需要当前口令的操作中口令错误。
-	ErrWrongPassword = errors.New("service: 当前口令错误")
+	// ErrWrongPassword 表示需要当前密码的操作中密码错误。
+	ErrWrongPassword = errors.New("service: 当前密码错误")
 	// ErrQuota 表示超出配额。
 	ErrQuota = errors.New("service: 超出配额")
 )
@@ -95,7 +95,7 @@ func (s *Service) CheckPoW(purpose, challenge, nonce string) error {
 
 func userKey(username string) string { return "u:" + store.NormalizeUsername(username) }
 
-// Login 校验用户名与口令。失败按账号与 IP 退避；等待期内直接返回 *WaitError，不再校验口令。
+// Login 校验用户名与密码。失败按账号与 IP 退避；等待期内直接返回 *WaitError，不再校验密码。
 func (s *Service) Login(ctx context.Context, username, password, ip string) (*store.User, error) {
 	g, now := s.g(), s.now()
 	if w := max(g.loginUser.Wait(userKey(username), now), g.loginIP.Wait("ip:"+ip, now)); w > 0 {
@@ -103,7 +103,7 @@ func (s *Service) Login(ctx context.Context, username, password, ip string) (*st
 	}
 	u, err := s.Store.Users().ByUsername(ctx, username)
 	if err != nil {
-		auth.DummyVerify(password) // 与口令错误同样耗时，不泄露用户是否存在
+		auth.DummyVerify(password) // 与密码错误同样耗时，不泄露用户是否存在
 	}
 	if err != nil || u.Disabled || !auth.VerifyPassword(u.PasswordHash, password) {
 		g.loginUser.Fail(userKey(username), now)
@@ -135,7 +135,7 @@ func hashQuestions(qs []auth.Question, answers []string) ([]store.Question, erro
 	return out, nil
 }
 
-// SetQuestions 替换安全问题；需要当前口令。
+// SetQuestions 替换安全问题；需要当前密码。
 func (s *Service) SetQuestions(ctx context.Context, userID, password string, qs []auth.Question, answers []string) error {
 	u, err := s.Store.Users().ByID(ctx, userID)
 	if err != nil {
@@ -183,7 +183,7 @@ func (s *Service) RecoveryQuestions(ctx context.Context, username string) []auth
 	return auth.DecoyQuestions(s.g().decoy, username)
 }
 
-// Recover 用安全问题重设口令：答对至少 2 个时设置新口令，并注销该账号的全部会话。
+// Recover 用安全问题重设密码：答对至少 2 个时设置新密码，并注销该账号的全部会话。
 // 失败按账号与 IP 计数，连续失败后锁定 15 分钟。
 func (s *Service) Recover(ctx context.Context, username string, answers []string, newPassword, ip string) error {
 	g, now := s.g(), s.now()
@@ -235,7 +235,7 @@ func (s *Service) Recover(ctx context.Context, username string, answers []string
 	return nil
 }
 
-// —— 口令 ——
+// —— 密码 ——
 
 func (s *Service) setPassword(ctx context.Context, u *store.User, pw string) error {
 	hash, err := auth.HashPassword(pw)
@@ -246,7 +246,7 @@ func (s *Service) setPassword(ctx context.Context, u *store.User, pw string) err
 	return s.Store.Users().Update(ctx, u)
 }
 
-// ChangePassword 修改口令（需要当前口令）。logoutOthers 为 true 时注销除 keepSession 外的全部会话。
+// ChangePassword 修改密码（需要当前密码）。logoutOthers 为 true 时注销除 keepSession 外的全部会话。
 func (s *Service) ChangePassword(ctx context.Context, userID, current, next string, logoutOthers bool, keepSession string) error {
 	u, err := s.Store.Users().ByID(ctx, userID)
 	if err != nil {

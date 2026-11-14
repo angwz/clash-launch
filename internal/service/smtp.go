@@ -11,12 +11,12 @@ import (
 )
 
 // 个人 SMTP 提醒（第 14.1 节）：用户填写自己的 SMTP 服务器与收件地址，测试邮件发送成功后才启用。
-// 修改设置会回到「未验证」状态。口令加密存储，只用于该用户本人的提醒。发送失败只记日志。
+// 修改设置会回到「未验证」状态。密码加密存储，只用于该用户本人的提醒。发送失败只记日志。
 
 // ErrSMTPUnavailable 表示服务没有配置邮件发送（Mailer 为 nil）。
 var ErrSMTPUnavailable = errors.New("service: 邮件提醒不可用")
 
-// SMTPInput 是用户提交的设置；Password 为空表示保留原口令。
+// SMTPInput 是用户提交的设置；Password 为空表示保留原密码。
 type SMTPInput struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
@@ -27,7 +27,7 @@ type SMTPInput struct {
 	To       string `json:"to"`
 }
 
-// SMTPView 是返回给用户的设置（不含口令）。
+// SMTPView 是返回给用户的设置（不含密码）。
 type SMTPView struct {
 	SMTPInput
 	HasPassword bool       `json:"hasPassword"`

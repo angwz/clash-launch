@@ -35,7 +35,7 @@
 | `internal/kernel` | mihomo 适配层：分享链接解析与节点校验（Go 库）、`mihomo -t`（可执行文件） |
 | `internal/engine` | 生成阶段（`Build`：有序源、订阅编号、provider 模式、策略组与规则）与管线编排（`Render`）、缓存键 |
 | `internal/store` | 唯一持久化的包：仓储接口、SQLite/PostgreSQL 通用实现、迁移、加密、备份与 `db copy`，见 [0002](../decisions/0002-storage-and-service.md) |
-| `internal/auth` | argon2id 口令哈希、口令策略、随机令牌与哈希、常数时间比较 |
+| `internal/auth` | argon2id 密码哈希、密码策略、随机令牌与哈希、常数时间比较 |
 | `internal/service` | 外壳编排：从存储组装引擎输入、渲染与内核检查、保存最近一次成功的结果、拉取与快照、后台调度、托管 provider |
 | `internal/api` | HTTP：管理接口、订阅端点、会话与 CSRF、安全响应头、限流；契约见 [`api/openapi.yaml`](../../api/openapi.yaml) |
 | `web` | 嵌入前端构建产物 |

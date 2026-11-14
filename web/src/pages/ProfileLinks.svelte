@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { uniqueName } from "../lib/names";
   // 订阅链接（第 13.2 节）：随时查看与复制、二维码；重置（旧链接立即失效）、备注、最近访问时间与客户端。
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -13,6 +14,8 @@
   let profile = $state<Profile | null>(null);
   let links = $state<Link[] | null>(null);
   let note = $state("");
+  // 默认名称（反馈 #65）：「设备 1」「设备 2」……
+  const defaultNote = $derived(uniqueName(t("links.default_note", { n: (links?.length ?? 0) + 1 }), (links ?? []).map((l) => l.note)));
   let qrFor = $state<string | null>(null);
   let error = $state("");
 
@@ -30,7 +33,7 @@
   async function create(e: SubmitEvent) {
     e.preventDefault();
     try {
-      await api.post<Link>(base, { note: note.trim() });
+      await api.post<Link>(base, { note: note.trim() || defaultNote });
       note = "";
       await load();
     } catch (err) {
@@ -89,7 +92,7 @@
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
 
   <form class="new panel" onsubmit={create}>
-    <input class="input" bind:value={note} placeholder={t("links.note_placeholder")} aria-label={t("links.note")} maxlength="80" />
+    <input class="input" bind:value={note} placeholder={defaultNote} aria-label={t("links.note")} maxlength="80" />
     <button class="btn primary" type="submit"><Icon name="plus" size={15} />{t("links.new")}</button>
   </form>
 

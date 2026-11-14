@@ -138,15 +138,13 @@
       {/each}
     </ul>
     <div class="sidebar-foot">
-      <!-- 项目入口（反馈 #38） -->
-      <a class="gh" href="https://github.com/angwz/clash-launch" target="_blank" rel="noopener noreferrer" data-external title="GitHub">
-        <Icon name="github" size={16} />
-        <span class="label">GitHub</span>
-      </a>
-      <button class="btn ghost sm collapse" type="button" onclick={() => shell.toggleRail()} aria-label={shell.rail ? t("shell.expand") : t("shell.collapse")} title={shell.rail ? t("shell.expand") : t("shell.collapse")}>
-        <Icon name="panel" size={15} />
-        <span class="label">{t("shell.collapse")}</span>
+      <!-- 底部两个安静的图标按钮（反馈 #38、#61）：收起侧栏在前，项目入口在后；文字放在提示里 -->
+      <button class="foot-btn" type="button" onclick={() => shell.toggleRail()} aria-label={shell.rail ? t("shell.expand") : t("shell.collapse")} title={shell.rail ? t("shell.expand") : t("shell.collapse")}>
+        <Icon name="panel" size={16} />
       </button>
+      <a class="foot-btn" href="https://github.com/angwz/clash-launch" target="_blank" rel="noopener noreferrer" data-external aria-label="GitHub" title="GitHub">
+        <Icon name="github" size={16} />
+      </a>
     </div>
   </nav>
   {#if shell.drawer}
@@ -359,21 +357,32 @@
     padding-inline: 0;
   }
   .sidebar-foot {
-    display: grid;
+    display: flex;
     gap: 2px;
+    padding-block-start: var(--space-2);
+    padding-inline: var(--space-1);
+    border-block-start: 1px solid var(--border);
   }
-  .sidebar .gh {
-    block-size: 30px;
+  .rail .sidebar-foot {
+    flex-direction: column;
+    align-items: center;
+    padding-inline: 0;
+  }
+  .sidebar .foot-btn {
+    display: grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: none;
     color: var(--fg-subtle);
-    font-size: var(--text-sm);
+    cursor: pointer;
   }
-  .collapse {
-    inline-size: 100%;
-    justify-content: flex-start;
-    color: var(--fg-subtle);
-  }
-  .rail .collapse {
-    justify-content: center;
+  .sidebar .foot-btn:hover {
+    background: var(--bg-hover);
+    color: var(--fg);
   }
 
   .main {

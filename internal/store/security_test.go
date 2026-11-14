@@ -76,7 +76,7 @@ func TestSecurityRepos(t *testing.T) {
 		t.Errorf("不能删除别人的通行密钥：%v", err)
 	}
 
-	// SMTP：口令加密存储
+	// SMTP：密码加密存储
 	_ = d.SMTP().Put(ctx, &SMTP{UserID: u.ID, Host: "smtp.example.com", Port: 465, Security: "tls", Username: "a", Password: "fake-password", From: "a@example.com", To: "a@example.com"})
 
 	// 轮换后新增的加密列仍可解密

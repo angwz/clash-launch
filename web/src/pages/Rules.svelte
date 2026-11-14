@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { hostOf, uniqueName } from "../lib/names";
   // 规则源：预设画廊（domainrouter_v2、ACL4SSR 等）与自定义（toml 或外部配置 ini）。
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
@@ -16,6 +17,10 @@
   let customOpen = $state(false);
   let custom = $state<RuleSourceInput>({ name: "", kind: "toml" });
   let via = $state<"url" | "text">("url");
+  // 默认名称（反馈 #65）：有地址时取域名，否则「自定义规则」；与已有名称不重复
+  const defaultRuleName = $derived(
+    uniqueName(hostOf((via === "url" ? (custom.kind === "ini" ? custom.iniUrl : custom.groupsUrl) : "") ?? "") ?? t("rules.default_custom"), (items ?? []).map((x) => x.name)),
+  );
 
   $effect(() => {
     void Promise.all([listAll<RuleSource>("/api/v1/rule-sources"), catalog.load()])
@@ -37,7 +42,7 @@
   async function createCustom(e: SubmitEvent) {
     e.preventDefault();
     // 只提交当前方式（地址或粘贴）对应的字段，避免切换方式后残留的另一组值一起保存。
-    const c = custom;
+    const c = { ...custom, name: custom.name.trim() || defaultRuleName };
     const body: RuleSourceInput =
       c.kind === "ini"
         ? { name: c.name, kind: "ini", ...(via === "url" ? { iniUrl: c.iniUrl } : { iniText: c.iniText }) }
@@ -107,7 +112,7 @@
   <form id="new-rule" class="form" onsubmit={createCustom}>
     <div>
       <label class="label" for="nr-name">{t("sources.col_name")}</label>
-      <input id="nr-name" class="input" bind:value={custom.name} required />
+      <input id="nr-name" class="input" bind:value={custom.name} placeholder={defaultRuleName} />
     </div>
     <div class="seg-row" role="radiogroup" aria-label={t("rules.format")}>
       <label><input type="radio" bind:group={custom.kind} value="toml" />groups.toml + rulesets.toml</label>
@@ -150,7 +155,7 @@
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (customOpen = false)}>{t("common.cancel")}</button>
-    <button class="btn primary" type="submit" form="new-rule" disabled={!custom.name.trim()}>{t("common.create")}</button>
+    <button class="btn primary" type="submit" form="new-rule">{t("common.create")}</button>
   {/snippet}
 </Dialog>
 

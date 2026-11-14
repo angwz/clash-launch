@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 找回口令（第 14.1 节）：输入用户名 → 回答安全问题（答对至少 2 个）→ 设置新口令。
+  // 找回密码（第 14.1 节）：输入用户名 → 回答安全问题（答对至少 2 个）→ 设置新密码。
   // 成功后该账号的全部会话失效，需要重新登录。需要工作量证明；连续失败后锁定 15 分钟。
   import { passwordOk } from "../lib/password";
   import AuthLayout from "../components/AuthLayout.svelte";

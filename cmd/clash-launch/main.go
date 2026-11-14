@@ -4,7 +4,7 @@
 //	clash-launch catalog export <目录>      导出表单元数据、JSON Schema 与 i18n 源消息
 //	clash-launch version                    打印版本
 //	clash-launch serve                      启动服务（配置见 docs/guide/deploy.md）
-//	clash-launch admin create -username x   创建管理员（口令从标准输入读取）
+//	clash-launch admin create -username x   创建管理员（密码从标准输入读取）
 //	clash-launch keys rotate                轮换主密钥并重新加密全部数据
 //	clash-launch backup <文件>              生成一致的数据库快照（SQLite）
 //	clash-launch db migrate | copy          执行迁移；在数据库之间复制数据
@@ -71,7 +71,7 @@ func usage() {
   render [选项] <方案文件>   渲染方案文档；YAML 写到标准输出，诊断写到标准错误
   catalog export <目录>      导出字段目录（表单元数据、JSON Schema、i18n 源消息）
   serve                      启动服务
-  admin create -username x   创建管理员（口令从标准输入读取）
+  admin create -username x   创建管理员（密码从标准输入读取）
   keys rotate                轮换主密钥并重新加密全部数据
   backup <文件>              备份数据库（SQLite）
   db migrate | db copy -from <DSN> -to <DSN>

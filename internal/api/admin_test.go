@@ -8,7 +8,7 @@ import (
 	"github.com/angwz/clash-launch/internal/service"
 )
 
-// 配额与管理：数量、拉取间隔与存储配额；管理员只看到元数据；停用、重置口令、调整配额；审计；不能停用自己。
+// 配额与管理：数量、拉取间隔与存储配额；管理员只看到元数据；停用、重置密码、调整配额；审计；不能停用自己。
 func TestQuotaAndAdmin(t *testing.T) {
 	h := newHarness(t, nil)
 	h.svc.QuotaDefaults = service.QuotaDefaults{Sources: 2, Links: 1, MinInterval: 10 * time.Minute}

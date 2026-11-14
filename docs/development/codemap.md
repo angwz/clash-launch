@@ -56,15 +56,15 @@
 | 状态 emoji | `web/src/components/Emoji.svelte`、`web/src/assets/emoji/`（来源与许可见其中 README） | 前端 check、e2e | [feedback](feedback.md) #44 |
 | 配置模板与新建配置 | `internal/store/sql.go`（`templates`）、`internal/api/templates.go`、`web/src/lib/profiles.ts`、`web/src/pages/Profiles.svelte`、`web/src/components/editor/SaveTemplateDialog.svelte` | `TestTemplates`、`TestOwnerIsolationAllRoutes`、`profiles.test.ts`、e2e「存为模板」 | [feedback](feedback.md) #51、#52 |
 | 设置页（个人偏好） | `web/src/pages/Settings.svelte`、`web/src/lib/nav.ts`、`web/src/lib/prefs.svelte.ts`、`internal/api/prefs.go` | `TestPrefsFieldClick`、e2e「点击范围」「调整菜单顺序」 | [feedback](feedback.md) #57 |
-| 口令、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
+| 密码、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
-| 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
+| 登录、找回、修改密码与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
 | 安全提醒的触发点 | `internal/service/alerts.go`（种类与 `notify`）；发送实现见 SMTP | — | [security](../design/security.md) |
 | 两步验证、第二步凭证 | `internal/auth/totp.go`、`ticket.go`；`internal/service/mfa.go`；`internal/api/mfa.go` | `TestTOTPVectors`、`TestTOTPFlow` | [0005](../decisions/0005-account-security.md) |
 | 通行密钥 | 验证 `internal/auth/webauthn.go`（规范步骤见注释）；流程 `internal/service/passkey.go`；HTTP `internal/api/passkey.go`；浏览器 `web/src/lib/webauthn.ts` | `TestWebAuthn`、`TestPasskeys`、e2e 虚拟认证器 | [0005](../decisions/0005-account-security.md) |
 | 个人 SMTP 提醒 | 发送 `internal/source/smtp.go`；设置与提醒文字 `internal/service/smtp.go`、`alerts.go`；HTTP `internal/api/smtp.go` | `TestMailer`、`TestSMTPSettingsAndAlerts`、`TestAlertTexts` | [security](../design/security.md) |
 | 配额、审计、管理 | `internal/service/quota.go`、`admin.go`；HTTP `internal/api/admin.go`；配额检查在各新建与修改接口的 `s.quota(...)` | `TestQuotaAndAdmin` | [security](../design/security.md) |
-| 常见口令表 | `internal/auth/common_passwords.txt`（`go run ./tools/commonpw` 生成，不手改） | `TestCheckPassword` | — |
+| 常见密码表 | `internal/auth/common_passwords.txt`（`go run ./tools/commonpw` 生成，不手改） | `TestCheckPassword` | — |
 | 数据隔离 | 仓储方法以所有者为参数；新增带路径参数的路由时在 `TestOwnerIsolationAllRoutes` 的 `ids` 中补上资源 | `TestOwnerIsolationAllRoutes` | [security](../design/security.md) |
 | 账号安全的表 | `migrations/*/0003_security.sql`、`internal/store/security.go` | `TestSecurityRepos` | — |
 | 会话、登录、CSRF | `internal/api/session.go` | `api_test.go` | [0002](../decisions/0002-storage-and-service.md) |

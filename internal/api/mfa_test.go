@@ -7,7 +7,7 @@ import (
 	"github.com/angwz/clash-launch/internal/auth"
 )
 
-// TOTP：确认后才启用；登录需要第二步且不提前建立会话；同一时间步不能重放；恢复码一次性；关闭需要口令。
+// TOTP：确认后才启用；登录需要第二步且不提前建立会话；同一时间步不能重放；恢复码一次性；关闭需要密码。
 func TestTOTPFlow(t *testing.T) {
 	h := newHarness(t, nil)
 	admin, _ := h.setup()
@@ -24,7 +24,7 @@ func TestTOTPFlow(t *testing.T) {
 	}
 	admin.want(409, "POST", "/api/v1/account/totp/setup", nil)
 
-	// 口令正确只得到凭证，不建立会话
+	// 密码正确只得到凭证，不建立会话
 	c := h.client()
 	login := func() string {
 		r := decode[mfaResp](t, c.want(200, "POST", "/api/v1/session", map[string]string{"username": "admin", "password": pw}))
@@ -54,7 +54,7 @@ func TestTOTPFlow(t *testing.T) {
 		t.Errorf("剩余恢复码：%v", st)
 	}
 
-	// 重新生成与关闭都需要口令
+	// 重新生成与关闭都需要密码
 	admin.want(403, "POST", "/api/v1/account/totp/recovery-codes", map[string]string{"password": "wrong"})
 	admin.want(200, "POST", "/api/v1/account/totp/recovery-codes", map[string]string{"password": pw})
 	admin.want(403, "POST", "/api/v1/account/totp/disable", map[string]string{"password": "wrong"})

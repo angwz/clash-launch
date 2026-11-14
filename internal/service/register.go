@@ -72,7 +72,7 @@ func CheckUsername(name string) error {
 	return nil
 }
 
-// RegisterInput 是注册的输入。安全问题必填（第 14.1 节：找回口令的唯一途径）。
+// RegisterInput 是注册的输入。安全问题必填（第 14.1 节：找回密码的唯一途径）。
 type RegisterInput struct {
 	Username  string
 	Password  string

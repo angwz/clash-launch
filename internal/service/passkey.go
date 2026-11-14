@@ -16,7 +16,7 @@ import (
 // 通行密钥（第 14.1 节，可选；决定 0005）：
 //   - 作为免密码登录：凭通行密钥（要求用户验证）直接登录，视为已完成两步验证；
 //   - 作为第二步：启用了 TOTP 的账号在第二步也可以用通行密钥代替验证码；
-//   - 不会让口令登录额外要求通行密钥（丢失设备时不至于被锁在门外）。
+//   - 不会让密码登录额外要求通行密钥（丢失设备时不至于被锁在门外）。
 // 挑战是签名凭证中的随机数（5 分钟有效），只能使用一次。依赖方由对外地址决定，没有配置时不可用。
 
 var (
@@ -206,7 +206,7 @@ func (s *Service) passkeyLogin(ctx context.Context, ticket string, a PasskeyAsse
 	if err != nil {
 		return nil, ErrPasskey
 	}
-	// 第二步时凭据必须属于口令验证过的那个用户；免密码登录时 userHandle 必须与凭据的所有者一致
+	// 第二步时凭据必须属于密码验证过的那个用户；免密码登录时 userHandle 必须与凭据的所有者一致
 	if subject != "" && k.UserID != subject {
 		return nil, ErrPasskey
 	}
@@ -230,7 +230,7 @@ func (s *Service) passkeyLogin(ctx context.Context, ticket string, a PasskeyAsse
 	return u, nil
 }
 
-// PasskeyDelete 删除一个通行密钥；需要口令。
+// PasskeyDelete 删除一个通行密钥；需要密码。
 func (s *Service) PasskeyDelete(ctx context.Context, userID, id, password string) error {
 	if err := s.checkPassword(ctx, userID, password); err != nil {
 		return err

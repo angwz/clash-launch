@@ -15,9 +15,9 @@ type Alert string
 
 const (
 	AlertNewDevice Alert = "new_device" // 新设备或新网络首次登录
-	AlertPassword  Alert = "password"   // 口令被修改
+	AlertPassword  Alert = "password"   // 密码被修改
 	AlertQuestions Alert = "questions"  // 安全问题被修改
-	AlertRecovered Alert = "recovered"  // 通过找回重设了口令
+	AlertRecovered Alert = "recovered"  // 通过找回重设了密码
 	AlertMFA       Alert = "mfa"        // 两步验证启用或关闭、恢复码重新生成
 	AlertPasskey   Alert = "passkey"    // 通行密钥添加或删除
 )
@@ -40,9 +40,9 @@ var alertTexts = map[string]map[string][2]string{
 	"zh": {
 		"test":       {"Clash, Launch! 提醒邮件测试", "这是一封测试邮件。收到它说明提醒邮件已经可以送达，提醒现已启用。"},
 		"new_device": {"新设备登录了你的 Clash, Launch! 账号", "你的账号刚刚在一个新的设备或网络上登录。"},
-		"password":   {"你的 Clash, Launch! 口令已修改", "你的账号口令刚刚被修改。"},
+		"password":   {"你的 Clash, Launch! 密码已修改", "你的账号密码刚刚被修改。"},
 		"questions":  {"你的 Clash, Launch! 安全问题已修改", "你的账号安全问题刚刚被修改。"},
-		"recovered":  {"你的 Clash, Launch! 口令已通过找回重设", "有人回答了安全问题并重设了你的账号口令，所有设备都已退出登录。"},
+		"recovered":  {"你的 Clash, Launch! 密码已通过找回重设", "有人回答了安全问题并重设了你的账号密码，所有设备都已退出登录。"},
 		"mfa":        {"你的 Clash, Launch! 两步验证设置已变更", "你的账号两步验证设置刚刚发生变化。"},
 		"passkey":    {"你的 Clash, Launch! 通行密钥已变更", "你的账号通行密钥刚刚发生变化。"},
 	},
@@ -58,7 +58,7 @@ var alertTexts = map[string]map[string][2]string{
 }
 
 var alertFooter = map[string]string{
-	"zh": "如果这不是你本人的操作，请立即修改口令，并在「账号」页面检查登录设备、两步验证与通行密钥。",
+	"zh": "如果这不是你本人的操作，请立即修改密码，并在「账号」页面检查登录设备、两步验证与通行密钥。",
 	"en": "If this wasn't you, change your password now and review signed-in devices, two-step verification and passkeys on the Account page.",
 }
 

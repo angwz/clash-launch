@@ -111,7 +111,7 @@ func toUser(u *store.User) userDTO {
 	return userDTO{ID: u.ID, Username: u.Username, Role: u.Role, Lang: u.Lang, Timezone: u.Timezone}
 }
 
-// login 校验口令并建立新会话（登录后总是新的会话 ID，防会话固定）。
+// login 校验密码并建立新会话（登录后总是新的会话 ID，防会话固定）。
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if !s.sameOrigin(r) {
 		problem(w, http.StatusForbidden, "auth.csrf", "cross-origin login refused")

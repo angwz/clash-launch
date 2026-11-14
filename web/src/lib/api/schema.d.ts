@@ -559,7 +559,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 答对至少 2 个安全问题后重设口令；该账号的全部会话失效。连续失败后锁定 15 分钟 */
+        /** 答对至少 2 个安全问题后重设密码；该账号的全部会话失效。连续失败后锁定 15 分钟 */
         post: {
             parameters: {
                 query?: never;
@@ -618,7 +618,7 @@ export interface paths {
                 };
             };
         };
-        /** 替换安全问题（需要当前口令） */
+        /** 替换安全问题（需要当前密码） */
         put: {
             parameters: {
                 query?: never;
@@ -656,7 +656,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** 修改口令；可同时注销其他设备 */
+        /** 修改密码；可同时注销其他设备 */
         put: {
             parameters: {
                 query?: never;
@@ -825,7 +825,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 登录第二步：用 TOTP 验证码或恢复码完成登录（凭证来自口令登录的响应，5 分钟有效） */
+        /** 登录第二步：用 TOTP 验证码或恢复码完成登录（凭证来自密码登录的响应，5 分钟有效） */
         post: {
             parameters: {
                 query?: never;
@@ -990,7 +990,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 关闭两步验证（需要口令） */
+        /** 关闭两步验证（需要密码） */
         post: {
             parameters: {
                 query?: never;
@@ -1025,7 +1025,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 重新生成恢复码，旧码作废（需要口令） */
+        /** 重新生成恢复码，旧码作废（需要密码） */
         post: {
             parameters: {
                 query?: never;
@@ -1215,7 +1215,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 删除（需要口令） */
+        /** 删除（需要密码） */
         post: {
             parameters: {
                 query?: never;
@@ -1253,7 +1253,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 开始通行密钥登录。带 ticket（口令登录返回的第二步凭证）时用作第二步，否则为免密码登录 */
+        /** 开始通行密钥登录。带 ticket（密码登录返回的第二步凭证）时用作第二步，否则为免密码登录 */
         post: {
             parameters: {
                 query?: never;
@@ -1346,7 +1346,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 提醒邮件设置（不含口令）；settings 为 null 表示未设置，available 为 false 表示服务不提供邮件提醒 */
+        /** 提醒邮件设置（不含密码）；settings 为 null 表示未设置，available 为 false 表示服务不提供邮件提醒 */
         get: {
             parameters: {
                 query?: never;
@@ -1370,7 +1370,7 @@ export interface paths {
                 };
             };
         };
-        /** 保存设置（回到未验证状态，需要再发送测试邮件）；password 为空表示保留原口令 */
+        /** 保存设置（回到未验证状态，需要再发送测试邮件）；password 为空表示保留原密码 */
         put: {
             parameters: {
                 query?: never;
@@ -1615,7 +1615,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 重置口令并注销其全部会话 */
+        /** 重置密码并注销其全部会话 */
         post: {
             parameters: {
                 query?: never;
@@ -3383,8 +3383,13 @@ export interface components {
             nav?: string[];
             /** @description 内核设置分节顺序（目录分节 ID） */
             sections?: string[];
-            /** @description 点击字段卡片左侧说明区域展开说明与建议；省略为开 */
-            fieldClick?: boolean;
+            /**
+             * @description 「说明与建议」的点击范围：只有按钮、说明文字或整张卡片；省略为 card
+             * @enum {string}
+             */
+            fieldClick?: "button" | "text" | "card";
+            /** @description 自动保存后自动执行 mihomo -t 检查；省略为开 */
+            autoCheck?: boolean;
         };
         NodeMode: {
             /**
@@ -3439,7 +3444,7 @@ export interface components {
         RecoveryCodes: {
             recoveryCodes: string[];
         };
-        /** @description 口令正确但需要第二因素时的登录响应（不设置会话） */
+        /** @description 密码正确但需要第二因素时的登录响应（不设置会话） */
         MFAChallenge: {
             mfa: ("totp" | "passkey")[];
             ticket: string;

@@ -152,7 +152,7 @@ func TestMailer(t *testing.T) {
 	}
 }
 
-// 明文服务器不支持 STARTTLS：不发送口令。
+// 明文服务器不支持 STARTTLS：不发送密码。
 func TestMailerRequiresTLS(t *testing.T) {
 	srv := startFakeSMTP(t, nil)
 	guard, _ := ParseAllowlist("127.0.0.1")
@@ -164,6 +164,6 @@ func TestMailerRequiresTLS(t *testing.T) {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	if srv.auth != "" {
-		t.Error("口令不应被发送")
+		t.Error("密码不应被发送")
 	}
 }

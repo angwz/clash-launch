@@ -1,4 +1,4 @@
-// Package auth 提供账号安全的基础构件：口令哈希（argon2id）、口令策略、随机令牌与其哈希、常数时间比较。
+// Package auth 提供账号安全的基础构件：密码哈希（argon2id）、密码策略、随机令牌与其哈希、常数时间比较。
 // 会话与 CSRF 的 HTTP 细节在 internal/api。
 package auth
 
@@ -26,20 +26,20 @@ const (
 	saltLen      = 16
 )
 
-// ErrWeakPassword 表示口令不满足策略。
-var ErrWeakPassword = errors.New("auth: 口令不满足要求")
+// ErrWeakPassword 表示密码不满足策略。
+var ErrWeakPassword = errors.New("auth: 密码不满足要求")
 
-// 口令策略（反馈 #17、#19：个人项目，口令可以简单）：至少 MinPasswordLen 个字符，至少 MinPasswordClasses 类字符；
-// 短于 LongPasswordLen 时其中一类必须是特殊字符（只有大小写字母与数字的短口令太容易被穷举）。
-// 弱口令的风险由登录退避与按 IP 限流兜底（见 backoff.go）。
+// 密码策略（反馈 #17、#19：个人项目，密码可以简单）：至少 MinPasswordLen 个字符，至少 MinPasswordClasses 类字符；
+// 短于 LongPasswordLen 时其中一类必须是特殊字符（只有大小写字母与数字的短密码太容易被穷举）。
+// 弱密码的风险由登录退避与按 IP 限流兜底（见 backoff.go）。
 const (
 	MinPasswordLen     = 5
 	MinPasswordClasses = 2
 	LongPasswordLen    = 8
 )
 
-// CheckPassword 检查口令策略：长度、字符类别（小写字母、大写字母、数字、其他字符各算一类），
-// 并拒绝随程序发布的常见口令表中的口令（不区分大小写，不联网）。
+// CheckPassword 检查密码策略：长度、字符类别（小写字母、大写字母、数字、其他字符各算一类），
+// 并拒绝随程序发布的常见密码表中的密码（不区分大小写，不联网）。
 func CheckPassword(pw string) error {
 	if utf8.RuneCountInString(pw) < MinPasswordLen {
 		return fmt.Errorf("%w：至少 %d 个字符", ErrWeakPassword, MinPasswordLen)
@@ -54,7 +54,7 @@ func CheckPassword(pw string) error {
 		return fmt.Errorf("%w：过长", ErrWeakPassword)
 	}
 	if IsCommonPassword(pw) {
-		return fmt.Errorf("%w：这是常见口令", ErrWeakPassword)
+		return fmt.Errorf("%w：这是常见密码", ErrWeakPassword)
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func classOf(r rune) int {
 	return classSpecial
 }
 
-// hasSpecial 报告口令是否含有特殊字符。
+// hasSpecial 报告密码是否含有特殊字符。
 func hasSpecial(pw string) bool {
 	for _, r := range pw {
 		if classOf(r) == classSpecial {
@@ -89,7 +89,7 @@ func hasSpecial(pw string) bool {
 	return false
 }
 
-// PasswordClasses 返回口令包含的字符类别数（见 classOf）。
+// PasswordClasses 返回密码包含的字符类别数（见 classOf）。
 func PasswordClasses(pw string) int {
 	var seen [4]bool
 	n := 0
@@ -113,7 +113,7 @@ func HashPassword(pw string) (string, error) {
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, argonMemory, argonTime, argonThreads, enc.EncodeToString(salt), enc.EncodeToString(key)), nil
 }
 
-// VerifyPassword 校验口令（常数时间比较）。哈希格式错误时返回 false。
+// VerifyPassword 校验密码（常数时间比较）。哈希格式错误时返回 false。
 func VerifyPassword(hash, pw string) bool {
 	parts := strings.Split(hash, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" {
@@ -134,7 +134,7 @@ func VerifyPassword(hash, pw string) bool {
 	return subtle.ConstantTimeCompare(got, want) == 1
 }
 
-// DummyVerify 在用户不存在时执行一次同等开销的计算，避免以响应时间区分「用户不存在」与「口令错误」。
+// DummyVerify 在用户不存在时执行一次同等开销的计算，避免以响应时间区分「用户不存在」与「密码错误」。
 func DummyVerify(pw string) {
 	_ = argon2.IDKey([]byte(pw), make([]byte, saltLen), argonTime, argonMemory, argonThreads, argonKeyLen)
 }

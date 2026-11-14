@@ -9,8 +9,8 @@
 | --- | --- | --- |
 | 节点凭据（订阅地址、节点密码、UUID） | 源的 URL 与内容、快照、渲染结果——全部加密存储 | 他人使用或耗尽用户的代理服务 |
 | 订阅链接令牌 | `links`（加密 + SHA-256 查找） | 他人持续获取用户的完整配置 |
-| 账号凭据：口令、安全问题答案、TOTP 密钥、恢复码、通行密钥 | argon2id / 加密 / SHA-256 / 公钥 | 账号被接管 |
-| 用户的 SMTP 口令 | `user_smtp`（加密） | 用户邮箱被滥用 |
+| 账号凭据：密码、安全问题答案、TOTP 密钥、恢复码、通行密钥 | argon2id / 加密 / SHA-256 / 公钥 | 账号被接管 |
+| 用户的 SMTP 密码 | `user_smtp`（加密） | 用户邮箱被滥用 |
 | 主密钥 | `<数据目录>/master.key` 或环境变量 | 以上所有加密数据 |
 | 服务器出口 IP | 拉取订阅时对外可见 | 绕过反向代理与 CDN 的隐藏（[0003](../decisions/0003-direct-fetch-and-invites.md)） |
 
@@ -32,7 +32,7 @@
 | 项 | 默认 | 位置 |
 | --- | --- | --- |
 | 注册 | 关闭，凭一次性邀请 | [0003](../decisions/0003-direct-fetch-and-invites.md) |
-| 口令 | ≥ 5 个字符且至少 2 类字符（小写、大写、数字、特殊字符）；少于 8 个字符时必须含特殊字符；拒绝常见口令表（9128 条，长度 ≥ 10，更短的常见口令靠登录退避兜底）；argon2id m=19 MiB、t=2、p=1 | `internal/auth` |
+| 密码 | ≥ 5 个字符且至少 2 类字符（小写、大写、数字、特殊字符）；少于 8 个字符时必须含特殊字符；拒绝常见密码表（9128 条，长度 ≥ 10，更短的常见密码靠登录退避兜底）；argon2id m=19 MiB、t=2、p=1 | `internal/auth` |
 | 工作量证明 | 20 位（约 1 秒） | `CLASH_LAUNCH_POW_BITS` |
 | 登录退避 | 按账号 3 次后 1 s 起翻倍，最长 15 分钟；按 IP 10 次后 | `internal/service/account.go` |
 | 找回锁定 | 按账号 5 次、按 IP 10 次后锁定 15 分钟 | 同上 |
@@ -51,22 +51,22 @@
 
 | # | 要求 | 测试 | 层级 |
 | ---: | --- | --- | --- |
-| A1 | 口令至少 5 位且至少 2 类字符，少于 8 位时须含特殊字符；拒绝常见口令（不区分大小写） | `TestCheckPassword` | 单元 |
-| A2 | 用户名不存在与口令错误的响应相同，耗时相近（DummyVerify） | `TestAccountSecurity`（找回）；登录走同一路径 | API |
-| A3 | 登录失败按账号退避；退避期内即使口令正确也拒绝 | `TestAccountSecurity` | API |
+| A1 | 密码至少 5 位且至少 2 类字符，少于 8 位时须含特殊字符；拒绝常见密码（不区分大小写） | `TestCheckPassword` | 单元 |
+| A2 | 用户名不存在与密码错误的响应相同，耗时相近（DummyVerify） | `TestAccountSecurity`（找回）；登录走同一路径 | API |
+| A3 | 登录失败按账号退避；退避期内即使密码正确也拒绝 | `TestAccountSecurity` | API |
 | A4 | 注册默认关闭；邀请一次性、可过期、可撤销 | `TestRegistrationAndInvites`、`TestInvites`、e2e 注册 | API / e2e |
 | A5 | 注册需要 3 个互不相同的安全问题与有效的工作量证明；伪造与重放的证明被拒绝 | `TestAccountSecurity`、`TestPoW` | 单元 / API |
 | A6 | 找回答对 2 个即可，答案规范化（大小写、全半角、空白）；成功后全部会话失效 | `TestAccountSecurity`、`TestNormalizeAnswer`、e2e 找回 | 单元 / API / e2e |
 | A7 | 找回不泄露用户名：不存在的用户返回稳定的诱饵问题 | `TestAccountSecurity`、`TestDecoyQuestions` | 单元 / API |
 | A8 | 找回连续失败 5 次后锁定 15 分钟（即使之后答案正确） | `TestAccountSecurity` | API |
 | A9 | TOTP 符合 RFC 6238；同一时间步不能重放；恢复码一次性 | `TestTOTPVectors`、`TestVerifyTOTP`、`TestTOTPFlow`、e2e 两步验证 | 单元 / API / e2e |
-| A10 | 启用两步验证后口令正确不建立会话；第二步凭证不可伪造、会过期 | `TestTOTPFlow`、`TestTickets` | 单元 / API |
+| A10 | 启用两步验证后密码正确不建立会话；第二步凭证不可伪造、会过期 | `TestTOTPFlow`、`TestTickets` | 单元 / API |
 | A11 | 通行密钥：挑战、来源、RP ID、类型、UP/UV、签名、计数逐项检查；挑战一次性 | `TestWebAuthn`、`TestParseCOSEKeyRejects`、`TestPasskeys` | 单元 / API |
-| A12 | 他人的通行密钥不能用作第二步；删除需要口令 | `TestPasskeys` | API |
+| A12 | 他人的通行密钥不能用作第二步；删除需要密码 | `TestPasskeys` | API |
 | A13 | 通行密钥在真实浏览器中可注册与登录 | e2e 通行密钥（Chromium 虚拟认证器） | e2e |
-| A14 | 修改口令、安全问题、关闭两步验证需要当前口令；可注销其他设备 | `TestAccountSecurity`、`TestTOTPFlow` | API |
+| A14 | 修改密码、安全问题、关闭两步验证需要当前密码；可注销其他设备 | `TestAccountSecurity`、`TestTOTPFlow` | API |
 | A15 | 会话列表只含本人的会话；注销后立即失效 | `TestAccountSecurity` | API |
-| A16 | 安全事件产生提醒（口令、安全问题等）；提醒文字中英齐全 | `TestSMTPSettingsAndAlerts`、`TestAlertTexts` | 单元 / API |
+| A16 | 安全事件产生提醒（密码、安全问题等）；提醒文字中英齐全 | `TestSMTPSettingsAndAlerts`、`TestAlertTexts` | 单元 / API |
 
 ### 授权与隔离
 
@@ -97,7 +97,7 @@
 | D1 | SSRF：拒绝回环、私网、链路本地、CGNAT、保留、文档地址与非标准写法 | `TestCheckAddr`、`TestCheckHost` | 单元 |
 | D2 | 连接时检查实际地址（DNS rebinding）、重定向到内网被拒绝 | `TestControlBlocksRebinding`、`TestDirectFetchAndLimits` | 单元 |
 | D3 | 响应体上限、非 2xx | `TestDirectFetchAndLimits` | 单元 |
-| D4 | SMTP：只允许 25/465/587；拒绝换行注入与带显示名的地址；不支持 STARTTLS 时不发送口令；内网地址被拦下 | `TestMailer`、`TestMailerRequiresTLS`、`TestSMTPSettingsAndAlerts` | 单元 / API |
+| D4 | SMTP：只允许 25/465/587；拒绝换行注入与带显示名的地址；不支持 STARTTLS 时不发送密码；内网地址被拦下 | `TestMailer`、`TestMailerRequiresTLS`、`TestSMTPSettingsAndAlerts` | 单元 / API |
 | D5 | YAML 炸弹：体积、别名展开后的节点数、重复键 | `TestParseLimits` | 单元 |
 | D6 | 正则灾难性回溯：`regexp2` 匹配超时 100 ms，超时记为诊断并按未命中处理 | `TestRegexTimeout` | 单元 |
 | D7 | 订阅端点限流、尚无结果时 503 | `TestSubscriptionRateLimitAnd503` | API |

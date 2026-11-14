@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 通行密钥：用设备的指纹、面容或 PIN 免密码登录；启用了两步验证时也可以代替验证码。删除需要口令。
+  // 通行密钥：用设备的指纹、面容或 PIN 免密码登录；启用了两步验证时也可以代替验证码。删除需要密码。
   import Icon from "../Icon.svelte";
   import { api } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";

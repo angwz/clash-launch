@@ -8,6 +8,8 @@ export interface PrefsData {
   /** 「说明与建议」的点击范围（反馈 #50、#55）：button 只有按钮 | text 说明文字 | card 整张卡片（默认）。
    *  早期版本存的是布尔值：false 视为 button。 */
   fieldClick?: FieldClickMode | boolean;
+  /** 自动保存后自动做内核检查；默认开（反馈 #64） */
+  autoCheck?: boolean;
 }
 
 export type FieldClickMode = "button" | "text" | "card";

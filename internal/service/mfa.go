@@ -10,7 +10,7 @@ import (
 )
 
 // 两步验证（第 14.1 节，可选）：TOTP 与一次性恢复码；通行密钥也可作为第二因素（见 passkey.go）。
-// 登录流程：口令正确 → 若启用了第二因素，签发 5 分钟有效的凭证（不建立会话）→ 提交验证码 → 建立会话。
+// 登录流程：密码正确 → 若启用了第二因素，签发 5 分钟有效的凭证（不建立会话）→ 提交验证码 → 建立会话。
 
 var (
 	// ErrMFA 表示第二因素验证失败（验证码错误、已用过或凭证过期）。
@@ -31,8 +31,8 @@ func (s *Service) tickets() *auth.Tickets {
 	return s.ticketsVal
 }
 
-// SecondFactors 返回口令登录后第二步可用的方式。只有启用了 TOTP 才需要第二步；
-// 此时若有通行密钥，也可以用它代替验证码。为空表示只需要口令（见 passkey.go 的说明）。
+// SecondFactors 返回密码登录后第二步可用的方式。只有启用了 TOTP 才需要第二步；
+// 此时若有通行密钥，也可以用它代替验证码。为空表示只需要密码（见 passkey.go 的说明）。
 func (s *Service) SecondFactors(ctx context.Context, userID string) []string {
 	t, err := s.Store.TOTP().Get(ctx, userID)
 	if err != nil || !t.Enabled {
@@ -45,7 +45,7 @@ func (s *Service) SecondFactors(ctx context.Context, userID string) []string {
 	return out
 }
 
-// MFATicket 为已通过口令验证的用户签发第二步的凭证。
+// MFATicket 为已通过密码验证的用户签发第二步的凭证。
 func (s *Service) MFATicket(userID string) string {
 	return s.tickets().Issue(ticketMFA, userID, mfaTicketTTL, s.now())
 }
@@ -155,7 +155,7 @@ func (s *Service) TOTPEnable(ctx context.Context, userID, code string) ([]string
 	return codes, nil
 }
 
-// TOTPDisable 关闭两步验证；需要口令。
+// TOTPDisable 关闭两步验证；需要密码。
 func (s *Service) TOTPDisable(ctx context.Context, userID, password string) error {
 	if err := s.checkPassword(ctx, userID, password); err != nil {
 		return err
@@ -168,7 +168,7 @@ func (s *Service) TOTPDisable(ctx context.Context, userID, password string) erro
 	return nil
 }
 
-// RegenerateRecoveryCodes 生成新的恢复码（旧码全部作废）；需要口令且两步验证已启用。
+// RegenerateRecoveryCodes 生成新的恢复码（旧码全部作废）；需要密码且两步验证已启用。
 func (s *Service) RegenerateRecoveryCodes(ctx context.Context, userID, password string) ([]string, error) {
 	if err := s.checkPassword(ctx, userID, password); err != nil {
 		return nil, err

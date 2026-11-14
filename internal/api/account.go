@@ -10,7 +10,7 @@ import (
 	"github.com/angwz/clash-launch/internal/service"
 )
 
-// 账号安全接口（第 14.1 节）：工作量证明、找回、安全问题、修改口令、会话管理。
+// 账号安全接口（第 14.1 节）：工作量证明、找回、安全问题、修改密码、会话管理。
 // 业务规则在 internal/service/account.go；这里只做 HTTP 层的同源检查、限流与 DTO。
 
 type powDTO struct {
@@ -70,7 +70,7 @@ func (s *Server) recoveryQuestions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, questionsDTO{Questions: s.Svc.RecoveryQuestions(r.Context(), req.Username)})
 }
 
-// recover 用安全问题重设口令；需要工作量证明。成功后该账号的全部会话失效。
+// recover 用安全问题重设密码；需要工作量证明。成功后该账号的全部会话失效。
 func (s *Server) recover(w http.ResponseWriter, r *http.Request) {
 	if !s.publicLimited(w, r, s.recoverLimit) {
 		return
@@ -127,7 +127,7 @@ func (s *Server) setQuestions(w http.ResponseWriter, r *http.Request, p *princip
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// —— 口令 ——
+// —— 密码 ——
 
 func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, p *principal) {
 	var req struct {

@@ -1,4 +1,4 @@
-// 口令策略的前端即时判断，与后端 auth.CheckPassword 一致（常见口令表只在后端检查）：
+// 密码策略的前端即时判断，与后端 auth.CheckPassword 一致（常见密码表只在后端检查）：
 // 至少 5 个字符、至少 2 类字符（ASCII 小写字母、ASCII 大写字母、数字、特殊字符）；
 // 少于 8 个字符时，其中一类必须是特殊字符。
 export const MIN_PASSWORD_LEN = 5;

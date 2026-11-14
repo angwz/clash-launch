@@ -1,6 +1,7 @@
 // 方案相关的共用操作：新建文档、渲染状态显示。
 import { api, listAll, type Profile, type Source, type SourceInput, type Template } from "./api/client";
 import { catalog } from "./catalog.svelte";
+import { hostOf, uniqueName } from "./names";
 import { ProfileDoc } from "./profile-doc";
 
 /** 用预设的 defaults 作为表单初值新建方案（第 10 节：预设决定新建方案时的表单初值）。 */
@@ -39,13 +40,7 @@ export function nodeInput(text: string, manualName: string): SourceInput | null 
   const s = text.trim();
   if (!s) return null;
   if (/^https?:\/\/\S+$/.test(s)) {
-    let host = s;
-    try {
-      host = new URL(s).hostname;
-    } catch {
-      /* 交给服务器校验 */
-    }
-    return { name: host, kind: "subscription", url: s };
+    return { name: hostOf(s) ?? s, kind: "subscription", url: s };
   }
   return { name: manualName, kind: "batch", content: s };
 }
@@ -72,6 +67,8 @@ export async function createProfileFrom(n: NewProfile): Promise<{ profile: Profi
   }
   const input = n.nodes ? nodeInput(n.nodes, n.manualName) : null;
   if (input) {
+    // 来源名称与已有的不重复（反馈 #65）
+    input.name = uniqueName(input.name, (await listAll<Source>("/api/v1/sources")).map((s) => s.name));
     const [src, policy] = await Promise.all([
       api.post<Source>("/api/v1/sources", input),
       api.get<{ default: "inline" | "provider" }>("/api/v1/node-mode"),

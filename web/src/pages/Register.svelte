@@ -1,6 +1,6 @@
 <script lang="ts">
   // 注册（决定 0003）：注册开放时直接注册；关闭时需要一次性邀请链接 /register#<令牌>。
-  // 需要 3 个安全问题（找回口令的唯一途径）与本地工作量证明（约 1 秒）。
+  // 需要 3 个安全问题（找回密码的唯一途径）与本地工作量证明（约 1 秒）。
   import AuthLayout from "../components/AuthLayout.svelte";
   import PasswordFields from "../components/PasswordFields.svelte";
   import QuestionFields, { blankQuestions, questionsValid, toPayload } from "../components/QuestionFields.svelte";

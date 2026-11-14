@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 账号与安全（第 14.1 节）：口令、安全问题、登录设备与审计。个人界面偏好在「设置」页（反馈 #57）。
+  // 账号与安全（第 14.1 节）：密码、安全问题、登录设备与审计。个人界面偏好在「设置」页（反馈 #57）。
   // 通行密钥、两步验证与提醒邮件在各自的分节中（随 M5 后续步骤加入）。
   import { passwordOk } from "../lib/password";
   import PageHeader from "../components/PageHeader.svelte";
@@ -29,7 +29,7 @@
   let quota = $state<{ limits: { sources: number; profiles: number; links: number; storage: number }; usage: { sources: number; profiles: number; links: number; bytes: number } } | null>(null);
   let myQuestions = $state<{ builtin: number; text?: string }[]>([]);
 
-  // 修改口令
+  // 修改密码
   let pw = $state({ current: "", next: "", confirm: "", logoutOthers: true });
   // 修改安全问题
   let editingQs = $state(false);

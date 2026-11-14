@@ -222,17 +222,17 @@ func TestTickets(t *testing.T) {
 }
 
 func TestCheckPassword(t *testing.T) {
-	for _, pw := range []string{"ab1", "abcde", "12345", "abc12", "Abcde12", "abcdefgh", "Password123", "QWERTYUIOP", "1234567890", "woaini1314", "一段中文口令"} {
+	for _, pw := range []string{"ab1", "abcde", "12345", "abc12", "Abcde12", "abcdefgh", "Password123", "QWERTYUIOP", "1234567890", "woaini1314", "一段中文密码"} {
 		if err := CheckPassword(pw); err == nil {
 			t.Errorf("%q 应被拒绝", pw)
 		}
 	}
-	for _, pw := range []string{"ab-12", "Ab-cd", "abcd1234", "Abcdefgh", "correct horse battery", "中文口令2026", "Tr0ub4dor&3-extended"} {
+	for _, pw := range []string{"ab-12", "Ab-cd", "abcd1234", "Abcdefgh", "correct horse battery", "中文密码2026", "Tr0ub4dor&3-extended"} {
 		if err := CheckPassword(pw); err != nil {
 			t.Errorf("%q 应被接受：%v", pw, err)
 		}
 	}
 	if n := len(commonSet()); n < 9000 {
-		t.Errorf("常见口令表过小：%d", n)
+		t.Errorf("常见密码表过小：%d", n)
 	}
 }

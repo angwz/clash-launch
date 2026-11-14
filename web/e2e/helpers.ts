@@ -9,7 +9,7 @@ export const ADMIN = { username: "admin", password: "admin password 2026" };
 export async function login(page: Page, user = ADMIN): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("用户名").fill(user.username);
-  await page.getByLabel("口令", { exact: true }).fill(user.password);
+  await page.getByLabel("密码", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(/\/$|\/welcome$/);
 }

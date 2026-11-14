@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 用户名 + 口令 + 确认口令。口令规则由后端判定（至少 5 个字符、至少 2 类字符、常见口令表）；
+  // 用户名 + 密码 + 确认密码。密码规则由后端判定（至少 5 个字符、至少 2 类字符、常见密码表）；
   // 这里只做即时提示（lib/password.ts）。
   import { t } from "../lib/i18n/i18n.svelte";
   import { passwordOk } from "../lib/password";

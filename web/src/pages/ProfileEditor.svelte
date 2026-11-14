@@ -95,7 +95,7 @@
       dirty: editor.dirty,
       diagnostics: editor.counts,
       openRaw: () => openRaw(),
-      runCheck: () => void editor.runPreview(true),
+      runCheck: () => void editor.runPreview(true, true),
     };
   });
 
@@ -154,7 +154,7 @@
     const out: PaletteItem[] = [
       { id: "raw.open", kind: "command", title: t("raw.title"), hint: "raw edit", icon: "bolt", run: () => openRaw() },
       { id: "cmd.save", kind: "command", title: t("editor.save"), hint: "Ctrl S", icon: "check", run: () => void editor.save() },
-      { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true) },
+      { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true, true) },
     ];
     const walk = (f: MetaField, path: string[], secTitle: string) => {
       if (f.type === "object" && f.fields?.length) {
@@ -202,13 +202,8 @@
     <nav class="secnav" aria-label={t("editor.sections")}>
       <!-- 配置名放在分节导航顶端，顶栏不再重复（反馈 #36） -->
       <div class="secnav-head">
-        <span class="subtle label-sm">{t("editor.profile")}</span>
-        <strong class="pname" title={editor.profile.name}>
-          {editor.profile.name}
-        </strong>
-        <div class="profile-links">
-          <a href={"/profiles/" + editor.profile.id + "/links"}>{t("profiles.links")}</a>
-        </div>
+        <strong class="pname" title={editor.profile.name}>{editor.profile.name}</strong>
+        <a class="plink" href={"/profiles/" + editor.profile.id + "/links"}>{t("profiles.links")}<Icon name="arrow-right" size={12} /></a>
       </div>
       <ul>
         <li>
@@ -339,11 +334,26 @@
     border-inline-end: 1px solid var(--border);
     overflow-y: auto;
   }
+  /* 配置名与配置链接：名称是这一栏的标题，链接是次要入口；下方一条分隔线把它与导航分开（反馈 #62） */
   .secnav-head {
     display: grid;
-    gap: var(--space-2);
+    gap: 2px;
+    padding-block: 0 var(--space-3);
     padding-inline: var(--space-2);
-    margin-block-end: var(--space-3);
+    margin-block-end: var(--space-2);
+    border-block-end: 1px solid var(--border);
+  }
+  .plink {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    inline-size: fit-content;
+    color: var(--accent-fg);
+    font-size: var(--text-sm);
+  }
+  .plink:hover {
+    text-decoration: none;
+    opacity: 0.8;
   }
   .pname {
     display: flex;
@@ -355,22 +365,6 @@
     overflow-wrap: anywhere;
   }
   .secnav a.item:hover {
-    text-decoration: none;
-  }
-  .profile-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-  }
-  .profile-links a {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--fg-muted);
-  }
-  .profile-links a:hover {
-    color: var(--fg);
     text-decoration: none;
   }
   .label-sm {
@@ -410,6 +404,7 @@
   .group-label {
     padding-inline: var(--space-2);
     margin-block: var(--space-4) var(--space-1);
+    color: var(--fg-subtle);
   }
   .secnav ul {
     display: grid;
@@ -437,10 +432,24 @@
     background: var(--bg-hover);
     color: var(--fg);
   }
+  /* 选中项：强调色浅底、强调色文字，前缘一条短竖条 */
+  .secnav button,
+  .secnav a.item {
+    position: relative;
+  }
   .secnav button.active {
-    background: var(--bg-active);
-    color: var(--fg);
-    font-weight: 560;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+    font-weight: 600;
+  }
+  .secnav button.active::before {
+    content: "";
+    position: absolute;
+    inset-block: 8px;
+    inset-inline-start: 0;
+    inline-size: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent);
   }
   .t {
     flex: 1;
@@ -449,10 +458,21 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .n {
-    font-size: var(--text-xs);
-    color: var(--accent-fg);
+  /* 已修改字段数：小号胶囊；选中时随强调色 */
+  .n:not(:empty) {
+    min-inline-size: 18px;
+    padding-inline: 5px;
+    border-radius: var(--radius-full);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
     font-variant-numeric: tabular-nums;
+  }
+  .active .n:not(:empty) {
+    background: var(--accent);
+    color: var(--fg-on-accent);
   }
   .raw-dot {
     display: grid;

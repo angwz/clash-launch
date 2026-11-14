@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { hostOf, uniqueName } from "../lib/names";
   import Emoji from "../components/Emoji.svelte";
   // 节点源列表与新建（第 16.1 节「节点源」）：订阅地址、粘贴分享链接或节点（单条 / 批量）、文件内容。
   import Dialog from "../components/Dialog.svelte";
@@ -16,6 +17,10 @@
   let open = $state(false);
   let busy = $state(false);
   let form = $state<{ kind: SourceInput["kind"]; name: string; url: string; content: string }>({ kind: "subscription", name: "", url: "", content: "" });
+  // 默认名称（反馈 #65）：订阅取域名，手动节点按序号；与已有名称不重复
+  const defaultName = $derived(
+    uniqueName(form.kind === "subscription" ? (hostOf(form.url) ?? t("sources.default_subscription")) : t("profiles.manual_nodes"), (items ?? []).map((s) => s.name)),
+  );
 
   async function load() {
     try {
@@ -48,7 +53,7 @@
     e.preventDefault();
     busy = true;
     try {
-      const body: SourceInput = { kind: form.kind, name: form.name.trim() };
+      const body: SourceInput = { kind: form.kind, name: form.name.trim() || defaultName };
       if (form.kind === "subscription") body.url = form.url.trim();
       else body.content = form.content;
       const s = await api.post<Source>("/api/v1/sources", body);
@@ -143,7 +148,7 @@
     </div>
     <div>
       <label class="label" for="ns-name">{t("sources.col_name")}</label>
-      <input id="ns-name" class="input" bind:value={form.name} required maxlength="80" />
+      <input id="ns-name" class="input" bind:value={form.name} maxlength="80" placeholder={defaultName} />
     </div>
     {#if form.kind === "subscription"}
       <div>
@@ -161,7 +166,7 @@
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (open = false)}>{t("common.cancel")}</button>
-    <button class="btn primary" type="submit" form="new-source" disabled={busy || !form.name.trim() || (form.kind === "subscription" ? !form.url.trim() : !form.content.trim())}>{t("common.create")}</button>
+    <button class="btn primary" type="submit" form="new-source" disabled={busy || (form.kind === "subscription" ? !form.url.trim() : !form.content.trim())}>{t("common.create")}</button>
   {/snippet}
 </Dialog>
 

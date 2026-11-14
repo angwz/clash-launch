@@ -7,7 +7,7 @@ import (
 )
 
 // 账号安全（第 14.1 节）：找回不泄露用户名、答对 2 个即可、成功后会话失效、连续失败后锁定；
-// 工作量证明不可伪造与重放；登录退避；修改安全问题与口令需要当前口令；会话列表与注销。
+// 工作量证明不可伪造与重放；登录退避；修改安全问题与密码需要当前密码；会话列表与注销。
 func TestAccountSecurity(t *testing.T) {
 	h := newHarness(t, nil)
 	admin, _ := h.setup()
@@ -75,10 +75,10 @@ func TestAccountSecurity(t *testing.T) {
 	}
 	bad.want(401, "POST", "/api/v1/session", map[string]string{"username": "erin", "password": "wrong password!"})
 	if r, _ := bad.do("POST", "/api/v1/session", map[string]string{"username": "erin", "password": "a long enough password"}); r.StatusCode != http.StatusTooManyRequests {
-		t.Errorf("退避期内即使口令正确也应等待：%d", r.StatusCode)
+		t.Errorf("退避期内即使密码正确也应等待：%d", r.StatusCode)
 	}
 
-	// 修改安全问题需要当前口令
+	// 修改安全问题需要当前密码
 	newQs := map[string]any{"password": "wrong", "questions": []map[string]any{{"builtin": 2}, {"builtin": 3}, {"builtin": 4}}, "answers": []string{"aa", "bb", "cc"}}
 	c1.want(403, "PUT", "/api/v1/account/questions", newQs)
 	newQs["password"] = "brand new password 2"
@@ -87,7 +87,7 @@ func TestAccountSecurity(t *testing.T) {
 		t.Errorf("安全问题（不应含答案）：%s", got)
 	}
 
-	// 会话：列出与注销；修改口令时注销其他设备
+	// 会话：列出与注销；修改密码时注销其他设备
 	c3 := h.client()
 	c3.login("carol", "brand new password 2")
 	list := decode[struct {

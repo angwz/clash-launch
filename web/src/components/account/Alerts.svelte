@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 提醒邮件：用户填写自己的 SMTP，测试邮件送达后启用。新设备登录、口令或安全设置变更时发送提醒。
+  // 提醒邮件：用户填写自己的 SMTP，测试邮件送达后启用。新设备登录、密码或安全设置变更时发送提醒。
   import { api } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
   import { i18n, t } from "../../lib/i18n/i18n.svelte";

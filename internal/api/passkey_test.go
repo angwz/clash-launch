@@ -99,7 +99,7 @@ func TestPasskeys(t *testing.T) {
 	c.want(200, "GET", "/api/v1/me", nil)
 	h.client().want(401, "POST", "/api/v1/session/passkey", map[string]any{"ticket": lb.Ticket, "credential": assertion})
 
-	// 只有通行密钥时，口令登录不要求第二步
+	// 只有通行密钥时，密码登录不要求第二步
 	plain := h.client()
 	plain.login("admin", pw)
 
@@ -132,7 +132,7 @@ func TestPasskeys(t *testing.T) {
 	xb := decode[beginResp](t, x.want(200, "POST", "/api/v1/session/passkey/begin", map[string]string{"ticket": xr.Ticket}))
 	x.want(401, "POST", "/api/v1/session/passkey", map[string]any{"ticket": xb.Ticket, "credential": malDev.get(xb.Options)})
 
-	// 删除需要口令
+	// 删除需要密码
 	id := list.Items[0].ID
 	admin.want(403, "POST", "/api/v1/account/passkeys/"+id+"/delete", map[string]string{"password": "wrong"})
 	mal.want(404, "POST", "/api/v1/account/passkeys/"+id+"/delete", map[string]string{"password": "a long enough password"})
