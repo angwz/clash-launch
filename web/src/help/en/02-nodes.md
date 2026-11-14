@@ -10,6 +10,7 @@ Enter the URL from your provider; the server fetches it on a schedule. Formats a
 - base64-encoded subscriptions
 - Clash / mihomo YAML
 - sing-box JSON
+- WireGuard config files (`.conf` with `[Interface]` and `[Peer]`)
 
 If a fetch fails, the page shows since when, configs keep using the last successful fetch, and the check results mention it.
 

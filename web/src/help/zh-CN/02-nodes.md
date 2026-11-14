@@ -10,6 +10,7 @@
 - base64 编码的订阅
 - Clash / mihomo YAML
 - sing-box JSON
+- WireGuard 配置文件（`.conf`，含 `[Interface]` 与 `[Peer]`）
 
 拉取失败时节点页会显示失败时间，配置会继续使用上一次成功拉取的结果，并在检查结果中提示。
 

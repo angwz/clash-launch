@@ -6,6 +6,7 @@
 
 按以下顺序判断，第一个成功的为准：
 
+0. **WireGuard 配置文件**（wg-quick 格式）：有 `[Interface]` 一节；先于 YAML 判断，因为 INI 不是 YAML。映射与不转换的设置见 `internal/node/wireguard.go` 的文件注释：只有一个 `[Peer]` 时写在顶层，多个时写成 `peers`；`DNS` 在 mihomo 中需要配合 `remote-dns-resolve`，语义不同，不自动转换，逐项报告 `node.wireguard_field`。一个文件产出一个节点，名称取第一个对端地址。
 1. **Clash/Mihomo YAML**：顶层有 `proxies` 列表；或是节点映射的列表；或是带 `name`、`type` 的单个节点映射。
 2. **sing-box JSON**：顶层有 `outbounds` 数组，映射见 [singbox-mapping](singbox-mapping.md)。
 3. **base64**：整体解码（标准与 URL-safe 两种字母表，容忍缺失的填充与换行），解码结果是 UTF-8 文本时按行重新识别。

@@ -70,6 +70,10 @@ func Parse(content []byte, where string, cat *catalog.Catalog, out *diag.List) (
 	if len(bytes.TrimSpace(content)) == 0 {
 		return nil, FormatUnknown
 	}
+	// 0. WireGuard 配置文件（INI 风格，先于 YAML 识别）
+	if looksLikeWireGuard(content) {
+		return fromWireGuard(content, where, cat, out), FormatWireGuard
+	}
 	// 1. Clash/Mihomo YAML；2. sing-box JSON（JSON 也是 YAML）
 	var probe diag.List
 	if root, err := yamlx.Parse(content, yamlx.DefaultLimits, where, &probe); err == nil && root != nil {
