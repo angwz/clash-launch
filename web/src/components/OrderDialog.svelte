@@ -39,7 +39,8 @@
   async function save(reset = false) {
     saving = true;
     try {
-      await prefs.save(reset ? {} : { nav: lists.nav.map((x) => x.id), sections: lists.sections.map((x) => x.id) });
+      // 只改顺序，保留其他偏好
+      await prefs.save(reset ? { ...prefs.data, nav: undefined, sections: undefined } : { ...prefs.data, nav: lists.nav.map((x) => x.id), sections: lists.sections.map((x) => x.id) });
       toasts.push("ok", reset ? t("order.reset_done") : t("order.saved"));
       open = false;
     } catch (e) {

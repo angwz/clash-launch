@@ -3264,6 +3264,8 @@ export interface components {
             nav?: string[];
             /** @description 内核设置分节顺序（目录分节 ID） */
             sections?: string[];
+            /** @description 点击字段卡片左侧说明区域展开说明与建议；省略为开 */
+            fieldClick?: boolean;
         };
         NodeMode: {
             /**

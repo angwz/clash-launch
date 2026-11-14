@@ -3,7 +3,6 @@
   // 字段的位置只由重要程度决定，设置后不移动（反馈 #18：设置后跳到上方会打断编辑）。分节只有一个对象键（如 dns）时直接展开其字段。
   import FieldCard from "./FieldCard.svelte";
   import Icon from "../Icon.svelte";
-  import Menu from "../Menu.svelte";
   import { catalog, type MetaField, type NavSection } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
@@ -59,15 +58,6 @@
         <input type="checkbox" bind:checked={onlySet} />
         <span>{t("editor.only_set")}</span>
       </label>
-      <Menu label={t("editor.section_menu")}>
-        {#snippet items(close)}
-          {#if section.keys[0]}
-            <a role="menuitem" href={catalog.top(section.keys[0])?.doc} target="_blank" rel="noopener noreferrer" data-external onclick={close}>
-              <Icon name="external" size={15} />{t("field.docs")}
-            </a>
-          {/if}
-        {/snippet}
-      </Menu>
     </div>
   </header>
 

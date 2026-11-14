@@ -5,6 +5,8 @@ import { api } from "./api/client";
 export interface PrefsData {
   nav?: string[];
   sections?: string[];
+  /** 点击字段卡片左侧说明区域展开「说明与建议」；默认开（反馈 #50） */
+  fieldClick?: boolean;
 }
 
 /** 按 order 排序；不在 order 中的项保持原相对顺序排在后面。纯函数，便于测试。 */

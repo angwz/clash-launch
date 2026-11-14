@@ -256,6 +256,7 @@ components:
       properties:
         nav: {type: array, maxItems: 64, items: {type: string}, description: 主菜单顺序（路由 ID）；未列出的项按默认顺序排在后面}
         sections: {type: array, maxItems: 64, items: {type: string}, description: 内核设置分节顺序（目录分节 ID）}
+        fieldClick: {type: boolean, description: 点击字段卡片左侧说明区域展开说明与建议；省略为开}
     NodeMode:
       type: object
       required: [default, locked]

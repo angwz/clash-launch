@@ -16,6 +16,7 @@
   import { session } from "../lib/session.svelte";
   import { theme, type Theme } from "../lib/theme.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import { prefs } from "../lib/prefs.svelte";
 
   interface SessionInfo {
     id: string;
@@ -88,6 +89,14 @@
     try {
       await api.del("/api/v1/account/sessions/" + s.id);
       await load();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
+  async function setFieldClick(on: boolean) {
+    try {
+      await prefs.save({ ...prefs.data, fieldClick: on ? undefined : false });
     } catch (e) {
       toasts.push("err", errorText(e));
     }
@@ -205,10 +214,21 @@
       </div>
     </div>
     <p class="hint">{t("account.local_hint")}</p>
+    <!-- 以下偏好保存在账号中（反馈 #50） -->
+    <label class="check-row">
+      <input id="ac-fieldclick" type="checkbox" checked={prefs.data.fieldClick !== false} onchange={(e) => void setFieldClick(e.currentTarget.checked)} />
+      <span>{t("account.field_click")}</span>
+    </label>
   </section>
 </div>
 
 <style>
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-2);
+  }
   .page {
     max-inline-size: 760px;
     margin-inline: auto;

@@ -11,6 +11,7 @@
   import { t } from "../../lib/i18n/i18n.svelte";
   import { slide } from "svelte/transition";
   import { dur } from "../../lib/motion";
+  import { prefs } from "../../lib/prefs.svelte";
 
   let {
     field,
@@ -38,6 +39,13 @@
   const effective = $derived(set ? editor.value(path) : field.default);
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   let expanded = $state(false);
+  const clickExpand = $derived(prefs.data.fieldClick !== false);
+  function onTextClick(e: MouseEvent) {
+    if (!clickExpand) return;
+    if ((e.target as HTMLElement).closest("a, button, input, select, textarea")) return;
+    if (window.getSelection()?.toString()) return;
+    expanded = !expanded;
+  }
   let groupOpen = $state(false);
   // 定位到组内字段时展开该组
   $effect(() => {
@@ -92,7 +100,11 @@
 {:else}
   <article class="card" class:is-set={set} class:is-raw={raw} class:inactive id={"f-" + pathKey} data-path={pathKey} title={inactive ? t("field.inactive_hint") : undefined}>
     <div class="head">
-      <div class="text">
+      <!-- 点击左侧说明区域展开或收起「说明与建议」（反馈 #50）。键盘与读屏器使用下方的按钮，这里只是更大的鼠标目标；
+           选中文字、点击链接或徽章中的按钮时不触发。可在账号设置中关闭。 -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="text" class:clickable={clickExpand} onclick={onTextClick}>
         <div class="title-row">
           <span class="title" id={labelId}>{catalog.title(field)}</span>
           <code class="key ltr">{field.key}</code>
@@ -222,6 +234,9 @@
     min-inline-size: 0;
     display: grid;
     gap: 2px;
+  }
+  .text.clickable {
+    cursor: pointer;
   }
   .title-row {
     display: flex;

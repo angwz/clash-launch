@@ -104,11 +104,6 @@
             {#if p.diagnostics.warnings}<span class="c-warn"><Icon name="warning" size={13} />{p.diagnostics.warnings}</span>{/if}
           </span>
         {/if}
-        {#if p.preview.available}
-          <button class="btn sm preview-btn" type="button" aria-expanded={p.preview.open} onclick={() => p.preview.toggle()}>
-            <Icon name="code" size={14} />{t("preview.title")}
-          </button>
-        {/if}
         {#if p.raw}
           <button class="raw-flag" type="button" onclick={() => p.openRaw()} title={t("raw.indicator")} aria-label={t("raw.indicator")}>
             <Icon name="bolt" size={14} />
@@ -303,9 +298,6 @@
   }
   .c-warn {
     color: var(--warn);
-  }
-  .preview-btn[aria-expanded="true"] {
-    background: var(--bg-active);
   }
   .raw-flag {
     display: grid;

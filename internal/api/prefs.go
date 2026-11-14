@@ -8,12 +8,15 @@ import (
 
 // prefsDTO 是用户的界面偏好（反馈 #37）。只接受已知的键，未知键与超限的值拒绝而不是丢弃。
 //   - nav：主菜单项的顺序（路由 ID）；
-//   - sections：配置编辑器中内核设置分节的顺序（目录分节 ID）。
+//   - sections：配置编辑器中内核设置分节的顺序（目录分节 ID）；
+//   - fieldClick：字段卡片说明区域是否可点击展开（反馈 #50）。
 //
 // 列表只表示顺序：界面按它排序，未列出的项保持默认顺序排在后面，因此新增菜单项不需要迁移偏好。
 type prefsDTO struct {
 	Nav      []string `json:"nav,omitempty"`
 	Sections []string `json:"sections,omitempty"`
+	// FieldClick：点击字段卡片左侧说明区域展开「说明与建议」；省略表示默认（开）。
+	FieldClick *bool `json:"fieldClick,omitempty"`
 }
 
 const (

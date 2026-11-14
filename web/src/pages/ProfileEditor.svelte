@@ -94,7 +94,6 @@
       diagnostics: editor.counts,
       openRaw: () => openRaw(),
       runCheck: () => void editor.runPreview(true),
-      preview: { available: !docked && !mobile, open: previewOpen, toggle: togglePreview },
     };
   });
 
@@ -205,9 +204,6 @@
         <strong class="pname" title={editor.profile.name}>
           {editor.profile.name}
         </strong>
-        <span class="save-state" aria-live="polite">
-          {#if editor.saving}{t("editor.saving")}{:else if editor.dirty}{t("editor.unsaved")}{:else}<Icon name="check" size={12} />{t("editor.all_saved")}{/if}
-        </span>
         <div class="profile-links">
           <a href={"/profiles/" + editor.profile.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
         </div>
@@ -234,9 +230,15 @@
           </li>
         {/each}
       </ul>
-      <!-- 低频与兜底功能收在末端（反馈 #32、#43）：历史版本与直接编辑 YAML -->
-      <span class="subtle label-sm group-label">{t("editor.advanced")}</span>
+      <!-- 低频与兜底功能收在末端，默认收起（反馈 #32、#43、#49）：本分区说明、历史版本、直接编辑 YAML -->
+      <details class="adv" open={rawOpen || undefined}>
+        <summary class="subtle">{t("editor.advanced")}</summary>
       <ul>
+        {#if current}
+          <li>
+            <a class="item" href={"/help?tab=wiki&s=" + encodeURIComponent(current.id)}><Icon name="file" size={15} /><span class="t">{t("editor.section_doc")}</span></a>
+          </li>
+        {/if}
         <li>
           <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><Icon name="history" size={15} /><span class="t">{t("profiles.history")}</span></a>
         </li>
@@ -247,6 +249,7 @@
           </button>
         </li>
       </ul>
+      </details>
       <select class="select secnav-select" aria-label={t("editor.sections")} value={rawOpen ? "@raw" : section} onchange={(e) => (e.currentTarget.value === "@raw" ? openRaw() : select(e.currentTarget.value))}>
         <option value="sources">{t("editor.sources_rules")}</option>
         {#each settingsNav as s (s.id)}<option value={s.id}>{catalog.navTitle(s)}</option>{/each}
@@ -261,6 +264,15 @@
     <!-- 悬停只用于预览高亮，不是交互控件；键盘用户经 focusin 得到同样效果 -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="content" id="editor-main" onpointerover={track} onfocusin={track} onpointerleave={() => (editor.hover = "")}>
+      <!-- 预览开关：粘在滚动区顶端右侧。放在滚动容器内部，滚动条在它旁边而不是盖住它（反馈 #42、#47） -->
+      {#if !docked && !mobile}
+        <div class="preview-dock">
+          <button class="btn preview-toggle" type="button" aria-expanded={previewOpen} onclick={togglePreview}>
+            <Icon name="code" size={15} />{t("preview.title")}
+            {#if editor.counts.errors}<span class="badge-err">{editor.counts.errors}</span>{/if}
+          </button>
+        </div>
+      {/if}
       <div class="content-inner">
         {#if rawOpen}
           <RawEditor {editor} focusKey={rawKey} onClose={() => (rawOpen = false)} />
@@ -336,13 +348,6 @@
     font-weight: 620;
     overflow-wrap: anywhere;
   }
-  .save-state {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--fg-subtle);
-    font-size: var(--text-xs);
-  }
   .secnav a.item:hover {
     text-decoration: none;
   }
@@ -367,6 +372,20 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+  }
+  .adv {
+    margin-block-start: auto;
+    padding-block-start: var(--space-4);
+  }
+  .adv summary {
+    padding-block: var(--space-1);
+    padding-inline: var(--space-2);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    list-style-position: inside;
+  }
+  .adv summary:hover {
+    color: var(--fg-muted);
   }
   .group-label {
     padding-inline: var(--space-2);
@@ -460,6 +479,19 @@
   .mobile-switch,
   .scrim {
     display: none;
+  }
+  .preview-dock {
+    position: sticky;
+    z-index: 10;
+    inset-block-start: 0;
+    display: flex;
+    justify-content: flex-end;
+    block-size: 0;
+    padding-inline-end: var(--space-4);
+  }
+  .preview-toggle {
+    margin-block-start: var(--space-3);
+    box-shadow: var(--shadow-sm);
   }
   .badge-err {
     min-inline-size: 18px;

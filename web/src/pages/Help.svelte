@@ -94,6 +94,13 @@
   );
   const total = $derived(visible.reduce((n, s) => n + s.entries.length, 0));
 
+  // 深链接：?s= 滚动到某个分区（编辑器「高级」中的「本分区文档」，反馈 #48）
+  const sectionLink = q.get("s") ?? "";
+  $effect(() => {
+    if (tab !== "wiki" || !sectionLink || focus || !sections.length) return;
+    void tick().then(() => document.getElementById("s-" + sectionLink)?.scrollIntoView({ block: "start" }));
+  });
+
   // 深链接：打开并滚动到 ?f= 指定的字段
   $effect(() => {
     if (tab !== "wiki" || !focus || !sections.length) return;

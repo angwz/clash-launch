@@ -96,7 +96,7 @@ test("命令面板：搜索字段并定位；命令模式进入直接编辑 YAML
 
   // 「源与规则」：点击后以浮层显示，Esc 关闭
   await page.goto(`/profiles/${profile}?section=sources`);
-  await page.locator(".topbar .preview-btn").click();
+  await page.locator(".preview-toggle").click();
   await expect(page.locator("aside.preview .yaml")).toBeVisible();
   await page.screenshot({ path: "test-results/shot-floating.png" });
   await page.keyboard.press("Escape");
