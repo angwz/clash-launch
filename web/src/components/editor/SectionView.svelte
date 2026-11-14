@@ -8,6 +8,8 @@
   import { t } from "../../lib/i18n/i18n.svelte";
   import { slide } from "svelte/transition";
   import { dur } from "../../lib/motion";
+  import { byHeat } from "../../lib/field-order";
+  import { stats } from "../../lib/stats.svelte";
 
   let {
     section,
@@ -35,8 +37,15 @@
 
   const prominent = (e: Entry) => e.field.importance === "core" || e.field.importance === "recommended";
   const active = (e: Entry) => editor.isSet(e.path) || editor.touched(e.path);
-  const primary = $derived(entries.filter((e) => (onlySet ? active(e) : prominent(e))));
-  const rest = $derived(onlySet ? [] : entries.filter((e) => !prominent(e)));
+  // 总开关（分区或对象下的布尔 enable）始终第一；其余在「重要」与「更多」两组内各自按热度排序（反馈 #68）
+  const master = $derived(entries.find((e) => e.field.key === "enable" && e.field.type === "bool"));
+  const pathOf = (e: Entry) => e.path.join(".");
+  const primary = $derived.by(() => {
+    const list = entries.filter((e) => e !== master && (onlySet ? active(e) : prominent(e)));
+    const sorted = byHeat(list, pathOf, stats.scores);
+    return master && (!onlySet || active(master)) ? [master, ...sorted] : sorted;
+  });
+  const rest = $derived(onlySet ? [] : byHeat(entries.filter((e) => e !== master && !prominent(e)), pathOf, stats.scores));
   const setCount = $derived(entries.filter(active).length);
   // 定位到折叠在「更多」中的字段时展开
   $effect(() => {

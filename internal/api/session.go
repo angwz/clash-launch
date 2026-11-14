@@ -145,6 +145,7 @@ type mfaResp struct {
 // startSession 建立新会话（总是新的会话 ID，防会话固定），设置 Cookie，记录登录与设备。
 func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.User) {
 	ctx := r.Context()
+	s.Svc.Stats().Login(time.Now()) // 登录次数（反馈 #66），密码、两步验证与通行密钥登录都经过这里
 	if old, err := r.Cookie(s.cookieName()); err == nil {
 		_ = s.Svc.Store.Sessions().Delete(ctx, u.ID, auth.HashToken(old.Value))
 	}

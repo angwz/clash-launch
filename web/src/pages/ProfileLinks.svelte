@@ -4,6 +4,8 @@
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import QRCode from "../components/QRCode.svelte";
+  import Emoji from "../components/Emoji.svelte";
+  import LinkStats, { type LinkStat } from "../components/links/LinkStats.svelte";
   import { api, listAll, type Link, type Profile } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -21,9 +23,24 @@
 
   const base = $derived("/api/v1/profiles/" + params.id + "/links");
 
+  // 订阅统计（反馈 #67）
+  let ps = $state<{ createdAt: string; days: number[]; links: LinkStat[] } | null>(null);
+  const statOf = (id: string) => ps?.links.find((x) => x.id === id);
+  const totalAll = $derived((ps?.links ?? []).reduce((a, b) => a + b.total, 0));
+  const firstEver = $derived((ps?.links ?? []).map((x) => x.first).filter((x): x is string => !!x).sort()[0]);
+  // 里程碑：1、10、100、1000……
+  const nextMilestone = $derived(10 ** Math.max(0, Math.floor(Math.log10(Math.max(1, totalAll))) + 1));
+  const DAY = 86_400_000;
+  const daysSince = (iso: string) => Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / DAY) + 1);
+  const daysBetween = (a: string, b: string) => Math.max(0, Math.floor((new Date(b).getTime() - new Date(a).getTime()) / DAY));
+
   async function load() {
     try {
-      [profile, links] = await Promise.all([api.get<Profile>("/api/v1/profiles/" + params.id), listAll<Link>(base)]);
+      [profile, links, ps] = await Promise.all([
+        api.get<Profile>("/api/v1/profiles/" + params.id),
+        listAll<Link>(base),
+        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + params.id + "/stats"),
+      ]);
     } catch (e) {
       error = errorText(e);
     }
@@ -89,6 +106,24 @@
     {/snippet}
   </PageHeader>
 
+  <!-- 有仪式感的时间线（反馈 #67）：这份配置的诞生、第一次被订阅、累计请求与下一个里程碑 -->
+  {#if ps}
+    <section class="panel story" aria-label={t("links.story")}>
+      <div class="moment">
+        <Emoji name="rocket" size={22} />
+        <div><span class="muted">{t("links.born")}</span><strong>{i18n.date(ps.createdAt)}</strong><span class="muted">{t("links.days_running", { n: daysSince(ps.createdAt) })}</span></div>
+      </div>
+      <div class="moment">
+        <Emoji name={firstEver ? "party" : "mailbox"} size={22} />
+        <div><span class="muted">{t("links.first_sub")}</span><strong>{firstEver ? i18n.date(firstEver) : t("links.not_yet")}</strong>{#if firstEver}<span class="muted">{t("links.after_born", { n: daysBetween(ps.createdAt, firstEver) })}</span>{/if}</div>
+      </div>
+      <div class="moment">
+        <Emoji name={totalAll >= 100 ? "trophy" : "sparkles"} size={22} />
+        <div><span class="muted">{t("links.total_requests")}</span><strong>{i18n.number(totalAll)}</strong><span class="muted">{t("links.next_milestone", { n: i18n.number(nextMilestone - totalAll), m: i18n.number(nextMilestone) })}</span></div>
+      </div>
+    </section>
+  {/if}
+
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
 
   <form class="new panel" onsubmit={create}>
@@ -115,6 +150,7 @@
             ·
             {#if l.lastAccess}{t("links.last_access", { when: i18n.relative(l.lastAccess), ua: l.lastUa || "—" })}{:else}{t("links.never_used")}{/if}
           </p>
+          {#if statOf(l.id)}<LinkStats stat={statOf(l.id)!} days={ps!.days} profileId={params.id!} />{/if}
           {#if qrFor === l.id}
             <div class="qr-box"><QRCode text={l.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
           {/if}
@@ -129,10 +165,35 @@
 </div>
 
 <style>
-  .page {
+  .page > :global(*) {
     max-inline-size: 960px;
+  }
+  /* 与其他页面同一左缘（1120 居中），内容本身较窄（960）（反馈 #56） */
+  .page {
+    max-inline-size: 1120px;
     margin-inline: auto;
     padding: var(--space-8) var(--space-6);
+  }
+  .story {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    margin-block-end: var(--space-4);
+  }
+  .moment {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+  .moment > div {
+    display: grid;
+    font-size: var(--text-sm);
+  }
+  .moment strong {
+    font-size: var(--text-lg);
+    font-weight: 620;
+    font-variant-numeric: tabular-nums;
   }
   .new {
     display: flex;

@@ -271,3 +271,54 @@ func TestMigrateRefusesNewerSchema(t *testing.T) {
 		t.Fatalf("应拒绝更新版本的数据库：%v", err)
 	}
 }
+
+// 统计（反馈 #66、#67）：计数按天合并并可求总数；请求逐条记录，按 IP 汇总成功与失败；令牌无效的请求只汇总。
+func TestStats(t *testing.T) {
+	d := newDB(t)
+	ctx := context.Background()
+	st := d.Stats()
+	if err := st.AddCounts(ctx, []CountDelta{{"pv", "editor", 20261114, 2}, {"pv", "editor", 20261114, 3}, {"pv", "help", 20261115, 1}}); err != nil {
+		t.Fatal(err)
+	}
+	tot, err := st.Totals(ctx, "pv", nil)
+	if err != nil || tot["editor"] != 5 || tot["help"] != 1 {
+		t.Fatalf("总数：%v %v", tot, err)
+	}
+	days, err := st.Daily(ctx, "pv", []string{"editor"}, 20261101, 20261130)
+	if err != nil || len(days) != 1 || days[0].Count != 5 {
+		t.Fatalf("按天：%v %v", days, err)
+	}
+	at := time.Date(2026, 11, 14, 8, 0, 0, 0, time.UTC)
+	rs := []SubRequest{
+		{LinkID: "l1", OwnerID: "u1", At: at, IP: "192.0.2.1", Client: "mihomo", Status: 200, Kind: "config"},
+		{LinkID: "l1", OwnerID: "u1", At: at.Add(time.Hour), IP: "192.0.2.1", Client: "mihomo", Status: 304, Kind: "config"},
+		{LinkID: "l1", OwnerID: "u1", At: at.Add(2 * time.Hour), IP: "192.0.2.2", Client: "clash-verge", Status: 429, Kind: "config"},
+		{IP: "192.0.2.9", At: at, Status: 404},
+	}
+	if err := st.AddRequests(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
+	list, err := st.Requests(ctx, "u1", "l1", Page{Limit: 10})
+	if err != nil || len(list) != 3 || list[0].IP != "192.0.2.2" {
+		t.Fatalf("请求记录：%+v %v", list, err)
+	}
+	if other, _ := st.Requests(ctx, "u2", "l1", Page{Limit: 10}); len(other) != 0 {
+		t.Error("其他用户不能看到这条链接的记录")
+	}
+	ips, err := st.IPs(ctx, "u1", "l1")
+	if err != nil || len(ips) != 2 {
+		t.Fatalf("IP 汇总：%+v %v", ips, err)
+	}
+	for _, x := range ips {
+		if x.IP == "192.0.2.1" && (x.OK != 2 || x.Fail != 0 || !x.First.Equal(at)) {
+			t.Errorf("192.0.2.1：%+v", x)
+		}
+		if x.IP == "192.0.2.2" && (x.OK != 0 || x.Fail != 1) {
+			t.Errorf("192.0.2.2：%+v", x)
+		}
+	}
+	bad, err := st.IPs(ctx, "", "")
+	if err != nil || len(bad) != 1 || bad[0].Fail != 1 {
+		t.Errorf("令牌无效的来源：%+v %v", bad, err)
+	}
+}

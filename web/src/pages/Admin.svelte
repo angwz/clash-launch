@@ -5,6 +5,7 @@
   import StatusBadge from "../components/StatusBadge.svelte";
   import AuditLog from "../components/AuditLog.svelte";
   import Status from "../components/admin/Status.svelte";
+  import StatsPanel from "../components/admin/StatsPanel.svelte";
   import Users from "../components/admin/Users.svelte";
   import { api, listAll, type Invite } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -110,6 +111,8 @@
       <h2 id="a-status">{t("admin.status")}</h2>
       <Status />
     </section>
+
+    <StatsPanel />
 
     <section class="panel box" aria-labelledby="a-users">
       <h2 id="a-users">{t("admin.users")}</h2>

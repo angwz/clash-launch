@@ -232,6 +232,7 @@ func cmdServe(args []string) int {
 	shut, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = hs.Shutdown(shut)
+	svc.FlushStats(shut) // 退出前写入内存中的统计
 	return 0
 }
 

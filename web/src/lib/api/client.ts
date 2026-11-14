@@ -51,6 +51,8 @@ interface Options {
   ifMatch?: number;
   query?: Record<string, string | number | boolean | undefined>;
   signal?: AbortSignal;
+  /** 页面关闭时仍要发出的请求（统计上报） */
+  keepalive?: boolean;
 }
 
 export async function request<T>(method: Method, path: string, opts: Options = {}): Promise<T> {
@@ -68,6 +70,7 @@ export async function request<T>(method: Method, path: string, opts: Options = {
   const init: RequestInit = { method, headers, credentials: "same-origin" };
   if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
   if (opts.signal) init.signal = opts.signal;
+  if (opts.keepalive) init.keepalive = true;
   const res = await fetch(url, init);
   if (res.status === 204) return undefined as T;
   const text = await res.text();

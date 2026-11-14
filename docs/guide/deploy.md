@@ -79,6 +79,10 @@ docker compose pull && docker compose up -d
 
 接口见 [`openapi.yaml`](../../api/openapi.yaml) 的 `admin` 标签；设计见 [0003](../decisions/0003-direct-fetch-and-invites.md)。
 
+## 统计与请求记录
+
+站点会记录订阅请求的 IP、User-Agent 与时间，供链接所有者在「配置链接」页做安全检查；站点访问与设置项热度只按天记次数，不记录是谁。细节见 [stats](../design/stats.md)。对外部署时，请在你的隐私说明中告知用户这一点。
+
 ## 出站与服务器 IP
 
 服务器直接拉取订阅与规则源，对方能看到服务器的出口 IP；能添加订阅的用户也可以借此得知它。需要隐藏时，在宿主机或网络层让整台服务器经代理出网。SSRF 防护与请求头约束见 [network](../design/network.md)。

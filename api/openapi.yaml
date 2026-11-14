@@ -476,6 +476,19 @@ paths:
       summary: 当前用户的节点写法策略：默认写法与能否在配置中自选（开放注册的普通用户只能用默认写法）
       security: [{session: []}]
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/NodeMode'}}}}}
+  /api/v1/stats/events:
+    post:
+      tags: [stats]
+      summary: 上报使用事件（visit 打开网站、pv 切换页面、field_change 改值、field_expand 展开说明）；服务端去重，只按天汇总计数
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [events], properties: {events: {type: array, maxItems: 50, items: {type: object, required: [kind], properties: {kind: {type: string, enum: [visit, pv, field_change, field_expand]}, key: {type: string}}}}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/stats/field-scores:
+    get:
+      tags: [stats]
+      summary: 设置项热度快照（改值计 2、展开说明计 1，每周重算一次）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {computedAt: {type: string, format: date-time}, scores: {type: object, additionalProperties: {type: integer}}}}}}}}
   /api/v1/register:
     get:
       tags: [session]
@@ -710,6 +723,12 @@ paths:
       summary: 系统状态：版本、内核、目录、主密钥、可选功能
       security: [{session: []}]
       responses: {'200': {description: ok}}
+  /api/v1/admin/stats:
+    get:
+      tags: [admin]
+      summary: 全站统计：访问、登录、订阅请求的总数与近 90 天趋势，热门页面、客户端与设置项，令牌无效的请求来源
+      security: [{session: []}]
+      responses: {'200': {description: ok}, '404': {description: 不是管理员}}
   /api/v1/admin/registration:
     get:
       tags: [admin]
@@ -882,6 +901,20 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}
       responses: {'201': {description: 已创建并渲染, content: {application/json: {schema: {$ref: '#/components/schemas/Profile'}}}}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/stats:
+    get:
+      tags: [profiles]
+      summary: 配置的订阅统计：创建时间、各链接总请求数、首次与最近请求、近 90 天趋势与请求来源 IP
+      security: [{session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/links/{lid}/requests:
+    get:
+      tags: [profiles]
+      summary: 一条配置链接的订阅请求记录（新的在前）
+      security: [{session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}, {name: lid, in: path, required: true, schema: {type: string}}, {$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles/{id}:
     get:
       tags: [profiles]

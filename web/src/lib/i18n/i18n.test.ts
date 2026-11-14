@@ -32,6 +32,7 @@ const dynamic: Record<string, string[]> = {
   "invite.": ["active", "used", "expired"],
   "palette.kind.": ["page", "field", "command"],
   "mode.": ["inline", "provider"],
+  "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings"],
   "profiles.nodes_kind.": ["subscription", "batch"],
   "settings.field_click.": ["card", "text", "button"],
   "settings.field_click_hint.": ["card", "text", "button"],

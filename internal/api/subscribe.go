@@ -50,6 +50,10 @@ func (s *Server) rateLimited(w http.ResponseWriter, r *http.Request, tok string)
 
 // subscribe 提供方案最近一次成功的渲染结果。只读缓存，不触发拉取或渲染（第 13.3 节）。
 func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
+	sw := &statusWriter{ResponseWriter: w}
+	w = sw
+	var link *store.Link
+	defer func() { s.recordSub(r, link, sw, "config") }()
 	tok := r.PathValue("token")
 	if s.rateLimited(w, r, tok) {
 		return
@@ -59,6 +63,7 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	link = l
 	_ = s.Svc.Store.Links().Accessed(r.Context(), l.ID, time.Now(), r.UserAgent())
 	rd, err := s.Svc.Store.Renders().Get(r.Context(), l.OwnerID, l.ProfileID)
 	if err != nil || len(rd.GoodYAML) == 0 {
@@ -91,6 +96,10 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 
 // hosted 提供「交给客户端」模式下由本服务托管的节点文件（/p/<令牌>/<源>）。
 func (s *Server) hosted(w http.ResponseWriter, r *http.Request) {
+	sw := &statusWriter{ResponseWriter: w}
+	w = sw
+	var link *store.Link
+	defer func() { s.recordSub(r, link, sw, "provider") }()
 	tok := r.PathValue("token")
 	if s.rateLimited(w, r, tok) {
 		return
@@ -100,6 +109,7 @@ func (s *Server) hosted(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	link = l
 	body, err := s.Svc.HostedProvider(r.Context(), l, r.PathValue("source"))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, service.ErrNotHosted) {
@@ -124,4 +134,40 @@ func sourceReason(err error) string { return source.Reason(err) }
 func parseAddr(s string) (netip.Addr, error) {
 	a, err := netip.ParseAddr(strings.Trim(s, "[]"))
 	return a.Unmap(), err
+}
+
+// statusWriter 记下响应的状态码与字节数，供订阅请求记录使用（反馈 #67）。
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+	bytes  int64
+}
+
+func (w *statusWriter) WriteHeader(code int) {
+	if w.status == 0 {
+		w.status = code
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	n, err := w.ResponseWriter.Write(b)
+	w.bytes += int64(n)
+	return n, err
+}
+
+// recordSub 记录一次订阅请求。l 为 nil 表示令牌无效或在查找令牌前被限流，只进入来源汇总。
+// 不记录令牌本身。
+func (s *Server) recordSub(r *http.Request, l *store.Link, w *statusWriter, kind string) {
+	q := store.SubRequest{At: time.Now(), IP: s.clientIP(r).String(), UA: r.UserAgent(), Status: w.status, Bytes: w.bytes, Kind: kind}
+	if q.Status == 0 {
+		q.Status = http.StatusOK
+	}
+	if l != nil {
+		q.LinkID, q.OwnerID = l.ID, l.OwnerID
+	}
+	s.Svc.Stats().Request(q)
 }

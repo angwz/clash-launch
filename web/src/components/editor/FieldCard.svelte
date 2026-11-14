@@ -12,6 +12,7 @@
   import { slide } from "svelte/transition";
   import { dur } from "../../lib/motion";
   import { fieldClickMode, prefs } from "../../lib/prefs.svelte";
+  import { stats } from "../../lib/stats.svelte";
 
   let {
     field,
@@ -39,6 +40,11 @@
   const effective = $derived(set ? editor.value(path) : field.default);
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   let expanded = $state(false);
+  // 展开说明计入设置项热度（反馈 #68）；收起不计
+  function toggleGuide() {
+    expanded = !expanded;
+    if (expanded) stats.track("field_expand", pathKey);
+  }
   // 「说明与建议」的点击范围（反馈 #50、#55），由用户在设置中选择：只有按钮 / 说明文字 / 整张卡片（默认）。
   // 控件、链接、按钮、展开后的说明面板与正在选中的文字始终不触发；键盘与读屏器使用按钮。
   const clickMode = $derived(fieldClickMode(prefs.data.fieldClick));
@@ -48,7 +54,7 @@
     if (el.closest("a, button, input, select, textarea, label, [role=switch], [role=radio], .ctl-inline, .ctl-block, .guide-wrap")) return;
     if (window.getSelection()?.toString()) return;
     e.stopPropagation();
-    expanded = !expanded;
+    toggleGuide();
   }
   let groupOpen = $state(false);
   // 定位到组内字段时展开该组
@@ -141,7 +147,7 @@
     {/if}
 
     <div class="foot">
-      <button type="button" class="link guide" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
+      <button type="button" class="link guide" aria-expanded={expanded} onclick={() => (toggleGuide())}>
         {expanded ? t("field.less") : t("field.more")}<Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
       </button>
       {#if field.suggest !== undefined}

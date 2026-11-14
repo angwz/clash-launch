@@ -68,6 +68,8 @@ type guardsState struct {
 	guards      *guards
 	ticketsOnce sync.Once
 	ticketsVal  *auth.Tickets
+	statsOnce   sync.Once
+	statsVal    *Stats
 	onceOnce    sync.Once
 	onceVal     *auth.Once
 }

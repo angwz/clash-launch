@@ -23,6 +23,8 @@ func (s *Server) routes() []Route {
 		{"DELETE", "/api/v1/session", a(s.logout)},
 		{"GET", "/api/v1/me", a(s.me)},
 		{"GET", "/api/v1/node-mode", a(s.getNodeMode)},
+		{"POST", "/api/v1/stats/events", a(s.postEvents)},
+		{"GET", "/api/v1/stats/field-scores", a(s.getFieldScores)},
 		{"GET", "/api/v1/register", s.registrationState},
 		{"POST", "/api/v1/register", s.register},
 		{"GET", "/api/v1/pow", s.powChallenge},
@@ -61,6 +63,7 @@ func (s *Server) routes() []Route {
 		{"PUT", "/api/v1/admin/users/{id}/quota", s.adminOnly(s.adminSetQuota)},
 		{"GET", "/api/v1/admin/audit", s.adminOnly(s.adminAudit)},
 		{"GET", "/api/v1/admin/status", s.adminOnly(s.adminStatus)},
+		{"GET", "/api/v1/admin/stats", s.adminOnly(s.adminStats)},
 
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},
@@ -105,6 +108,8 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/profiles/{id}/export", a(s.exportProfile)},
 
 		{"GET", "/api/v1/profiles/{id}/links", a(s.listLinks)},
+		{"GET", "/api/v1/profiles/{id}/stats", a(s.profileStats)},
+		{"GET", "/api/v1/profiles/{id}/links/{lid}/requests", a(s.linkRequests)},
 		{"POST", "/api/v1/profiles/{id}/links", a(s.createLink)},
 		{"POST", "/api/v1/profiles/{id}/links/{lid}/reset", a(s.resetLink)},
 		{"PATCH", "/api/v1/profiles/{id}/links/{lid}", a(s.patchLink)},

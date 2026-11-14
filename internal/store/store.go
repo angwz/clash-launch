@@ -188,6 +188,7 @@ type Store interface {
 	Snapshots() SnapshotRepo
 	Profiles() ProfileRepo
 	Templates() TemplateRepo
+	Stats() StatsRepo
 	Links() LinkRepo
 	Renders() RenderRepo
 	Audit() AuditRepo

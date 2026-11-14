@@ -32,6 +32,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 			return
 		case <-t.C:
 			s.tick(ctx)
+			s.FlushStats(ctx)
 			if s.now().Sub(lastPrune) >= 24*time.Hour { // 审计日志每天清理一次
 				s.PruneAudit(ctx)
 				lastPrune = s.now()

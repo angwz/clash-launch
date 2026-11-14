@@ -8,6 +8,7 @@ import { ProfileDoc, type ChainRule, type EmptyGroups, type SourceRef } from "./
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 import { prefs } from "./prefs.svelte";
+import { stats } from "./stats.svelte";
 
 // 停止编辑后多久自动保存（毫秒）
 const AUTOSAVE_DELAY = 1000;
@@ -83,11 +84,13 @@ export class EditorState {
   }
 
   set(path: string[], v: unknown): void {
+    stats.track("field_change", path.join("."));
     this.doc?.setForm(path, v);
     this.#changed();
   }
 
   reset(path: string[]): void {
+    stats.track("field_change", path.join("."));
     this.doc?.deleteForm(path);
     this.#changed();
   }

@@ -13,6 +13,7 @@
   import Emoji, { type EmojiName } from "./Emoji.svelte";
   import { prefs } from "../lib/prefs.svelte";
   import { mainNav } from "../lib/nav";
+  import { stats } from "../lib/stats.svelte";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
 
@@ -20,6 +21,7 @@
 
   onMount(() => {
     shell.init();
+    stats.start();
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
@@ -36,6 +38,11 @@
     await session.logout();
     router.go("/login");
   }
+
+  // 页面浏览统计（反馈 #66）：只报页面类型
+  $effect(() => {
+    stats.track("pv", router.route.name);
+  });
 
   $effect(() => {
     // 换页时收起手机抽屉

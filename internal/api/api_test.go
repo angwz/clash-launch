@@ -666,3 +666,75 @@ func TestPrefsFieldClick(t *testing.T) {
 		t.Errorf("旧的布尔值应读作 button：%s", b)
 	}
 }
+
+// 统计（反馈 #66–#68）：订阅请求逐条记录并按 IP 汇总；令牌无效的请求进入管理员的来源列表；
+// 打开网站 30 分钟内只计一次；事件格式无效时拒绝；只有所有者能看自己配置的统计。
+func TestStatsFlow(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	anon := h.client()
+	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+pid+"/links", map[string]string{"note": "手机"}))
+	path := strings.TrimPrefix(l.URL, h.http.URL)
+	resp, _ := anon.do("GET", path, nil, "User-Agent", "clash-verge/v2.0.0")
+	anon.do("GET", path, nil, "User-Agent", "mihomo/1.19.33", "If-None-Match", resp.Header.Get("ETag"))
+	anon.do("GET", "/s/not-a-real-token", nil)
+
+	c.want(204, "POST", "/api/v1/stats/events", map[string]any{"events": []map[string]string{{"kind": "visit"}, {"kind": "visit"}, {"kind": "pv", "key": "profile"}, {"kind": "field_change", "key": "dns.enable"}}})
+	c.want(400, "POST", "/api/v1/stats/events", map[string]any{"events": []map[string]string{{"kind": "pv", "key": "<script>"}}})
+
+	type ps struct {
+		CreatedAt time.Time `json:"createdAt"`
+		Links     []struct {
+			ID    string    `json:"id"`
+			Total int64     `json:"total"`
+			First time.Time `json:"first"`
+			IPs   []struct {
+				IP     string `json:"ip"`
+				OK     int64  `json:"ok"`
+				Client string `json:"client"`
+			} `json:"ips"`
+		} `json:"links"`
+	}
+	got := decode[ps](t, c.want(200, "GET", "/api/v1/profiles/"+pid+"/stats", nil))
+	var link *struct {
+		ID    string    `json:"id"`
+		Total int64     `json:"total"`
+		First time.Time `json:"first"`
+		IPs   []struct {
+			IP     string `json:"ip"`
+			OK     int64  `json:"ok"`
+			Client string `json:"client"`
+		} `json:"ips"`
+	}
+	for i := range got.Links {
+		if got.Links[i].ID == l.ID {
+			link = &got.Links[i]
+		}
+	}
+	if got.CreatedAt.IsZero() || link == nil || link.Total != 2 || link.First.IsZero() || len(link.IPs) != 1 || link.IPs[0].OK != 2 || link.IPs[0].Client != "mihomo" {
+		t.Fatalf("配置统计：%+v", got)
+	}
+	reqs := decode[list[requestDTO]](t, c.want(200, "GET", "/api/v1/profiles/"+pid+"/links/"+l.ID+"/requests", nil))
+	if len(reqs.Items) != 2 || reqs.Items[0].Status != 304 || reqs.Items[1].Client != "clash-verge" {
+		t.Errorf("请求记录：%+v", reqs.Items)
+	}
+
+	type as struct {
+		Totals map[string]int64 `json:"totals"`
+		Probes []ipDTO          `json:"probes"`
+		Fields []countItem      `json:"fields"`
+	}
+	a := decode[as](t, c.want(200, "GET", "/api/v1/admin/stats", nil))
+	if a.Totals["visit"] != 1 || a.Totals["sub_all"] != 2 || a.Totals["login"] < 1 || len(a.Probes) != 1 {
+		t.Errorf("全站统计：%+v", a)
+	}
+
+	// 其他用户看不到
+	c.want(200, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
+	anon.want(201, "POST", "/api/v1/register", registerBody(t, anon, "bob", ""))
+	bob := h.client()
+	bob.login("bob", "a long enough password")
+	bob.want(404, "GET", "/api/v1/profiles/"+pid+"/stats", nil)
+	bob.want(404, "GET", "/api/v1/profiles/"+pid+"/links/"+l.ID+"/requests", nil)
+	bob.want(404, "GET", "/api/v1/admin/stats", nil)
+}

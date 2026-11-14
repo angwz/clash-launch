@@ -373,3 +373,21 @@ test("设置：「说明与建议」的点击范围", async ({ page, request, ba
   await open().click();
   await expect(open()).toHaveAttribute("aria-expanded", "true");
 });
+
+test("统计：配置链接页显示足迹与请求记录，管理页显示全站统计", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "统计");
+  const call = await apiAs(request, baseURL!);
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${profile}/links`, { note: "手机" });
+  await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.2.3" } });
+  await login(page);
+  await page.goto(`/profiles/${profile}/links`);
+  await expect(page.getByText("第一次被订阅")).toBeVisible();
+  await page.getByRole("button", { name: "请求记录" }).first().click();
+  await expect(page.locator(".lstats table").first()).toContainText("clash-verge");
+  await page.getByRole("tab", { name: "逐条记录" }).click();
+  await expect(page.locator(".lstats table").first()).toContainText("200");
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "统计" })).toBeVisible();
+  await expect(page.getByText("每天的订阅请求")).toBeVisible();
+});
