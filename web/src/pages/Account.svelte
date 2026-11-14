@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 账号与安全（第 14.1 节）：口令、安全问题、登录设备、界面偏好。
+  // 账号与安全（第 14.1 节）：口令、安全问题、登录设备与审计。个人界面偏好在「设置」页（反馈 #57）。
   // 通行密钥、两步验证与提醒邮件在各自的分节中（随 M5 后续步骤加入）。
   import { passwordOk } from "../lib/password";
   import PageHeader from "../components/PageHeader.svelte";
@@ -10,13 +10,10 @@
   import Alerts from "../components/account/Alerts.svelte";
   import AuditLog from "../components/AuditLog.svelte";
   import { api } from "../lib/api/client";
-  import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
-  import { i18n, LOCALES, t } from "../lib/i18n/i18n.svelte";
+  import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { session } from "../lib/session.svelte";
-  import { theme, type Theme } from "../lib/theme.svelte";
   import { toasts } from "../lib/toast.svelte";
-  import { prefs } from "../lib/prefs.svelte";
 
   interface SessionInfo {
     id: string;
@@ -54,11 +51,6 @@
   }
   $effect(() => void load());
 
-  async function setLang(l: "en" | "zh-CN") {
-    await i18n.set(l);
-    if (catalog.meta) await catalog.loadMessages();
-  }
-
   async function changePassword(e: SubmitEvent) {
     e.preventDefault();
     try {
@@ -89,14 +81,6 @@
     try {
       await api.del("/api/v1/account/sessions/" + s.id);
       await load();
-    } catch (e) {
-      toasts.push("err", errorText(e));
-    }
-  }
-
-  async function setFieldClick(on: boolean) {
-    try {
-      await prefs.save({ ...prefs.data, fieldClick: on ? undefined : false });
     } catch (e) {
       toasts.push("err", errorText(e));
     }
@@ -195,42 +179,15 @@
     <AuditLog scope="me" />
   </section>
 
-  <section class="panel box" aria-labelledby="ac-pref">
-    <h2 id="ac-pref">{t("account.preferences")}</h2>
-    <div class="grid two">
-      <div>
-        <label class="label" for="ac-lang">{t("shell.language")}</label>
-        <select id="ac-lang" class="select" value={i18n.locale} onchange={(e) => void setLang(e.currentTarget.value as "en" | "zh-CN")}>
-          {#each LOCALES as l (l.id)}<option value={l.id}>{l.label}</option>{/each}
-        </select>
-      </div>
-      <div>
-        <label class="label" for="ac-theme">{t("account.theme")}</label>
-        <select id="ac-theme" class="select" value={theme.value} onchange={(e) => theme.apply(e.currentTarget.value as Theme)}>
-          <option value="system">{t("theme.system")}</option>
-          <option value="light">{t("theme.light")}</option>
-          <option value="dark">{t("theme.dark")}</option>
-        </select>
-      </div>
-    </div>
-    <p class="hint">{t("account.local_hint")}</p>
-    <!-- 以下偏好保存在账号中（反馈 #50） -->
-    <label class="check-row">
-      <input id="ac-fieldclick" type="checkbox" checked={prefs.data.fieldClick !== false} onchange={(e) => void setFieldClick(e.currentTarget.checked)} />
-      <span>{t("account.field_click")}</span>
-    </label>
-  </section>
 </div>
 
 <style>
-  .check-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-block-start: var(--space-2);
-  }
-  .page {
+  .page > :global(*) {
     max-inline-size: 760px;
+  }
+  /* 与其他页面同一左缘（1120 居中），内容本身较窄（760）（反馈 #56） */
+  .page {
+    max-inline-size: 1120px;
     margin-inline: auto;
     padding: var(--space-8) var(--space-6);
   }
@@ -246,9 +203,6 @@
   .grid {
     display: grid;
     gap: var(--space-3);
-  }
-  .grid.two {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
   .row {
     display: flex;

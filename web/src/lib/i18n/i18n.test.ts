@@ -33,6 +33,8 @@ const dynamic: Record<string, string[]> = {
   "palette.kind.": ["page", "field", "command"],
   "mode.": ["inline", "provider"],
   "profiles.nodes_kind.": ["subscription", "batch"],
+  "settings.field_click.": ["card", "text", "button"],
+  "settings.field_click_hint.": ["card", "text", "button"],
   "empty_groups.": ["prune", "fallback", "keep"],
   "empty_groups.hint.": ["prune", "fallback", "keep"],
   // 与后端写入的审计动作一致（components/AuditLog.svelte）

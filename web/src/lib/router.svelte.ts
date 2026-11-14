@@ -23,6 +23,7 @@ export type RouteName =
   | "account"
   | "admin"
   | "help"
+  | "settings"
   | "notfound";
 
 const table: [RouteName, string][] = [
@@ -42,6 +43,7 @@ const table: [RouteName, string][] = [
   ["account", "/account"],
   ["admin", "/admin"],
   ["help", "/help"],
+  ["settings", "/settings"],
 ];
 
 /** 公开页面：未登录也可以访问。 */

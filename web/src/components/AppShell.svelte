@@ -10,9 +10,9 @@
   import { theme } from "../lib/theme.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
   import Menu from "./Menu.svelte";
-  import OrderDialog from "./OrderDialog.svelte";
   import Emoji, { type EmojiName } from "./Emoji.svelte";
-  import { ordered, prefs } from "../lib/prefs.svelte";
+  import { prefs } from "../lib/prefs.svelte";
+  import { mainNav } from "../lib/nav";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
 
@@ -23,28 +23,7 @@
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
-  // 调整菜单顺序（反馈 #37）：分节列表来自目录，打开时才加载
-  let orderOpen = $state(false);
-  async function openOrder() {
-    try {
-      await catalog.load();
-      orderOpen = true;
-    } catch (e) {
-      toasts.push("err", errorText(e));
-    }
-  }
-  const sectionItems = $derived(
-    ordered((catalog.meta?.pack.nav ?? []).filter((s) => !s.generated), (s) => s.id, prefs.data.sections).map((s) => ({ id: s.id, label: catalog.navTitle(s) })),
-  );
-
-  const defaultNav = $derived<{ id: string; href: string; label: string; icon: IconName; active: boolean }[]>([
-    { id: "profiles", href: "/", label: t("nav.profiles"), icon: "layers", active: ["home", "profile", "profile-links", "profile-history", "welcome"].includes(router.route.name) },
-    { id: "sources", href: "/sources", label: t("nav.sources"), icon: "server", active: router.route.name.startsWith("source") },
-    { id: "rules", href: "/rules", label: t("nav.rules"), icon: "rules", active: router.route.name.startsWith("rule") },
-    { id: "help", href: "/help", label: t("nav.help"), icon: "file", active: router.route.name === "help" },
-    ...(session.isAdmin ? [{ id: "admin", href: "/admin", label: t("nav.admin"), icon: "shield" as IconName, active: router.route.name === "admin" }] : []),
-  ]);
-  const nav = $derived(ordered(defaultNav, (n) => n.id, prefs.data.nav));
+  const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
 
@@ -140,8 +119,8 @@
           <strong>{session.user?.username}</strong>
           <span class="muted">{t("role." + (session.user?.role ?? "user"))}</span>
         </div>
-        <a href="/account" role="menuitem" onclick={close}><Icon name="settings" size={15} />{t("nav.account")}</a>
-        <button type="button" role="menuitem" onclick={() => { close(); void openOrder(); }}><Icon name="rules" size={15} />{t("order.title")}</button>
+        <a href="/account" role="menuitem" onclick={close}><Icon name="shield" size={15} />{t("nav.account")}</a>
+        <a href="/settings" role="menuitem" onclick={close}><Icon name="settings" size={15} />{t("nav.settings")}</a>
         <button type="button" role="menuitem" onclick={() => { close(); void logout(); }}><Icon name="logout" size={15} />{t("shell.logout")}</button>
       {/snippet}
     </Menu>
@@ -173,8 +152,6 @@
   {#if shell.drawer}
     <button class="scrim" type="button" aria-label={t("common.close")} onclick={() => (shell.drawer = false)}></button>
   {/if}
-
-  <OrderDialog bind:open={orderOpen} nav={nav.map((n) => ({ id: n.id, label: n.label }))} sections={sectionItems} />
 
   <main id="main" class="main" tabindex="-1">
     {@render children()}
@@ -212,7 +189,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding-inline: var(--space-3);
+    /* 起始内边距让 logo 与下方侧栏图标居中对齐（侧栏 8px + 菜单项 12px，图标 17px、logo 26px） */
+    padding-inline: calc(var(--space-2) + var(--space-3) - 4px) var(--space-3);
     border-block-end: 1px solid var(--border);
     background: var(--bg-raised);
     min-inline-size: 0;

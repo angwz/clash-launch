@@ -34,7 +34,7 @@ export interface MetaField {
   hasDetail?: boolean;
   /** guide.suggest：字段级建议值（反馈 #27） */
   suggest?: unknown;
-  /** guide 的依据：official 官方文档明确推荐或警告；practice 通行做法 */
+  /** guide 的依据：official 官方文档明确推荐或警告；practice 常见做法 */
   basis?: "official" | "practice";
 }
 

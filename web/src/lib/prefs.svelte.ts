@@ -5,8 +5,16 @@ import { api } from "./api/client";
 export interface PrefsData {
   nav?: string[];
   sections?: string[];
-  /** 点击字段卡片左侧说明区域展开「说明与建议」；默认开（反馈 #50） */
-  fieldClick?: boolean;
+  /** 「说明与建议」的点击范围（反馈 #50、#55）：button 只有按钮 | text 说明文字 | card 整张卡片（默认）。
+   *  早期版本存的是布尔值：false 视为 button。 */
+  fieldClick?: FieldClickMode | boolean;
+}
+
+export type FieldClickMode = "button" | "text" | "card";
+
+export function fieldClickMode(v: PrefsData["fieldClick"]): FieldClickMode {
+  if (v === false) return "button";
+  return v === "button" || v === "text" ? v : "card";
 }
 
 /** 按 order 排序；不在 order 中的项保持原相对顺序排在后面。纯函数，便于测试。 */

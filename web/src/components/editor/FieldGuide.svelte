@@ -100,7 +100,7 @@
     background: var(--bg-hover);
     color: var(--fg-muted);
   }
-  /* 官方依据用强调色，通行做法用中性色：两者在视觉上明确区分 */
+  /* 官方依据用强调色，常见做法用中性色：两者在视觉上明确区分 */
   [data-basis="official"] {
     background: var(--accent-soft);
     color: var(--accent-fg);

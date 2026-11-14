@@ -304,8 +304,10 @@ test("调整菜单顺序：保存到账号，刷新后保持", async ({ page }) 
   test.skip(test.info().project.name === "mobile", "侧栏在手机上是抽屉");
   await login(page);
   await page.goto("/");
+  // 用户菜单 → 设置 → 调整顺序（反馈 #57）
   await page.locator("header.topbar").getByRole("button", { name: "admin" }).click();
-  await page.getByRole("menuitem", { name: "调整菜单顺序" }).click();
+  await page.getByRole("menuitem", { name: "设置" }).click();
+  await page.getByRole("button", { name: "调整顺序…" }).click();
   const dlg = page.locator("dialog[open]");
   // 把「帮助」上移到第一位
   for (let i = 0; i < 3; i++) await dlg.getByRole("button", { name: "上移 帮助" }).click();
@@ -314,8 +316,7 @@ test("调整菜单顺序：保存到账号，刷新后保持", async ({ page }) 
   await page.reload();
   await expect(page.locator("nav.sidebar li").first()).toContainText("帮助");
   // 恢复默认
-  await page.locator("header.topbar").getByRole("button", { name: "admin" }).click();
-  await page.getByRole("menuitem", { name: "调整菜单顺序" }).click();
+  await page.getByRole("button", { name: "调整顺序…" }).click();
   await page.locator("dialog[open]").getByRole("button", { name: "恢复默认顺序" }).click();
   await expect(page.locator("nav.sidebar li").first()).toContainText("配置");
 });
@@ -347,4 +348,28 @@ test("存为模板，新建配置时从默认模板开始并粘贴节点", async
   else await page.locator(".preview-toggle").click();
   await expect(page.locator(".yaml").first()).toContainText("模板测试节点");
   await expect(page.locator(".yaml").first()).toContainText("mixed-port");
+});
+
+test("设置：「说明与建议」的点击范围", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "点击范围");
+  await login(page);
+  const card = () => page.locator("#f-allow-lan");
+  const open = () => card().locator("button.guide");
+  // 默认：点卡片空白处即可展开，点开关不会展开
+  await page.goto(`/profiles/${profile}?section=inbound`);
+  await card().click({ position: { x: 300, y: 70 } });
+  await expect(open()).toHaveAttribute("aria-expanded", "true");
+  await card().locator(".title").click();
+  await expect(open()).toHaveAttribute("aria-expanded", "false");
+  await card().getByRole("switch").click();
+  await expect(open()).toHaveAttribute("aria-expanded", "false");
+  // 改为只用按钮
+  await page.goto("/settings");
+  await page.getByLabel(/只点击/).check();
+  await page.goto(`/profiles/${profile}?section=inbound`);
+  await card().locator(".title").click();
+  await expect(open()).toHaveAttribute("aria-expanded", "false");
+  await open().click();
+  await expect(open()).toHaveAttribute("aria-expanded", "true");
 });

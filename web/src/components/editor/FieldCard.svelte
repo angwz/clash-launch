@@ -11,7 +11,7 @@
   import { t } from "../../lib/i18n/i18n.svelte";
   import { slide } from "svelte/transition";
   import { dur } from "../../lib/motion";
-  import { prefs } from "../../lib/prefs.svelte";
+  import { fieldClickMode, prefs } from "../../lib/prefs.svelte";
 
   let {
     field,
@@ -39,11 +39,15 @@
   const effective = $derived(set ? editor.value(path) : field.default);
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   let expanded = $state(false);
-  const clickExpand = $derived(prefs.data.fieldClick !== false);
-  function onTextClick(e: MouseEvent) {
-    if (!clickExpand) return;
-    if ((e.target as HTMLElement).closest("a, button, input, select, textarea")) return;
+  // 「说明与建议」的点击范围（反馈 #50、#55），由用户在设置中选择：只有按钮 / 说明文字 / 整张卡片（默认）。
+  // 控件、链接、按钮、展开后的说明面板与正在选中的文字始终不触发；键盘与读屏器使用按钮。
+  const clickMode = $derived(fieldClickMode(prefs.data.fieldClick));
+  function onAreaClick(e: MouseEvent, area: "text" | "card") {
+    if (clickMode === "button" || (clickMode === "text" && area === "card")) return;
+    const el = e.target as HTMLElement;
+    if (el.closest("a, button, input, select, textarea, label, [role=switch], [role=radio], .ctl-inline, .ctl-block, .guide-wrap")) return;
     if (window.getSelection()?.toString()) return;
+    e.stopPropagation();
     expanded = !expanded;
   }
   let groupOpen = $state(false);
@@ -98,13 +102,14 @@
     {/if}
   </section>
 {:else}
-  <article class="card" class:is-set={set} class:is-raw={raw} class:inactive id={"f-" + pathKey} data-path={pathKey} title={inactive ? t("field.inactive_hint") : undefined}>
+  <!-- 整张卡片作为更大的鼠标目标（clickMode = card）；不是键盘交互控件 -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <article class="card" class:clickable={clickMode === "card"} class:is-set={set} class:is-raw={raw} class:inactive id={"f-" + pathKey} data-path={pathKey} title={inactive ? t("field.inactive_hint") : undefined} onclick={(e) => onAreaClick(e, "card")}>
     <div class="head">
-      <!-- 点击左侧说明区域展开或收起「说明与建议」（反馈 #50）。键盘与读屏器使用下方的按钮，这里只是更大的鼠标目标；
-           选中文字、点击链接或徽章中的按钮时不触发。可在账号设置中关闭。 -->
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="text" class:clickable={clickExpand} onclick={onTextClick}>
+      <div class="text" class:clickable={clickMode !== "button"} onclick={(e) => onAreaClick(e, "text")}>
         <div class="title-row">
           <span class="title" id={labelId}>{catalog.title(field)}</span>
           <code class="key ltr">{field.key}</code>
@@ -130,14 +135,14 @@
     {/if}
 
     {#if expanded}
-      <div transition:slide={{ duration: dur(200) }}>
+      <div class="guide-wrap" transition:slide={{ duration: dur(200) }}>
         <FieldGuide {field} {path} />
       </div>
     {/if}
 
     <div class="foot">
       <button type="button" class="link guide" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
-        <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />{expanded ? t("field.less") : t("field.more")}
+        {expanded ? t("field.less") : t("field.more")}<Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
       </button>
       {#if field.suggest !== undefined}
         <!-- 建议值（反馈 #27）：未采用时点击即写入；已是建议值时只显示勾 -->
@@ -235,8 +240,13 @@
     display: grid;
     gap: 2px;
   }
-  .text.clickable {
+  .text.clickable,
+  .card.clickable {
     cursor: pointer;
+  }
+  /* 卡片内的说明面板与控件保持各自的光标 */
+  .card.clickable :global(.guide-wrap) {
+    cursor: auto;
   }
   .title-row {
     display: flex;
@@ -255,7 +265,7 @@
     color: var(--fg-muted);
     font-size: var(--text-sm);
   }
-  /* 建议值：官方依据用强调色，通行做法用中性色 */
+  /* 建议值：官方依据用强调色，常见做法用中性色 */
   .sugg {
     display: inline-flex;
     align-items: center;

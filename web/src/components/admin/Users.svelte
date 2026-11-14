@@ -100,7 +100,7 @@
 </script>
 
 <div class="wrap">
-  <table class="table">
+  <table class="table flush">
     <thead>
       <tr>
         <th>{t("field.username")}</th>

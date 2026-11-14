@@ -169,7 +169,7 @@
       {/if}
 
       {#if invites.length}
-        <table class="table">
+        <table class="table flush">
           <thead>
             <tr>
               <th>{t("admin.col_note")}</th>

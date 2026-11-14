@@ -319,9 +319,19 @@
   .doc ol {
     margin-block: var(--space-2);
   }
+  /* 列表标记可见并悬挂在正文左缘之外的缩进里：列表文字与段落的对齐关系一目了然（反馈 #56） */
   .doc ul,
   .doc ol {
     padding-inline-start: 1.4em;
+  }
+  .doc ul {
+    list-style: disc;
+  }
+  .doc ol {
+    list-style: decimal;
+  }
+  .doc li::marker {
+    color: var(--fg-subtle);
   }
   .doc li {
     margin-block: 2px;

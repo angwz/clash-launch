@@ -11,6 +11,10 @@ import { toasts } from "./toast.svelte";
 // 停止编辑后多久自动保存（毫秒）
 const AUTOSAVE_DELAY = 1000;
 
+// 进行中的保存，按配置 ID 记录（反馈 #53）。离开编辑器时会发出最后一次自动保存；若马上又打开同一份配置，
+// 新的编辑器必须等这次保存落地再读取，否则读到旧版本，下一次保存就会因版本号过期被拒绝（412）。
+const inflight = new Map<string, Promise<unknown>>();
+
 export class EditorState {
   profile = $state.raw<Profile | null>(null);
   rev = $state(0);
@@ -36,6 +40,8 @@ export class EditorState {
   #abort: AbortController | undefined;
 
   async load(id: string): Promise<void> {
+    // 上一个编辑器的保存失败时已由它自己提示；这里只需要等它结束
+    await inflight.get(id)?.catch(() => undefined);
     const [p, sources, rules] = await Promise.all([
       api.get<Profile>("/api/v1/profiles/" + encodeURIComponent(id)),
       listAll<Source>("/api/v1/sources"),
@@ -191,7 +197,11 @@ export class EditorState {
         if (this.check === "passed") toasts.push("ok", t("check.celebrate"), { emoji: "party", key: "check" });
       }
     } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
+      // 被新的请求取代：内核检查被中止时恢复为未检查，否则检查按钮会一直停在「检查中」而不可点击（反馈 #53）
+      if (e instanceof DOMException && e.name === "AbortError") {
+        if (kernel && this.check === "running") this.check = "idle";
+        return;
+      }
       this.error = errorText(e);
       if (kernel) this.check = "error";
     } finally {
@@ -214,7 +224,11 @@ export class EditorState {
     const text = this.text;
     const before = this.#before;
     try {
-      const p = await api.put<Profile>("/api/v1/profiles/" + this.profile.id, { doc: text, autosave: true }, { ifMatch: this.profile.version });
+      const id = this.profile.id;
+      const req = api.put<Profile>("/api/v1/profiles/" + id, { doc: text, autosave: true }, { ifMatch: this.profile.version });
+      inflight.set(id, req);
+      void req.finally(() => inflight.get(id) === req && inflight.delete(id)).catch(() => undefined);
+      const p = await req;
       // 服务端保存后重新渲染；保留本地文档对象，只更新版本与状态。
       this.profile = p;
       this.savedText = text;
@@ -222,11 +236,19 @@ export class EditorState {
       if (opts.undoable !== false && before !== null && before !== text) {
         toasts.push("ok", t("editor.autosaved"), { key: "autosave", action: { label: t("editor.undo"), run: () => void this.undo(before) } });
       }
-      void this.runPreview(false);
+      // 内核检查进行中时不发预览：内容相同，发了反而会中止检查
+      if (this.check !== "running") void this.runPreview(false);
       return true;
     } catch (e) {
-      if (e instanceof ApiError && e.status === 412) toasts.push("err", t("editor.conflict"));
-      else if (e instanceof ApiError && e.status === 422) toasts.push("err", t("editor.invalid", { detail: e.detail }));
+      if (e instanceof ApiError && e.status === 412) {
+        try {
+          return await this.#conflict(text);
+        } catch (e2) {
+          toasts.push("err", errorText(e2));
+          return false;
+        }
+      }
+      if (e instanceof ApiError && e.status === 422) toasts.push("err", t("editor.invalid", { detail: e.detail }));
       else toasts.push("err", errorText(e));
       return false;
     } finally {
@@ -236,6 +258,24 @@ export class EditorState {
         void this.save(opts);
       }
     }
+  }
+
+  /**
+   * 版本冲突（412）：读取服务端的当前版本。内容与本地相同（例如上一个页面的保存刚落地）时直接采用它的版本号；
+   * 确实被别处改过时提示，并提供「载入最新版本」（会丢弃本地尚未保存的修改）。
+   */
+  async #conflict(text: string): Promise<boolean> {
+    const latest = await api.get<Profile>("/api/v1/profiles/" + this.profile!.id);
+    if (latest.doc === text) {
+      this.profile = latest;
+      this.savedText = text;
+      return true;
+    }
+    toasts.push("err", t("editor.conflict"), {
+      key: "conflict",
+      action: { label: t("editor.load_latest"), run: () => { this.#adopt(latest); void this.runPreview(false); } },
+    });
+    return false;
   }
 
   /** 撤销：回到本轮编辑之前的已保存内容，并立即保存。 */

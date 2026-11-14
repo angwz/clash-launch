@@ -55,6 +55,7 @@
 | 空策略组处理 | `internal/ruleset/prune.go`、`internal/engine/build.go`、`web/src/components/editor/SourcesPanel.svelte` | `TestPruneEmpty*`、golden `testdata/workspace/empty-groups.*`（含内核检查） | [rules](../design/rules.md) |
 | 状态 emoji | `web/src/components/Emoji.svelte`、`web/src/assets/emoji/`（来源与许可见其中 README） | 前端 check、e2e | [feedback](feedback.md) #44 |
 | 配置模板与新建配置 | `internal/store/sql.go`（`templates`）、`internal/api/templates.go`、`web/src/lib/profiles.ts`、`web/src/pages/Profiles.svelte`、`web/src/components/editor/SaveTemplateDialog.svelte` | `TestTemplates`、`TestOwnerIsolationAllRoutes`、`profiles.test.ts`、e2e「存为模板」 | [feedback](feedback.md) #51、#52 |
+| 设置页（个人偏好） | `web/src/pages/Settings.svelte`、`web/src/lib/nav.ts`、`web/src/lib/prefs.svelte.ts`、`internal/api/prefs.go` | `TestPrefsFieldClick`、e2e「点击范围」「调整菜单顺序」 | [feedback](feedback.md) #57 |
 | 口令、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |

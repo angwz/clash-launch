@@ -207,13 +207,12 @@
           {editor.profile.name}
         </strong>
         <div class="profile-links">
-          <a href={"/profiles/" + editor.profile.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
+          <a href={"/profiles/" + editor.profile.id + "/links"}>{t("profiles.links")}</a>
         </div>
       </div>
       <ul>
         <li>
           <button type="button" class:active={section === "sources" && !rawOpen} aria-current={section === "sources" && !rawOpen ? "true" : undefined} onclick={() => select("sources")}>
-            <Icon name="server" size={15} />
             <span class="t">{t("editor.sources_rules")}</span>
             <span class="n">{editor.sourceRefs.length || ""}</span>
           </button>
@@ -234,22 +233,22 @@
       </ul>
       <!-- 低频与兜底功能收在末端，默认收起（反馈 #32、#43、#49）：本分区说明、历史版本、直接编辑 YAML -->
       <details class="adv" open={rawOpen || undefined}>
-        <summary class="subtle">{t("editor.advanced")}</summary>
+        <summary class="subtle"><span>{t("editor.advanced")}</span><Icon name="chevron-down" size={12} /></summary>
       <ul>
         <li>
-          <button type="button" onclick={() => (savingTemplate = true)}><Icon name="copy" size={15} /><span class="t">{t("templates.save_title")}</span></button>
+          <button type="button" onclick={() => (savingTemplate = true)}><span class="t">{t("templates.save_title")}</span></button>
         </li>
         {#if current}
           <li>
-            <a class="item" href={"/help?tab=wiki&s=" + encodeURIComponent(current.id)}><Icon name="file" size={15} /><span class="t">{t("editor.section_doc")}</span></a>
+            <a class="item" href={"/help?tab=wiki&s=" + encodeURIComponent(current.id)}><span class="t">{t("editor.section_doc")}</span></a>
           </li>
         {/if}
         <li>
-          <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><Icon name="history" size={15} /><span class="t">{t("profiles.history")}</span></a>
+          <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><span class="t">{t("profiles.history")}</span></a>
         </li>
         <li>
           <button type="button" class:active={rawOpen} aria-current={rawOpen ? "true" : undefined} onclick={() => openRaw()}>
-            <Icon name="bolt" size={15} /><span class="t">{t("raw.title")}</span>
+            <span class="t">{t("raw.title")}</span>
             {#if editor.raw.trim()}<span class="raw-dot" title={t("raw.indicator")}><Icon name="bolt" size={11} /></span>{/if}
           </button>
         </li>
@@ -384,12 +383,26 @@
     margin-block-start: auto;
     padding-block-start: var(--space-4);
   }
+  /* 去掉默认三角标记，箭头放在文字之后：文字与上方各项左缘对齐（反馈 #56） */
   .adv summary {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding-block: var(--space-1);
     padding-inline: var(--space-2);
     font-size: var(--text-xs);
     cursor: pointer;
-    list-style-position: inside;
+    list-style: none;
+  }
+  .adv summary::-webkit-details-marker {
+    display: none;
+  }
+  .adv summary :global(.icon) {
+    transform: rotate(-90deg);
+    transition: transform var(--dur-fast) var(--ease);
+  }
+  .adv[open] summary :global(.icon) {
+    transform: none;
   }
   .adv summary:hover {
     color: var(--fg-muted);
@@ -473,7 +486,8 @@
     flex: 1;
     inline-size: 100%;
     max-inline-size: var(--content-max);
-    margin-inline: auto;
+    /* 左对齐而不是居中：切换「节点与分流」与各设置分区时内容的左缘不跳动（反馈 #56） */
+    margin-inline: 0 auto;
     padding: var(--space-6) var(--space-6) var(--space-10);
   }
 

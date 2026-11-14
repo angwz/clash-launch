@@ -648,3 +648,21 @@ func TestTemplates(t *testing.T) {
 	c.want(204, "DELETE", "/api/v1/templates/"+b.ID, nil)
 	c.want(404, "DELETE", "/api/v1/templates/"+b.ID, nil)
 }
+
+// 「说明与建议」点击范围的偏好（反馈 #55）：接受三种取值，兼容早期保存的布尔值。
+func TestPrefsFieldClick(t *testing.T) {
+	h := newHarness(t, nil)
+	c, _ := h.setup()
+	c.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"fieldClick": "text"})
+	if b := string(c.want(200, "GET", "/api/v1/account/prefs", nil)); !strings.Contains(b, `"fieldClick":"text"`) {
+		t.Errorf("读回：%s", b)
+	}
+	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"fieldClick": "everywhere"})
+	u, _ := h.db.Users().ByUsername(context.Background(), "admin")
+	if err := h.db.Users().SetPrefs(context.Background(), u.ID, []byte(`{"fieldClick":false}`)); err != nil {
+		t.Fatal(err)
+	}
+	if b := string(c.want(200, "GET", "/api/v1/account/prefs", nil)); !strings.Contains(b, `"fieldClick":"button"`) {
+		t.Errorf("旧的布尔值应读作 button：%s", b)
+	}
+}

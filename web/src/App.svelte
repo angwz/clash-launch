@@ -33,6 +33,7 @@
     account: () => import("./pages/Account.svelte"),
     admin: () => import("./pages/Admin.svelte"),
     help: () => import("./pages/Help.svelte"),
+    settings: () => import("./pages/Settings.svelte"),
     notfound: () => import("./pages/NotFound.svelte"),
   };
 
@@ -57,6 +58,7 @@
       { id: "page.rules", kind: "page", title: t("nav.rules"), icon: "rules", run: () => router.go("/rules") },
       { id: "page.help", kind: "page", title: t("nav.help"), icon: "file", run: () => router.go("/help") },
       { id: "page.account", kind: "page", title: t("nav.account"), icon: "user", run: () => router.go("/account") },
+      { id: "page.settings", kind: "page", title: t("nav.settings"), icon: "settings", run: () => router.go("/settings") },
       ...(session.isAdmin ? [{ id: "page.admin", kind: "page" as const, title: t("nav.admin"), icon: "shield" as const, run: () => router.go("/admin") }] : []),
       { id: "cmd.theme.light", kind: "command", title: t("palette.theme", { theme: t("theme.light") }), icon: "sun", run: () => theme.apply("light") },
       { id: "cmd.theme.dark", kind: "command", title: t("palette.theme", { theme: t("theme.dark") }), icon: "moon", run: () => theme.apply("dark") },

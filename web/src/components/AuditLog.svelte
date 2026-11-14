@@ -67,7 +67,7 @@
   {#if items.length === 0 && !loading}
     <p class="muted empty">{t("audit.empty")}</p>
   {:else}
-    <table class="table">
+    <table class="table flush">
       <thead>
         <tr>
           <th>{t("audit.time")}</th>

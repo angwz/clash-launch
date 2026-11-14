@@ -341,6 +341,16 @@ samp {
   border-block-end: 0;
 }
 
+/* 放在有内边距的面板里、上方有标题时：首末列贴齐面板内容的左右缘，与标题对齐（反馈 #56） */
+.table.flush th:first-child,
+.table.flush td:first-child {
+  padding-inline-start: 0;
+}
+.table.flush th:last-child,
+.table.flush td:last-child {
+  padding-inline-end: 0;
+}
+
 /* —— 内容出现：切换页面与分节时淡入并轻微上移（减少动画模式下只剩短暂淡入） —— */
 @keyframes enter {
   from {

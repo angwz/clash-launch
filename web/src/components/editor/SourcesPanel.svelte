@@ -135,7 +135,7 @@
     </ol>
     <p id="src-help" class="hint">{t("editor.sources_help")}</p>
     <!-- 两种写法的区别（反馈 #39） -->
-    <p class="hint mode-explain"><Icon name="info" size={13} />{t("mode.explain")}{#if policy.locked} {t("mode.locked_hint")}{/if}</p>
+    <p class="hint mode-explain">{t("mode.explain")}{#if policy.locked} {t("mode.locked_hint")}{/if}</p>
   {/if}
 
   <div class="add">
@@ -294,14 +294,6 @@
     gap: 4px;
     color: var(--fg-muted);
     font-size: var(--text-sm);
-  }
-  .mode-explain {
-    display: flex;
-    gap: 6px;
-  }
-  .mode-explain :global(.icon) {
-    flex: none;
-    margin-block-start: 3px;
   }
   .mode {
     display: inline-flex;
