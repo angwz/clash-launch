@@ -110,7 +110,7 @@ func TestOwnerIsolationAndCrypto(t *testing.T) {
 	// 密文被搬到另一行后无法解密（AAD 绑定行 ID）
 	other := &Source{Name: "B", Kind: "single", Content: []byte("x")}
 	_ = d.Sources().Create(ctx, alice.ID, other)
-	if _, err := d.root.Exec("UPDATE sources SET url_enc=? WHERE id=?", raw, other.ID); err != nil {
+	if _, err := d.exec(ctx, "UPDATE sources SET url_enc=? WHERE id=?", raw, other.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := d.Sources().Get(ctx, alice.ID, other.ID); !errors.Is(err, ErrDecrypt) {
