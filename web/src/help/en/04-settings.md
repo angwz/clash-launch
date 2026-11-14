@@ -12,6 +12,8 @@
 
 Hover a field and the preview highlights where it lands in the YAML.
 
+When a section with a master switch (DNS, TUN, sniffer, NTP and so on) is off, the whole section is left out of the served config; the preview still shows it as comments so your settings stay visible.
+
 ## Settings people change most
 
 - **Inbound → Mixed port**: the port for browsers and the system proxy, commonly 7890.

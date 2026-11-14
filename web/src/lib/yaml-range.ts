@@ -18,7 +18,9 @@ function keyOf(line: string): string | null {
   return m[2] ?? m[3] ?? m[1]!;
 }
 
-export function yamlRange(lines: string[], path: string): LineRange | null {
+export function yamlRange(raw: string[], path: string): LineRange | null {
+  // 未启用的分节在预览中整段写成注释（反馈 #58）：去掉行首的「# 」后同样可以定位
+  const lines = raw.map((l) => (l.startsWith("# ") ? l.slice(2) : l === "#" ? "" : l));
   const segs = path.split(".").filter(Boolean);
   if (!segs.length) return null;
   let lo = 0;

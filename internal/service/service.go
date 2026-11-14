@@ -192,6 +192,7 @@ func fromSourceSnap(key, owner string, s *source.Snapshot) *store.Snapshot {
 // Result 是一次渲染（或预览）的结果。
 type Result struct {
 	YAML        []byte               `json:"yaml"`
+	Preview     []byte               `json:"-"` // 界面预览：未启用的分节写成注释（反馈 #58）
 	Diagnostics []diag.Diagnostic    `json:"diagnostics"`
 	Touched     []string             `json:"touched"`
 	Kernel      kernel.Result        `json:"kernel"`
@@ -318,7 +319,7 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 		latest = built.Updated
 	}
 	out, rerr := engine.Render(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Diagnostics: append(ds.Items(), built.Diagnostics...), Updated: latest})
-	res := &Result{YAML: out.YAML, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds}
+	res := &Result{YAML: out.YAML, Preview: out.Preview, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds}
 	if rerr != nil {
 		res.Fatal = rerr.Error()
 		return res, nil

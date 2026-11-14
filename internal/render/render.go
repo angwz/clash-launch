@@ -22,6 +22,7 @@ import (
 
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/diag"
+	"github.com/angwz/clash-launch/internal/yamlx"
 )
 
 // HeaderField 是文件头的一行：# KEY: value。
@@ -35,7 +36,13 @@ type Options struct {
 	ProxiesFlow bool
 	// LongLine 超过该字符数的行给出警告；0 表示 4096。
 	LongLine int
+	// Commented 是未启用、已从配置中移除的顶层分节（反馈 #58）。只用于预览：按键序放回原位置，
+	// 整段写成注释，便于看到这些设置仍然保存着；自检只针对未注释的部分，下发的配置不传入此项。
+	Commented map[string]*yaml.Node
 }
+
+// commentNote 是注释分节上方的说明行。
+const commentNote = "# 未启用，不写入下发的配置（disabled, not served）"
 
 // Render 排序、序列化并自检。返回的文本以单个换行结尾、只含 LF、缩进 2 个空格。
 // 自检失败时返回错误，诊断中给出定位（RenderSelfCheck）。
@@ -48,19 +55,33 @@ func Render(root *yaml.Node, opt Options, out *diag.List) ([]byte, error) {
 		top = opt.Catalog.Root
 	}
 	tree := Order(root, top)
-	e := &emitter{flowProxies: opt.ProxiesFlow, cache: map[string]string{}}
+	// 输出用的树：正常部分加上注释分节，一起按目录键序排列；自检仍用 tree（注释分节解析后不存在）
+	display := tree
+	if len(opt.Commented) > 0 {
+		all := yamlx.Map()
+		all.Content = append(all.Content, root.Content...)
+		for k, v := range opt.Commented {
+			yamlx.Set(all, k, v)
+		}
+		display = Order(all, top)
+	}
+	e := &emitter{flowProxies: opt.ProxiesFlow, cache: map[string]string{}, commented: opt.Commented}
 	for _, h := range opt.Header {
 		e.b.WriteString("# " + strings.ToUpper(h.Key) + ": " + oneLine(h.Value) + "\n")
 	}
 	if len(opt.Header) > 0 {
 		e.b.WriteString("\n")
 	}
-	if len(tree.Content) == 0 {
-		// 什么都没有设置（例如刚新建的空配置）：写成空映射，内核按全部默认值运行。
-		// 不写的话输出只剩文件头与空行，既不是以单个换行结尾，也解析不出顶层映射。
-		e.b.WriteString("{}\n")
-	} else if err := e.root(tree); err != nil {
+	if err := e.root(display); err != nil {
 		return nil, err
+	}
+	if len(tree.Content) == 0 {
+		// 什么都没有写入（例如刚新建的空配置，或只剩注释分节）：写成空映射，内核按全部默认值运行。
+		// 不写的话输出没有顶层映射，也不以单个换行结尾。
+		if len(display.Content) > 0 {
+			e.b.WriteByte('\n')
+		}
+		e.b.WriteString("{}\n")
 	}
 	text := e.b.Bytes()
 	if err := SelfCheck(text, tree, out); err != nil {
@@ -135,6 +156,25 @@ type emitter struct {
 	flowProxies bool
 	spaced      bool              // 顶层列表的条目之间空一行（只作用于该列表的直接条目）
 	cache       map[string]string // 普通标量的解析结果缓存：值 → 规范标签
+	commented   map[string]*yaml.Node
+}
+
+// commentedPair 把一个顶层分节整段写成注释：先在独立的缓冲中正常输出，再逐行加「# 」。
+// 注释分节不参与自检，正文内容与正常输出时完全相同，取消注释即可恢复。
+func (e *emitter) commentedPair(k, v *yaml.Node) error {
+	sub := &emitter{flowProxies: e.flowProxies, cache: e.cache}
+	if err := sub.pair(k, v, 0, false); err != nil {
+		return err
+	}
+	e.b.WriteString(commentNote + "\n")
+	for _, line := range strings.Split(strings.TrimSuffix(sub.b.String(), "\n"), "\n") {
+		if line == "" {
+			e.b.WriteString("#\n")
+			continue
+		}
+		e.b.WriteString("# " + line + "\n")
+	}
+	return nil
 }
 
 func (e *emitter) root(m *yaml.Node) error {
@@ -148,6 +188,14 @@ func (e *emitter) root(m *yaml.Node) error {
 		flowItems := e.flowProxies && k.Value == "proxies" && v.Kind == yaml.SequenceNode
 		// 节点与策略组是多行条目，条目之间空一行，与官方示例一致；流式单行时不空行。
 		e.spaced = !flowItems && (k.Value == "proxies" || k.Value == "proxy-groups") && v.Kind == yaml.SequenceNode
+		// 注释分节的键不会同时出现在正常部分（调用方已把它们从配置中移除），按键名识别即可
+		if _, ok := e.commented[k.Value]; ok {
+			e.spaced = false
+			if err := e.commentedPair(k, v); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := e.pair(k, v, 0, flowItems); err != nil {
 			return err
 		}

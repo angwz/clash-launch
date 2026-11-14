@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"net"
@@ -703,7 +704,7 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, previewResp{YAML: string(res.YAML), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Chains: nonNil(res.Chains), Outbounds: nonNil(res.Outbounds), Nodes: len(res.Nodes)})
+	writeJSON(w, http.StatusOK, previewResp{YAML: cmp.Or(string(res.Preview), string(res.YAML)), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Chains: nonNil(res.Chains), Outbounds: nonNil(res.Outbounds), Nodes: len(res.Nodes)})
 }
 
 // renderStatus 返回最近一次成功的结果与最近一次尝试的诊断。

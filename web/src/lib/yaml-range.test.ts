@@ -25,3 +25,10 @@ describe("yamlRange", () => {
   it("完全缺失", () => expect(yamlRange(doc, "tun.enable")).toBeNull());
   it("不深入列表", () => expect(yamlRange(doc, "proxies.name")?.exact).toBe(false));
 });
+
+describe("注释掉的分节", () => {
+  it("未启用分节写成注释时仍可定位", () => {
+    const lines = ["mixed-port: 7890", "", "# 未启用，不写入下发的配置（disabled, not served）", "# dns:", "#   enable: false", "#   ipv6: true"];
+    expect(yamlRange(lines, "dns.ipv6")).toEqual({ start: 5, end: 6, exact: true });
+  });
+});

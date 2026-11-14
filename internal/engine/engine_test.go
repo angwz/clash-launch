@@ -232,3 +232,43 @@ func TestGuideSuggestPassForm(t *testing.T) {
 		t.Fatalf("建议值过少：%d", n)
 	}
 }
+
+// 未启用的分节整段不写入（反馈 #58）：下发版本不含 dns、sniffer；预览版本把它们写成注释；
+// TUN 开启且 dns 写了 fake-ip-range 时 dns 整段保留（TUN 读取它作为地址段）。
+func TestDisabledSections(t *testing.T) {
+	in := input(t, "../../testdata/profiles/m1-layers.yaml")
+	render := func(form string) *Output {
+		t.Helper()
+		var l diag.List
+		p, err := profile.Parse([]byte("clash-launch/profile: v1\ntarget: {preset: mihomo}\nform:\n"+form), &l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		in.Profile = p
+		out, err := Render(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &out
+	}
+	out := render("  mixed-port: 7890\n  dns: {enable: false, nameserver: [https://doh.example.com/dns-query]}\n  sniffer: {parse-pure-ip: true}\n  tun: {enable: true, stack: mixed}\n")
+	if bytes.Contains(out.YAML, []byte("\ndns:")) || bytes.Contains(out.YAML, []byte("sniffer:")) || !bytes.Contains(out.YAML, []byte("tun:")) {
+		t.Errorf("下发版本：\n%s", out.YAML)
+	}
+	if !bytes.Contains(out.Preview, []byte("# dns:\n#   enable: false\n")) || !bytes.Contains(out.Preview, []byte("# sniffer:")) {
+		t.Errorf("预览版本：\n%s", out.Preview)
+	}
+	n := 0
+	for _, d := range out.Diagnostics {
+		if d.Code == diag.RenderDisabledSection {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Errorf("应报告 2 个未启用分节：%v", out.Diagnostics)
+	}
+	out = render("  dns: {enable: false, fake-ip-range: 198.18.0.1/16}\n  tun: {enable: true}\n")
+	if !bytes.Contains(out.YAML, []byte("dns:\n  enable: false\n  fake-ip-range: 198.18.0.1/16\n")) {
+		t.Errorf("TUN 开启时 dns 应整段保留：\n%s", out.YAML)
+	}
+}

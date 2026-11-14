@@ -42,7 +42,9 @@ type Input struct {
 
 // Output 是渲染结果。
 type Output struct {
-	YAML        []byte            `json:"-"`
+	YAML []byte `json:"-"`
+	// Preview 是给界面预览的版本：与 YAML 相同，另把未启用的分节写成注释（反馈 #58）。
+	Preview     []byte            `json:"-"`
 	Diagnostics []diag.Diagnostic `json:"diagnostics"`
 	Touched     []string          `json:"touched"` // 来自原始编辑的路径（⚡）
 	Preset      *target.Preset    `json:"-"`
@@ -95,16 +97,30 @@ func Render(in Input) (Output, error) {
 		out.Add(diag.TargetCoreNoCheck, "", "preset", preset.ID)
 	}
 
-	text, err := render.Render(merged.Node, render.Options{
+	// 未启用的分节整段不写入（反馈 #58）；预览中写成注释
+	disabled := pruneDisabled(merged.Node, &out)
+
+	opt := render.Options{
 		Catalog:     in.Catalog,
 		Header:      header(p, preset, in.Updated),
 		ProxiesFlow: p.Output.ProxiesFlow,
-	}, &out)
+	}
+	text, err := render.Render(merged.Node, opt, &out)
 	res.Diagnostics = out.Items()
 	if err != nil {
 		return res, fmt.Errorf("%w：%w", ErrFatal, err)
 	}
 	res.YAML = text
+	res.Preview = text
+	if len(disabled) > 0 {
+		// 预览版本：同一棵树加上注释分节。正文与上面相同、已通过自检，这里的诊断不重复记录；
+		// 万一注释版本渲染失败，预览退回为下发版本（内容完整，只是少了注释）。
+		opt.Commented = disabled
+		var scratch diag.List
+		if pv, err := render.Render(merged.Node, opt, &scratch); err == nil {
+			res.Preview = pv
+		}
+	}
 	return res, nil
 }
 

@@ -87,13 +87,14 @@ var (
 
 // —— 渲染与检查 ——
 var (
-	RenderSelfCheck   = reg("render.self_check", Error, "Format self-check failed at {path}: {reason}", "格式自检失败（{path}）：{reason}")
-	RenderLongLine    = reg("render.long_line", Warning, "Line {line} is {length} characters long", "第 {line} 行长度为 {length} 个字符")
-	RenderFallback    = reg("render.layout_fallback", Info, "Section spacing was disabled to keep a block scalar exact", "为保证块标量逐字节一致，已取消分节空行")
-	KernelFailed      = reg("kernel.failed", Error, "mihomo -t rejected the configuration: {reason}", "mihomo -t 未通过：{reason}")
-	KernelUnavailable = reg("kernel.unavailable", Warning, "Kernel check skipped: {reason}", "未进行内核检查：{reason}")
-	KernelTimeout     = reg("kernel.timeout", Error, "Kernel check timed out after {timeout}", "内核检查超时（{timeout}）")
-	KernelPassed      = reg("kernel.passed", Info, "mihomo {version} -t passed", "已通过 mihomo {version} -t 检查")
+	RenderSelfCheck       = reg("render.self_check", Error, "Format self-check failed at {path}: {reason}", "格式自检失败（{path}）：{reason}")
+	RenderDisabledSection = reg("render.disabled_section", Info, "{section} is disabled, so the whole section is left out of the served config (shown as comments in the preview)", "{section} 未启用，整段不写入下发的配置（预览中显示为注释）")
+	RenderLongLine        = reg("render.long_line", Warning, "Line {line} is {length} characters long", "第 {line} 行长度为 {length} 个字符")
+	RenderFallback        = reg("render.layout_fallback", Info, "Section spacing was disabled to keep a block scalar exact", "为保证块标量逐字节一致，已取消分节空行")
+	KernelFailed          = reg("kernel.failed", Error, "mihomo -t rejected the configuration: {reason}", "mihomo -t 未通过：{reason}")
+	KernelUnavailable     = reg("kernel.unavailable", Warning, "Kernel check skipped: {reason}", "未进行内核检查：{reason}")
+	KernelTimeout         = reg("kernel.timeout", Error, "Kernel check timed out after {timeout}", "内核检查超时（{timeout}）")
+	KernelPassed          = reg("kernel.passed", Info, "mihomo {version} -t passed", "已通过 mihomo {version} -t 检查")
 )
 
 // —— 节点输入与整理（第 5 节）——
