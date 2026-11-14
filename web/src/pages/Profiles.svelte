@@ -4,11 +4,12 @@
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
-  import { listAll, type Profile } from "../lib/api/client";
+  import { api, listAll, type Profile, type Template } from "../lib/api/client";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
   import { t, i18n } from "../lib/i18n/i18n.svelte";
-  import { createProfile, renderTone } from "../lib/profiles";
+  import { createProfileFrom, nodeInput, renderTone } from "../lib/profiles";
+  import { toasts } from "../lib/toast.svelte";
   import { router } from "../lib/router.svelte";
   import { ProfileDoc } from "../lib/profile-doc";
 
@@ -16,7 +17,50 @@
   let error = $state("");
   let creating = $state(false);
   let name = $state("");
-  let preset = $state("mihomo");
+  let start = $state("p:mihomo"); // "t:<模板 ID>" 或 "p:<预设 ID>"
+  let nodes = $state("");
+  let templates = $state<Template[]>([]);
+  let managing = $state(false);
+  const chosenTemplate = $derived(start.startsWith("t:") ? templates.find((x) => "t:" + x.id === start) : undefined);
+  const nodeKind = $derived(nodeInput(nodes, "")?.kind);
+
+  async function loadTemplates() {
+    templates = (await listAll<Template>("/api/v1/templates"));
+  }
+
+  // 打开新建对话框：重置输入，默认选中默认模板，没有时用第一个预设
+  async function openNew() {
+    name = "";
+    nodes = "";
+    creating = true;
+    try {
+      await loadTemplates();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+    const d = templates.find((x) => x.default);
+    start = d ? "t:" + d.id : "p:" + (catalog.meta?.presets[0]?.id ?? "mihomo");
+  }
+
+  async function setDefault(x: Template) {
+    try {
+      await api.patch<Template>("/api/v1/templates/" + x.id, { default: true });
+      await loadTemplates();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
+  async function removeTemplate(x: Template) {
+    try {
+      await api.del("/api/v1/templates/" + x.id);
+      if (start === "t:" + x.id) start = "p:" + (catalog.meta?.presets[0]?.id ?? "mihomo");
+      await loadTemplates();
+      toasts.push("ok", t("templates.deleted", { name: x.name }));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
   let busy = $state(false);
 
   $effect(() => {
@@ -38,9 +82,16 @@
     e.preventDefault();
     busy = true;
     try {
-      const p = await createProfile(name.trim(), preset);
+      const { profile, dropped } = await createProfileFrom({
+        name: name.trim(),
+        template: chosenTemplate,
+        preset: start.startsWith("p:") ? start.slice(2) : undefined,
+        nodes,
+        manualName: t("profiles.manual_nodes"),
+      });
+      if (dropped) toasts.push("info", t("templates.dropped", { n: dropped }));
       creating = false;
-      router.go("/profiles/" + p.id);
+      router.go("/profiles/" + profile.id);
     } catch (err) {
       error = errorText(err);
     } finally {
@@ -53,7 +104,7 @@
   <PageHeader title={t("profiles.title")} subtitle={t("profiles.subtitle")}>
     {#snippet actions()}
       <a class="btn" href="/welcome"><Icon name="sparkle" size={15} />{t("profiles.wizard")}</a>
-      <button class="btn primary" type="button" onclick={() => { name = ""; creating = true; }}><Icon name="plus" size={15} />{t("profiles.new")}</button>
+      <button class="btn primary" type="button" onclick={() => void openNew()}><Icon name="plus" size={15} />{t("profiles.new")}</button>
     {/snippet}
   </PageHeader>
 
@@ -101,23 +152,98 @@
       <label class="label" for="np-name">{t("profiles.name")}</label>
       <input id="np-name" class="input" bind:value={name} required maxlength="80" placeholder={t("profiles.name_placeholder")} />
     </div>
+    <!-- 起点：模板（反馈 #51）或预设；默认模板预先选中 -->
     <div>
-      <label class="label" for="np-target">{t("profiles.target")}</label>
-      <select id="np-target" class="select" bind:value={preset}>
-        {#each catalog.meta?.presets ?? [] as x (x.id)}
-          <option value={x.id}>{catalog.label(x.label)}</option>
-        {/each}
+      <label class="label" for="np-start">{t("profiles.start")}</label>
+      <select id="np-start" class="select" bind:value={start}>
+        {#if templates.length}
+          <optgroup label={t("templates.group")}>
+            {#each templates as x (x.id)}
+              <option value={"t:" + x.id}>{x.name}{x.default ? " · " + t("templates.default") : ""}</option>
+            {/each}
+          </optgroup>
+        {/if}
+        <optgroup label={t("profiles.blank")}>
+          {#each catalog.meta?.presets ?? [] as x (x.id)}
+            <option value={"p:" + x.id}>{catalog.label(x.label)}</option>
+          {/each}
+        </optgroup>
       </select>
-      <p class="hint">{catalog.label(catalog.meta?.presets.find((x) => x.id === preset)?.notes)}</p>
+      <p class="hint">
+        {#if chosenTemplate}{chosenTemplate.note || t("templates.no_note")}{:else}{catalog.label(catalog.meta?.presets.find((x) => "p:" + x.id === start)?.notes)}{/if}
+        {#if templates.length}<button type="button" class="linkish" onclick={() => (managing = true)}>{t("templates.manage")}</button>{/if}
+      </p>
+    </div>
+    <!-- 顺手添加节点（反馈 #52）：粘贴即可，格式由服务器识别；可以留空以后再加 -->
+    <div>
+      <label class="label" for="np-nodes">{t("profiles.nodes")}</label>
+      <textarea id="np-nodes" class="input mono" rows="3" bind:value={nodes} placeholder={t("profiles.nodes_placeholder")} spellcheck="false"></textarea>
+      <p class="hint">{nodeKind ? t("profiles.nodes_kind." + nodeKind) : t("profiles.nodes_hint")}</p>
     </div>
   </form>
   {#snippet footer()}
     <button class="btn" type="button" onclick={() => (creating = false)}>{t("common.cancel")}</button>
-    <button class="btn primary" type="submit" form="new-profile" disabled={busy || !name.trim()}>{t("common.create")}</button>
+    <button class="btn primary" type="submit" form="new-profile" disabled={busy || !name.trim()}>{busy ? t("profiles.creating") : t("common.create")}</button>
   {/snippet}
 </Dialog>
 
+<Dialog bind:open={managing} title={t("templates.manage")}>
+  <ul class="tpl-list">
+    {#each templates as x (x.id)}
+      <li>
+        <div class="tpl-text">
+          <strong>{x.name}</strong>
+          {#if x.note}<span class="muted">{x.note}</span>{/if}
+        </div>
+        {#if x.default}
+          <span class="badge-default">{t("templates.default")}</span>
+        {:else}
+          <button class="btn sm ghost" type="button" onclick={() => void setDefault(x)}>{t("templates.make_default")}</button>
+        {/if}
+        <button class="btn sm ghost danger" type="button" onclick={() => void removeTemplate(x)}>{t("common.delete")}</button>
+      </li>
+    {/each}
+  </ul>
+  <p class="hint">{t("templates.how")}</p>
+</Dialog>
+
 <style>
+  .linkish {
+    margin-inline-start: var(--space-2);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  .tpl-list {
+    display: grid;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .tpl-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+    border-block-end: 1px solid var(--border);
+  }
+  .tpl-text {
+    display: grid;
+    flex: 1;
+    min-inline-size: 0;
+    font-size: var(--text-sm);
+  }
+  .badge-default {
+    padding-inline: var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+    font-size: var(--text-xs);
+  }
   .page {
     max-inline-size: 1120px;
     margin-inline: auto;

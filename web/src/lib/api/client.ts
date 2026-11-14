@@ -8,6 +8,7 @@ export type User = Schemas["User"];
 export type Session = Schemas["Session"];
 export type Source = Schemas["Source"];
 export type SourceInput = Schemas["SourceInput"];
+export type Template = Schemas["Template"];
 export type Node = Schemas["Node"];
 export type RuleSource = Schemas["RuleSource"];
 export type RuleSourceInput = Schemas["RuleSourceInput"];

@@ -1114,3 +1114,97 @@ func (r invites) Use(ctx context.Context, tokenHash, userID string, now time.Tim
 	v.CreatedAt, v.ExpiresAt, v.UsedAt = fromMS(c), fromMS(e), fromMS(u)
 	return &v, nil
 }
+
+// —— 配置模板（反馈 #51）——
+
+type templates struct{ d *DB }
+
+func (d *DB) Templates() TemplateRepo { return templates{d} }
+
+const templateCols = "id, owner_id, name, note, doc_enc, is_default, created_at, updated_at"
+
+func (r templates) scan(row interface{ Scan(...any) error }) (*Template, error) {
+	var t Template
+	var enc []byte
+	var def, c, u int64
+	if err := row.Scan(&t.ID, &t.OwnerID, &t.Name, &t.Note, &enc, &def, &c, &u); err != nil {
+		return nil, notFound(err)
+	}
+	var err error
+	if t.Doc, err = r.d.open(enc, "templates", "doc", t.ID); err != nil {
+		return nil, err
+	}
+	t.Default, t.CreatedAt, t.UpdatedAt = def == 1, fromMS(c), fromMS(u)
+	return &t, nil
+}
+
+func (r templates) List(ctx context.Context, owner string) ([]Template, error) {
+	rows, err := r.d.query(ctx, "SELECT "+templateCols+" FROM templates WHERE owner_id=? ORDER BY name, id", owner)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Template
+	for rows.Next() {
+		t, err := r.scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *t)
+	}
+	return out, rows.Err()
+}
+
+func (r templates) Get(ctx context.Context, owner, id string) (*Template, error) {
+	return r.scan(r.d.row(ctx, "SELECT "+templateCols+" FROM templates WHERE owner_id=? AND id=?", owner, id))
+}
+
+func (r templates) Create(ctx context.Context, owner string, t *Template) error {
+	if t.ID == "" {
+		t.ID = NewID()
+	}
+	t.OwnerID = owner
+	now := time.Now()
+	t.CreatedAt, t.UpdatedAt = now, now
+	return r.d.Tx(ctx, func(s Store) error {
+		d := s.(*DB)
+		enc, err := d.seal(t.Doc, "templates", "doc", t.ID)
+		if err != nil {
+			return err
+		}
+		if t.Default {
+			if _, err := d.exec(ctx, "UPDATE templates SET is_default=0 WHERE owner_id=?", owner); err != nil {
+				return err
+			}
+		}
+		_, err = d.exec(ctx, "INSERT INTO templates ("+templateCols+") VALUES (?,?,?,?,?,?,?,?)", t.ID, owner, t.Name, t.Note, enc, b2i(t.Default), ms(now), ms(now))
+		return err
+	})
+}
+
+func (r templates) Update(ctx context.Context, owner string, t *Template) error {
+	now := time.Now()
+	return r.d.Tx(ctx, func(s Store) error {
+		d := s.(*DB)
+		enc, err := d.seal(t.Doc, "templates", "doc", t.ID)
+		if err != nil {
+			return err
+		}
+		if t.Default {
+			if _, err := d.exec(ctx, "UPDATE templates SET is_default=0 WHERE owner_id=? AND id<>?", owner, t.ID); err != nil {
+				return err
+			}
+		}
+		res, err := d.exec(ctx, "UPDATE templates SET name=?, note=?, doc_enc=?, is_default=?, updated_at=? WHERE owner_id=? AND id=?", t.Name, t.Note, enc, b2i(t.Default), ms(now), owner, t.ID)
+		if err := affected(res, err, ErrNotFound); err != nil {
+			return err
+		}
+		t.UpdatedAt = now
+		return nil
+	})
+}
+
+func (r templates) Delete(ctx context.Context, owner, id string) error {
+	res, err := r.d.exec(ctx, "DELETE FROM templates WHERE owner_id=? AND id=?", owner, id)
+	return affected(res, err, ErrNotFound)
+}

@@ -392,6 +392,25 @@ components:
         mfa: {type: boolean}
         usage: {$ref: '#/components/schemas/Usage'}
         quota: {allOf: [{$ref: '#/components/schemas/Limits'}], description: 单独设置的配额，-1 表示使用默认值}
+    Template:
+      type: object
+      required: [id, name, note, doc, default, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        note: {type: string, description: 说明，如适用的客户端与 mihomo 版本}
+        doc: {type: string, description: 配置文档（新建配置时替换其中的名称）}
+        default: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    TemplateInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 1, maxLength: 64}
+        note: {type: string, maxLength: 500}
+        doc: {type: string}
+        default: {type: boolean}
     List:
       type: object
       required: [items]
@@ -826,6 +845,31 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: ok}}
+  /api/v1/templates:
+    get:
+      tags: [profiles]
+      summary: 配置模板列表（文档、名称、说明、是否为新建配置的默认）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/List'}}}}}
+    post:
+      tags: [profiles]
+      summary: 把一份配置文档存为模板；default 为 true 时取代原来的默认模板
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TemplateInput'}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/Template'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/templates/{id}:
+    patch:
+      tags: [profiles]
+      summary: 修改模板的名称、说明、文档或默认标记（只改出现的字段）
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TemplateInput'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Template'}}}}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [profiles]
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles:
     get:
       tags: [profiles]

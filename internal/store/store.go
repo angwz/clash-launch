@@ -187,6 +187,7 @@ type Store interface {
 	RuleSources() RuleSourceRepo
 	Snapshots() SnapshotRepo
 	Profiles() ProfileRepo
+	Templates() TemplateRepo
 	Links() LinkRepo
 	Renders() RenderRepo
 	Audit() AuditRepo
@@ -327,4 +328,26 @@ type InviteRepo interface {
 	Delete(ctx context.Context, id string) error
 	// Use 原子地把未使用、未过期的邀请标记为已用；邀请无效时返回 ErrNotFound。
 	Use(ctx context.Context, tokenHash, userID string, now time.Time) (*Invite, error)
+}
+
+// Template 是配置模板（反馈 #51）：一份不含名称的配置文档，加上名称与说明（如适用的客户端、mihomo 版本）。
+type Template struct {
+	ID        string
+	OwnerID   string
+	Name      string
+	Note      string
+	Doc       []byte
+	Default   bool // 新建配置时默认选中；每个用户最多一个
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// TemplateRepo 管理用户的配置模板。
+type TemplateRepo interface {
+	List(ctx context.Context, owner string) ([]Template, error)
+	Get(ctx context.Context, owner, id string) (*Template, error)
+	// Create 与 Update 在 Default 为 true 时清除该用户其他模板的默认标记（同一事务）。
+	Create(ctx context.Context, owner string, t *Template) error
+	Update(ctx context.Context, owner string, t *Template) error
+	Delete(ctx context.Context, owner, id string) error
 }

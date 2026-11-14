@@ -8,6 +8,7 @@
   import SectionView from "../components/editor/SectionView.svelte";
   import SourcesPanel from "../components/editor/SourcesPanel.svelte";
   import ChainsPanel from "../components/editor/ChainsPanel.svelte";
+  import SaveTemplateDialog from "../components/editor/SaveTemplateDialog.svelte";
   import { catalog, type MetaField, type NavSection } from "../lib/catalog.svelte";
   import { EditorState } from "../lib/editor.svelte";
   import { errorText } from "../lib/errors";
@@ -23,6 +24,7 @@
   let loadError = $state("");
   let section = $state(new URLSearchParams(location.search).get("section") || "sources");
   let rawOpen = $state(false);
+  let savingTemplate = $state(false);
   let rawKey = $state<string | undefined>();
   let previewOpen = $state(false); // 浮层 / 手机视图中预览是否可见
   // 预览的呈现（反馈 #28）：宽屏上编辑设置时停靠在右侧并高亮当前字段；
@@ -234,6 +236,9 @@
       <details class="adv" open={rawOpen || undefined}>
         <summary class="subtle">{t("editor.advanced")}</summary>
       <ul>
+        <li>
+          <button type="button" onclick={() => (savingTemplate = true)}><Icon name="copy" size={15} /><span class="t">{t("templates.save_title")}</span></button>
+        </li>
         {#if current}
           <li>
             <a class="item" href={"/help?tab=wiki&s=" + encodeURIComponent(current.id)}><Icon name="file" size={15} /><span class="t">{t("editor.section_doc")}</span></a>
@@ -286,6 +291,8 @@
         {/if}
       </div>
     </div>
+
+    <SaveTemplateDialog bind:open={savingTemplate} doc={editor.text} profileName={editor.profile.name} />
 
     <aside class="preview" aria-label={t("preview.title")}>
       <PreviewPane {editor} {floating} onLocate={(p) => void locate(p)} onHide={mobile ? undefined : docked ? () => (dockHidden = true) : () => (previewOpen = false)} />

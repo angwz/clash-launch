@@ -24,6 +24,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	}](t, a.want(200, "GET", "/api/v1/account/sessions", nil))
 	inv := decode[inviteDTO](t, a.want(201, "POST", "/api/v1/admin/invites", map[string]any{"hours": 1}))
 	p := decode[profileDTO](t, a.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	tpl := decode[templateDTO](t, a.want(201, "POST", "/api/v1/templates", map[string]any{"name": "t", "doc": p.Doc}))
 
 	// 路由前缀 → A 的资源 ID
 	ids := map[string]string{
@@ -34,6 +35,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/account/sessions/": sess.Items[0].ID,
 		"/api/v1/admin/invites/":    inv.ID,
 		"/api/v1/admin/users/":      firstAdmin(t, h),
+		"/api/v1/templates/":        tpl.ID,
 	}
 
 	// B：普通用户
@@ -53,6 +55,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"POST /api/v1/profiles/{id}/rollback":       map[string]int{"n": 1},
 		"POST /api/v1/profiles/{id}/links":          map[string]string{"note": "x"},
 		"PATCH /api/v1/profiles/{id}/links/{lid}":   map[string]string{"note": "x"},
+		"PATCH /api/v1/templates/{id}":              map[string]string{"name": "x"},
 	}
 
 	checked := 0

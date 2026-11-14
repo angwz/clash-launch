@@ -319,3 +319,32 @@ test("调整菜单顺序：保存到账号，刷新后保持", async ({ page }) 
   await page.locator("dialog[open]").getByRole("button", { name: "恢复默认顺序" }).click();
   await expect(page.locator("nav.sidebar li").first()).toContainText("配置");
 });
+
+test("存为模板，新建配置时从默认模板开始并粘贴节点", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "模板来源");
+  await login(page);
+  await page.goto(`/profiles/${profile}?section=inbound`);
+  await page.locator(".adv summary").click();
+  await page.getByRole("button", { name: "存为模板…" }).click();
+  const dlg = page.locator("dialog[open]");
+  await dlg.getByLabel("模板名称").fill("家里路由器");
+  await dlg.getByLabel("说明").fill("OpenClash · mihomo 1.19.33");
+  await dlg.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText("已存为模板「家里路由器」")).toBeVisible();
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "新建配置" }).click();
+  const nd = page.locator("dialog[open]");
+  await expect(nd.locator("#np-start")).toHaveValue(/^t:/);
+  await nd.getByLabel("名称").fill("从模板新建");
+  await nd.locator("#np-nodes").fill("ss://YWVzLTEyOC1nY206ZXhhbXBsZQ==@192.0.2.40:8388#模板测试节点");
+  await expect(nd.getByText("识别为手动节点")).toBeVisible();
+  await nd.getByRole("button", { name: "创建" }).click();
+  await page.waitForURL(/\/profiles\/[^/?]+$/);
+  // 模板中的设置（mixed-port）与新添加的节点都在
+  if (test.info().project.name === "mobile") await page.getByRole("tab", { name: /预览/ }).click();
+  else await page.locator(".preview-toggle").click();
+  await expect(page.locator(".yaml").first()).toContainText("模板测试节点");
+  await expect(page.locator(".yaml").first()).toContainText("mixed-port");
+});

@@ -89,6 +89,10 @@ func (s *Server) routes() []Route {
 		{"DELETE", "/api/v1/rule-sources/{id}", a(s.deleteRule)},
 		{"POST", "/api/v1/rule-sources/{id}/refresh", a(s.refreshRule)},
 
+		{"GET", "/api/v1/templates", a(s.listTemplates)},
+		{"POST", "/api/v1/templates", a(s.createTemplate)},
+		{"PATCH", "/api/v1/templates/{id}", a(s.updateTemplate)},
+		{"DELETE", "/api/v1/templates/{id}", a(s.deleteTemplate)},
 		{"GET", "/api/v1/profiles", a(s.listProfiles)},
 		{"POST", "/api/v1/profiles", a(s.createProfile)},
 		{"GET", "/api/v1/profiles/{id}", a(s.getProfile)},

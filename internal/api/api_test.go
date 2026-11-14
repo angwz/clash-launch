@@ -614,3 +614,37 @@ func TestPrefs(t *testing.T) {
 	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"nav": []string{"a", "a"}})
 	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"theme": "dark"})
 }
+
+// 配置模板（反馈 #51）：创建、默认标记唯一、校验、按用户隔离、删除。
+func TestTemplates(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	a := decode[templateDTO](t, c.want(201, "POST", "/api/v1/templates", map[string]any{"name": "路由器", "note": "OpenClash · mihomo 1.19", "doc": p.Doc, "default": true}))
+	b := decode[templateDTO](t, c.want(201, "POST", "/api/v1/templates", map[string]any{"name": "手机", "doc": p.Doc, "default": true}))
+	if a.Doc != p.Doc || !b.Default {
+		t.Errorf("模板：%+v %+v", a, b)
+	}
+	items := decode[list[templateDTO]](t, c.want(200, "GET", "/api/v1/templates", nil)).Items
+	defaults := 0
+	for _, x := range items {
+		if x.Default {
+			defaults++
+			if x.ID != b.ID {
+				t.Errorf("默认应是后设的那个：%s", x.Name)
+			}
+		}
+	}
+	if len(items) != 2 || defaults != 1 {
+		t.Errorf("列表：%+v", items)
+	}
+	c.want(200, "PATCH", "/api/v1/templates/"+a.ID, map[string]any{"default": true, "name": "路由器 2"})
+	if got := decode[list[templateDTO]](t, c.want(200, "GET", "/api/v1/templates", nil)).Items; got[0].Name != "手机" || got[0].Default || !got[1].Default {
+		t.Errorf("改默认后：%+v", got)
+	}
+	c.want(400, "POST", "/api/v1/templates", map[string]any{"name": " ", "doc": p.Doc})
+	c.want(400, "POST", "/api/v1/templates", map[string]any{"name": "x", "doc": "not: [a profile"})
+	c.want(400, "POST", "/api/v1/templates", map[string]any{"name": "x"})
+	c.want(204, "DELETE", "/api/v1/templates/"+b.ID, nil)
+	c.want(404, "DELETE", "/api/v1/templates/"+b.ID, nil)
+}

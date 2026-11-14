@@ -2520,6 +2520,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 配置模板列表（文档、名称、说明、是否为新建配置的默认） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["List"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 把一份配置文档存为模板；default 为 true 时取代原来的默认模板 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TemplateInput"];
+                };
+            };
+            responses: {
+                /** @description 已创建 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Template"];
+                    };
+                };
+                400: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** 修改模板的名称、说明、文档或默认标记（只改出现的字段） */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TemplateInput"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Template"];
+                    };
+                };
+                400: components["responses"]["Problem"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/profiles": {
         parameters: {
             query?: never;
@@ -3396,6 +3515,25 @@ export interface components {
             usage: components["schemas"]["Usage"];
             /** @description 单独设置的配额，-1 表示使用默认值 */
             quota: components["schemas"]["Limits"];
+        };
+        Template: {
+            id: string;
+            name: string;
+            /** @description 说明，如适用的客户端与 mihomo 版本 */
+            note: string;
+            /** @description 配置文档（新建配置时替换其中的名称） */
+            doc: string;
+            default: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TemplateInput: {
+            name?: string;
+            note?: string;
+            doc?: string;
+            default?: boolean;
         };
         List: {
             items: unknown[];
