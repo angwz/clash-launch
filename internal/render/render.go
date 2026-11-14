@@ -55,7 +55,11 @@ func Render(root *yaml.Node, opt Options, out *diag.List) ([]byte, error) {
 	if len(opt.Header) > 0 {
 		e.b.WriteString("\n")
 	}
-	if err := e.root(tree); err != nil {
+	if len(tree.Content) == 0 {
+		// 什么都没有设置（例如刚新建的空配置）：写成空映射，内核按全部默认值运行。
+		// 不写的话输出只剩文件头与空行，既不是以单个换行结尾，也解析不出顶层映射。
+		e.b.WriteString("{}\n")
+	} else if err := e.root(tree); err != nil {
 		return nil, err
 	}
 	text := e.b.Bytes()

@@ -151,3 +151,15 @@ func TestGolden(t *testing.T) {
 		})
 	}
 }
+
+// 什么都没有设置的配置（反馈 #59）：输出文件头与空映射，能通过格式自检。
+func TestEmptyConfig(t *testing.T) {
+	var l diag.List
+	out, err := Render(yamlx.Map(), Options{Header: []HeaderField{{Key: "name", Value: "空"}}}, &l)
+	if err != nil {
+		t.Fatalf("空配置应能渲染：%v %v", err, l.Items())
+	}
+	if want := "# NAME: 空\n\n{}\n"; string(out) != want {
+		t.Errorf("输出：%q", out)
+	}
+}

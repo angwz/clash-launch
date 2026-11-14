@@ -146,3 +146,16 @@ describe("直接编辑不被其他操作改动", () => {
     expect(d.hasRaw).toBe(true);
   });
 });
+
+// 新建的空配置上设置嵌套字段（反馈 #59）：form 原本不存在，dns 也不存在，需要逐层创建。
+describe("新建配置上设置嵌套字段", () => {
+  it("dns.enable 等嵌套路径可以设置，且多次设置互不影响", () => {
+    const d = ProfileDoc.create("空白", { pack: "mihomo", preset: "mihomo", core: "1.19.33" });
+    d.setForm(["dns", "enable"], true);
+    d.setForm(["dns", "ipv6"], false);
+    d.setForm(["tun", "stack", "x"], "y");
+    expect(d.getForm(["dns", "enable"])).toBe(true);
+    expect(d.getForm(["dns", "ipv6"])).toBe(false);
+    expect(new ProfileDoc(d.toString()).getForm(["dns", "enable"])).toBe(true);
+  });
+});

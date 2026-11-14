@@ -96,7 +96,8 @@ export class ProfileDoc {
   /** 设置一个路径；中间的映射按需创建。短的标量列表用流式，便于阅读。 */
   setForm(path: string[], value: unknown): void {
     this.#dirty = true;
-    if (!isMap(this.doc.get("form", true))) this.doc.set("form", new YAMLMap());
+    // 经文档创建（带 schema）：直接 new YAMLMap() 没有 schema，setIn 无法逐层创建 dns 这类中间映射（反馈 #59）
+    if (!isMap(this.doc.get("form", true))) this.doc.set("form", this.doc.createNode({}));
     const node = this.doc.createNode(value);
     if (node instanceof YAMLSeq && node.items.every((x) => isScalar(x)) && node.items.length <= 8) node.flow = true;
     this.doc.setIn(["form", ...path], node);
