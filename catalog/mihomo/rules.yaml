@@ -9,7 +9,7 @@ fields:
     zh: [规则, "自上而下匹配的分流规则；第一条命中的规则决定出口。"]
     en: [Rules, "Routing rules matched top to bottom; the first match decides the outbound."]
     detail:
-      zh: 规则的格式为「类型,条件,策略[,参数]」，最后一条通常是 MATCH。由规则源生成的规则与原始编辑中 !prepend/!append 写入的规则按顺序合并。
+      zh: 规则的格式为「类型,条件,策略[,参数]」，最后一条通常是 MATCH。由分流规则生成的规则与直接编辑的 YAML 中 !prepend/!append 写入的规则按顺序合并。
       en: Each rule is TYPE,VALUE,POLICY[,OPTIONS]; the last one is usually MATCH. Generated rules are merged in order with rules added by !prepend/!append in raw edit.
   - key: sub-rules
     type: map

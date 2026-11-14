@@ -18,13 +18,13 @@ function watch(page: Page): string[] {
   return problems;
 }
 
-test("登录后看到方案列表，各页面没有错误与 CSP 违规", async ({ page, request, baseURL }) => {
+test("登录后看到配置列表，各页面没有错误与 CSP 违规", async ({ page, request, baseURL }) => {
   const problems = watch(page);
   // 两个项目共用同一个后端：名称带上项目名，避免重名
   const name = "列表测试 " + test.info().project.name;
   const { profile, source } = await seedProfile(request, baseURL!, name);
   await login(page);
-  await expect(page.getByRole("heading", { name: "方案" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
   await expect(page.getByRole("link", { name })).toBeVisible();
   for (const path of [`/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/profiles/${profile}/history`, `/sources`, `/sources/${source}`, `/rules`, `/admin`, `/account`, `/welcome`]) {
     await page.goto(path);
@@ -50,7 +50,7 @@ test("编辑字段：预览实时更新，保存后生成新版本", async ({ pa
   await expect(page.locator("#ctl-mixed-port")).toHaveValue("7891");
 });
 
-test("命令面板：搜索字段并定位；命令模式进入原始编辑", async ({ page, request, baseURL }) => {
+test("命令面板：搜索字段并定位；命令模式进入直接编辑 YAML", async ({ page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "键盘快捷键只在桌面测试");
   const { profile } = await seedProfile(request, baseURL!, "面板测试");
   await login(page);
@@ -71,9 +71,9 @@ test("命令面板：搜索字段并定位；命令模式进入原始编辑", as
   // 「原始编辑」不出现在普通搜索中，只在 > 命令模式中出现（第 16.4 节）
   await page.keyboard.press("Control+K");
   await expect(page.locator("dialog.palette input")).toBeFocused(); // 打开动画期间先等输入框获得焦点
-  await page.keyboard.type("原始编辑");
-  await expect(page.getByRole("option", { name: /原始编辑/ })).toHaveCount(0);
-  await page.locator("dialog.palette input").fill(">原始编辑");
+  await page.keyboard.type("直接编辑");
+  await expect(page.getByRole("option", { name: /直接编辑/ })).toHaveCount(0);
+  await page.locator("dialog.palette input").fill(">直接编辑");
   await page.keyboard.press("Enter");
   const editor = page.locator(".cm-content");
   await editor.click();
@@ -101,7 +101,7 @@ test("源排序：用键盘调整顺序", async ({ page, request, baseURL }) => 
   const second = await call<{ id: string }>("POST", "/api/v1/sources", { name: "第二个源", kind: "single", content: "ss://YWVzLTEyOC1nY206ZXhhbXBsZQ==@192.0.2.20:8388#second" });
   await login(page);
   await page.goto(`/profiles/${profile}`);
-  await page.getByLabel("添加一个节点源…").selectOption(second.id);
+  await page.getByLabel("添加订阅或手动节点…").selectOption(second.id);
   await page.getByRole("button", { name: "添加", exact: true }).click();
   const names = page.locator(".list .name");
   await expect(names).toHaveText(["排序测试 节点", "第二个源"]);
@@ -266,6 +266,6 @@ test("通行密钥：添加后可以免密码登录", async ({ browser, request,
   await page.goto("/login");
   await page.getByRole("button", { name: "使用通行密钥登录" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "方案", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "配置", exact: true })).toBeVisible();
   await ctx.close();
 });
