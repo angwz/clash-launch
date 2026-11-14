@@ -33,7 +33,7 @@ test("登录后看到配置列表，各页面没有错误与 CSP 违规", async 
   expect(problems).toEqual([]);
 });
 
-test("编辑字段：预览实时更新，保存后生成新版本", async ({ page, request, baseURL }) => {
+test("编辑字段：预览实时更新，自动保存，可撤销", async ({ page, request, baseURL }) => {
   const { profile } = await seedProfile(request, baseURL!, "编辑测试");
   await login(page);
   await page.goto(`/profiles/${profile}?section=inbound`);
@@ -44,8 +44,16 @@ test("编辑字段：预览实时更新，保存后生成新版本", async ({ pa
   if (test.info().project.name === "mobile") await page.getByRole("tab", { name: /预览/ }).click();
   await expect(page.locator(".yaml").first()).toContainText("mixed-port: 7891");
   if (test.info().project.name === "mobile") await page.getByRole("tab", { name: /设置/ }).click();
-  await page.getByRole("button", { name: /^保存/ }).click();
-  await expect(page.getByText("已保存为第 2 版")).toBeVisible();
+  // 不点保存：停止编辑后自动保存，提示条提供撤销（反馈 #35）
+  await expect(page.getByText("已自动保存")).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#ctl-mixed-port")).toHaveValue("7891");
+
+  await page.locator("#ctl-mixed-port").fill("7892");
+  await page.locator("#ctl-mixed-port").press("Enter");
+  await page.getByRole("button", { name: "撤销" }).click();
+  await expect(page.getByText("已撤销到这次编辑之前")).toBeVisible();
+  await expect(page.locator("#ctl-mixed-port")).toHaveValue("7891");
   await page.reload();
   await expect(page.locator("#ctl-mixed-port")).toHaveValue("7891");
 });

@@ -483,6 +483,8 @@ type profileDTO struct {
 type profileReq struct {
 	Doc  string `json:"doc"`
 	Note string `json:"note"`
+	// Autosave：编辑器的自动保存。10 分钟内连续的自动保存在历史中合并为一个版本（反馈 #35）。
+	Autosave bool `json:"autosave"`
 }
 
 func (s *Server) toProfile(r *http.Request, owner string, p *store.Profile) profileDTO {
@@ -553,6 +555,9 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request, p *principal
 	writeJSON(w, http.StatusOK, s.toProfile(r, p.User.ID, x))
 }
 
+// autosaveWindow 是自动保存合并为同一版本的时间窗（从上一次自动保存算起）。
+const autosaveWindow = 10 * time.Minute
+
 func (s *Server) updateProfile(w http.ResponseWriter, r *http.Request, p *principal) {
 	v, err := ifMatch(r)
 	if err != nil {
@@ -575,7 +580,11 @@ func (s *Server) updateProfile(w http.ResponseWriter, r *http.Request, p *princi
 		s.fail(w, err)
 		return
 	}
-	if err := s.Svc.Store.Profiles().Update(r.Context(), p.User.ID, x, req.Note); err != nil {
+	save := func() error { return s.Svc.Store.Profiles().Update(r.Context(), p.User.ID, x, req.Note) }
+	if req.Autosave {
+		save = func() error { return s.Svc.Store.Profiles().Autosave(r.Context(), p.User.ID, x, autosaveWindow) }
+	}
+	if err := save(); err != nil {
 		s.fail(w, err)
 		return
 	}

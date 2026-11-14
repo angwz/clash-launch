@@ -63,7 +63,7 @@
           <div class="rv">
             <strong class="mono">v{r.n}</strong>
             <span class="muted">{i18n.date(r.createdAt)}</span>
-            {#if r.note}<span class="note">{r.note}</span>{/if}
+            {#if r.note}<span class="note">{r.note === "autosave" ? t("history.autosave") : r.note}</span>{/if}
           </div>
           <div class="pick">
             <button class="btn sm ghost" type="button" aria-pressed={r.n === a} onclick={() => (a = r.n)}>{t("history.as_old")}</button>

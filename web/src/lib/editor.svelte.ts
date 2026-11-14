@@ -8,6 +8,9 @@ import { ProfileDoc, type ChainRule, type SourceRef } from "./profile-doc";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 
+// 停止编辑后多久自动保存（毫秒）
+const AUTOSAVE_DELAY = 1000;
+
 export class EditorState {
   profile = $state.raw<Profile | null>(null);
   rev = $state(0);
@@ -26,6 +29,10 @@ export class EditorState {
   doc: ProfileDoc | null = null;
 
   #timer: ReturnType<typeof setTimeout> | undefined;
+  #saveTimer: ReturnType<typeof setTimeout> | undefined;
+  /** 本轮连续编辑开始前已保存的文本：「撤销」回到这里（反馈 #35） */
+  #before: string | null = null;
+  #saveQueued = false;
   #abort: AbortController | undefined;
 
   async load(id: string): Promise<void> {
@@ -139,7 +146,11 @@ export class EditorState {
   }
 
   #changed(): void {
+    if (this.#before === null) this.#before = this.savedText;
     this.rev++;
+    // 自动保存：停止编辑约 1 秒后保存（反馈 #35）
+    clearTimeout(this.#saveTimer);
+    this.#saveTimer = setTimeout(() => void this.save(), AUTOSAVE_DELAY);
     this.check = "idle";
     clearTimeout(this.#timer);
     this.#timer = setTimeout(() => void this.runPreview(false), 450);
@@ -175,15 +186,29 @@ export class EditorState {
     }
   }
 
-  async save(note = ""): Promise<boolean> {
+  /**
+   * 保存当前文档。自动保存（默认）在服务端与相邻的自动保存合并为同一个历史版本；
+   * 保存进行中再次调用时排队，完成后再保存一次最新内容，避免并发请求的版本冲突。
+   */
+  async save(opts: { undoable?: boolean } = {}): Promise<boolean> {
+    clearTimeout(this.#saveTimer);
     if (!this.profile || !this.dirty) return true;
+    if (this.saving) {
+      this.#saveQueued = true;
+      return true;
+    }
     this.saving = true;
+    const text = this.text;
+    const before = this.#before;
     try {
-      const p = await api.put<Profile>("/api/v1/profiles/" + this.profile.id, { doc: this.text, note }, { ifMatch: this.profile.version });
-      // 服务端保存后重新渲染；保留本地文档对象（内容相同），只更新版本与状态。
+      const p = await api.put<Profile>("/api/v1/profiles/" + this.profile.id, { doc: text, autosave: true }, { ifMatch: this.profile.version });
+      // 服务端保存后重新渲染；保留本地文档对象，只更新版本与状态。
       this.profile = p;
-      this.savedText = this.text;
-      toasts.push("ok", t("editor.saved", { n: p.version }));
+      this.savedText = text;
+      if (this.text === text) this.#before = null;
+      if (opts.undoable !== false && before !== null && before !== text) {
+        toasts.push("ok", t("editor.autosaved"), { key: "autosave", action: { label: t("editor.undo"), run: () => void this.undo(before) } });
+      }
       void this.runPreview(false);
       return true;
     } catch (e) {
@@ -193,18 +218,28 @@ export class EditorState {
       return false;
     } finally {
       this.saving = false;
+      if (this.#saveQueued) {
+        this.#saveQueued = false;
+        void this.save(opts);
+      }
     }
   }
 
-  /** 放弃未保存的修改：重新读取服务端的当前版本。 */
-  async discard(): Promise<void> {
+  /** 撤销：回到本轮编辑之前的已保存内容，并立即保存。 */
+  async undo(text: string): Promise<void> {
     if (!this.profile) return;
-    this.#adopt(await api.get<Profile>("/api/v1/profiles/" + this.profile.id));
+    clearTimeout(this.#saveTimer);
+    this.doc = new ProfileDoc(text);
+    this.#before = null;
+    this.rev++;
+    if (await this.save({ undoable: false })) toasts.push("info", t("editor.undone"), { key: "autosave" });
     void this.runPreview(false);
   }
 
   dispose(): void {
     clearTimeout(this.#timer);
+    // 离开编辑器时立即保存尚未保存的修改
+    if (this.dirty) void this.save();
     this.#abort?.abort();
   }
 

@@ -210,6 +210,9 @@ export class ProfileDoc {
       return;
     }
     if (this.doc.hasIn(["output", "proxies-flow"])) this.doc.deleteIn(["output", "proxies-flow"]);
+    // 不留下空的 output 映射
+    const out = this.doc.get("output");
+    if (isMap(out) && out.items.length === 0) this.doc.delete("output");
   }
 
   // —— 原始编辑（后备隐藏能源）——

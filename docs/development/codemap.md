@@ -50,6 +50,7 @@
 | 后台调度 | `internal/service/jobs.go` | API 端到端 | — |
 | 注册、邀请 | `internal/service/register.go`、`internal/api/register.go` | `TestRegistrationAndInvites`、`TestInvites` | [0003](../decisions/0003-direct-fetch-and-invites.md) |
 | 节点写法默认值与锁定 | `internal/service/nodemode.go`、`internal/api/nodemode.go`、`migrations/*/0004_user_invited.sql`、`web/src/components/editor/SourcesPanel.svelte` | `TestNodeModePolicy` | [feedback](feedback.md) #46 |
+| 自动保存与撤销 | `web/src/lib/editor.svelte.ts`、`web/src/lib/toast.svelte.ts`、`internal/store/sql.go`（`Autosave`）、`internal/api/resources.go` | `TestAutosaveCoalesces`、e2e「自动保存，可撤销」 | [feedback](feedback.md) #35 |
 | 口令、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改口令与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |

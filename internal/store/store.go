@@ -262,6 +262,9 @@ type ProfileRepo interface {
 	List(ctx context.Context, owner string, p Page) ([]Profile, error)
 	// Update 保存新文档并生成一个版本；Version 不一致时返回 ErrConflict。
 	Update(ctx context.Context, owner string, p *Profile, note string) error
+	// Autosave 与 Update 相同，但若最近一个版本也是自动保存且在 window 之内，就把它改写为新版本，
+	// 而不是再加一个：连续编辑在历史中只留一条（反馈 #35）。
+	Autosave(ctx context.Context, owner string, p *Profile, window time.Duration) error
 	Delete(ctx context.Context, owner, id string) error
 	Revisions(ctx context.Context, owner, profileID string, p Page) ([]Revision, error)
 	Revision(ctx context.Context, owner, profileID string, n int) (*Revision, error)

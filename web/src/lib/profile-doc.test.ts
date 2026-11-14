@@ -116,3 +116,33 @@ describe("链式代理", () => {
     expect(d.toString()).not.toContain("chains");
   });
 });
+
+// 直接编辑 YAML 是独立的一层（反馈 #32）：表单、源、链式代理、规则与输出选项的任何操作都不改动它，
+// 即使操作的字段与原始编辑写的是同一个键；只有在直接编辑中修改才会变化。
+describe("直接编辑不被其他操作改动", () => {
+  it("逐项操作后 raw 原文逐字节不变", () => {
+    const d = new ProfileDoc(sample + "");
+    const before = d.raw;
+    d.setForm(["rules"], ["MATCH,DIRECT"]); // 与 raw 中的 rules 同名
+    d.setForm(["dns", "ipv6"], false);
+    d.deleteForm(["dns", "enable"]);
+    d.deleteForm(["mixed-port"]);
+    d.deleteForm(["rules"]);
+    d.sources = [{ ref: "src_b" }];
+    d.sources = [];
+    d.chains = [{ via: "VPS" }];
+    d.chains = [];
+    d.rules = "rs_x";
+    d.rules = undefined;
+    d.proxiesBlock = false;
+    d.proxiesBlock = true;
+    expect(d.raw).toBe(before);
+    expect(d.toString()).not.toContain("output");
+    expect(d.raw).toContain("DOMAIN,intranet.example.com,DIRECT");
+  });
+  it("清空表单后 raw 仍在", () => {
+    const d = new ProfileDoc(sample);
+    for (const p of d.formPaths()) d.deleteForm(p);
+    expect(d.hasRaw).toBe(true);
+  });
+});

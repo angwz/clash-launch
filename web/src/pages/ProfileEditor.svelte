@@ -62,7 +62,11 @@
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("beforeunload", onUnload);
-    router.guard = () => !editor.dirty || confirm(t("editor.leave_confirm"));
+    // 自动保存：离开时立即保存尚未保存的修改，不再询问（反馈 #35）
+    router.guard = () => {
+      if (editor.dirty) void editor.save();
+      return true;
+    };
     const off = palette.register("editor", paletteItems);
     return () => {
       window.removeEventListener("keydown", onKey);
@@ -198,8 +202,10 @@
         <span class="subtle label-sm">{t("editor.profile")}</span>
         <strong class="pname" title={editor.profile.name}>
           {editor.profile.name}
-          {#if editor.dirty}<span class="dirty" title={t("editor.unsaved")} aria-label={t("editor.unsaved")}></span>{/if}
         </strong>
+        <span class="save-state" aria-live="polite">
+          {#if editor.saving}{t("editor.saving")}{:else if editor.dirty}{t("editor.unsaved")}{:else}<Icon name="check" size={12} />{t("editor.all_saved")}{/if}
+        </span>
         <div class="profile-links">
           <a href={"/profiles/" + editor.profile.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
         </div>
@@ -265,18 +271,6 @@
           {/key}
         {/if}
       </div>
-
-      {#if editor.dirty}
-        <div class="savebar" role="region" aria-label={t("editor.unsaved")}>
-          <span class="dot"></span>
-          <span>{t("editor.unsaved")}</span>
-          <span class="spacer"></span>
-          <button class="btn sm ghost" type="button" onclick={() => void editor.discard()}>{t("editor.discard")}</button>
-          <button class="btn sm primary" type="button" disabled={editor.saving} onclick={() => void editor.save()}>
-            {editor.saving ? t("editor.saving") : t("editor.save")}<span class="kbd on-accent">Ctrl S</span>
-          </button>
-        </div>
-      {/if}
     </div>
 
     <aside class="preview" aria-label={t("preview.title")}>
@@ -340,12 +334,12 @@
     font-weight: 620;
     overflow-wrap: anywhere;
   }
-  .dirty {
-    flex: none;
-    inline-size: 7px;
-    block-size: 7px;
-    border-radius: 50%;
-    background: var(--warn);
+  .save-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--fg-subtle);
+    font-size: var(--text-xs);
   }
   .secnav a.item:hover {
     text-decoration: none;
@@ -453,34 +447,6 @@
     max-inline-size: var(--content-max);
     margin-inline: auto;
     padding: var(--space-6) var(--space-6) var(--space-10);
-  }
-  .savebar {
-    position: sticky;
-    inset-block-end: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    border-block-start: 1px solid var(--border);
-    background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
-    backdrop-filter: blur(6px);
-    font-size: var(--text-sm);
-  }
-  .savebar .dot {
-    inline-size: 7px;
-    block-size: 7px;
-    border-radius: 50%;
-    background: var(--warn);
-  }
-  .spacer {
-    flex: 1;
-  }
-  .kbd.on-accent {
-    margin-inline-start: var(--space-1);
-    border-color: color-mix(in srgb, var(--fg-on-accent) 40%, transparent);
-    background: transparent;
-    color: var(--fg-on-accent);
-    opacity: 0.85;
   }
 
   /* —— 预览栏 —— */

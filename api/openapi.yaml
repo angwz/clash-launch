@@ -186,6 +186,7 @@ components:
       properties:
         doc: {type: string}
         note: {type: string}
+        autosave: {type: boolean, description: 编辑器自动保存（只在更新时有效）；与上一个自动保存版本相隔不到 10 分钟时合并为同一个版本，备注为 autosave}
     Revision:
       type: object
       required: [n, doc, createdAt]

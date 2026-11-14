@@ -725,22 +725,60 @@ func (r profiles) All(ctx context.Context, limit int) ([]Profile, error) {
 func (r profiles) Update(ctx context.Context, owner string, p *Profile, note string) error {
 	return r.d.Tx(ctx, func(s Store) error {
 		d := s.(*DB)
-		enc, err := d.seal(p.Doc, "profiles", "doc", p.ID)
-		if err != nil {
+		if err := (profiles{d}).bump(ctx, owner, p); err != nil {
 			return err
 		}
-		now := time.Now()
-		res, err := d.exec(ctx, "UPDATE profiles SET name=?, doc_enc=?, updated_at=?, version=version+1 WHERE owner_id=? AND id=? AND version=?", p.Name, enc, ms(now), owner, p.ID, p.Version)
-		zero := ErrConflict
-		if _, gerr := (profiles{d}).Get(ctx, owner, p.ID); gerr != nil {
-			zero = ErrNotFound
-		}
-		if err := affected(res, err, zero); err != nil {
-			return err
-		}
-		p.Version++
-		p.UpdatedAt = now
 		return profiles{d}.addRevision(ctx, owner, p, note)
+	})
+}
+
+// bump 写入新文档并把版本加一（乐观锁：Version 不一致时返回 ErrConflict）。须在事务中调用。
+func (r profiles) bump(ctx context.Context, owner string, p *Profile) error {
+	enc, err := r.d.seal(p.Doc, "profiles", "doc", p.ID)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	res, err := r.d.exec(ctx, "UPDATE profiles SET name=?, doc_enc=?, updated_at=?, version=version+1 WHERE owner_id=? AND id=? AND version=?", p.Name, enc, ms(now), owner, p.ID, p.Version)
+	zero := ErrConflict
+	if _, gerr := r.Get(ctx, owner, p.ID); gerr != nil {
+		zero = ErrNotFound
+	}
+	if err := affected(res, err, zero); err != nil {
+		return err
+	}
+	p.Version++
+	p.UpdatedAt = now
+	return nil
+}
+
+// AutosaveNote 是自动保存版本的备注；界面据此显示为「自动保存」。
+const AutosaveNote = "autosave"
+
+func (r profiles) Autosave(ctx context.Context, owner string, p *Profile, window time.Duration) error {
+	return r.d.Tx(ctx, func(s Store) error {
+		d := s.(*DB)
+		prev := p.Version
+		if err := (profiles{d}).bump(ctx, owner, p); err != nil {
+			return err
+		}
+		now := p.UpdatedAt
+		// 上一个版本是窗口内的自动保存：改写它（编号随之前进，保持与方案版本一致）
+		var id, note string
+		var created int64
+		err := d.row(ctx, "SELECT id, note, created_at FROM revisions WHERE profile_id=? AND n=?", p.ID, prev).Scan(&id, &note, &created)
+		if err == nil && note == AutosaveNote && now.Sub(fromMS(created)) < window {
+			renc, err := d.seal(p.Doc, "revisions", "doc", id)
+			if err != nil {
+				return err
+			}
+			_, err = d.exec(ctx, "UPDATE revisions SET n=?, doc_enc=?, created_at=? WHERE id=?", p.Version, renc, ms(now), id)
+			return err
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		return profiles{d}.addRevision(ctx, owner, p, AutosaveNote)
 	})
 }
 

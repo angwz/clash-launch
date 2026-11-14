@@ -9,6 +9,9 @@
     <div class="toast" data-kind={x.kind} role={x.kind === "err" ? "alert" : "status"}>
       <Icon name={x.kind === "ok" ? "ok" : x.kind === "err" ? "error" : "info"} />
       <span class="text">{x.text}</span>
+      {#if x.action}
+        <button class="btn ghost sm action" type="button" onclick={() => { toasts.dismiss(x.id); x.action!.run(); }}>{x.action.label}</button>
+      {/if}
       <button class="btn ghost icon sm" type="button" aria-label={t("common.close")} onclick={() => toasts.dismiss(x.id)}>
         <Icon name="x" size={14} />
       </button>
@@ -38,6 +41,10 @@
     box-shadow: var(--shadow-md);
     font-size: var(--text-md);
     animation: rise var(--dur) var(--ease);
+  }
+  .action {
+    color: var(--accent-fg);
+    font-weight: 600;
   }
   .toast[data-kind="ok"] > :global(.icon) {
     color: var(--ok);

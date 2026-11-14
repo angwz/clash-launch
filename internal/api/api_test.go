@@ -566,3 +566,36 @@ func TestNodeModePolicy(t *testing.T) {
 		t.Errorf("锁定账号应按默认值交给客户端并报告：%v\n%s", codes, pv.YAML)
 	}
 }
+
+// 自动保存（反馈 #35）：连续的自动保存合并为一个版本；手动保存另起一个版本，之后的自动保存不并入它。
+func TestAutosaveCoalesces(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	put := func(port int, auto bool) {
+		t.Helper()
+		doc := strings.Replace(p.Doc, "mixed-port: 7890", "mixed-port: "+fmt.Sprint(port), 1)
+		p = decode[profileDTO](t, c.want(200, "PUT", "/api/v1/profiles/"+pid, map[string]any{"doc": doc, "autosave": auto}, "If-Match", fmt.Sprintf(`"v%d"`, p.Version)))
+	}
+	put(7891, true)
+	put(7892, true)
+	put(7893, true)
+	put(7894, false)
+	put(7895, true)
+	type rev struct {
+		N    int    `json:"n"`
+		Note string `json:"note"`
+	}
+	revs := decode[list[rev]](t, c.want(200, "GET", "/api/v1/profiles/"+pid+"/revisions", nil)).Items
+	var got []string
+	for _, r := range revs {
+		got = append(got, fmt.Sprintf("%d:%s", r.N, r.Note))
+	}
+	// 新的在前：v6 自动保存、v5 手动、v4 合并了 v2–v4 的自动保存、v1 创建
+	if want := []string{"6:autosave", "5:", "4:autosave", "1:"}; strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("版本：%v，期望 %v", got, want)
+	}
+	if p.Version != 6 {
+		t.Errorf("方案版本：%d", p.Version)
+	}
+}
