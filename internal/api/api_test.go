@@ -11,7 +11,6 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -28,6 +27,7 @@ import (
 	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/source"
 	"github.com/angwz/clash-launch/internal/store"
+	"github.com/angwz/clash-launch/internal/store/storetest"
 	"github.com/angwz/clash-launch/internal/target"
 )
 
@@ -83,7 +83,7 @@ func newHarness(t *testing.T, checker *kernel.Checker) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := store.Open(context.Background(), "sqlite:"+filepath.Join(dir, "t.db"), keys)
+	db, err := store.Open(context.Background(), storetest.DSN(t, dir), keys)
 	if err != nil {
 		t.Fatal(err)
 	}

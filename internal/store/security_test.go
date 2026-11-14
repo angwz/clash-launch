@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/angwz/clash-launch/internal/store/storetest"
 )
 
 // 账号安全相关的仓储：TOTP 防重放、恢复码一次性、通行密钥唯一、加密列可轮换、配额默认值与用量、新设备识别。
@@ -16,7 +18,7 @@ func TestSecurityRepos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := Open(ctx, "sqlite:"+filepath.Join(dir, "t.db"), k)
+	d, err := Open(ctx, storetest.DSN(t, dir), k)
 	if err != nil {
 		t.Fatal(err)
 	}

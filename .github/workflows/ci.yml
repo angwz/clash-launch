@@ -26,6 +26,29 @@ jobs:
       - name: 内核测试（mihomo -t 与实际加载）
         run: go test -tags kernel ./internal/kernel/ ./internal/api/
 
+  # 同一套存储与 API 测试在 PostgreSQL 上再跑一遍：每个测试新建一个空库并执行全部迁移（internal/store/storetest）。
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: example-ci-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CLASH_LAUNCH_TEST_POSTGRES: postgres://postgres:example-ci-password@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go test ./internal/store/... ./internal/api/
+
   web:
     runs-on: ubuntu-latest
     defaults:

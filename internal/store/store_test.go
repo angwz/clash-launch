@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/angwz/clash-launch/internal/store/storetest"
 	"github.com/angwz/clash-launch/migrations"
 )
 
@@ -22,7 +23,7 @@ func newDB(t *testing.T) *DB {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := Open(context.Background(), "sqlite:"+filepath.Join(dir, "t.db"), k)
+	d, err := Open(context.Background(), storetest.DSN(t, dir), k)
 	if err != nil {
 		t.Fatal(err)
 	}
