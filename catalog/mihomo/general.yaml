@@ -2,11 +2,12 @@
 # 源码中没有显式默认值的字段不写 default（交给内核零值）。
 fields:
   # —— 入站端口 ——
-  - {key: port, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
+  - {key: port, guide: {basis: practice, zh: "单独的 HTTP 代理端口。已经设置 mixed-port 时通常不需要。", en: "A dedicated HTTP proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
      zh: [HTTP 端口, "HTTP(S) 代理入站端口；一般用 mixed-port 代替。"], en: [HTTP port, "HTTP(S) proxy inbound port; mixed-port usually replaces it."]}
-  - {key: socks-port, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
+  - {key: socks-port, guide: {basis: practice, zh: "单独的 SOCKS 代理端口。已经设置 mixed-port 时通常不需要。", en: "A dedicated SOCKS proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
      zh: [SOCKS 端口, "SOCKS4/4a/5 代理入站端口。"], en: [SOCKS port, "SOCKS4/4a/5 proxy inbound port."]}
   - key: mixed-port
+    guide: {suggest: 7890, basis: practice, zh: "大多数场景只需要这一个端口：浏览器、系统代理和各种软件都填它即可。7890 是最常见的取值；修改后记得同步修改系统代理或软件里的端口。", en: "Most setups need only this port: point browsers, the system proxy and apps at it. 7890 is the common choice; update the system proxy and apps if you change it."}
     type: int
     importance: core
     doc: inbound/port
@@ -28,6 +29,7 @@ fields:
 
   # —— 局域网访问 ——
   - key: allow-lan
+    guide: {basis: practice, zh: "关闭时代理端口只监听 127.0.0.1，只有本机能用；开启后局域网里的手机、电视等设备也能把代理指向本机。开启后任何能连到本机的设备都能使用代理，建议配合 authentication 或 lan-allowed-ips 限制来源，在公共网络中不要开启。", en: "When off, proxy ports listen on 127.0.0.1 only; when on, phones and TVs on the LAN can use this machine as a proxy. Anyone who can reach the machine can then use it, so restrict access with authentication or lan-allowed-ips, and avoid it on public networks."}
     type: bool
     default: false
     importance: recommended
@@ -37,9 +39,10 @@ fields:
     detail:
       zh: 开启后请配合 authentication 或 lan-allowed-ips 限制来源，避免在公共网络中暴露代理。
       en: When enabled, restrict access with authentication or lan-allowed-ips so the proxy is not exposed on untrusted networks.
-  - {key: bind-address, type: string, default: "*", importance: optional, doc: general,
+  - {key: bind-address, guide: {basis: official, zh: "allow-lan 开启时代理端口监听的地址：* 表示全部地址，也可以填某张网卡的 IPv4 或 IPv6 地址，只让这张网卡可用。allow-lan 关闭时始终只监听 127.0.0.1。", en: "Address the proxy ports bind to when allow-lan is on: * for all, or one interface address. With allow-lan off they always bind to 127.0.0.1."}, type: string, default: "*", importance: optional, doc: general,
      zh: [绑定地址, "allow-lan 开启时监听的地址；* 表示全部地址。"], en: [Bind address, "Address to listen on when allow-lan is on; * means all addresses."]}
   - key: authentication
+    guide: {basis: practice, zh: "为 HTTP、SOCKS 与 mixed 端口设置用户名和密码，格式 user:pass。开启 allow-lan 时建议设置，防止局域网中的其他人随意使用代理。", en: "Username and password (user:pass) for the HTTP, SOCKS and mixed ports. Recommended with allow-lan so others on the network cannot use the proxy freely."}
     type: list
     items: {type: string}
     importance: optional
@@ -50,9 +53,9 @@ fields:
     en: [Authentication, "Usernames and passwords for HTTP and SOCKS inbounds, as user:password."]
   - {key: skip-auth-prefixes, type: list, items: {type: string}, importance: optional, doc: general,
      zh: [免认证网段, "来自这些网段的连接跳过入站认证。"], en: [Skip-auth prefixes, "Connections from these CIDRs bypass inbound authentication."]}
-  - {key: lan-allowed-ips, type: list, items: {type: string}, default: [0.0.0.0/0, "::/0"], importance: optional, doc: general,
+  - {key: lan-allowed-ips, guide: {basis: official, zh: "允许连接代理端口的 IP 段，只在 allow-lan 开启时生效，默认允许全部。可以只填自己的局域网网段。", en: "IP ranges allowed to connect when allow-lan is on; all by default. You can limit it to your own LAN subnet."}, type: list, items: {type: string}, default: [0.0.0.0/0, "::/0"], importance: optional, doc: general,
      zh: [允许的来源, "allow-lan 开启时允许连接的来源网段（白名单）。"], en: [Allowed source IPs, "Source CIDRs allowed to connect when allow-lan is on (allowlist)."]}
-  - {key: lan-disallowed-ips, type: list, items: {type: string}, importance: optional, doc: general,
+  - {key: lan-disallowed-ips, guide: {basis: official, zh: "禁止连接的 IP 段。黑名单优先于 lan-allowed-ips，可以用来从允许的网段中排除个别地址。", en: "IP ranges denied access. Takes precedence over lan-allowed-ips, so it can carve exceptions out of an allowed range."}, type: list, items: {type: string}, importance: optional, doc: general,
      zh: [禁止的来源, "禁止连接的来源网段；优先级高于白名单。"], en: [Disallowed source IPs, "Source CIDRs that may not connect; takes precedence over the allowlist."]}
 
   # —— 运行模式 ——
@@ -86,6 +89,7 @@ fields:
 
   # —— 地理数据 ——
   - key: geox-url
+    guide: {basis: official, zh: "自定义 geoip、geosite、mmdb、asn 数据的下载地址。默认地址在 GitHub，所在网络访问 GitHub 困难时可以换成镜像。", en: "Custom download URLs for geoip, geosite, mmdb and asn data. Defaults point at GitHub; switch to a mirror if GitHub is hard to reach."}
     type: object
     importance: optional
     doc: general
@@ -100,13 +104,14 @@ fields:
          zh: [MMDB, "默认模式下 GEOIP 规则使用的 IP 数据库地址。"], en: [MMDB, "IP database URL used by GEOIP rules in the default mode."]}
       - {key: asn, type: string, importance: optional, default: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
          zh: [ASN, "IP-ASN 规则使用的自治系统数据库地址。"], en: [ASN, "Autonomous system database URL used by IP-ASN rules."]}
-  - {key: geo-auto-update, type: bool, default: false, importance: optional, doc: general,
+  - {key: geo-auto-update, guide: {basis: practice, zh: "定期自动更新 GEOIP、GEOSITE 等地理数据，间隔由 geo-update-interval 决定（单位：小时）。长期运行的设备建议开启，避免规则随时间变得不准。", en: "Periodically refreshes GEOIP and GEOSITE data, every geo-update-interval hours. Worth enabling on long-running devices so rules stay accurate."}, type: bool, default: false, importance: optional, doc: general,
      zh: [自动更新地理数据, "按 geo-update-interval 定期更新地理数据库。"], en: [Auto-update geodata, "Refresh geodata databases every geo-update-interval."]}
   - {key: geo-update-interval, type: int, default: 24, importance: optional, doc: general,
      zh: [更新间隔, "地理数据库的自动更新间隔，单位为小时。"], en: [Update interval, "Geodata auto-update interval, in hours."]}
-  - {key: geodata-mode, type: bool, default: false, importance: optional, doc: general,
+  - {key: geodata-mode, guide: {basis: official, zh: "GEOIP 规则使用的数据格式：关闭时用 mmdb（默认），开启时用 dat。一般保持默认。", en: "Data format for GEOIP rules: mmdb when off (default), dat when on. Keep the default unless you need dat."}, type: bool, default: false, importance: optional, doc: general,
      zh: [geodata 模式, "GEOIP 改用 GeoIP.dat 而不是 MMDB。"], en: [Geodata mode, "Use GeoIP.dat instead of MMDB for GEOIP."]}
   - key: geodata-loader
+    guide: {basis: official, zh: "memconservative（默认）针对小内存设备优化，standard 是标准加载器。路由器等内存紧张的设备保持默认。", en: "memconservative (default) is optimised for low-memory devices; standard is the regular loader. Keep the default on routers."}
     type: enum
     enum:
       - {value: standard, en: Load fully into memory, zh: 完整载入内存}
@@ -176,6 +181,7 @@ fields:
       - {key: custom-certifactes, type: list, items: {type: string}, importance: expert,
          zh: [附加信任证书, "额外信任的 CA 证书（PEM）。键名中的拼写与内核一致。"], en: [Extra trusted CAs, "Additional trusted CA certificates (PEM). The key spelling matches the core."]}
   - key: external-controller
+    guide: {basis: practice, zh: "控制面板（RESTful API）的监听地址，图形界面和网页面板通过它切换节点、查看连接。127.0.0.1:9090 只允许本机访问；改成 0.0.0.0 会让局域网都能访问，这时务必设置 secret。", en: "Listen address of the controller API used by GUIs and web dashboards. 127.0.0.1:9090 allows only this machine; 0.0.0.0 exposes it to the LAN, so always set secret then."}
     type: string
     importance: recommended
     doc: general#api
@@ -185,9 +191,9 @@ fields:
     detail:
       zh: 监听 0.0.0.0 时务必设置 secret，否则局域网内任何人都能控制内核。
       en: When listening on 0.0.0.0, always set secret; otherwise anyone on the network can control the core.
-  - {key: external-controller-tls, type: string, importance: optional, doc: general#api,
+  - {key: external-controller-tls, guide: {basis: official, zh: "HTTPS 版本的控制面板地址，需要在 tls 中配置证书与私钥。", en: "HTTPS listen address for the controller; requires a certificate and key under tls."}, type: string, importance: optional, doc: general#api,
      zh: [HTTPS 控制接口, "RESTful API 的 HTTPS 监听地址，需要配置 tls。"], en: [HTTPS controller, "HTTPS listen address of the RESTful API; requires tls."]}
-  - {key: secret, type: string, importance: recommended, sensitive: true, doc: general#api,
+  - {key: secret, guide: {basis: official, zh: "访问控制面板 API 的密钥。官方说明：通过 Unix socket、Windows 命名管道和外部 DoH 访问时不验证 secret，需要自行保证这些入口的安全。控制面板对局域网开放时一定要设置。", en: "Key for the controller API. Per the docs, Unix sockets, Windows named pipes and the external DoH server skip it, so secure those yourself. Always set it when the API is reachable from the LAN."}, type: string, importance: recommended, sensitive: true, doc: general#api,
      zh: [接口密钥, "访问 RESTful API 时需要的 Bearer 密钥。"], en: [API secret, "Bearer secret required by the RESTful API."]}
   - key: external-controller-cors
     type: object
@@ -206,7 +212,7 @@ fields:
      zh: [接口路由标记, "为控制接口的监听套接字设置 routing-mark（仅 Linux）。"], en: [API routing mark, "routing-mark for the controller listening sockets (Linux only)."]}
   - {key: tcp-concurrent, guide: {basis: practice, zh: "域名解析出多个 IP 时同时发起连接，用最先成功的那个，可以减少某个 IP 不通时的等待；代价是多发几次连接。一般保持默认关闭。", en: "Dials every resolved IP at once and keeps the first to succeed, cutting waits when one IP is down at the cost of extra connections. The default off is fine for most."}, type: bool, default: false, importance: expert, doc: general#tcp,
      zh: [TCP 并发, "同时连接域名解析出的全部 IP，使用最先握手成功的一个。"], en: [TCP concurrent, "Dial all resolved IPs at once and keep the first to complete the handshake."]}
-  - {key: external-ui, type: string, importance: optional, doc: general#api,
+  - {key: external-ui, guide: {basis: official, zh: "把网页面板（如 metacubexd）挂到控制面板地址的 /ui 路径下。可以填绝对路径或相对工作目录的路径；不在工作目录内时需要设置 SAFE_PATHS 环境变量。", en: "Serves a web dashboard (such as metacubexd) at /ui on the controller. Absolute or working-directory-relative path; paths outside the working directory need the SAFE_PATHS environment variable."}, type: string, importance: optional, doc: general#api,
      zh: [面板目录, "面板静态文件所在目录，经 /ui 访问。"], en: [Dashboard folder, "Folder holding dashboard files, served at /ui."]}
   - {key: external-ui-name, type: string, importance: optional, doc: general#api,
      zh: [面板子目录, "external-ui 下的子目录名。"], en: [Dashboard name, "Subfolder name under external-ui."]}

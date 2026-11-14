@@ -32,6 +32,7 @@
     rule: () => import("./pages/RuleDetail.svelte"),
     account: () => import("./pages/Account.svelte"),
     admin: () => import("./pages/Admin.svelte"),
+    help: () => import("./pages/Help.svelte"),
     notfound: () => import("./pages/NotFound.svelte"),
   };
 
@@ -54,6 +55,7 @@
       { id: "page.home", kind: "page", title: t("nav.profiles"), icon: "layers", run: () => router.go("/") },
       { id: "page.sources", kind: "page", title: t("nav.sources"), icon: "server", run: () => router.go("/sources") },
       { id: "page.rules", kind: "page", title: t("nav.rules"), icon: "rules", run: () => router.go("/rules") },
+      { id: "page.help", kind: "page", title: t("nav.help"), icon: "file", run: () => router.go("/help") },
       { id: "page.account", kind: "page", title: t("nav.account"), icon: "user", run: () => router.go("/account") },
       ...(session.isAdmin ? [{ id: "page.admin", kind: "page" as const, title: t("nav.admin"), icon: "shield" as const, run: () => router.go("/admin") }] : []),
       { id: "cmd.theme.light", kind: "command", title: t("palette.theme", { theme: t("theme.light") }), icon: "sun", run: () => theme.apply("light") },

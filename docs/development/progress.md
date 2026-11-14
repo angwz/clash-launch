@@ -6,6 +6,7 @@
 
 - **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。核心路径（反馈 #14–#16）已完成，见「核心路径验收」；反馈 #17 的三项修正已完成（首次注册免令牌与简单口令、默认值显示、取消接管提示）。
 - **反馈 #21–#25（2026-11-13）**：规则源可粘贴文本（并修复粘贴文本被地址快照覆盖）；节点源只分订阅与手动节点，源列表显示位置序号、GROUPID 按需显示；输出排版向官方示例看齐（节点默认多行、条目间空行）；链式代理（[chains](../design/chains.md)）。验证：`go test ./...`、`-tags kernel`（含新的 chains golden）、前端 check / 41 项单元 / build / budget 53.4 KiB / e2e 14 通过 6 跳过。本机未装 staticcheck、golangci-lint，由 CI 检查。
+- **反馈 #26–#31（2026-11-14）**：管理页版本号改为 git describe 形式并显示提交与构建时间；预览按场景停靠或浮层显示并高亮当前字段；开关默认态改为文字；界面用词统一（[0004](../decisions/0004-web-frontend.md) #25）；字段「说明与建议」与 `guide` 建议值（7 个分区）；侧栏「帮助」含 7 篇教程与字段百科。验证：`go test ./...`、前端 check / 60 项单元 / build / budget 54.0 KiB / e2e 16 通过 6 跳过（含帮助页与预览新行为）。image 工作流的 git describe 步骤尚未在 GitHub 上运行。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 

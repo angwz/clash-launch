@@ -3,6 +3,7 @@
 /bin/
 /web/dist/*
 !/web/dist/.gitkeep
+/node_modules/
 /web/node_modules/
 
 # 本地数据与缓存（不入库）

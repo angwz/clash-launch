@@ -75,7 +75,10 @@
 | 页面与路由 | `src/lib/router.svelte.ts`（路由表）+ `src/App.svelte`（懒加载表）+ `src/pages/*` | `e2e/app.spec.ts` |
 | 顶栏、侧栏、响应式外壳 | `src/components/AppShell.svelte`；顶栏的方案状态由 `lib/shell.svelte.ts` 传递 | e2e |
 | 方案编辑器 | `pages/ProfileEditor.svelte`（三栏与定位）、`lib/editor.svelte.ts`（状态、预览、保存）、`components/editor/*` | e2e |
-| 字段卡片与控件 | `components/editor/FieldCard.svelte`、`FieldControl.svelte` | e2e |
+| 字段卡片与控件 | `components/editor/FieldCard.svelte`、`FieldControl.svelte`；「说明与建议」面板 `FieldGuide.svelte`（编辑器与百科共用），YAML 示例 `lib/yaml-snippet.ts` | e2e、`yaml-snippet.test.ts` |
+| 字段建议（怎么选、推荐 / 建议值） | 目录 `catalog/mihomo/*.yaml` 的 `guide`（[catalog](../design/catalog.md)） | `TestGuideSuggestPassForm` |
+| 帮助：教程与百科 | `pages/Help.svelte`；教程正文 `src/help/{zh-CN,en}/NN-主题.md`（序号决定顺序，两种语言同步），极简 Markdown `lib/md.ts` | `md.test.ts`、e2e「帮助」 |
+| 预览高亮当前字段 | `lib/yaml-range.ts`（路径 → 行范围）、`components/editor/YamlView.svelte` | `yaml-range.test.ts`、e2e |
 | 方案文档的读写 | `src/lib/profile-doc.ts`（只做结构操作） | `profile-doc.test.ts` |
 | 原始编辑器 | `components/editor/RawEditor.svelte`、`lib/cm.ts`（Shadow DOM，原因见 0004 #11） | e2e |
 | 命令面板 | `components/CommandPalette.svelte`、`lib/palette.svelte.ts`；页面用 `palette.register` 添加来源 | e2e |

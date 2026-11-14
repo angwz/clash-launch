@@ -26,7 +26,7 @@ test("登录后看到配置列表，各页面没有错误与 CSP 违规", async 
   await login(page);
   await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
   await expect(page.getByRole("link", { name })).toBeVisible();
-  for (const path of [`/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/profiles/${profile}/history`, `/sources`, `/sources/${source}`, `/rules`, `/admin`, `/account`, `/welcome`]) {
+  for (const path of [`/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/profiles/${profile}/history`, `/sources`, `/sources/${source}`, `/rules`, `/admin`, `/account`, `/welcome`, `/help`, `/help?tab=wiki`]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
   }
@@ -268,4 +268,23 @@ test("通行密钥：添加后可以免密码登录", async ({ browser, request,
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "配置", exact: true })).toBeVisible();
   await ctx.close();
+});
+
+test("帮助：教程切换、百科搜索与深链接", async ({ page }) => {
+  await login(page);
+  await page.goto("/help");
+  await expect(page.getByRole("heading", { name: "快速上手" })).toBeVisible();
+  await page.getByRole("button", { name: "链式代理" }).click();
+  await expect(page).toHaveURL(/topic=05-chains/);
+  await expect(page.locator(".doc pre")).toContainText("dialer-proxy");
+
+  // 深链接直接展开字段，面板与编辑器共用
+  await page.goto("/help?tab=wiki&f=dns.enhanced-mode");
+  const entry = page.locator("[id='w-dns.enhanced-mode']");
+  await expect(entry).toHaveAttribute("open", "");
+  await expect(entry.locator(".guide")).toContainText("enhanced-mode: fake-ip");
+
+  // 搜索按名称、键名与说明过滤
+  await page.getByRole("searchbox").fill("dns.respect-rules");
+  await expect(page.locator("details.entry")).toHaveCount(1);
 });

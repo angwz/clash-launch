@@ -2,9 +2,10 @@
 # 字段写在片段 tun-fields 中，listeners 的 tun 类型复用其中默认值相同的字段（inbound.yaml）。
 fragments:
   tun-fields:
-    - {key: enable, type: bool, default: false, importance: core, doc: "inbound/tun#enable",
+    - {key: enable, guide: {basis: practice, zh: "TUN 模式创建一张虚拟网卡，接管整台设备的流量，不依赖软件是否支持系统代理，游戏、命令行工具也能走代理。需要管理员权限；只给浏览器用时可以不开，用系统代理即可。开启时会按官方示例填入一组常用值。", en: "TUN creates a virtual NIC that captures all device traffic, so even apps ignoring the system proxy (games, CLIs) are routed. Needs admin rights; browsers alone do fine with the system proxy. Enabling fills common values from the official example."}, type: bool, default: false, importance: core, doc: "inbound/tun#enable",
        zh: [启用, "启用 TUN 模式（需要管理员或 root 权限）。"], en: [Enable, "Enable TUN mode (needs administrator or root)."]}
     - key: stack
+      guide: {basis: official, zh: "mips（默认）是 mihomo 自带的网络栈，官方建议没有问题时保持默认。system 使用系统网络栈，更稳定、资源占用更少；gvisor 在用户态处理，隔离性更好；mixed 是 TCP 用 system、UDP 用 gvisor。注意：开启防火墙时 system 与 mixed 可能无法工作，需要放行内核或 TUN 网卡。", en: "mips (default) is the built-in mihomo stack; the docs suggest keeping it unless you hit issues. system uses the OS stack (stable, light); gvisor runs in userspace (better isolation); mixed uses system for TCP and gvisor for UDP. With a firewall on, system and mixed may fail unless the core or TUN NIC is allowed."}
       type: enum
       enum:
         - {value: system, en: OS network stack, zh: 系统网络栈}
@@ -29,13 +30,13 @@ fragments:
       doc: "inbound/tun#dns-mode"
       zh: [系统 DNS 方式, "如何让系统 DNS 经过 TUN；留空时与旧版本行为一致。"]
       en: [System DNS mode, "How system DNS is routed into TUN; empty keeps the previous behaviour."]
-    - {key: dns-hijack, type: list, items: {type: string}, default: ["0.0.0.0:53"], importance: recommended, doc: "inbound/tun#dns-hijack",
+    - {key: dns-hijack, guide: {basis: official, zh: "把发往这些地址的 DNS 查询交给内核的 DNS 处理，未写协议时默认 UDP。官方说明：macOS 与 Windows 无法自动劫持发往局域网地址的 DNS；Android 开启「私人 DNS」时劫持不生效。", en: "Sends DNS queries for these addresses to the core DNS; UDP when no scheme is given. Per the docs, macOS and Windows cannot hijack queries to LAN addresses, and Android Private DNS defeats hijacking."}, type: list, items: {type: string}, default: ["0.0.0.0:53"], importance: recommended, doc: "inbound/tun#dns-hijack",
        zh: [DNS 劫持, "被劫持到内置 DNS 的地址；any:53 表示所有 53 端口。"], en: [DNS hijack, "Addresses redirected to the built-in DNS; any:53 means every port 53."]}
-    - {key: auto-detect-interface, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-detect-interface",
+    - {key: auto-detect-interface, guide: {basis: official, zh: "自动选择出站网卡，避免流量从 TUN 绕回自己。同时连着多个网络（如有线加 Wi-Fi）时，官方建议用 interface-name 手动指定。", en: "Picks the outbound NIC automatically so traffic does not loop back into TUN. With several active uplinks, the docs suggest setting interface-name manually."}, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-detect-interface",
        zh: [自动识别出口, "自动选择默认出口网卡，避免回环。"], en: [Auto-detect interface, "Pick the default outbound interface automatically to avoid loops."]}
-    - {key: auto-route, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-route",
+    - {key: auto-route, guide: {basis: official, zh: "自动设置路由，把全局流量导入 TUN 网卡。一般保持开启；关闭后需要自己配置路由。", en: "Installs routes that send global traffic into the TUN NIC. Keep it on unless you manage routes yourself."}, type: bool, default: true, importance: recommended, doc: "inbound/tun#auto-route",
        zh: [自动路由, "自动配置路由表，把流量导入 TUN。"], en: [Auto route, "Configure the routing table to send traffic into TUN."]}
-    - {key: mtu, type: int, importance: expert, doc: "inbound/tun#mtu",
+    - {key: mtu, guide: {basis: official, zh: "最大传输单元，主要影响极端情况下的速度。官方说明一般用户使用默认值即可。", en: "Maximum transmission unit; mostly affects speed in edge cases. The docs say the default suits most users."}, type: int, importance: expert, doc: "inbound/tun#mtu",
        zh: [MTU, "虚拟网卡的最大传输单元。"], en: [MTU, "Maximum transmission unit of the interface."]}
     - {key: gso, type: bool, importance: expert, doc: "inbound/tun#gso",
        zh: [GSO, "启用通用分段卸载（仅 Linux）。"], en: [GSO, "Enable generic segmentation offload (Linux only)."]}
@@ -43,7 +44,7 @@ fragments:
        zh: [GSO 包大小, "通用分段卸载的最大包大小。"], en: [GSO max size, "Maximum packet size for segmentation offload."]}
     - {key: inet6-address, type: list, items: {type: string}, default: ["fdfe:dcba:9876::1/126"], importance: expert, doc: "inbound/tun#inet6-address",
        zh: [IPv6 地址, "虚拟网卡的 IPv6 地址。"], en: [IPv6 address, "IPv6 address of the interface."]}
-    - {key: auto-redirect, type: bool, default: false, importance: optional, doc: "inbound/tun#auto-redirect",
+    - {key: auto-redirect, guide: {basis: official, zh: "仅 Linux：用 iptables / nftables 重定向 TCP 流量，需要同时开启 auto-route。官方说明在路由器上无需额外配置即可工作。", en: "Linux only: redirects TCP via iptables or nftables and requires auto-route. The docs note it works on routers without extra setup."}, type: bool, default: false, importance: optional, doc: "inbound/tun#auto-redirect",
        zh: [自动重定向, "自动配置 nftables/iptables 重定向 TCP（仅 Linux，路由器上推荐）。"], en: [Auto redirect, "Configure nftables/iptables to redirect TCP (Linux only; recommended on routers)."]}
     - {key: auto-redirect-input-mark, type: int, importance: expert, doc: inbound/tun,
        zh: [重定向入站标记, "auto-redirect 使用的入站 fwmark。"], en: [Redirect input mark, "Inbound fwmark used by auto-redirect."]}
@@ -51,7 +52,7 @@ fragments:
        zh: [重定向出站标记, "auto-redirect 使用的出站 fwmark。"], en: [Redirect output mark, "Outbound fwmark used by auto-redirect."]}
     - {key: auto-redirect-iproute2-fallback-rule-index, type: int, importance: expert, doc: inbound/tun,
        zh: [重定向回退规则序号, "auto-redirect 回退 iproute2 规则的序号。"], en: [Redirect fallback rule index, "Index of the iproute2 fallback rule used by auto-redirect."]}
-    - {key: strict-route, type: bool, importance: optional, doc: "inbound/tun#strict-route",
+    - {key: strict-route, guide: {basis: official, zh: "auto-route 开启时使用严格路由。Linux 上让所有连接都进入 TUN，防止地址泄漏，也让 Android 上的 DNS 劫持生效；Windows 上添加防火墙规则，防止多网卡 DNS 泄漏。官方提醒：某些情况下会导致部分应用（如 VirtualBox）无法正常工作。", en: "Strict routing with auto-route. On Linux everything enters TUN, preventing leaks and making DNS hijack work on Android; on Windows firewall rules stop multihomed DNS leaks. The docs warn it can break some apps such as VirtualBox."}, type: bool, importance: optional, doc: "inbound/tun#strict-route",
        zh: [严格路由, "所有连接都进入 TUN 以防泄漏；本机将无法被其他设备访问。"], en: [Strict route, "Route every connection into TUN to prevent leaks; the device becomes unreachable from others."]}
     - {key: disable-icmp-forwarding, type: bool, importance: expert, doc: inbound/tun,
        zh: [禁用 ICMP 转发, "避免 ICMP 回环；ping 将不再显示真实延迟。"], en: [Disable ICMP forwarding, "Avoid ICMP loops; ping no longer shows real latency."]}
@@ -90,7 +91,7 @@ fragments:
        zh: [IPv4 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv4 excludes (legacy), "Legacy form; use route-exclude-address."]}
     - {key: inet6-route-exclude-address, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: tun.route-exclude-address, doc: inbound/tun,
        zh: [IPv6 排除（旧）, "旧写法；请改用 route-exclude-address。"], en: [IPv6 excludes (legacy), "Legacy form; use route-exclude-address."]}
-    - {key: endpoint-independent-nat, type: bool, default: false, importance: expert, doc: "inbound/tun#endpoint-independent-nat",
+    - {key: endpoint-independent-nat, guide: {basis: official, zh: "启用独立于端点的 NAT，部分游戏与 P2P 应用需要它。官方说明会略微降低性能，建议只在需要时开启。", en: "Endpoint-independent NAT, which some games and P2P apps need. The docs note a small performance cost; enable only when needed."}, type: bool, default: false, importance: expert, doc: "inbound/tun#endpoint-independent-nat",
        zh: [端点无关 NAT, "启用独立于端点的 NAT（对性能有影响）。"], en: [Endpoint-independent NAT, "Enable endpoint-independent NAT (costs performance)."]}
     - {key: include-interface, type: list, items: {type: string}, importance: expert, doc: inbound/tun,
        zh: [包含网卡, "只路由这些网卡的流量；与 exclude-interface 冲突。"], en: [Include interfaces, "Route traffic only from these interfaces; conflicts with exclude-interface."]}

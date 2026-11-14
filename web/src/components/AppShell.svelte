@@ -19,6 +19,7 @@
     { href: "/", label: t("nav.profiles"), icon: "layers", active: ["home", "profile", "profile-links", "profile-history", "welcome"].includes(router.route.name) },
     { href: "/sources", label: t("nav.sources"), icon: "server", active: router.route.name.startsWith("source") },
     { href: "/rules", label: t("nav.rules"), icon: "rules", active: router.route.name.startsWith("rule") },
+    { href: "/help", label: t("nav.help"), icon: "file", active: router.route.name === "help" },
     ...(session.isAdmin ? [{ href: "/admin", label: t("nav.admin"), icon: "shield" as IconName, active: router.route.name === "admin" }] : []),
   ]);
 
