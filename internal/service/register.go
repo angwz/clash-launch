@@ -117,12 +117,20 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 		if err := tx.Questions().Set(ctx, u.ID, stored); err != nil {
 			return err
 		}
-		if !open { // 开放注册时忽略邀请：过期的邀请链接不应挡住注册
-			if _, err := tx.Invites().Use(ctx, auth.HashToken(invite), u.ID, s.now()); err != nil {
-				if errors.Is(err, store.ErrNotFound) {
-					return ErrRegistrationClosed
+		if invite != "" {
+			// 邀请成功消费即记为受邀用户（可自选节点写法，反馈 #46）；开放注册时邀请可选，
+			// 无效或过期的邀请不挡住注册，只是不算受邀。
+			_, err := tx.Invites().Use(ctx, auth.HashToken(invite), u.ID, s.now())
+			switch {
+			case err == nil:
+				u.Invited = true
+				if err := tx.Users().SetInvited(ctx, u.ID, true); err != nil {
+					return err
 				}
+			case !errors.Is(err, store.ErrNotFound):
 				return err
+			case !open:
+				return ErrRegistrationClosed
 			}
 		}
 		return tx.Audit().Add(ctx, &store.AuditEntry{OwnerID: u.ID, Action: "register"})

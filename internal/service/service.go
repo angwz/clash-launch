@@ -216,6 +216,10 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 	var hashes []string
 	latest := profileUpdated
 	headers := map[string]map[string]string{}
+	policy, err := s.nodeModeOf(ctx, owner)
+	if err != nil {
+		return in, nil, latest, nil, ds, err
+	}
 	for i, ref := range p.Refs() {
 		src, err := s.Store.Sources().Get(ctx, owner, ref.Ref)
 		if errors.Is(err, store.ErrNotFound) {
@@ -224,6 +228,10 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		}
 		if err != nil {
 			return in, nil, latest, nil, ds, err
+		}
+		if m := policy.effective(ref.Mode); m != ref.Mode {
+			ds.Add(diag.ProfileModeLocked, "sources["+strconv.Itoa(i)+"]", "source", src.Name, "mode", string(m))
+			ref.Mode = m
 		}
 		var proc node.Processing
 		if len(src.Processing) > 0 {

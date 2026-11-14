@@ -4,7 +4,9 @@
   // 只在规则源用到 !!GROUPID 或选择器 #N 时（预览出现 group.groupid_shift）才作为标签显示。
   // 每个源可以选择写法：写入配置（服务器解析节点）或交给客户端（只写 proxy-providers），也可以停用。
   import Icon from "../Icon.svelte";
-  import type { Source } from "../../lib/api/client";
+  import { api, type Source } from "../../lib/api/client";
+  import { errorText } from "../../lib/errors";
+  import { toasts } from "../../lib/toast.svelte";
   import { catalog } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
@@ -18,6 +20,12 @@
   const usesGroupId = $derived((editor.preview?.diagnostics ?? []).some((d) => d.code === "group.groupid_shift"));
   const available = $derived(editor.sources.filter((s) => !refs.some((r) => r.ref === s.id)));
   let adding = $state("");
+  // 节点写法策略（反馈 #46）：新加入的源用管理员设定的默认写法；locked 时不能自选，只显示实际生效的写法
+  let policy = $state<{ default: "inline" | "provider"; locked: boolean }>({ default: "inline", locked: false });
+  $effect(() => {
+    api.get<typeof policy>("/api/v1/node-mode").then((p) => (policy = p), (e) => toasts.push("err", errorText(e)));
+  });
+  const modeOf = (r: SourceRef) => (policy.locked ? policy.default : r.mode === "provider" ? "provider" : "inline");
   let dragFrom = $state<number | null>(null);
   let dropAt = $state<number | null>(null);
 
@@ -40,7 +48,7 @@
 
   function add() {
     if (!adding) return;
-    editor.setSources([...refs, { ref: adding }]);
+    editor.setSources([...refs, policy.default === "provider" ? { ref: adding, mode: "provider" } : { ref: adding }]);
     adding = "";
   }
 
@@ -105,10 +113,14 @@
           <span class="name">
             {#if s}<a href={"/sources/" + s.id}>{s.name}</a>{#if usesGroupId && gid !== undefined}<span class="chip mono" title={t("editor.groupid_hint")}>GROUPID {gid}</span>{/if}{:else}<span class="missing">{t("editor.source_missing", { ref: r.ref })}</span>{/if}
           </span>
-          <div class="mode" role="radiogroup" aria-label={t("editor.mode")}>
-            <button type="button" role="radio" aria-checked={r.mode !== "provider"} class:on={r.mode !== "provider"} onclick={() => update(i, { mode: undefined })}>{t("mode.inline")}</button>
-            <button type="button" role="radio" aria-checked={r.mode === "provider"} class:on={r.mode === "provider"} onclick={() => update(i, { mode: "provider" })}>{t("mode.provider")}</button>
-          </div>
+          {#if policy.locked}
+            <span class="mode-fixed" title={t("mode.locked_hint")}><Icon name="shield" size={13} />{t("mode." + modeOf(r))}</span>
+          {:else}
+            <div class="mode" role="radiogroup" aria-label={t("editor.mode")} title={t("mode.explain")}>
+              <button type="button" role="radio" aria-checked={modeOf(r) === "inline"} class:on={modeOf(r) === "inline"} onclick={() => update(i, { mode: undefined })}>{t("mode.inline")}</button>
+              <button type="button" role="radio" aria-checked={modeOf(r) === "provider"} class:on={modeOf(r) === "provider"} onclick={() => update(i, { mode: "provider" })}>{t("mode.provider")}</button>
+            </div>
+          {/if}
           <div class="actions">
             <button class="btn ghost icon sm" type="button" aria-label={t("editor.move_up")} disabled={i === 0} onclick={() => move(i, i - 1)}><Icon name="arrow-up" size={14} /></button>
             <button class="btn ghost icon sm" type="button" aria-label={t("editor.move_down")} disabled={i === refs.length - 1} onclick={() => move(i, i + 1)}><Icon name="arrow-down" size={14} /></button>
@@ -121,6 +133,8 @@
       {/each}
     </ol>
     <p id="src-help" class="hint">{t("editor.sources_help")}</p>
+    <!-- 两种写法的区别（反馈 #39） -->
+    <p class="hint mode-explain"><Icon name="info" size={13} />{t("mode.explain")}{#if policy.locked} {t("mode.locked_hint")}{/if}</p>
   {/if}
 
   <div class="add">
@@ -252,6 +266,21 @@
   }
   .missing {
     color: var(--err);
+  }
+  .mode-fixed {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+  }
+  .mode-explain {
+    display: flex;
+    gap: 6px;
+  }
+  .mode-explain :global(.icon) {
+    flex: none;
+    margin-block-start: 3px;
   }
   .mode {
     display: inline-flex;

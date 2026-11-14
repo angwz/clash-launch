@@ -112,9 +112,14 @@ func (s *Service) HostedProvider(ctx context.Context, link *store.Link, sourceID
 	if err != nil {
 		return nil, err
 	}
+	policy, err := s.nodeModeOf(ctx, link.OwnerID)
+	if err != nil {
+		return nil, err
+	}
 	var ref *profile.SourceRef
 	for _, r := range doc.Refs() {
-		if r.Ref == sourceID && r.Mode == profile.ModeProvider {
+		// 按实际生效的写法判断：锁定账号的源可能由默认值改为交给客户端（反馈 #46）
+		if r.Ref == sourceID && policy.effective(r.Mode) == profile.ModeProvider {
 			ref = &r
 		}
 	}

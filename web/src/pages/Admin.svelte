@@ -34,6 +34,27 @@
     if (session.isAdmin) void load();
   });
 
+  // 节点写法的全局默认值（反馈 #46）
+  let nodeMode = $state<"inline" | "provider" | null>(null);
+  async function loadNodeMode() {
+    try {
+      nodeMode = (await api.get<{ default: "inline" | "provider" }>("/api/v1/node-mode")).default;
+    } catch (e) {
+      error = errorText(e);
+    }
+  }
+  $effect(() => {
+    if (session.isAdmin) void loadNodeMode();
+  });
+  async function setNodeMode(m: "inline" | "provider") {
+    try {
+      nodeMode = (await api.put<{ default: "inline" | "provider" }>("/api/v1/admin/node-mode", { default: m })).default;
+      toasts.push("ok", t("admin.node_mode_saved"));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   async function toggle() {
     try {
       const r = await api.put<{ open: boolean }>("/api/v1/admin/registration", { open: !open });
@@ -108,6 +129,23 @@
       <p class="hint">{t("admin.ip_note")}</p>
     </section>
 
+    <section class="panel box" aria-labelledby="a-mode">
+      <div class="row">
+        <div>
+          <h2 id="a-mode">{t("admin.node_mode")}</h2>
+          <p class="muted">{t("admin.node_mode_desc")}</p>
+        </div>
+        {#if nodeMode}
+          <div class="seg" role="radiogroup" aria-labelledby="a-mode">
+            {#each ["inline", "provider"] as const as m (m)}
+              <button type="button" role="radio" aria-checked={nodeMode === m} class:on={nodeMode === m} onclick={() => void setNodeMode(m)}>{t("mode." + m)}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+      <p class="hint">{t("mode.explain")}</p>
+    </section>
+
     <section class="panel box" aria-labelledby="a-inv">
       <h2 id="a-inv">{t("admin.invites")}</h2>
       <p class="muted">{t("admin.invites_desc")}</p>
@@ -175,6 +213,8 @@
   }
   .box {
     display: grid;
+    /* 隐式列的最小宽度是内容宽度，宽表格会撑破页面；限定为 minmax(0, 1fr) 让表格在自身容器内滚动 */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
     padding: var(--space-5);
     margin-block-end: var(--space-4);
@@ -187,6 +227,31 @@
     justify-content: space-between;
     align-items: center;
     gap: var(--space-4);
+  }
+  .seg {
+    display: inline-flex;
+    flex: none;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+  }
+  .seg button {
+    padding-block: 4px;
+    padding-inline: var(--space-3);
+    border: 0;
+    border-radius: calc(var(--radius-md) - 2px);
+    background: none;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .seg button.on {
+    background: var(--bg-raised);
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
   }
   .switch {
     position: relative;

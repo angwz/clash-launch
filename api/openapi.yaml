@@ -249,6 +249,12 @@ components:
         expiresAt: {type: string, format: date-time}
         usedAt: {type: string, format: date-time}
         status: {type: string, enum: [active, used, expired]}
+    NodeMode:
+      type: object
+      required: [default, locked]
+      properties:
+        default: {type: string, enum: [inline, provider], description: 管理员设定的默认写法；新加入配置的源使用它}
+        locked: {type: boolean, description: 为 true 时只能使用默认写法（开放注册的普通用户），生成时覆盖文档中的写法并报告 profile.mode_locked}
     Registration:
       type: object
       required: [open]
@@ -436,6 +442,12 @@ paths:
       summary: 当前用户与 CSRF 令牌
       security: [{session: []}]
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}}, '401': {$ref: '#/components/responses/Problem'}}
+  /api/v1/node-mode:
+    get:
+      tags: [session]
+      summary: 当前用户的节点写法策略：默认写法与能否在配置中自选（开放注册的普通用户只能用默认写法）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/NodeMode'}}}}}
   /api/v1/register:
     get:
       tags: [session]
@@ -669,6 +681,13 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Registration'}}}}}
+  /api/v1/admin/node-mode:
+    put:
+      tags: [admin]
+      summary: 设定全局默认的节点写法（inline 写入配置 / provider 交给客户端）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [default], properties: {default: {type: string, enum: [inline, provider]}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/NodeMode'}}}}, '400': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/invites:
     get:
       tags: [admin]

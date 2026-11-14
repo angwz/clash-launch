@@ -42,6 +42,7 @@ var (
 	ProfileUnknownKey  = reg("profile.unknown_key", Warning, "Unknown key {key} in config document; ignored", "配置文档中的未知键 {key}，已忽略")
 	ProfileSourceRef   = reg("profile.source_ref", Error, "Source {ref} referenced by the config does not exist", "配置引用的源 {ref} 不存在")
 	ProfileRuleRef     = reg("profile.rule_ref", Error, "Routing rules {ref} referenced by the config does not exist", "配置引用的分流规则 {ref} 不存在")
+	ProfileModeLocked  = reg("profile.mode_locked", Info, "Source {source} uses the administrator default ({mode}); this account cannot choose how nodes are written", "源 {source} 按管理员设定的默认写法（{mode}）生成；此账号不能自选节点写法")
 	ProfileSnapshotOld = reg("profile.snapshot_stale", Warning, "Source {source} has failed since {since}; using the last good snapshot", "源 {source} 自 {since} 起拉取失败，沿用上次成功的快照")
 )
 

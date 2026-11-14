@@ -31,6 +31,7 @@ const dynamic: Record<string, string[]> = {
   "kernel.": ["passed", "failed", "unavailable", "timeout"],
   "invite.": ["active", "used", "expired"],
   "palette.kind.": ["page", "field", "command"],
+  "mode.": ["inline", "provider"],
   // 与后端写入的审计动作一致（components/AuditLog.svelte）
   "audit.action.": AUDIT_ACTIONS,
   // 与 internal/auth.BuiltinQuestions 一致

@@ -226,6 +226,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
 		problem(w, http.StatusBadRequest, "bad_request", strings.TrimPrefix(err.Error(), errBadRequest.Error()+": "))
+	case errors.Is(err, service.ErrNodeMode):
+		problem(w, http.StatusBadRequest, "node_mode.invalid", err.Error())
 	case errors.Is(err, service.ErrRegistrationClosed):
 		problem(w, http.StatusForbidden, "register.closed", "registration is closed; a valid invite is required")
 	case errors.Is(err, service.ErrUsername):

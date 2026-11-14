@@ -42,6 +42,7 @@ type User struct {
 	PasswordHash string
 	Role         string // admin | user
 	Disabled     bool
+	Invited      bool // 经邀请注册（反馈 #46）：可自选节点写法
 	Lang         string
 	Timezone     string
 	CreatedAt    time.Time
@@ -211,6 +212,8 @@ type UserRepo interface {
 	ByID(ctx context.Context, id string) (*User, error)
 	ByUsername(ctx context.Context, username string) (*User, error)
 	Update(ctx context.Context, u *User) error
+	// SetInvited 记录账号是否经邀请注册（不改变 version：不是用户可编辑的资料）。
+	SetInvited(ctx context.Context, id string, invited bool) error
 	Count(ctx context.Context) (int, error)
 	List(ctx context.Context, p Page) ([]User, error) // 管理用：只含元数据
 }

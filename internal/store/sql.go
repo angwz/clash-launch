@@ -242,15 +242,15 @@ func (d *DB) Invites() InviteRepo         { return invites{d} }
 
 type users struct{ d *DB }
 
-const userCols = "id, username, password_hash, role, disabled, lang, timezone, created_at, updated_at, version"
+const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version"
 
 func scanUser(r interface{ Scan(...any) error }) (*User, error) {
 	var u User
-	var dis, c, up int64
-	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &u.Lang, &u.Timezone, &c, &up, &u.Version); err != nil {
+	var dis, inv, c, up int64
+	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version); err != nil {
 		return nil, notFound(err)
 	}
-	u.Disabled, u.CreatedAt, u.UpdatedAt = dis == 1, fromMS(c), fromMS(up)
+	u.Disabled, u.Invited, u.CreatedAt, u.UpdatedAt = dis == 1, inv == 1, fromMS(c), fromMS(up)
 	return &u, nil
 }
 
@@ -263,8 +263,8 @@ func (r users) Create(ctx context.Context, u *User) error {
 	}
 	now := time.Now()
 	u.CreatedAt, u.UpdatedAt, u.Version = now, now, 1
-	_, err := r.d.exec(ctx, "INSERT INTO users (id, username, username_norm, password_hash, role, disabled, lang, timezone, created_at, updated_at, version) VALUES (?,?,?,?,?,?,?,?,?,?,1)",
-		u.ID, u.Username, NormalizeUsername(u.Username), u.PasswordHash, u.Role, b2i(u.Disabled), u.Lang, u.Timezone, ms(now), ms(now))
+	_, err := r.d.exec(ctx, "INSERT INTO users (id, username, username_norm, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version) VALUES (?,?,?,?,?,?,?,?,?,?,?,1)",
+		u.ID, u.Username, NormalizeUsername(u.Username), u.PasswordHash, u.Role, b2i(u.Disabled), b2i(u.Invited), u.Lang, u.Timezone, ms(now), ms(now))
 	if err != nil && isUnique(err) {
 		return ErrExists
 	}
@@ -289,6 +289,11 @@ func (r users) Update(ctx context.Context, u *User) error {
 	u.Version++
 	u.UpdatedAt = now
 	return nil
+}
+
+func (r users) SetInvited(ctx context.Context, id string, invited bool) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET invited=? WHERE id=?", b2i(invited), id)
+	return affected(res, err, ErrNotFound)
 }
 
 func (r users) Count(ctx context.Context) (int, error) {

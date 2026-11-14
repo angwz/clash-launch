@@ -506,3 +506,63 @@ func TestRuleTextOverridesURL(t *testing.T) {
 		t.Fatalf("清空地址后残留快照不应生效：\n%s", y)
 	}
 }
+
+// 节点写法策略（反馈 #46）：管理员设定默认值；受邀用户与管理员可自选，开放注册的用户跟随默认值，
+// 生成时覆盖并报告 profile.mode_locked，不改写配置文档。
+func TestNodeModePolicy(t *testing.T) {
+	h := newHarness(t, nil)
+	admin, _ := h.setup()
+	anon := h.client()
+	reg := func(user, invite string) {
+		t.Helper()
+		if r, b := anon.do("POST", "/api/v1/register", registerBody(t, anon, user, invite)); r.StatusCode != 201 {
+			t.Fatalf("注册 %s：%d %s", user, r.StatusCode, b)
+		}
+	}
+	inv := decode[inviteDTO](t, admin.want(201, "POST", "/api/v1/admin/invites", map[string]any{"hours": 24}))
+	reg("alice", inv.URL[strings.Index(inv.URL, "#")+1:])
+	admin.want(200, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
+	reg("erin", "")
+
+	type pol struct {
+		Default string `json:"default"`
+		Locked  bool   `json:"locked"`
+	}
+	want := func(c *client, def string, locked bool) {
+		t.Helper()
+		if got := decode[pol](t, c.want(200, "GET", "/api/v1/node-mode", nil)); got.Default != def || got.Locked != locked {
+			t.Errorf("策略：%+v，期望 %s/%v", got, def, locked)
+		}
+	}
+	alice, erin := h.client(), h.client()
+	alice.login("alice", "a long enough password")
+	erin.login("erin", "a long enough password")
+	want(admin, "inline", false)
+	want(alice, "inline", false)
+	want(erin, "inline", true)
+
+	admin.want(400, "PUT", "/api/v1/admin/node-mode", map[string]string{"default": "both"})
+	erin.want(404, "PUT", "/api/v1/admin/node-mode", map[string]string{"default": "inline"})
+	admin.want(200, "PUT", "/api/v1/admin/node-mode", map[string]string{"default": "provider"})
+	want(erin, "provider", true)
+
+	// 删除已用的邀请不影响受邀身份
+	admin.want(204, "DELETE", "/api/v1/admin/invites/"+inv.ID, nil)
+	want(alice, "provider", false)
+
+	// 锁定账号：文档写 inline，生成按默认值 provider，并报告诊断
+	src := decode[sourceDTO](t, erin.want(201, "POST", "/api/v1/sources", map[string]any{
+		"name": "手动", "kind": "batch",
+		"content": "- {name: A, type: ss, server: 192.0.2.1, port: 8388, cipher: aes-128-gcm, password: example-pw}\n",
+	}))
+	doc := "clash-launch/profile: v1\nname: p\ntarget: {pack: mihomo, preset: mihomo, core: \"1.19.33\"}\nsources:\n  - {ref: " + src.ID + ", mode: inline}\n"
+	p := decode[profileDTO](t, erin.want(201, "POST", "/api/v1/profiles", map[string]string{"doc": doc}))
+	pv := decode[previewResp](t, erin.want(200, "POST", "/api/v1/profiles/"+p.ID+"/preview", map[string]string{"doc": doc}))
+	codes := map[string]bool{}
+	for _, d := range pv.Diagnostics {
+		codes[string(d.Code)] = true
+	}
+	if !codes["profile.mode_locked"] || !strings.Contains(pv.YAML, "proxy-providers:") {
+		t.Errorf("锁定账号应按默认值交给客户端并报告：%v\n%s", codes, pv.YAML)
+	}
+}

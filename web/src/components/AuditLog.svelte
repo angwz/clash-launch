@@ -2,7 +2,7 @@
   // 已翻译的审计动作（与后端写入的动作名一致；未列出的动作原样显示）。i18n.test.ts 的 dynamic 中登记了同一列表。
   export const AUDIT_ACTIONS = [
     "account.password", "account.password_reset_by_admin", "account.questions", "admin.create", "admin.invite.create", "admin.invite.delete",
-    "admin.registration", "admin.user.disable", "admin.user.enable", "admin.user.password", "admin.user.quota", "link.create", "link.delete",
+    "admin.node_mode", "admin.registration", "admin.user.disable", "admin.user.enable", "admin.user.password", "admin.user.quota", "link.create", "link.delete",
     "link.reset", "login.failed", "login.ok", "mfa.disable", "mfa.enable", "mfa.failed", "mfa.recovery_code", "mfa.recovery_codes",
     "passkey.add", "passkey.delete", "passkey.login_failed", "profile.create", "profile.delete", "profile.update", "recovery.failed",
     "recovery.ok", "register", "session.revoke", "smtp.delete", "smtp.update", "smtp.verified",
@@ -96,6 +96,8 @@
 <style>
   .audit {
     overflow-x: auto;
+    /* 让表内绝对定位的无障碍标签以此为包含块，否则会逃出滚动容器、撑宽页面（反馈 #41） */
+    position: relative;
   }
   .when {
     white-space: nowrap;

@@ -22,6 +22,7 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/session", s.login},
 		{"DELETE", "/api/v1/session", a(s.logout)},
 		{"GET", "/api/v1/me", a(s.me)},
+		{"GET", "/api/v1/node-mode", a(s.getNodeMode)},
 		{"GET", "/api/v1/register", s.registrationState},
 		{"POST", "/api/v1/register", s.register},
 		{"GET", "/api/v1/pow", s.powChallenge},
@@ -61,6 +62,7 @@ func (s *Server) routes() []Route {
 
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},
+		{"PUT", "/api/v1/admin/node-mode", s.adminOnly(s.putNodeMode)},
 		{"GET", "/api/v1/admin/invites", s.adminOnly(s.listInvites)},
 		{"POST", "/api/v1/admin/invites", s.adminOnly(s.createInvite)},
 		{"DELETE", "/api/v1/admin/invites/{id}", s.adminOnly(s.deleteInvite)},
