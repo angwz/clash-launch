@@ -101,7 +101,7 @@ func TestOwnerIsolationAndCrypto(t *testing.T) {
 	}
 	// 数据库中不出现明文
 	var raw []byte
-	if err := d.root.QueryRow("SELECT url_enc FROM sources WHERE id=?", src.ID).Scan(&raw); err != nil {
+	if err := d.row(ctx, "SELECT url_enc FROM sources WHERE id=?", src.ID).Scan(&raw); err != nil { // d.row 按方言改写占位符
 		t.Fatal(err)
 	}
 	if strings.Contains(string(raw), "secret-token") {

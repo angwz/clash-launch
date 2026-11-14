@@ -76,7 +76,7 @@ func TestQuotaAndAdmin(t *testing.T) {
 	if all := string(admin.want(200, "GET", "/api/v1/admin/audit", nil)); !strings.Contains(all, "admin.user.disable") || !strings.Contains(all, `"user":"admin"`) {
 		t.Errorf("管理员审计：%s", all)
 	}
-	if st := string(admin.want(200, "GET", "/api/v1/admin/status", nil)); !strings.Contains(st, `"keys"`) || !strings.Contains(st, `"database":"sqlite"`) {
+	if st := string(admin.want(200, "GET", "/api/v1/admin/status", nil)); !strings.Contains(st, `"keys"`) || !strings.Contains(st, `"database":"`+h.db.Dialect()+`"`) {
 		t.Errorf("系统状态：%s", st)
 	}
 }
