@@ -11,6 +11,7 @@
   import Icon, { type IconName } from "./Icon.svelte";
   import Menu from "./Menu.svelte";
   import OrderDialog from "./OrderDialog.svelte";
+  import Emoji, { type EmojiName } from "./Emoji.svelte";
   import { ordered, prefs } from "../lib/prefs.svelte";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
@@ -64,6 +65,10 @@
   });
 
   const p = $derived(shell.profile);
+  // 检查结果用 emoji 表达（反馈 #44）；空闲与进行中仍用线性图标
+  const checkEmoji = $derived<EmojiName | null>(
+    !p ? null : p.check === "passed" ? "check" : p.check === "failed" || p.check === "error" ? "no-entry" : p.check === "unavailable" ? "warning" : null,
+  );
   const checkIcon = $derived<IconName>(
     !p ? "info" : p.check === "passed" ? "ok" : p.check === "failed" || p.check === "error" ? "error" : p.check === "unavailable" ? "warning" : "info",
   );
@@ -90,7 +95,7 @@
           disabled={p.check === "running"}
           title={t("check.run")}
         >
-          <Icon name={checkIcon} size={14} />
+          {#if checkEmoji}<Emoji name={checkEmoji} size={14} />{:else}<Icon name={checkIcon} size={14} />{/if}
           <span>{t("check." + p.check)}</span>
         </button>
         {#if p.diagnostics.errors || p.diagnostics.warnings}

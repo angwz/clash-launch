@@ -1,13 +1,14 @@
 <script lang="ts">
   import { t } from "../lib/i18n/i18n.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import Emoji from "./Emoji.svelte";
   import Icon from "./Icon.svelte";
 </script>
 
 <div class="toasts" aria-live="polite" aria-atomic="false">
   {#each toasts.items as x (x.id)}
     <div class="toast" data-kind={x.kind} role={x.kind === "err" ? "alert" : "status"}>
-      <Icon name={x.kind === "ok" ? "ok" : x.kind === "err" ? "error" : "info"} />
+      {#if x.emoji || x.kind !== "info"}<Emoji name={x.emoji ?? (x.kind === "ok" ? "check" : "cross")} size={18} />{:else}<Icon name="info" />{/if}
       <span class="text">{x.text}</span>
       {#if x.action}
         <button class="btn ghost sm action" type="button" onclick={() => { toasts.dismiss(x.id); x.action!.run(); }}>{x.action.label}</button>

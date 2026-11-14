@@ -151,6 +151,7 @@
   "badge.since": "≥ {v}",
   "badge.since_newer": "Newer than the selected core {core}; older cores ignore it or fail",
   "check.error": "Check error",
+  "check.celebrate": "The config passed the mihomo check and is ready for your client",
   "check.failed": "Failed",
   "check.idle": "Not checked",
   "check.passed": "Passed",

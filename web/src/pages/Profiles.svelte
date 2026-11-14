@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Emoji from "../components/Emoji.svelte";
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -62,7 +63,7 @@
     <div class="skeleton" aria-busy="true"></div>
   {:else if items.length === 0}
     <div class="empty panel">
-      <div class="empty-mark"><Icon name="logo" size={28} /></div>
+      <div class="empty-mark"><Emoji name="rocket" size={32} /></div>
       <h2>{t("profiles.empty_title")}</h2>
       <p class="muted">{t("profiles.empty_body")}</p>
       <a class="btn primary" href="/welcome"><Icon name="sparkle" size={15} />{t("profiles.wizard")}</a>

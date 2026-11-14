@@ -151,6 +151,7 @@
   "badge.since": "≥ {v}",
   "badge.since_newer": "高于所选内核 {core}，旧内核会忽略或报错",
   "check.error": "检查出错",
+  "check.celebrate": "配置通过了 mihomo 检查，可以导入客户端了",
   "check.failed": "未通过",
   "check.idle": "未检查",
   "check.passed": "通过",

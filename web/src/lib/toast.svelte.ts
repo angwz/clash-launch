@@ -11,6 +11,8 @@ export interface Toast {
   text: string;
   action?: ToastAction;
   key?: string;
+  /** 覆盖默认的 emoji（如通过检查时的 party） */
+  emoji?: import("../components/Emoji.svelte").EmojiName;
 }
 
 class Toasts {
@@ -18,7 +20,7 @@ class Toasts {
   #n = 0;
   #timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  push(kind: Toast["kind"], text: string, opts: { action?: ToastAction; key?: string } = {}): number {
+  push(kind: Toast["kind"], text: string, opts: { action?: ToastAction; key?: string; emoji?: Toast["emoji"] } = {}): number {
     if (opts.key) for (const x of this.items.filter((x) => x.key === opts.key)) this.dismiss(x.id);
     // 同样的错误不重复堆叠
     if (kind === "err" && this.items.some((x) => x.kind === "err" && x.text === text)) return 0;

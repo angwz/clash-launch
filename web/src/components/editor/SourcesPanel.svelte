@@ -4,6 +4,7 @@
   // 只在规则源用到 !!GROUPID 或选择器 #N 时（预览出现 group.groupid_shift）才作为标签显示。
   // 每个源可以选择写法：写入配置（服务器解析节点）或交给客户端（只写 proxy-providers），也可以停用。
   import Icon from "../Icon.svelte";
+  import Emoji from "../Emoji.svelte";
   import { api, type Source } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
   import { toasts } from "../../lib/toast.svelte";
@@ -86,7 +87,7 @@
   </header>
 
   {#if refs.length === 0}
-    <p class="empty muted">{t("editor.no_sources")}</p>
+    <p class="empty muted"><Emoji name="mailbox" size={20} />{t("editor.no_sources")}</p>
   {:else}
     <ol class="list" aria-describedby="src-help">
       {#each refs as r, i (r.ref)}

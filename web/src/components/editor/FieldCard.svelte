@@ -5,6 +5,7 @@
   import FieldControl from "./FieldControl.svelte";
   import FieldGuide from "./FieldGuide.svelte";
   import Icon from "../Icon.svelte";
+  import Emoji from "../Emoji.svelte";
   import { catalog, type MetaField } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
@@ -97,7 +98,7 @@
           <code class="key ltr">{field.key}</code>
           {#if field.importance === "core"}<span class="badge core">{t("importance.core")}</span>{/if}
           {#if field.stability === "experimental"}<span class="badge warn">{t("badge.experimental")}</span>{/if}
-          {#if field.stability === "deprecated"}<span class="badge err">{t("badge.deprecated")}</span>{/if}
+          {#if field.stability === "deprecated"}<span class="badge err"><Emoji name="prohibited" size={12} />{t("badge.deprecated")}</span>{/if}
           {#if field.since}<span class="badge" class:warn={newer} title={newer ? t("badge.since_newer", { core }) : undefined}>{t("badge.since", { v: field.since })}</span>{/if}
           {#if raw}<span class="badge raw" title={t("raw.badge_hint")}><Icon name="bolt" size={12} />{t("raw.badge")}</span>{/if}
         </div>
@@ -129,7 +130,7 @@
       {#if field.suggest !== undefined}
         <!-- 建议值（反馈 #27）：未采用时点击即写入；已是建议值时只显示勾 -->
         {#if same(effective, field.suggest)}
-          <span class="sugg ok" data-basis={field.basis}><Icon name="check" size={12} />{t("guide.suggest." + field.basis)}</span>
+          <span class="sugg ok" data-basis={field.basis}><Emoji name="trophy" size={12} />{t("guide.suggest." + field.basis)}</span>
         {:else}
           <button type="button" class="sugg" data-basis={field.basis} title={t("guide.apply")} onclick={() => editor.set(path, field.suggest)}>
             {t("guide.suggest." + field.basis)}<span class="mono ltr">{exampleText(field.suggest)}</span>

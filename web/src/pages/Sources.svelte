@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Emoji from "../components/Emoji.svelte";
   // 节点源列表与新建（第 16.1 节「节点源」）：订阅地址、粘贴分享链接或节点（单条 / 批量）、文件内容。
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
@@ -90,6 +91,7 @@
     <div class="skeleton" aria-busy="true"></div>
   {:else if items.length === 0}
     <div class="empty panel">
+      <Emoji name="mailbox" size={40} />
       <p>{t("sources.empty")}</p>
     </div>
   {:else}
@@ -197,6 +199,9 @@
   }
   .empty {
     padding: var(--space-8);
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
     text-align: center;
     color: var(--fg-muted);
   }

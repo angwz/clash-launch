@@ -187,6 +187,8 @@ export class EditorState {
       if (kernel) {
         const s = res.fatal ? "failed" : res.kernel.status;
         this.check = s === "passed" ? "passed" : s === "failed" || s === "timeout" ? "failed" : s === "unavailable" ? "unavailable" : "idle";
+        // 主动检查通过时庆祝一下（反馈 #44）
+        if (this.check === "passed") toasts.push("ok", t("check.celebrate"), { emoji: "party", key: "check" });
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
