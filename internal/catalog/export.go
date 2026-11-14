@@ -38,6 +38,8 @@ type MetaField struct {
 	Disc       string            `json:"discriminator,omitempty"`
 	Variants   []*MetaVariant    `json:"variants,omitempty"`
 	HasDetail  bool              `json:"hasDetail,omitempty"`
+	Suggest    any               `json:"suggest,omitempty"` // guide.suggest：建议值
+	Basis      string            `json:"basis,omitempty"`   // guide.basis：official | practice；有 guide 时才有
 }
 
 // MetaVariant 是 oneOf 的一个分支。
@@ -74,6 +76,12 @@ func meta(f *Field) *MetaField {
 	}
 	if f.Recommended.Kind != 0 {
 		m.Recommend = NodeJSON(&f.Recommended)
+	}
+	if f.Guide != nil {
+		m.Basis = f.Guide.Basis
+		if f.Guide.Suggest.Kind != 0 {
+			m.Suggest = NodeJSON(&f.Guide.Suggest)
+		}
 	}
 	for _, e := range f.Enum {
 		m.Enum = append(m.Enum, e.Value)
@@ -141,6 +149,9 @@ func (c *Catalog) Messages(lang string) map[string]string {
 		out[base+".summary"] = t[1]
 		if d := f.DetailText[map[bool]string{true: "zh", false: "en"}[lang == "zh-CN"]]; d != "" {
 			out[base+".detail"] = d
+		}
+		if g := f.Guide; g != nil {
+			out[base+".guide"] = map[bool]string{true: g.ZH, false: g.EN}[lang == "zh-CN"]
 		}
 		for _, e := range f.Enum {
 			txt := e.EN

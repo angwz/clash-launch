@@ -184,3 +184,51 @@ func indent(s, pre string) string {
 	}
 	return strings.Join(lines, "\n") + "\n"
 }
+
+// 字段的建议值（guide.suggest）必须能通过表单校验：界面上「点击采用」写入的就是它（反馈 #27）。
+// 嵌套字段写在已打开 enable 的父对象下，避免「总开关未开」之类与建议值无关的提示。
+func TestGuideSuggestPassForm(t *testing.T) {
+	in := input(t, "../../testdata/profiles/m1-layers.yaml")
+	n := 0
+	var walk func(fs []*catalog.Field, path []string)
+	walk = func(fs []*catalog.Field, path []string) {
+		for _, f := range fs {
+			p := append(append([]string{}, path...), f.Key)
+			if f.Type == catalog.TObject {
+				walk(f.Fields, p)
+			}
+			if f.Guide == nil || f.Guide.Suggest.Kind == 0 {
+				continue
+			}
+			n++
+			body, err := yaml.Marshal(&f.Guide.Suggest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc := "clash-launch/profile: v1\ntarget: {preset: mihomo}\nform:\n"
+			for i, k := range p[:len(p)-1] {
+				doc += strings.Repeat("  ", i+1) + k + ":\n"
+			}
+			doc += strings.Repeat("  ", len(p)) + f.Key + ": " + strings.TrimSpace(string(body)) + "\n"
+			var l diag.List
+			prof, err := profile.Parse([]byte(doc), &l)
+			if err != nil {
+				t.Fatalf("%s: %v\n%s", f.ID, err, doc)
+			}
+			in.Profile = prof
+			out, err := Render(in)
+			if err != nil {
+				t.Fatalf("%s: %v %v", f.ID, err, out.Diagnostics)
+			}
+			for _, d := range out.Diagnostics {
+				if d.Severity == diag.Error && strings.HasPrefix(string(d.Code), "form.") {
+					t.Errorf("%s 的建议值没有通过表单校验：%s %s", f.ID, d.Code, d.Path)
+				}
+			}
+		}
+	}
+	walk(in.Catalog.Root.Fields, nil)
+	if n < 3 {
+		t.Fatalf("建议值过少：%d", n)
+	}
+}

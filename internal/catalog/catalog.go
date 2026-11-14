@@ -95,12 +95,23 @@ type Field struct {
 	ZHText        []string          `yaml:"zh"` // [标题, 摘要]
 	ENText        []string          `yaml:"en"` // [Title, Summary]
 	DetailText    map[string]string `yaml:"detail"`
+	Guide         *Guide            `yaml:"guide"` // 「怎么选」：建议值与理由（反馈 #27）
 
 	// 加载后计算的字段
 	ID     string `yaml:"-"` // 稳定的点分标识，也是 i18n 键的后缀
 	DocURL string `yaml:"-"`
 	index  map[string]*Field
 	vindex map[string]*Variant
+}
+
+// Guide 是字段的选用建议，面向不熟悉内核的用户（反馈 #27）。
+// Basis 区分依据：official 表示官方文档明确给出的推荐或警告；practice 表示通行做法，界面标为「建议」而不是「推荐」。
+// Suggest 可省略：没有普适的取值时只给出说明。
+type Guide struct {
+	Suggest yaml.Node `yaml:"suggest"`
+	Basis   string    `yaml:"basis"`
+	ZH      string    `yaml:"zh"`
+	EN      string    `yaml:"en"`
 }
 
 // Variant 是 oneOf 字段的一个分支（如 proxies 中的一种协议）。
@@ -365,6 +376,14 @@ func (l *linker) field(f *Field, id, inheritedDoc string) error {
 		return nil
 	}
 	f.ID = id
+	if g := f.Guide; g != nil {
+		if g.Basis != "official" && g.Basis != "practice" {
+			return fmt.Errorf("catalog: %s 的 guide.basis 必须是 official 或 practice", id)
+		}
+		if g.ZH == "" || g.EN == "" {
+			return fmt.Errorf("catalog: %s 的 guide 需要中英文说明", id)
+		}
+	}
 	f.DocURL = l.docURL(f.Doc, inheritedDoc)
 	l.c.all = append(l.c.all, f)
 	if f.Key == "" {

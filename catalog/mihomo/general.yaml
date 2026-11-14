@@ -57,6 +57,7 @@ fields:
 
   # —— 运行模式 ——
   - key: find-process-mode
+    guide: {basis: official, zh: "按进程分流（PROCESS-NAME 等规则）需要它。电脑上保持默认 strict，由内核自行判断；官方推荐在路由器上设为 off，因为路由器转发的是其他设备的流量，找不到对应进程，开着只会浪费性能。", en: "Needed for process rules such as PROCESS-NAME. Keep the default strict on desktops; the docs recommend off on routers, which forward other devices' traffic and cannot see their processes."}
     type: enum
     enum:
       - {value: always, en: Always match processes, zh: 总是匹配进程}
@@ -68,6 +69,7 @@ fields:
     zh: [进程匹配, "是否查找连接所属的进程，供 PROCESS-NAME 等规则使用。"]
     en: [Process lookup, "Whether to look up the owning process of connections for PROCESS-NAME and similar rules."]
   - key: mode
+    guide: {suggest: rule, basis: practice, zh: "日常用 rule：按分流规则自动决定直连还是走代理。global 把所有流量交给 GLOBAL 组中选中的节点，适合临时排查；direct 全部直连，相当于暂时关闭代理。", en: "Use rule day to day: routing rules decide direct or proxy. global sends everything through the proxy picked in the GLOBAL group, handy for troubleshooting; direct bypasses the proxy entirely."}
     type: enum
     enum:
       - {value: rule, en: Route by rules, zh: 按规则分流}
@@ -79,7 +81,7 @@ fields:
     ui: {widget: segmented}
     zh: [运行模式, "流量的处理方式：按规则、全局代理或全部直连。"]
     en: [Mode, "How traffic is routed: by rules, all through GLOBAL, or all direct."]
-  - {key: unified-delay, type: bool, default: false, importance: optional, doc: general,
+  - {key: unified-delay, guide: {suggest: true, basis: practice, zh: "开启后测速只计算往返时间，扣掉握手等一次性开销，不同协议的节点延迟才能放在一起比较。自动选择（url-test）组按这个数字挑节点，所以通常建议开启。", en: "Measures round-trip time without one-off handshakes, so delays of different protocols become comparable. url-test groups pick nodes by this number, so it is usually worth enabling."}, type: bool, default: false, importance: optional, doc: general,
      zh: [统一延迟, "测速时去掉握手等额外往返，使不同协议的延迟可比。"], en: [Unified delay, "Exclude handshake round trips from latency tests so protocols compare fairly."]}
 
   # —— 地理数据 ——
@@ -126,6 +128,7 @@ fields:
 
   # —— 日志与 IPv6 ——
   - key: log-level
+    guide: {basis: practice, zh: "保持默认 info 即可。排查问题时临时调到 debug（输出最多，日志增长很快），稳定运行的设备可以调到 warning 减少日志量。日志只输出到控制台与控制面板。", en: "Keep the default info. Switch to debug only while troubleshooting (very verbose); warning suits a stable device. Logs go only to the console and the controller."}
     type: enum
     enum:
       - {value: silent, en: No logs, zh: 不输出日志}
@@ -139,6 +142,7 @@ fields:
     zh: [日志级别, "内核日志的详细程度。"]
     en: [Log level, "Verbosity of the core log."]
   - key: ipv6
+    guide: {basis: official, zh: "决定内核是否接受 IPv6 流量，默认开启。所在网络没有 IPv6，或节点不支持 IPv6 导致部分网站打不开时，可以关闭。DNS 分区里另有一个 ipv6 开关，控制是否返回 IPv6 地址。", en: "Whether the core accepts IPv6 traffic; on by default. Turn it off if your network lacks IPv6 or nodes cannot carry it. The DNS section has a separate ipv6 switch for AAAA answers."}
     type: bool
     default: true
     importance: recommended
@@ -200,7 +204,7 @@ fields:
      zh: [命名管道接口, "Windows 命名管道形式的 RESTful API；该入口不校验 secret。"], en: [Named pipe API, "RESTful API over a Windows named pipe; this entry does not check secret."]}
   - {key: external-controller-routing-mark, type: int, importance: expert, doc: general#api,
      zh: [接口路由标记, "为控制接口的监听套接字设置 routing-mark（仅 Linux）。"], en: [API routing mark, "routing-mark for the controller listening sockets (Linux only)."]}
-  - {key: tcp-concurrent, type: bool, default: false, importance: expert, doc: general#tcp,
+  - {key: tcp-concurrent, guide: {basis: practice, zh: "域名解析出多个 IP 时同时发起连接，用最先成功的那个，可以减少某个 IP 不通时的等待；代价是多发几次连接。一般保持默认关闭。", en: "Dials every resolved IP at once and keeps the first to succeed, cutting waits when one IP is down at the cost of extra connections. The default off is fine for most."}, type: bool, default: false, importance: expert, doc: general#tcp,
      zh: [TCP 并发, "同时连接域名解析出的全部 IP，使用最先握手成功的一个。"], en: [TCP concurrent, "Dial all resolved IPs at once and keep the first to complete the handshake."]}
   - {key: external-ui, type: string, importance: optional, doc: general#api,
      zh: [面板目录, "面板静态文件所在目录，经 /ui 访问。"], en: [Dashboard folder, "Folder holding dashboard files, served at /ui."]}
@@ -214,7 +218,7 @@ fields:
   # —— 出站与连接 ——
   - {key: interface-name, type: string, importance: optional, doc: general#outbound-interface,
      zh: [出口网卡, "指定出站流量使用的网卡。"], en: [Outbound interface, "Network interface used for outbound traffic."]}
-  - {key: disable-keep-alive, type: bool, importance: expert, doc: general#tcp-keep-alive,
+  - {key: disable-keep-alive, guide: {basis: official, zh: "Keep Alive 这组设置用来减少移动设备耗电。官方说明在 Android 上会被强制设为 true。一般无需修改。", en: "The keep-alive settings exist to reduce battery drain on mobile devices. The docs note it is forced to true on Android. Usually leave it alone."}, type: bool, importance: expert, doc: general#tcp-keep-alive,
      zh: [关闭 Keep-Alive, "关闭 TCP Keep-Alive；Android 上强制关闭。"], en: [Disable keep-alive, "Disable TCP keep-alive; always disabled on Android."]}
   - {key: keep-alive-idle, type: int, importance: expert, doc: general#tcp-keep-alive,
      zh: [Keep-Alive 空闲, "连接空闲多少秒后开始发送 Keep-Alive。"], en: [Keep-alive idle, "Seconds of idleness before keep-alive probes start."]}
@@ -224,9 +228,9 @@ fields:
      zh: [路由标记, "出站连接的 fwmark（仅 Linux）。"], en: [Routing mark, "fwmark for outbound connections (Linux only)."]}
   - {key: global-client-fingerprint, type: string, importance: expert, stability: deprecated, removed: "1.19.27", replacement: "proxies[].client-fingerprint", doc: general,
      zh: [全局指纹, "已移除；请在每个节点上设置 client-fingerprint。"], en: [Global fingerprint, "Removed; set client-fingerprint on each proxy instead."]}
-  - {key: global-ua, type: string, importance: expert, doc: general#ua,
+  - {key: global-ua, guide: {basis: practice, zh: "下载外部资源时使用的 User-Agent，默认 clash.meta。只有资源服务器按 UA 区别对待客户端时才需要修改。", en: "User-Agent for external downloads, clash.meta by default. Change it only when a server treats clients differently by UA."}, type: string, importance: expert, doc: general#ua,
      zh: [全局 UA, "内核下载资源时使用的 User-Agent；默认为 clash.meta/版本号。"], en: [Global UA, "User-Agent the core uses for downloads; defaults to clash.meta/<version>."]}
-  - {key: etag-support, type: bool, default: true, importance: expert, doc: general#etag,
+  - {key: etag-support, guide: {basis: practice, zh: "下载规则集、地理数据等外部资源时用 ETag 判断内容是否变化，没变就不重新下载，节省流量。保持默认开启。", en: "Uses ETag when downloading rule sets and geodata so unchanged files are not fetched again. Keep the default on."}, type: bool, default: true, importance: expert, doc: general#etag,
      zh: [ETag 缓存, "下载资源时使用 ETag 避免重复下载。"], en: [ETag support, "Use ETag to avoid re-downloading unchanged resources."]}
 
   # —— 其他分节 ——

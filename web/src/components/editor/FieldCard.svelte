@@ -3,6 +3,7 @@
   // 对象字段是一组嵌套卡片；短控件（开关、分段、数字、短文本）放在标题右侧，长控件放在下方。
   import FieldCard from "./FieldCard.svelte";
   import FieldControl from "./FieldControl.svelte";
+  import FieldGuide from "./FieldGuide.svelte";
   import Icon from "../Icon.svelte";
   import { catalog, type MetaField } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
@@ -33,7 +34,8 @@
     field.type === "bool" || field.type === "int" || (field.type === "enum" && (field.enum?.length ?? 0) <= 6) || (field.type === "string" && !field.sensitive),
   );
   const newer = $derived(!!field.since && cmpVersion(field.since, core) > 0);
-  const detail = $derived(catalog.detail(field));
+  const effective = $derived(set ? editor.value(path) : field.default);
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   let expanded = $state(false);
   let groupOpen = $state(false);
   // 定位到组内字段时展开该组
@@ -114,11 +116,23 @@
       </div>
     {/if}
 
-    {#if expanded && detail}
-      <p class="detail">{detail}</p>
+    {#if expanded}
+      <div transition:slide={{ duration: dur(200) }}>
+        <FieldGuide {field} {path} />
+      </div>
     {/if}
 
     <div class="foot">
+      {#if field.suggest !== undefined}
+        <!-- 建议值（反馈 #27）：未采用时点击即写入；已是建议值时只显示勾 -->
+        {#if same(effective, field.suggest)}
+          <span class="sugg ok" data-basis={field.basis}><Icon name="check" size={12} />{t("guide.suggest." + field.basis)}</span>
+        {:else}
+          <button type="button" class="sugg" data-basis={field.basis} title={t("guide.apply")} onclick={() => editor.set(path, field.suggest)}>
+            {t("guide.suggest." + field.basis)}<span class="mono ltr">{exampleText(field.suggest)}</span>
+          </button>
+        {/if}
+      {/if}
       {#if field.examples?.length}
         <span class="examples">
           <span class="subtle">{t("field.examples")}</span>
@@ -129,7 +143,7 @@
       {/if}
       <span class="spacer"></span>
       {#if field.replacement}<span class="subtle">{t("badge.replacement", { key: field.replacement })}</span>{/if}
-      {#if detail}
+      {#if !isGroup}
         <button type="button" class="link" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>{expanded ? t("field.less") : t("field.more")}</button>
       {/if}
       {#if field.doc}
@@ -227,12 +241,33 @@
     color: var(--fg-muted);
     font-size: var(--text-sm);
   }
-  .detail {
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--bg-sunken);
+  /* 建议值：官方依据用强调色，通行做法用中性色 */
+  .sugg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    block-size: 22px;
+    padding-inline: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--bg-hover);
     color: var(--fg-muted);
-    font-size: var(--text-sm);
+    font: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+  .sugg[data-basis="official"] {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+  }
+  button.sugg:hover {
+    border-color: var(--accent);
+  }
+  .sugg.ok {
+    cursor: default;
+    background: transparent;
+    border-color: transparent;
   }
   .ctl-inline {
     flex: none;

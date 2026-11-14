@@ -27,23 +27,25 @@ fields:
       - {key: cache-max-size, type: int, importance: expert, doc: dns,
          zh: [缓存上限, "DNS 缓存的最大条目数。"], en: [Cache size, "Maximum number of DNS cache entries."]}
       - key: enable
+        guide: {suggest: true, basis: practice, zh: "关闭时使用系统 DNS：结果可能被污染，也无法使用 fake-ip。使用 TUN 或希望分流更准确时建议开启；在这里开启时会按官方示例填入一组常用值，可随时修改。", en: "When off, the system resolver is used: answers may be poisoned and fake-ip is unavailable. Enable it with TUN or for accurate routing; enabling here fills common values from the official example."}
         type: bool
         default: false
         importance: core
         doc: "dns#enable"
         zh: [启用, "启用内置 DNS；关闭时使用系统 DNS。"]
         en: [Enable, "Use the built-in DNS; when off the system resolver is used."]
-      - {key: prefer-h3, type: bool, importance: optional, doc: "dns#prefer-h3",
+      - {key: prefer-h3, guide: {basis: official, zh: "让 DoH 服务器同时尝试 HTTP/3。官方强烈不建议与 respect-rules 同时开启。普通用户保持关闭。", en: "Races HTTP/3 for DoH servers. The docs strongly advise against combining it with respect-rules. Leave it off unless you need it."}, type: bool, importance: optional, doc: "dns#prefer-h3",
          zh: [优先 HTTP/3, "DoH 并发尝试 HTTP/3。"], en: [Prefer HTTP/3, "Race HTTP/3 for DoH servers."]}
-      - {key: listen, type: string, importance: optional, doc: "dns#listen", examples: [{value: "0.0.0.0:1053", en: Listen on all addresses, zh: 监听全部地址}],
+      - {key: listen, guide: {basis: practice, zh: "把内核的 DNS 服务开放出来。只有让局域网其他设备或路由器把 DNS 指向本机时才需要；电脑自用不必设置。", en: "Exposes the core's DNS server. Needed only when other LAN devices or a router point their DNS at this machine."}, type: string, importance: optional, doc: "dns#listen", examples: [{value: "0.0.0.0:1053", en: Listen on all addresses, zh: 监听全部地址}],
          zh: [监听地址, "内置 DNS 服务器对外提供服务的地址。"], en: [Listen, "Address where the built-in DNS server listens."]}
       - {key: listen-routing-mark, type: int, importance: expert, doc: dns,
          zh: [监听路由标记, "DNS 监听套接字的 routing-mark（仅 Linux）。"], en: [Listen routing mark, "routing-mark of the DNS listening socket (Linux only)."]}
-      - {key: ipv6, type: bool, default: false, importance: recommended, doc: "dns#ipv6",
+      - {key: ipv6, guide: {basis: official, zh: "关闭时对 IPv6（AAAA）查询返回空结果，应用就只会拿到 IPv4 地址。网络或节点不支持 IPv6 时保持关闭。", en: "When off, AAAA queries return empty answers so apps only see IPv4. Keep it off if your network or nodes lack IPv6."}, type: bool, default: false, importance: recommended, doc: "dns#ipv6",
          zh: [IPv6 解析, "关闭时 AAAA 查询返回空结果。"], en: [IPv6 answers, "When off, AAAA queries return empty answers."]}
       - {key: ipv6-timeout, type: int, default: 100, importance: expert, doc: dns,
          zh: [AAAA 等待时间, "双栈并发时等待 AAAA 结果的毫秒数。"], en: [AAAA wait, "Milliseconds to wait for AAAA answers when racing both stacks."]}
       - key: default-nameserver
+        guide: {basis: official, zh: "只用来解析其他 DNS 服务器自己的域名（例如 DoH 地址里的域名），所以必须填 IP，可以是加密 DNS。", en: "Resolves only the hostnames of other DNS servers (such as a DoH host), so it must be IP addresses; encrypted DNS is allowed."}
         type: list
         items: {type: string}
         importance: recommended
@@ -52,6 +54,7 @@ fields:
         zh: [引导 DNS, "用于解析其他 DNS 服务器域名的服务器，只能是 IP 地址。"]
         en: [Bootstrap DNS, "Resolvers used to resolve other DNS server hostnames; IP addresses only."]
       - key: enhanced-mode
+        guide: {suggest: fake-ip, basis: practice, zh: "fake-ip 立即返回一个假 IP，真正连接时再按域名分流，响应快、域名规则命中准，官方示例配置也使用它；少数需要真实 IP 的场景（局域网设备发现、部分游戏与 P2P）用 fake-ip-filter 排除。redir-host 返回真实 IP，兼容性好但每次都要等解析完成。normal 只做普通解析。", en: "fake-ip answers instantly with a placeholder IP and routes by domain on connect: fast and accurate for domain rules, and used by the official example. Exclude apps that need real IPs (LAN discovery, some games and P2P) with fake-ip-filter. redir-host returns real IPs: more compatible, but waits for resolution. normal is a plain resolver."}
         type: enum
         enum:
           - {value: fake-ip, en: Answer with fake IPs from fake-ip-range, zh: 用 fake-ip-range 中的假 IP 应答}
@@ -80,6 +83,7 @@ fields:
         zh: [fake-ip 例外, "不使用 fake-ip 的域名；支持通配、rule-set: 与 geosite: 引用。"]
         en: [Fake-IP filter, "Domains that never get fake IPs; supports wildcards and rule-set:/geosite: references."]
       - key: fake-ip-filter-mode
+        guide: {basis: official, zh: "blacklist（默认）：列表中的域名不使用 fake-ip。whitelist：只有列表中的域名使用 fake-ip。rule：列表改用规则写法自上而下匹配，支持 GEOSITE、RULE-SET、DOMAIN 系列与 MATCH，最灵活。", en: "blacklist (default): listed domains skip fake-ip. whitelist: only listed domains get fake-ip. rule: the list uses rule syntax top-down with GEOSITE, RULE-SET, DOMAIN* and MATCH — the most flexible."}
         type: enum
         enum:
           - {value: blacklist, en: Listed domains get real IPs, zh: 列表内的域名用真实 IP}
@@ -90,13 +94,14 @@ fields:
         doc: "dns#fake-ip-filter-mode"
         zh: [例外模式, "fake-ip-filter 的匹配方式。"]
         en: [Filter mode, "How fake-ip-filter is applied."]
-      - {key: fake-ip-ttl, type: int, default: 1, importance: expert, doc: "dns#fake-ip-ttl",
+      - {key: fake-ip-ttl, guide: {basis: official, zh: "fake-ip 应答的 TTL。官方提示非必要请勿修改。", en: "TTL of fake-ip answers. The docs advise not changing it unless necessary."}, type: int, default: 1, importance: expert, doc: "dns#fake-ip-ttl",
          zh: [fake-ip TTL, "fake-ip 应答的 TTL；非必要不要修改。"], en: [Fake-IP TTL, "TTL of fake-ip answers; change only if you must."]}
       - {key: use-hosts, type: bool, default: true, importance: optional, doc: "dns#use-hosts",
          zh: [使用 hosts, "查询时使用配置中的 hosts。"], en: [Use hosts, "Answer from the configured hosts."]}
       - {key: use-system-hosts, type: bool, default: true, importance: optional, doc: "dns#use-system-hosts",
          zh: [使用系统 hosts, "查询时使用系统的 hosts 文件。"], en: [Use system hosts, "Answer from the system hosts file."]}
       - key: respect-rules
+        guide: {basis: official, zh: "让 DNS 查询本身也遵守分流规则（例如国外 DNS 经代理查询），可减少 DNS 泄漏。官方要求同时配置 proxy-server-nameserver，并强烈不建议与 prefer-h3 同时使用。", en: "Routes the DNS queries themselves through your rules (e.g. foreign DNS via proxy), reducing DNS leaks. The docs require proxy-server-nameserver and strongly advise against prefer-h3 with it."}
         type: bool
         default: false
         importance: optional
@@ -105,6 +110,7 @@ fields:
         zh: [遵循规则, "DNS 服务器的连接也按 rules 选择出口；需要设置 proxy-server-nameserver。"]
         en: [Respect rules, "Connections to DNS servers follow rules too; requires proxy-server-nameserver."]
       - key: nameserver
+        guide: {basis: practice, zh: "默认的解析服务器。建议使用加密 DNS（https:// 或 tls://），防止查询被篡改；可以按域名用 nameserver-policy 指定其他服务器。", en: "The default resolvers. Prefer encrypted DNS (https:// or tls://) to avoid tampering; use nameserver-policy to send specific domains elsewhere."}
         type: list
         items: {type: string}
         importance: core
@@ -113,9 +119,9 @@ fields:
         default: ["https://doh.pub/dns-query", "tls://223.5.5.5:853"]
         zh: [主 DNS, "默认使用的 DNS 服务器；支持 UDP、TCP、DoT、DoH、DoQ。"]
         en: [Nameservers, "Default DNS servers; UDP, TCP, DoT, DoH and DoQ are supported."]
-      - {key: fallback, type: list, items: {type: string}, importance: optional, doc: "dns#fallback",
+      - {key: fallback, guide: {basis: official, zh: "后备解析服务器，一般使用境外 DNS 以保证结果可信。配置后默认启用 fallback-filter，geoip-code 为 CN。", en: "Fallback resolvers, usually overseas DNS for trustworthy answers. Setting it enables fallback-filter by default with geoip-code CN."}, type: list, items: {type: string}, importance: optional, doc: "dns#fallback",
          zh: [备用 DNS, "主 DNS 结果不满足 fallback-filter 时改用的服务器。"], en: [Fallback, "Servers used when nameserver answers fail fallback-filter."]}
-      - {key: proxy-server-nameserver, type: list, items: {type: string}, importance: recommended, doc: "dns#proxy-server-nameserver",
+      - {key: proxy-server-nameserver, guide: {basis: practice, zh: "只用来解析节点自己的域名。单独指定一个稳定的 DNS，可以避免「要先连上节点才能解析、要先解析才能连上节点」的死循环；开启 respect-rules 时必须设置。不填时沿用 nameserver-policy、nameserver 与 fallback。", en: "Resolves only proxy server hostnames. A dedicated, reliable resolver avoids the loop of needing the proxy to resolve the proxy; required with respect-rules. Falls back to nameserver-policy, nameserver and fallback when empty."}, type: list, items: {type: string}, importance: recommended, doc: "dns#proxy-server-nameserver",
          zh: [节点域名 DNS, "专门用于解析节点服务器域名的 DNS。"], en: [Proxy server DNS, "DNS servers used only to resolve proxy server hostnames."]}
       - key: proxy-server-nameserver-policy
         type: map

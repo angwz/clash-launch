@@ -32,6 +32,10 @@ export interface MetaField {
   discriminator?: string;
   variants?: { value: string; id: string; doc?: string; fields: MetaField[] }[];
   hasDetail?: boolean;
+  /** guide.suggest：字段级建议值（反馈 #27） */
+  suggest?: unknown;
+  /** guide 的依据：official 官方文档明确推荐或警告；practice 通行做法 */
+  basis?: "official" | "practice";
 }
 
 export interface NavSection {
@@ -144,6 +148,11 @@ class CatalogState {
 
   detail(f: MetaField): string {
     return this.messages[`catalog.${f.id}.detail`] ?? "";
+  }
+
+  /** 「怎么选」：选用建议与理由；没有时为空串 */
+  guide(f: MetaField): string {
+    return this.messages[`catalog.${f.id}.guide`] ?? "";
   }
 
   enumLabel(f: MetaField, v: string): string {

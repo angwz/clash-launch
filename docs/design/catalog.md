@@ -41,6 +41,7 @@
 - 片段（`fragments`）在 `fields` 中以 `{include: 片段名}` 或 `{include: 片段名, keys: [...]}` 引用；片段字段的 ID 以片段为根（`fragments.tls-verify.skip-cert-verify`），所有引用处共用一份说明。
 - 加载时校验：每个字段都有中英文标题与摘要、`importance`、文档链接；枚举有取值；ID 不重复；`order` 与文件中的顶层字段一一对应。
 - `recommended`（只用于带 bool 型 `enable` 的对象）：用户打开 `enable` 时，界面把尚未设置的子字段填为这些值，已设置的值不动。取值只来自官方示例 `docs/config.yaml` 中通用、可移植的部分，不收演示用的规则集名、网卡名与地区专属设置；`TestRecommendedValuesPassForm` 检查它们能通过表单校验。目前有 `dns`、`sniffer`、`tun`。
+- `guide`（反馈 #27）：`{suggest?, basis, zh, en}`，即字段卡片「说明与建议」中的「怎么选」。`basis: official` 表示官方文档明确给出的推荐或警告，界面标「推荐」；`basis: practice` 表示通行做法，界面标「建议」，与官方要求明确区分。`suggest` 可省略，没有普适取值时只写说明；有取值时 `TestGuideSuggestPassForm` 检查它能通过表单校验。说明用通俗中文，写清各选项的区别与适用场景；依据只取 [mihomo 官方文档](https://wiki.metacubex.one/) 与源码，查不到的不写。目前覆盖「常规」与「DNS」分区。
 
 ## 顺序的来源
 

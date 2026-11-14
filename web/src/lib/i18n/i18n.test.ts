@@ -37,6 +37,10 @@ const dynamic: Record<string, string[]> = {
   "question.builtin.": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
   // 与 internal/engine/build.go 中 provider 模式无法表达的整理设置一致
   "proc.setting.": ["flags", "rename", "keepInfo", "keepDuplicates", "overrides", "sort"],
+  // 与 internal/catalog.Guide.Basis 一致
+  "guide.basis.": ["official", "practice"],
+  "guide.basis_hint.": ["official", "practice"],
+  "guide.suggest.": ["official", "practice"],
 };
 
 describe("messages", () => {
