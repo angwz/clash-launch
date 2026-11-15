@@ -25,7 +25,8 @@
 - **反馈 #79（2026-11-15）**：消息改为悬浮窗（`components/chat/ChatPanel.svelte`，状态在 `lib/chat.svelte.ts`），首次打开时按需加载；宽度 `clamp(320px, 62vw, 880px)`、高度随视口变化，容器查询按窗口自身宽度在两栏与单栏间切换，640px 以下铺满屏幕；`/messages` 与 `/messages/{name}` 重定向为打开悬浮窗。验证：`npm run check`、构建、首屏预算 65.2 KiB、e2e 30 通过（新增悬浮窗尺寸与 Esc 关闭）；截图检查了 900×640 与 1440×900。
 - **反馈 #80（2026-11-15）**：消息悬浮窗点击窗口外关闭（`pointerdown` + `composedPath()`，避免窗口内被立即移除的元素如联想选项被误判为窗口外）。验证：`npm run check`、构建、预算 65.2 KiB、e2e 30 通过（新增窗口外点击关闭、窗口内点击不关闭、图标开关）。
 - **反馈 #81–#84（2026-11-15，方案阶段）**：分流可视化定稿，未写功能代码。规范 [routing](../design/routing.md)，取舍 [0007](../decisions/0007-routing-visualization.md)，交互原型 [routing-prototype.html](../design/routing-prototype.html)（本机无头浏览器检查：无控制台错误；四种示例结构的分列、规则折叠、追踪自动展开、清空按钮、组提醒、粒子模式均按预期）。依据：mihomo v1.19.33 源码（`RULE-SET` 经全局 tunnel 查找，故改用策略对象；url-test 只比较最近一次测速等）、维护者 groups.toml 的实测（23 组、74 条引用、全部引用 7 层、默认路径 4 层）、流向色的调色板校验。
-- **下一步**：维护者确认后按 routing 第 13 节从第 0 步（`internal/match` 与地理数据验证）开始实施。
+- **分流可视化第 0 步（2026-11-15）**：`internal/match` 匹配引擎。domain、ipcidr 用内核策略对象，text、yaml 的逐行解析与 MRS 文件头移植自内核；普通规则与逻辑规则经内核解析，子规则递归拦截；含无法判断成分（逻辑规则内的 RULE-SET、SUB-RULE、连接信息、未填的应用或端口、缺地理数据）的规则按三值判断；不解析 DNS，记录 `NeedsIPAt` 与 `IPCandidates`；命中依据用单条目的内核策略对象定位。地理数据：内核的 GEOIP/GEOSITE/IP-ASN 构造函数会联网下载且可能 `log.Fatalln`，改用内核导出的无全局状态加载器与匹配器，结论与基准写入 [0007](../decisions/0007-routing-visualization.md) 的「实测」。验证：`go test ./...`、`go vet ./...`、`staticcheck`、`golangci-lint`（`internal/match` 0 issues）；`TestParseParity`（对照内核 `rulesParse`）、`TestGeoMatchesKernel`（本机地理数据上与内核规则对象逐个一致）；基准 10 万条编译 345 ms、一次最坏追踪 16 µs。尚未接入 service 与接口。
+- **下一步**：routing 第 13 节第 1 步（讲解图层与规则集说明），界面改动先截图给维护者确认。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 

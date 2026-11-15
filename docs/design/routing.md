@@ -1,6 +1,6 @@
 # 分流视图、追踪与 routing 段
 
-> 状态：设计定稿（2026-11-15），**未实施**。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
+> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）已完成，第 1–4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
 > 取舍与理由见 [0007](../decisions/0007-routing-visualization.md)，本文只写「做什么、怎么做、怎么验收」。
 > 交互原型 [routing-prototype.html](routing-prototype.html) 是布局、粒子与追踪动画的参考实现（用浏览器直接打开）。它用了内联样式与示例数据，**不能照搬进站内**：站内 CSP 不允许 `style` 属性，数据来自接口。
 
@@ -142,32 +142,39 @@ if in.Routing != nil {
 ```go
 package match
 
-// Set 是一个编译好的规则集。判断用内核的策略对象；Lines 只用于定位依据（命中的那一行）。
+// Set 是一个编译好的规则集。domain、ipcidr 用内核的策略对象判断；lines 只用于定位依据。
 type Set struct {
-	Name, Behavior, Format string // behavior: domain | ipcidr | classical；format: text | yaml | mrs
-	Count int
-	m     interface{ Match(*C.Metadata, C.RuleMatchHelper) bool }
-	lines []string // text、yaml 的条目原文；mrs 为空，依据改用 DumpMrs（domain）遍历
+	Name, Behavior, Format string // behavior: domain | ipcidr | classical；format: text | yaml | mrs | inline
+	Count                  int    // 与内核 ruleCount 相同
+	// 未导出：策略对象、条目原文（mrs 为空，依据改用 DumpMrs）、classical 条目、是否依赖 IP
 }
+type Env struct { Geo *Geo; GeodataMode bool } // 地理数据与最终配置的 geodata-mode
 
-func Compile(name, behavior, format string, body []byte) (*Set, error)
-func CompileInline(name, behavior string, payload []string) (*Set, error)
+func Compile(name, behavior, format string, body []byte, env Env) (*Set, error)
+func CompileInline(name, behavior string, payload []string, env Env) (*Set, error)
+func OpenGeo(dir string) (*Geo, error)
 ```
 
-- 策略对象：`provider.NewDomainStrategy()`、`provider.NewIPCidrStrategy()`、`provider.NewClassicalStrategy(parse)`，其中 `parse` 包装 `rules.ParseRule`（签名见内核 `rules/common`）。依次调用 `Reset`、逐条 `Insert`、`FinishInsert`。
-- text、yaml：逐行移植内核 `rules/provider/provider.go` 的 `rulesParse`（跳过空行、`#`、`//` 注释；yaml 取 `payload` 列表），注释写明出处与版本。
-- mrs：移植 `rulesMrsParse` 的文件头读取（zstd 解压、`MRS\x01` 魔数、行为字节、`count`、`extra`），然后对策略对象做接口断言 `interface{ FromMrs(io.Reader, int) error }` 调用。classical 没有 MRS 形式。
-- 大小与条数上限：单文件 20 MiB（与拉取上限一致）、单个规则集 200 万条，超过返回错误，追踪中该规则集标为「无法判断」。
+- 策略对象：`provider.NewDomainStrategy()`、`provider.NewIPCidrStrategy()`，依次调用 `Reset`、逐条 `Insert`、`FinishInsert`。
+- classical：按内核 `classicalStrategy.payloadToRule` 解析每条（拒绝 `MATCH`、`RULE-SET`、`SUB-RULE`，解析失败的跳过且不计数），由本包按原顺序逐条 `Match`。内核的 classical 匹配本来就是顺序遍历；自己遍历是为了对含无法判断成分的条目单独处理（第 5.2 节），布尔结果与内核相同。
+- text、yaml：逐行移植内核 `rules/provider/provider.go` 的 `rulesParse`，注释写明出处与版本；`TestParseParity` 用内核自己的 `rulesParse`（经 `ConvertToMrs`）对照条数与结果。
+- mrs：移植 `rulesMrsParse` 的文件头读取（zstd 解压、`MRS\x01` 魔数、行为字节、`count`、`extra`），然后调用策略对象的 `FromMrs`。classical 没有 MRS 形式。解压后超过 256 MiB 报错（防压缩炸弹）。
+- 大小与条数上限：单文件 20 MiB（与拉取上限一致）、单个规则集 200 万条，超过返回错误，由调用方把该规则集标为 `no-content`。
+- `Env` 只影响 classical 中的地理规则；service 缓存 classical 规则集时键要包含 `GeodataMode`。
 
 ### 5.2 一次追踪
 
 ```go
 type Request struct {
-	Host    string     // 小写、去掉协议、路径、端口与末尾的点
-	IP      netip.Addr // 输入的是 IP 时有效
-	Process string     // 可选
-	Network string     // tcp（默认）| udp
+	Host        string     // 小写、去掉协议、路径、端口与末尾的点
+	IP          netip.Addr // 输入的是 IP 时有效
+	Port        uint16     // 输入带端口时有效；0 表示未知。体检按 443 传入
+	Process     string     // 可选
+	ProcessPath string     // 输入的应用含路径分隔符时为完整路径，Process 取最后一段
+	Network     string     // tcp（默认）| udp
 }
+func NewRequest(input, process, network string) (Request, error) // 规范化用户输入
+func ParseLine(index int, raw string) Line                        // 按内核 ParseRulePayload 拆分
 type Line struct { // 最终配置 rules 中的一行
 	Index  int
 	Raw    string // 原文，例如 RULE-SET,Direct,DIRECT,no-resolve
@@ -178,31 +185,38 @@ type Step struct {
 	Index    int
 	Result   string // miss | hit | needs-ip | unknown
 	Evidence string // 命中的那一行，例如 "+.chatgpt.com"、"IP-CIDR,91.108.4.0/22"；定位不到时为空
-	Reason   string // unknown 的原因代码：logic-ruleset | sub-rule | needs-process | no-content | geodata
+	Reason   string // unknown 的原因代码：logic-ruleset | sub-rule | needs-process | needs-connection | no-content | geodata | parse
 }
 type Outcome struct {
 	Steps        []Step // 从第 0 条到命中为止
 	Hit          int    // 命中的行号；-1 表示没有命中（不应出现，最后一条应为 MATCH）
 	NeedsIPAt    int    // 第一次需要 IP 的行号，-1 表示不需要
-	IPCandidates []int  // NeedsIPAt 之后、Hit 之前可能因 IP 命中的行（GEOIP、IP-CIDR、无 no-resolve 的 ipcidr 或 classical 规则集）
+	IPCandidates []int  // 从 NeedsIPAt 起、Hit 之前可能因 IP 命中的行（含 no-resolve 的行：内核解析一次后 DstIP 对后续各行可见）
 }
-func Trace(lines []Line, sets map[string]*Set, req Request) Outcome
+func Trace(lines []Line, sets map[string]*Set, req Request, env Env) Outcome
+func TraceFrom(lines []Line, start int, sets map[string]*Set, req Request, env Env) Outcome
 ```
 
-逐行处理：
+逐行处理（顺序与内核 `tunnel.match` 相同，整个追踪共用一个 `Metadata`）：
 
-1. `RULE-SET`：在 `sets` 中查找（找不到 → `unknown/no-content`），按内核 `rule_set.go` 的语义：带 `no-resolve` 时把 `helper.ResolveIP` 置空；`src` 参数时交换源与目的。调用 `Set.m.Match`。
-2. 其他类型：`rules.ParseRule(type, payload, target, params, nil)` 得到规则对象后调用 `Match`。解析失败 → `unknown`。`AND`、`OR`、`NOT` 的载荷里出现 `RULE-SET` → `unknown/logic-ruleset`；`SUB-RULE` → `unknown/sub-rule`。
-3. `helper.ResolveIP`：回调里只记录 `NeedsIPAt`（首次），**不解析**。之后 IP 类规则因没有 IP 而不命中，追踪继续到兜底，同时把它们收进 `IPCandidates`。
-4. `helper.FindProcess`：`Request.Process` 为空时该行记 `unknown/needs-process` 并视为未命中。
-5. 依据定位：命中后，domain 规则集在 `lines` 中按内核的域名语义（`+.`、`.` 前缀、精确）找第一条覆盖 Host 的条目；MRS 用 `DumpMrs` 遍历；ipcidr 按网段包含；classical 逐行 `ParseRule` 后找第一条命中的。定位失败只留空，不影响结果。
+1. `RULE-SET`：在 `sets` 中查找（找不到 → `unknown/no-content`），按内核 `rule_set.go` 的语义：带 `no-resolve` 时把 `helper.ResolveIP` 置空；`src` 参数（按来源地址匹配）→ `unknown/needs-connection`。
+2. 其他类型：按 `rules.ParseRule` 解析，但解析函数由本包提供并递归传给 `logic.NewAND/OR/NOT`，因此逻辑规则的子规则同样经过拦截：
+   - 子规则中的 `RULE-SET` → `logic-ruleset`；`SUB-RULE` → `sub-rule`；
+   - 取决于追踪不掌握的连接信息的类型（`SRC-*`、`IN-*`、`DSCP`、`UID`、`REMATCH-NAME`、带 `src` 的 IP 规则）→ `needs-connection`；`DST-PORT` 在请求没有端口时同样如此；
+   - `PROCESS-NAME*` 在没填应用、`PROCESS-PATH*` 在没有路径时 → `needs-process`；
+   - `GEOIP`、`GEOSITE`、`IP-ASN` 见下文；解析失败 → `parse`。
+3. **三值判断**：含无法判断成分的规则，把这些成分分别当作「不命中」与「命中」各算一次，两次相同即为确定结果，不同才记 `unknown`。例如常见的 `AND,((DST-PORT,443),(NETWORK,UDP)),REJECT` 对 TCP 请求确定不命中，对未给端口的 UDP 请求无法判断。classical 规则集逐条如此判断：有确定命中的条目即命中，否则只要有无法判断的条目就记 `unknown`。
+4. `helper.ResolveIP`：回调里只记录 `NeedsIPAt`（首次），**不解析**。之后依赖 IP 的行因没有 IP 而不命中，结果记 `needs-ip` 并收进 `IPCandidates`，追踪继续到兜底。因缺少地理数据被替换的 GEOIP、IP-ASN（无 `no-resolve`）同样视为触发了解析。
+5. 依据定位：domain、ipcidr 规则集逐条用**单条目的内核策略对象**判断（先按文本粗筛），语义与整体匹配完全相同；MRS 用 `DumpMrs` 遍历（ipcidr 得到的是合并后的网段）；classical 给出命中的条目原文；普通规则给出类型与载荷。定位失败只留空，不影响结果。
+6. 命中之后，内核还会因目标不存在、`PASS`、`REMATCH` 或节点不支持 UDP 跳过该行（`tunnel.go`）。这取决于策略组与节点，由 service 判断后用 `TraceFrom` 从下一行继续（第 2 步）。
 
-地理数据（`GEOIP`、`GEOSITE`）：第 0 步验证用内核的地理数据加载器在进程内只读加载 `CLASH_LAUNCH_GEODATA` 目录（只初始化一次）。不可行或未配置时，这两类行记 `unknown/geodata`。
+地理数据（第 0 步结论，[0007](../decisions/0007-routing-visualization.md) 的「实测」）：内核的 `NewGEOIP`、`NewGEOSITE`、`NewIPASN` 在文件缺失或校验失败时会联网下载，MMDB 打不开时 `log.Fatalln` 退出进程，路径与 `geodata-mode` 又是进程级全局变量，**不能调用**。本包用 `OpenGeo` 只读打开 `CLASH_LAUNCH_GEODATA` 目录（文件名按内核 `constant/path.go` 的规则查找），借助内核导出的无全局状态部分（加载器的 `LoadSiteByBytes`/`LoadIPByBytes`、`router` 的匹配器、`mmdb.ASNReader`）实现三种规则，`Match` 与 MMDB 的 `LookupCode` 逐行移植。`GEOIP` 按 `Env.GeodataMode` 选择 geoip.dat 或 MMDB。目录未配置或缺少对应文件时，这些行记 `unknown/geodata`（`GEOIP,lan` 不需要数据）。
 
 ### 5.3 测试
 
-- `match_test.go`：domain、ipcidr、classical 各三种格式；MRS 用 `provider.ConvertToMrs` 在测试中由 text 生成；`no-resolve` 与 `NeedsIPAt`；逻辑规则内含 RULE-SET 的 `unknown`；进程规则；依据定位。只用 `example.com`、`192.0.2.0/24`、`2001:db8::/32`。
-- 基准：`BenchmarkCompileDomain100k`、`BenchmarkTrace`，实测值写进 [0007](../decisions/0007-routing-visualization.md) 的「实测」小节（第 0 步补上该小节）。
+- `match_test.go`：domain、ipcidr 各三种格式，classical 两种格式（另有内联）；MRS 用 `provider.ConvertToMrs` 在测试中由 text 生成；`no-resolve` 与 `NeedsIPAt`、`IPCandidates`；三值判断；进程、端口、来源地址规则；依据定位；输入规范化；`TestParseParity` 对照内核的 `rulesParse`。只用 `example.com`、`192.0.2.0/24`、`2001:db8::/32`（另有 `example.net`、`example.org`、`198.51.100.0/24`，同为保留地址）。
+- `TestGeoMatchesKernel`：在同一份地理数据上，把本包的 GEOSITE、GEOIP（两种模式）、IP-ASN 与内核自己的规则对象逐个比较；样本从数据本身取出。需要地理数据，没有时跳过；内核一侧在临时目录中运行，下载地址指向不可达的本机端口。
+- 基准：`BenchmarkCompileDomain100k`、`BenchmarkTrace`，实测值见 [0007](../decisions/0007-routing-visualization.md) 的「实测」。
 
 ## 6. 规则内容的获取与缓存（`internal/service/routing_cache.go`）
 

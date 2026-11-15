@@ -33,6 +33,7 @@
 | `internal/target` | 目标预设加载；版本门槛、目标不支持的字段、弃用提示 |
 | `internal/render` | 按目录排序、受限发射器、文件头、格式自检，见 [rendering](rendering.md) |
 | `internal/kernel` | mihomo 适配层：分享链接解析与节点校验（Go 库）、`mihomo -t`（可执行文件） |
+| `internal/match` | 分流追踪的匹配：以内核的规则集策略对象与规则对象判断一次请求命中哪一行，地理数据只读加载，不联网；见 [routing](routing.md) 第 5 节 |
 | `internal/engine` | 生成阶段（`Build`：有序源、订阅编号、provider 模式、策略组与规则）与管线编排（`Render`）、缓存键 |
 | `internal/store` | 唯一持久化的包：仓储接口、SQLite/PostgreSQL 通用实现、迁移、加密、备份与 `db copy`，见 [0002](../decisions/0002-storage-and-service.md) |
 | `internal/auth` | argon2id 密码哈希、密码策略、随机令牌与哈希、常数时间比较 |

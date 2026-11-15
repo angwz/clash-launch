@@ -10,6 +10,7 @@ require (
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/klauspost/compress v1.17.9
 	github.com/metacubex/mihomo v1.19.33
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/pelletier/go-toml/v2 v2.4.3
@@ -53,7 +54,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink v1.4.0 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/klauspost/reedsolomon v1.12.3 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

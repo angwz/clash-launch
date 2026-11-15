@@ -1,6 +1,6 @@
 # 0007 · 分流视图、追踪与 routing 段
 
-- 状态：已采纳（2026-11-15），尚未实施
+- 状态：已采纳（2026-11-15），实施中（第 0 步 `internal/match` 已完成）
 - 范围：配置编辑器的「分流」视图（讲解图层、分流地图、流向追踪、常用网站体检、期望）与方案文档的 `routing` 段
 - 实施规范：[design/routing.md](../design/routing.md)；交互原型：[design/routing-prototype.html](../design/routing-prototype.html)
 - 依据：mihomo v1.19.33 源码（只读参考 `.cache/ref/mihomo`）、domainrouter_v2@2c812f9 的 `groups.toml` 与 `docs/guide/subconverter.md`；维护者意见见 [feedback](../development/feedback.md) #81–#84
@@ -31,7 +31,19 @@
 ## 已知限制
 
 - 逻辑规则（`AND`、`OR`、`NOT`）内引用 `RULE-SET`、以及 `SUB-RULE`：内核实现经全局 tunnel 查找规则集，服务器上无法复现，追踪标为「无法判断」并继续向下比对。
-- `PROCESS-NAME` 等依赖进程或端口的规则：用户未填写时标为「取决于应用」。
-- `GEOIP`、`GEOSITE`：依赖内核的全局地理数据加载。第 0 步验证能否在进程内只读加载；不能时这两类规则在追踪中标为「无法判断」，不猜。
+- `PROCESS-NAME` 等依赖进程的规则：用户未填写时标为「取决于应用」。`DST-PORT` 在输入没带端口时、以及来源地址、入站、DSCP、UID 等连接信息类规则，标为「无法判断」。含这些成分的逻辑规则按三值判断，另一项已能决定结果时照常给出结论（[routing](../design/routing.md) 第 5.2 节）。
+- `GEOIP`、`GEOSITE`、`IP-ASN`：结果取决于服务器上的地理数据版本（`tools.lock.json` 锁定），客户端自己下载的数据可能更新或更旧，个别地址的归属因此可能不同。未配置地理数据目录时标为「无法判断」。
 - 只有路径（`path`）、没有地址的规则集：服务器拿不到内容，标为「无法判断」。
 - select 当前选了哪个、url-test 测出哪个最快，只有客户端知道；图与追踪按「默认第一个」展示，url-test 注明「测速决定」。
+
+## 实测
+
+第 0 步（2026-11-15），本机 Windows amd64、AMD EPYC 4 核、Go 1.27.3、mihomo v1.19.33 模块。
+
+| 项目 | 结果 |
+|---|---|
+| 进程内加载地理数据 | **可行，但不能用内核的规则构造函数**。`NewGEOIP`、`NewGEOSITE`、`NewIPASN` 在文件缺失或校验失败时联网下载，MMDB 打不开时 `log.Fatalln`，路径与 `geodata-mode` 是进程级全局变量。改用内核导出的无全局状态部分（`LoadSiteByBytes`、`LoadIPByBytes`、`router` 匹配器、`mmdb.ASNReader`），三种规则的 `Match` 移植。`TestGeoMatchesKernel` 在 `tools.lock.json` 锁定的数据上与内核规则对象逐个对照一致：GEOSITE（`cn`、`CN`、`!cn`，402 个样本）、GEOIP 的 MMDB 与 geodata 两种模式（`CN`、`us`、`!cn`，302 个样本）、IP-ASN |
+| `BenchmarkCompileDomain100k` | 10 万条 domain（text）编译 345 ms，累计分配 55.6 MB、60.8 万次（常驻内存未单独测量） |
+| `BenchmarkTrace` | 66 条规则（60 条 RULE-SET，各 2000 条）一路未命中到兜底：每次 16 µs，46 次分配 |
+
+据此，追踪与体检的耗时由规则内容的拉取决定，匹配本身可以忽略；冷缓存时编译大规则集是主要开销，应在拉取后一次编译、按第 6 节缓存。

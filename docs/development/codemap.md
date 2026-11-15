@@ -36,6 +36,7 @@
 | 规则源、GROUPID、选择器、ini | `internal/ruleset`；有序源与编号在 `internal/engine/build.go` | `ruleset_test.go`、工作区 golden | [rules](../design/rules.md)、[parity](../design/subconverter-parity.md) |
 | 诊断代码与中英文消息 | `internal/diag/codes.go`（唯一登记处） | 引用处的测试 | 前端按代码显示，无需改前端 |
 | 内核检查 | `internal/kernel/check.go` | `-tags kernel` | [architecture](../design/architecture.md) |
+| 分流追踪的匹配（规则集编译、逐行判断、地理数据） | `internal/match`（`set.go` 编译与移植的 `rulesParse`/MRS 头，`rule.go` 解析与无法判断的成分，`geo.go` 地理规则，`trace.go` 追踪与依据定位） | `match_test.go`、`TestGeoMatchesKernel`（与内核规则对象对照，需要地理数据）、`bench_test.go` | [routing](../design/routing.md) 第 5 节、[0007](../decisions/0007-routing-visualization.md)、[mihomo-upgrade](mihomo-upgrade.md) 第 5 步 |
 
 ### 服务与数据
 
