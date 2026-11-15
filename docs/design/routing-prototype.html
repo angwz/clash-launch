@@ -1,0 +1,1727 @@
+<!-- 分流可视化的交互原型（反馈 #81–#84）：布局、粒子与追踪动画的参考实现，不是产品代码。数据为示例；用了内联样式，站内实现必须遵守 CSP。规范见 routing.md，取舍见 ../decisions/0007-routing-visualization.md。用浏览器直接打开即可。 -->
+<title>分流可视化方案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 布局概念：一张可操作的「分流地图」原型开场（左侧请求粒子 → 规则 → 按默认路径分层的策略组 → 出口 → 右侧目的地），
+   方案正文按「你的想法与最佳实践 → 层级 → 节点策略 → 看到什么 → 存成什么 → 凭什么可信 → 怎么画 → 怎么推进」展开。
+   界面颜色沿用 Clash, Launch! 自己的 token；粒子另有一组柔和的流向色（经过色盲模拟校验），不复用状态色。 */
+:root {
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --bg: #f7f7f8; --bg-raised: #ffffff; --bg-sunken: #efeff1; --bg-hover: #ececef;
+  --fg: #17171c; --fg-muted: #5b5b66; --fg-subtle: #6e6e7a;
+  --border: #e2e2e7; --border-strong: #c9c9d1;
+  --accent: #4f4bc6; --accent-soft: #ecebfb; --accent-fg: #3e3aa6; --on-accent: #ffffff;
+  --ok: #1d7a46; --ok-soft: #e5f4ea; --warn: #8a5a00; --warn-soft: #fbf1db; --err: #b42318; --err-soft: #fdecea;
+  --link: #dcdce2; --link-hot: #8e89dc;
+  /* 流向色：薰衣草紫（经代理）、湖青（直连）、陶橙（拦截）、灰（尚未命中规则） */
+  --flow-proxy: #7a73d4; --flow-direct: #10a2a8; --flow-reject: #cf7a3c; --flow-neutral: #a9a9b3;
+  --shadow-md: 0 4px 16px rgb(16 16 24 / 0.08), 0 1px 3px rgb(16 16 24 / 0.06);
+  --shadow-lg: 0 16px 48px rgb(16 16 24 / 0.16), 0 2px 6px rgb(16 16 24 / 0.08);
+  --scrim: rgb(16 16 24 / 0.32);
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 10px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111114; --bg-raised: #18181c; --bg-sunken: #0c0c0e; --bg-hover: #222228;
+    --fg: #ececf1; --fg-muted: #a6a6b2; --fg-subtle: #8f8f9b;
+    --border: #26262d; --border-strong: #3a3a43;
+    --accent: #7f7bf0; --accent-soft: #23223f; --accent-fg: #aeacf7; --on-accent: #ffffff;
+    --ok: #5cc98a; --ok-soft: #13291d; --warn: #e3b04b; --warn-soft: #2d2412; --err: #f2766b; --err-soft: #321816;
+    --link: #2a2a31; --link-hot: #7a76d8;
+    --flow-proxy: #8580e2; --flow-direct: #23a3a6; --flow-reject: #c98042; --flow-neutral: #5f5f6a;
+    --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+    --scrim: rgb(0 0 0 / 0.55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111114; --bg-raised: #18181c; --bg-sunken: #0c0c0e; --bg-hover: #222228;
+  --fg: #ececf1; --fg-muted: #a6a6b2; --fg-subtle: #8f8f9b;
+  --border: #26262d; --border-strong: #3a3a43;
+  --accent: #7f7bf0; --accent-soft: #23223f; --accent-fg: #aeacf7; --on-accent: #ffffff;
+  --ok: #5cc98a; --ok-soft: #13291d; --warn: #e3b04b; --warn-soft: #2d2412; --err: #f2766b; --err-soft: #321816;
+  --link: #2a2a31; --link-hot: #7a76d8;
+  --flow-proxy: #8580e2; --flow-direct: #23a3a6; --flow-reject: #c98042; --flow-neutral: #5f5f6a;
+  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+  --scrim: rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: 1.75rem; font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 1.2rem; font-weight: 650; }
+h3 { font-size: 0.95rem; font-weight: 600; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+a { color: var(--accent-fg); }
+.muted { color: var(--fg-muted); }
+.note { font-size: 0.76rem; color: var(--fg-subtle); }
+.eyebrow { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-subtle); }
+.lead { max-width: 70ch; color: var(--fg-muted); font-size: 0.95rem; }
+header.top { display: grid; gap: 10px; margin-bottom: 20px; }
+.status { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg-raised); color: var(--fg-muted); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.rev { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--fg-muted); padding: 8px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); }
+.rev b { color: var(--fg); font-weight: 600; }
+
+/* —— 原型外框：模拟站内的「配置 → 分流」页 —— */
+.proto { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); box-shadow: var(--shadow-md); overflow: hidden; }
+.proto-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-sunken); }
+.crumbs { font-size: 0.82rem; color: var(--fg-muted); margin-inline-end: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.crumbs b { color: var(--fg); font-weight: 600; }
+.tabs { display: flex; gap: 2px; }
+.tab { font-size: 0.82rem; padding: 4px 10px; border-radius: var(--radius-md); color: var(--fg-muted); }
+.tab.on { background: var(--bg-raised); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.trace { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 12px 8px; }
+.trace form { display: flex; gap: 6px; flex: 1 1 320px; min-width: 0; }
+.search { position: relative; flex: 1; min-width: 0; display: flex; }
+.input, .sel { font: inherit; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg); color: var(--fg); min-width: 0; }
+.search .input { flex: 1; padding-inline-end: 34px; }
+.clear { position: absolute; inset-inline-end: 5px; top: 50%; transform: translateY(-50%); inline-size: 24px; block-size: 24px; display: grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--fg-subtle); font: inherit; font-size: 1rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 120ms var(--ease), background 120ms var(--ease); }
+.search:hover .clear, .search:focus-within .clear { opacity: 1; }
+.clear:hover { background: var(--bg-hover); color: var(--fg); }
+.input:focus-visible, .btn:focus-visible, .row:focus-visible, .chip:focus-visible, .sel:focus-visible, .seg button:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; opacity: 1; }
+.btn { font: inherit; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-raised); color: var(--fg); cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--bg-hover); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.sm { padding: 2px 8px; font-size: 0.76rem; }
+.btn.icon { padding: 5px; inline-size: 30px; justify-content: center; border-radius: 999px; }
+.btn.toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-fg); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 0.78rem; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--fg-muted); cursor: pointer; font-family: var(--font-mono); }
+.chip:hover { color: var(--fg); border-color: var(--border-strong); }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 0 12px 10px; font-size: 0.74rem; color: var(--fg-subtle); }
+.legend .k { display: inline-flex; align-items: center; gap: 5px; }
+.legend i.d { inline-size: 8px; block-size: 8px; border-radius: 50%; display: inline-block; }
+.legend .lp { background: var(--flow-proxy); } .legend .ld { background: var(--flow-direct); } .legend .lr { background: var(--flow-reject); } .legend .ln0 { background: var(--flow-neutral); }
+.legend .ln { inline-size: 18px; border-top: 2px solid var(--fg-subtle); display: inline-block; }
+.legend .ln.dash { border-top-style: dashed; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-sunken); font-size: 0.78rem; color: var(--fg-muted); }
+.toolbar .grow { margin-inline-end: auto; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
+.seg button { font: inherit; font-size: 0.76rem; padding: 4px 10px; border: 0; background: var(--bg); color: var(--fg-muted); cursor: pointer; }
+.seg button + button { border-inline-start: 1px solid var(--border-strong); }
+.seg button.on { background: var(--accent); color: var(--on-accent); }
+.viewnote { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 0.74rem; color: var(--fg-subtle); }
+.viewnote b { color: var(--fg-muted); font-weight: 600; }
+.viewnote .why { padding: 1px 8px; border-radius: 999px; background: var(--bg-sunken); color: var(--fg-muted); }
+.row.seg { background: var(--bg-sunken); border-style: dashed; cursor: pointer; }
+.row.seg .nm { color: var(--fg-muted); }
+.seg.wide { display: flex; }
+.seg.wide button { flex: 1 1 auto; padding: 5px 10px; font-size: 0.78rem; }
+
+.map-scroll { overflow-x: auto; }
+.map { position: relative; padding: 14px 16px 18px; }
+.map svg.links, .map canvas.fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.map svg.links { z-index: 0; overflow: visible; }
+.map canvas.fx { z-index: 1; }
+.cols { position: relative; z-index: 2; display: grid; gap: 28px; }
+.col { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.col.lane .col-h { justify-content: center; }
+.col-h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 0 2px 4px; min-height: 22px; }
+.col-h .eyebrow { font-size: 0.68rem; white-space: nowrap; }
+.col-h .hint { font-size: 0.66rem; color: var(--fg-subtle); text-align: end; }
+.row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-raised); font-size: 0.84rem; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; transition: border-color 140ms var(--ease), background 140ms var(--ease), opacity 160ms var(--ease), box-shadow 140ms var(--ease); }
+.row:hover { border-color: var(--border-strong); }
+.row .pri { font-family: var(--font-mono); font-size: 0.7rem; color: var(--fg-subtle); min-width: 1.5em; text-align: end; align-self: flex-start; padding-top: 1px; }
+.row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .meta { font-size: 0.7rem; color: var(--fg-subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols.compact .col.groups .row { padding: 5px 8px; font-size: 0.8rem; gap: 6px; }
+.rmain { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rtop { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mtags { display: flex; gap: 3px; flex-wrap: wrap; }
+.mtag { font-family: var(--font-mono); font-size: 0.62rem; line-height: 1.5; padding: 0 5px; border-radius: 3px; background: var(--bg-sunken); color: var(--fg-subtle); }
+.btag { font-size: 0.62rem; line-height: 1.5; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-fg); white-space: nowrap; }
+.row.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.row.hot { border-color: var(--link-hot); background: var(--accent-soft); }
+.row.dim { opacity: 0.4; }
+.row.changed .nm::after { content: " •"; color: var(--warn); }
+.row.drop { border-style: dashed; border-color: var(--accent); background: var(--accent-soft); }
+.row.nodrop { border-style: dashed; border-color: var(--err); background: var(--err-soft); }
+.row.ins-before { box-shadow: 0 -3px 0 0 var(--accent); }
+.row.ins-after { box-shadow: 0 3px 0 0 var(--accent); }
+.row.builtin { background: var(--bg-sunken); }
+.gtype { font-size: 0.66rem; padding: 0 6px; border-radius: 999px; background: var(--bg-sunken); color: var(--fg-muted); white-space: nowrap; }
+.tch { font-size: 0.66rem; inline-size: 18px; block-size: 18px; display: inline-grid; place-items: center; border-radius: 4px; background: var(--bg-sunken); color: var(--fg-muted); flex: none; }
+.links path { fill: none; stroke: var(--link); stroke-width: 1.4; transition: stroke 160ms var(--ease), opacity 160ms var(--ease); }
+.links path.alt { stroke-dasharray: 3 4; }
+.links path.cand { stroke-dasharray: 2 5; opacity: 0.85; }
+.links path.hot { stroke: var(--link-hot); stroke-width: 2; }
+.links.focus path:not(.hot) { opacity: 0.28; }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; padding: 5px 10px; border-radius: var(--radius-md); background: var(--accent); color: var(--on-accent); font-size: 0.8rem; box-shadow: var(--shadow-lg); transform: translate(-50%, -130%); white-space: nowrap; }
+.drag-ghost.bad { background: var(--err); }
+
+.panes { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border-top: 1px solid var(--border); }
+.pane { padding: 14px 16px 18px; min-width: 0; display: grid; gap: 10px; align-content: start; }
+.pane + .pane { border-inline-start: 1px solid var(--border); }
+.pane h3 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.empty { color: var(--fg-subtle); font-size: 0.85rem; }
+.hops { list-style: none; margin: 0; padding: 0; display: grid; }
+.hop { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; position: relative; padding-bottom: 12px; }
+.hop:not(:last-child)::before { content: ""; position: absolute; inset-inline-start: 10px; top: 22px; bottom: 0; border-inline-start: 2px solid var(--border); }
+.hop .dot { inline-size: 22px; block-size: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 0.7rem; font-weight: 700; background: var(--bg-sunken); color: var(--fg-muted); }
+.hop.branch .dot { background: var(--warn-soft); color: var(--warn); }
+.hop.k-proxy .dot { background: color-mix(in oklab, var(--flow-proxy) 18%, var(--bg-raised)); color: var(--flow-proxy); }
+.hop.k-direct .dot { background: color-mix(in oklab, var(--flow-direct) 18%, var(--bg-raised)); color: var(--flow-direct); }
+.hop.k-reject .dot { background: color-mix(in oklab, var(--flow-reject) 18%, var(--bg-raised)); color: var(--flow-reject); }
+.hop .t { font-weight: 600; font-size: 0.86rem; }
+.hop .d { font-size: 0.8rem; color: var(--fg-muted); }
+.ev { margin-top: 4px; font-family: var(--font-mono); font-size: 0.72rem; padding: 3px 8px; border-radius: var(--radius-sm); background: var(--bg-sunken); display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+details.miss summary { cursor: pointer; font-size: 0.78rem; color: var(--fg-subtle); }
+details.miss ol { margin: 4px 0 0; padding-inline-start: 18px; font-size: 0.76rem; color: var(--fg-subtle); }
+.cmp { font-size: 0.8rem; padding: 6px 10px; border-radius: var(--radius-md); background: var(--warn-soft); color: var(--warn); }
+.samples { display: flex; flex-wrap: wrap; gap: 4px; }
+.samples code { padding: 1px 6px; border-radius: var(--radius-sm); background: var(--bg-sunken); font-size: 0.72rem; }
+.edit { display: grid; gap: 8px; font-size: 0.82rem; padding-top: 10px; border-top: 1px dashed var(--border); }
+.field { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; align-items: center; }
+.field > span:first-child, .field > label:first-child { color: var(--fg-subtle); }
+.inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.fit { display: grid; gap: 4px; font-size: 0.8rem; padding: 8px 10px; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.fit b { font-weight: 600; }
+.lint { font-size: 0.78rem; padding: 6px 10px; border-radius: var(--radius-md); background: var(--warn-soft); color: var(--warn); }
+.mlist { display: grid; gap: 6px; }
+.mi { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); }
+.mi-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.mi-ord { font-family: var(--font-mono); font-size: 0.72rem; color: var(--fg-subtle); padding-top: 2px; }
+.src { font-size: 0.7rem; color: var(--fg-subtle); overflow-wrap: anywhere; }
+pre.out { margin: 0; padding: 8px 10px; border-radius: var(--radius-md); background: var(--bg-sunken); font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.55; overflow-x: auto; }
+
+.draft { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--warn-soft); }
+.draft .sum { flex: 1 1 260px; min-width: 0; font-size: 0.84rem; color: var(--fg); }
+.draft ul { margin: 2px 0 0; padding-inline-start: 18px; font-size: 0.78rem; color: var(--fg-muted); }
+.toast { padding: 10px 14px; border-top: 1px solid var(--border); background: var(--ok-soft); color: var(--ok); font-size: 0.84rem; }
+.caption { margin-top: 10px; font-size: 0.8rem; color: var(--fg-subtle); max-width: 110ch; }
+
+/* —— 讲解图层 —— */
+.layer { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--scrim); padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.layer-card { width: min(920px, 100%); max-height: 100%; overflow: auto; background: var(--bg-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); border: 1px solid var(--border); animation: pop 220ms var(--ease); }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.985); } }
+.layer-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.layer-head h2 { font-size: 1rem; margin-inline-end: auto; }
+.stage-scroll { overflow-x: auto; }
+.stage { display: block; min-width: 760px; width: 100%; height: auto; }
+.stage .box rect { fill: var(--bg-sunken); stroke: var(--border-strong); stroke-width: 1; transition: fill 200ms var(--ease), stroke 200ms var(--ease); }
+.stage .box text { fill: var(--fg-muted); font-size: 13px; font-family: var(--font-sans); }
+.stage .box .sub { font-size: 11px; fill: var(--fg-subtle); }
+.stage .box.on rect { fill: var(--accent-soft); stroke: var(--link-hot); stroke-width: 1.5; }
+.stage .box.on text { fill: var(--fg); }
+.stage .wire { fill: none; stroke-width: 1.5; opacity: 0.7; }
+.stage .wire.p { stroke: var(--flow-proxy); } .stage .wire.d { stroke: var(--flow-direct); } .stage .wire.r { stroke: var(--flow-reject); stroke-dasharray: 4 4; }
+.stage circle.a { fill: var(--flow-proxy); } .stage circle.b { fill: var(--flow-direct); } .stage circle.c { fill: var(--flow-reject); }
+.stage .lbl { font-size: 11px; fill: var(--fg-subtle); font-family: var(--font-mono); }
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 0 16px; }
+.step { font: inherit; text-align: start; font-size: 0.78rem; padding: 6px 8px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: var(--fg-muted); cursor: pointer; }
+.step.on { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+.explain { padding: 14px 16px 18px; display: grid; gap: 6px; }
+.explain p { max-width: 70ch; color: var(--fg-muted); }
+.explain b { color: var(--fg); }
+
+/* —— 方案正文 —— */
+section.doc { margin-top: 48px; display: grid; gap: 14px; }
+section.doc > p, section.doc > ul, section.doc > ol { max-width: 78ch; }
+section.doc ul, section.doc ol { margin: 0; padding-inline-start: 20px; display: grid; gap: 6px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); padding: 14px 16px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.card .where { font-size: 0.76rem; color: var(--fg-subtle); }
+.card p { color: var(--fg-muted); font-size: 0.86rem; }
+.stat { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stat .card b { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.stat .card span { font-size: 0.8rem; color: var(--fg-muted); }
+pre { margin: 0; padding: 12px 14px; border-radius: var(--radius-md); background: var(--bg-sunken); border: 1px solid var(--border); overflow-x: auto; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.55; }
+pre .c { color: var(--fg-subtle); }
+.tbl-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); }
+table { border-collapse: collapse; width: 100%; font-size: 0.84rem; min-width: 680px; }
+th, td { text-align: start; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-weight: 600; color: var(--fg-muted); font-size: 0.78rem; background: var(--bg-sunken); }
+tr:last-child td { border-bottom: 0; }
+td .v { display: inline-block; font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.v.yes { background: var(--ok-soft); color: var(--ok); } .v.cond { background: var(--warn-soft); color: var(--warn); } .v.add { background: var(--accent-soft); color: var(--accent-fg); }
+.v3 { font-size: 0.66rem; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-fg); margin-inline-start: 4px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--fg-muted); }
+.sw i { inline-size: 14px; block-size: 14px; border-radius: 50%; display: inline-block; }
+.phases { display: grid; }
+.phase { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); }
+.phase .no { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-fg); padding-top: 2px; }
+.phase .body { display: grid; gap: 4px; }
+.phase .body p { color: var(--fg-muted); font-size: 0.86rem; }
+.ask { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ask .card b { color: var(--fg); }
+.rec { font-size: 0.74rem; padding: 1px 8px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); justify-self: start; }
+.sources { font-size: 0.82rem; color: var(--fg-muted); }
+.sources li { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .panes { grid-template-columns: minmax(0, 1fr); }
+  .pane + .pane { border-inline-start: 0; border-top: 1px solid var(--border); }
+  .grid3, .grid2, .ask { grid-template-columns: minmax(0, 1fr); }
+  .stat { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phase { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .layer-card { animation: none; }
+  .row, .links path, .clear { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Clash, Launch! · 最终方案 v4 · 2026-11-15</span>
+    <h1>分流可视化：看清每一次请求从哪里出去</h1>
+    <p class="lead">一个网址进来，先被哪条规则认出，交给哪个策略组，再一层层落到哪个节点出去。看懂之后直接在图上拖动来改，确认后写进自己的配置。</p>
+    <div class="status"><span class="pill warn">方案已定稿，等你说「开始」</span><span class="pill">可编码的实施规范在仓库 <code>docs/design/routing.md</code>，取舍在 <code>docs/decisions/0007</code></span></div>
+    <div class="rev"><b>本版修订</b><span>粒子默认全部显示，可切换为「聚焦」或关闭</span><span>智能视图：按配置的形状自动选择画法，并说明原因</span><span>超过 30 条规则时，相邻同走向的规则自动折叠成段</span><span>新增 ACL4SSR 风格示例（32 条规则、26 个组）</span><span>入口列判定改进：只当备份的组不再挤进第一列</span><span>四件待定事项按推荐采纳</span></div>
+  </header>
+
+  <!-- ================= 可操作原型 ================= -->
+  <div class="proto" id="proto">
+    <div class="proto-bar">
+      <div class="crumbs"><span>配置</span><span>›</span><b>我的日常配置</b></div>
+      <div class="tabs" aria-hidden="true"><span class="tab">表单</span><span class="tab on">分流</span><span class="tab">原始 YAML</span></div>
+      <button class="btn icon" type="button" id="open-layer" aria-label="流量是怎么走的？" title="流量是怎么走的？">?</button>
+    </div>
+    <div class="trace">
+      <form id="trace-form" autocomplete="off">
+        <div class="search">
+          <input class="input" id="trace-input" placeholder="输入域名或 IP，看它怎么走，例如 chatgpt.com" aria-label="输入域名或 IP">
+          <button class="clear" type="button" id="trace-clear" aria-label="清空" title="清空（Esc）" hidden>×</button>
+        </div>
+        <button class="btn primary" type="submit">追踪</button>
+      </form>
+      <div class="chips" id="quick"></div>
+    </div>
+    <div class="legend">
+      <span class="k"><i class="d ln0"></i>尚未命中规则</span>
+      <span class="k"><i class="d lp"></i>经代理</span>
+      <span class="k"><i class="d ld"></i>直连</span>
+      <span class="k"><i class="d lr"></i>拦截</span>
+      <span class="k"><span class="ln"></span>默认或优先成员</span>
+      <span class="k"><span class="ln dash"></span>候选成员（悬停时显示）</span>
+      <span class="k" id="tch-legend" hidden>选 手动选择 · 速 自动选最快 · 备 故障转移 · 均 负载均衡</span>
+    </div>
+    <div class="toolbar">
+      <span>示例结构</span>
+      <div class="seg" id="presets" role="radiogroup" aria-label="示例结构"></div>
+      <span class="grow"></span>
+      <span>规则</span>
+      <div class="seg" id="rule-mode" role="radiogroup" aria-label="规则的显示方式"><button type="button" class="on" data-rmode="auto">自动</button><button type="button" data-rmode="all">全部展开</button></div>
+      <span>粒子</span>
+      <div class="seg" id="fx-mode" role="radiogroup" aria-label="粒子"><button type="button" class="on" data-fxmode="all">全部</button><button type="button" data-fxmode="focus">聚焦</button><button type="button" data-fxmode="off">关</button></div>
+      <button class="btn sm toggle" type="button" id="cand-toggle" aria-pressed="false">显示全部候选</button>
+    </div>
+    <div class="viewnote" id="view-note"></div>
+    <div class="map-scroll">
+      <div class="map" id="map">
+        <svg class="links" id="links" aria-hidden="true"></svg>
+        <canvas class="fx" id="fx" aria-hidden="true"></canvas>
+        <div class="cols" id="cols"></div>
+      </div>
+    </div>
+    <div class="panes">
+      <div class="pane" id="pane-trace"></div>
+      <div class="pane" id="pane-detail"></div>
+    </div>
+    <div class="draft" id="draft" hidden></div>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <p class="caption">粒子为示意：每个粒子带着规则集里的一个域名或 IP，按真实匹配结果流动，数量不代表流量。试试：切换到「ACL4SSR 风格」，看智能视图怎样折叠 32 条规则、点开一段、追踪 <code>steampowered.com</code> 时自动展开命中的那段；点「♻️ 自动选择」看 HTTP 测速地址的提醒；把粒子切到「聚焦」再悬停一个组，对比两种模式。</p>
+
+  <!-- ================= 方案正文 ================= -->
+  <section class="doc">
+    <span class="eyebrow">你的想法与最佳实践</span>
+    <h2>逐条判断</h2>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>想法</th><th>判断</th><th>怎么落地，或者为什么要改</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>默认显示全部粒子<span class="v3">v4</span></td>
+            <td><span class="v yes">赞成</span></td>
+            <td>粒子改为三种模式：<b>全部</b>（默认）始终显示所有粒子，追踪时只是把被追踪的那个放大、加标签；<b>聚焦</b>在悬停或追踪时让其余粒子淡出；<b>关</b>。选择保存在账号的偏好里。系统开启「减少动态效果」时只能选「关」。</td>
+          </tr>
+          <tr>
+            <td>按不同用户的配置智能展现<span class="v3">v4</span></td>
+            <td><span class="v cond">能做，用确定的规则</span></td>
+            <td>可以，但我建议的「智能」是一组<b>写明阈值的规则</b>，不是模型推断：同一份配置永远得到同一张图，可以写单元测试，界面上用一行「智能视图」说明用了哪些画法、为什么，每一项都能手动改回。详见下一节。</td>
+          </tr>
+          <tr>
+            <td>粒子颜色淡一点<span class="v3">v3</span></td>
+            <td><span class="v cond">赞成，并且要换色</span></td>
+            <td>只调淡还不够：v2 用绿色表示直连、红色表示拦截，在红绿色弱（约 8% 的男性）眼里几乎一样（模拟后色差只有 5.8，低于可分辨的 8）。v3 改用三种降了饱和度的流向色：<b>薰衣草紫</b>经代理、<b>湖青</b>直连、<b>陶橙</b>拦截。另外，请求在命中规则之前是灰色，被规则认出后才慢慢染色，画面里大部分时间只有少量颜色。光点更小、拖尾更短、外圈光晕几乎去掉，同屏上限从 90 降到 70。<div class="swatches" style="margin-top:6px"><span class="sw"><i style="background:var(--flow-neutral)"></i>未分类</span><span class="sw"><i style="background:var(--flow-proxy)"></i>经代理</span><span class="sw"><i style="background:var(--flow-direct)"></i>直连</span><span class="sw"><i style="background:var(--flow-reject)"></i>拦截</span></div></td>
+          </tr>
+          <tr>
+            <td>追踪框悬停出现 ×，一键清空<span class="v3">v3</span></td>
+            <td><span class="v yes">赞成</span></td>
+            <td>框里有内容时，鼠标移上去或聚焦时出现 ×；点它清空输入并结束追踪，焦点留在输入框里，可以直接输入下一个。键盘上按 Esc 效果相同。</td>
+          </tr>
+          <tr>
+            <td>3 层或更多层能否良好展示<span class="v3">v3</span></td>
+            <td><span class="v add">改了布局</span></td>
+            <td>能，但不能「每层一列」。你的 groups.toml 按全部引用关系算最深 7 层，按默认成员算只有 4 层；7 层来自备用成员之间的交叉引用。v3 改为按默认路径分层，候选成员按需显示，详见下一节。原型里可以切换 1 层、3 层和你的 23 个组。</td>
+          </tr>
+          <tr>
+            <td>多个规则集拖成一个合集</td>
+            <td><span class="v cond">赞成，有约束</span></td>
+            <td>与 domainrouter_v2 的发布结构一致（每个合集最多 domain、ipcidr、classical 三条，按此顺序连续排列）。合集的成员共享一个走向，输出仍是连续的几条 <code>RULE-SET</code>。约束：IP 成员默认加 <code>no-resolve</code>，否则排在中间时会让后面每个未命中的域名都先做一次 DNS 解析；不编译成 <code>OR</code> 逻辑规则，否则客户端里看不出命中的是哪个成员。</td>
+          </tr>
+          <tr>
+            <td>在面板里改策略组的模式</td>
+            <td><span class="v yes">赞成</span></td>
+            <td>只提供官方 v1.19.33 的四种：<code>select</code>、<code>url-test</code>、<code>fallback</code>、<code>load-balance</code>；<code>relay</code> 已被移除，由「链式代理」承担。v3 在切换处加上每种类型适合什么、不适合什么，以及按参数给出的提醒（见「节点策略怎么选」）。</td>
+          </tr>
+          <tr>
+            <td>粒子流动、左侧进入规则集、右侧从出口离开</td>
+            <td><span class="v cond">赞成，有约束</span></td>
+            <td>粒子是示意，不是流量：服务器看不到你的真实流量，粒子的多少不能暗示「这条线流量大」；但每个粒子的路线按真实匹配结果计算。Canvas 绘制，画面不可见时暂停，系统开启「减少动态效果」时关闭，可一键关掉。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <span class="eyebrow">智能展现</span>
+    <h2>按配置的形状选择画法</h2>
+    <p>用户的配置差别很大：有人 10 条规则、5 个节点，有人 ACL4SSR 完整版 70 条规则、40 个组，有人订阅交给客户端拉取，服务器根本看不到节点。图的画法由一个纯函数 <code>planView(图数据, 视口, 用户偏好)</code> 决定：先量出配置的形状，再按下表逐项选择。每一项都写进「智能视图」那一行，并能在偏好里改回。</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>量什么</th><th>条件</th><th>怎么画</th></tr></thead>
+        <tbody>
+          <tr><td>规则条数</td><td>≤ 30 条 / 超过 30 条 / 有连续手写规则</td><td>逐条显示 / 相邻且走向相同的折叠成段，点开或追踪命中时展开 / 连续 3 条以上手写规则（如 <code>DOMAIN-SUFFIX</code>）折叠为「手写规则 ×N」</td></tr>
+          <tr><td>默认路径的深度</td><td>1–2 列 / 3–5 列 / 6 列以上</td><td>完整行 / 紧凑行（类型缩成一个字） / 紧凑行并在卡片内横向滚动</td></tr>
+          <tr><td>被很多组引用的组</td><td>入度 ≥ 4（如「节点选择」）</td><td>连线在它左侧汇成一束再进入，减少交叉</td></tr>
+          <tr><td>没被使用的组</td><td>既不被规则也不被其他组引用</td><td>放到列底的「未使用」区，并给出提醒</td></tr>
+          <tr><td>成员很多的组</td><td>超过 12 个成员</td><td>只画默认成员；详情里的成员列表可搜索</td></tr>
+          <tr><td>节点怎么归并</td><td>≤ 8 个节点 / 八成以上识别出地区 / 地区识别率低</td><td>逐个显示 / 按地区 / 按订阅来源</td></tr>
+          <tr><td>交给客户端拉取的订阅</td><td>组里用 <code>use</code> 引用 provider</td><td>出口显示为「机场 A · 客户端拉取」与筛选条件；追踪止于「由客户端在其中选择」</td></tr>
+          <tr><td>链式代理</td><td>有 <code>dialer-proxy</code></td><td>出口带「经 X 中转」标记，追踪多一跳</td></tr>
+          <tr><td>原始编辑改过规则或组</td><td>最终配置与 routing 生成的不一致</td><td>按最终结果画，来自原始编辑的行标「原始编辑」且只读；整段被替换时地图只读并说明原因</td></tr>
+          <tr><td>特殊规则</td><td>逻辑规则（AND / OR / NOT）、SUB-RULE、进程规则</td><td>行上加标记；追踪需要的信息不足时明确写「无法判断」或「取决于应用」</td></tr>
+          <tr><td>视口宽度</td><td>&lt; 760 px / 760–1100 px / 更宽</td><td>列表模式（无连线、无粒子）/ 一律紧凑 / 按上面的规则</td></tr>
+          <tr><td>粒子密度</td><td>规则条数与画面大小</td><td>同屏上限 30–70 个随规则数变化；规则多时标签更稀疏</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>原型里能看到其中四项：规则折叠（切到 ACL4SSR 风格）、紧凑行、按地区归并、参数提醒的计数。</p>
+
+    <span class="eyebrow">层级</span>
+    <h2>层很深时怎么画：跟着默认路径分层</h2>
+    <p>用你的 groups.toml（参考提交 2c812f9）实际算了一遍：</p>
+    <div class="stat">
+      <div class="card"><b>23</b><span>个策略组</span></div>
+      <div class="card"><b>74</b><span>条成员引用（含正则选中的节点）</span></div>
+      <div class="card"><b>7</b><span>层：按全部引用的最长链，例如 漏网の鱼 → 节点选择 → 香港专线 → 新加坡专线 → 新加坡高速 → 美国专线 → 美利坚高速</span></div>
+      <div class="card"><b>4</b><span>层：只沿每个组的默认成员走，例如 YouTube → 节点选择 → 香港专线 → 香港高速 → 节点</span></div>
+    </div>
+    <p>7 层几乎全是备用路径：「香港专线」的第二个成员是「新加坡专线」，而几乎每个专线和高速组都把「美国专线」作为最后的备份。平时流量只走每个组的第一个成员（select 的默认、fallback 的优先），所以图的骨架应该按这条路径来排。</p>
+    <ul>
+      <li><b>分层</b>：没有任何组引用它的组，以及被规则直接使用、且不是任何组默认成员的组，放在第一列；其余按「沿默认成员到节点还要走几步」从右往左排，直接连节点的组对齐到最后一列。只当备份的组（如 ACL4SSR 的各地区组）因此不会挤进第一列。你的配置分成 4 列：业务组 → 节点选择 → 专线 → 高速，每列一种角色。</li>
+      <li><b>候选成员按需显示</b>：每个组默认只画一条实线（默认成员）。悬停或选中一个组时，才画出它的候选成员（虚线）；也可以打开「显示全部候选」看全貌。你的配置平时只画 23 条组内连线，而不是 74 条。url-test 与 load-balance 的成员地位相同，始终全部画出。</li>
+      <li><b>列多时变紧凑</b>：3 列及以上时，组的类型标签缩成一个字（选、速、备、均），名称完整保留。列数再多就在卡片内横向滚动，规则列和出口列不缩。</li>
+      <li><b>同列与反向的候选线</b>：候选成员可能在同一列甚至左边一列（例如高速组的备份是美国专线），这类线只在聚焦时画出，绕到列间的空隙里，不穿过别的行。</li>
+      <li><b>追踪卡片永远完整</b>：无论图怎么折叠，追踪结果都逐层列出每个组、它的类型和这一层的选择。</li>
+    </ul>
+
+    <span class="eyebrow">节点策略怎么选</span>
+    <h2>「自动选择没有想象的好」不是错觉</h2>
+    <p>我读了 mihomo v1.19.33 的实现（<code>adapter/outboundgroup/urltest.go</code>、<code>adapter/adapter.go</code>），url-test 优化的是「到测速地址的延迟」，不是「你用起来的体验」。具体是这样选的：</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>源码里的行为</th><th>带来的感受</th></tr></thead>
+        <tbody>
+          <tr><td>延迟是经节点向测速地址发一次 <code>HEAD</code> 请求的耗时；默认包含建立连接、代理握手和 TLS 握手。开启全局 <code>unified-delay</code> 后改为在同一连接上再发一次，只计第二次。</td><td>握手重的协议显得更慢；测的是到 Google 边缘节点（gstatic）的距离，不是到 ChatGPT、Netflix 等目标的距离。</td></tr>
+          <tr><td>比较时只用<b>最近一次</b>测速结果（<code>LastDelayForTestUrl</code> 取历史的最后一条），不是平均值。</td><td>一次偶然的快或慢就决定排名，容易选到「刚好测得快」的节点。</td></tr>
+          <tr><td>不测带宽、丢包、稳定性。</td><td>延迟最低的节点可能晚高峰限速或丢包，看视频、下载反而卡。</td></tr>
+          <tr><td>默认每 300 秒测一次；<code>lazy</code> 默认开启，组闲置时跳过测速。连接失败累计到一定次数才提前测速。</td><td>两次测速之间节点变差不会立即切换；闲置后第一次使用的是旧结果。</td></tr>
+          <tr><td><code>tolerance</code> 默认 0：只要别的节点比当前的快哪怕 1 毫秒，下一次就切过去。</td><td>节点来回跳，出口 IP 跟着变，AI、流媒体、银行等对 IP 敏感的服务会要求重新验证或风控。</td></tr>
+          <tr><td>切换只影响新连接，已有的长连接仍留在旧节点。</td><td>下载或通话中途不会因为「切到更快的」而变快。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>按场景选（建议，非源码结论）</h3>
+        <p><b>AI、流媒体、银行</b>：<code>select</code> 固定节点，或 <code>fallback</code> 按你的顺序；出口 IP 稳定比快几毫秒更重要。<br><b>普通浏览与下载</b>：<code>url-test</code>，但把 <code>tolerance</code> 设到 50–100 毫秒，避免来回跳。<br><b>只要能用</b>：<code>fallback</code>，平时固定在首选，坏了才换；它只判断「能不能连」，不判断快慢。<br><b>多连接大流量</b>：<code>load-balance</code> 选「按目标固定」（consistent-hashing），不要用「轮流」。</p>
+      </div>
+      <div class="card">
+        <h3>放到你的结构里</h3>
+        <p>你现在的写法已经是稳健的那一种：<b>专线用 fallback</b>（跨地区按偏好顺序）、<b>高速用 select</b>（地区内手动）。如果想要「地区内自动、跨地区按顺序」，可以只把四个高速组改为 url-test，配合 <code>tolerance: 50</code> 左右与全局 <code>unified-delay: true</code>；同一地区内切换不会改变出口地区。AI 与流媒体组保持 select。很多订阅自带的「自动选择」是把所有地区的节点放进一个 tolerance 为 0 的 url-test，这正是体验不稳的常见来源。</p>
+      </div>
+    </div>
+    <ul>
+      <li><b>测速地址用 HTTPS</b>：源码在测速失败时会提示，部分机场会劫持 HTTP 测速地址；你的配置用的是 <code>https://www.gstatic.com/generate_204</code>，没问题。</li>
+      <li><b>第三方分支的 Smart 组</b>：vernesong 的 mihomo 分支提供 Smart 策略组，可以用 LightGBM 模型预测节点权重。它不在官方内核里，本站按官方语义生成配置，不提供这个类型；想试需要换用那个分支的内核。</li>
+      <li><b>落到产品里</b>：组详情的类型切换处显示「适合 / 不适合」，并按参数给出提醒（容差为 0、只有一个成员、闲置不测速等）。提醒只是提示，不会改你的配置。</li>
+    </ul>
+
+    <span class="eyebrow">看到什么</span>
+    <h2>三种视图，用同一套数据</h2>
+    <div class="grid3">
+      <div class="card"><h3>讲解图层</h3><span class="where">入口：规则源选择旁、分流页右上角的「?」，帮助页的教程</span><p>全屏浮层，五步讲清一次请求：应用发出、客户端接住、规则自上而下比对、策略组一层层挑选、从出口离开。已经有配置时，图里用的是你自己的规则集和分组名。</p></div>
+      <div class="card"><h3>分流地图</h3><span class="where">入口：配置编辑器新增「分流」标签页</span><p>从左到右：请求粒子 → 规则（按优先级，合集折叠为一行）→ 策略组（按默认路径分层）→ 出口 → 目的地。拖动即修改，改动先进草稿，可应用或取消。</p></div>
+      <div class="card"><h3>流向追踪</h3><span class="where">入口：分流页顶部输入框；命令面板（Ctrl K）直接输入域名</span><p>输入域名或 IP，扫描动画演示逐条比对；下方逐步给出依据：第几条规则、合集里哪个成员、命中的哪一行，以及每一层组的类型和选择。有草稿时同时显示应用前后的差别。</p></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>规则集说明</h3><p>点规则集可以看到它是做什么的、每个成员有多少条、几个代表性域名、来自哪个文件。常见上游的说明写进目录并注明核对日期；目录里没有的只显示名称、条数和自动抽取的样例，不编造说明。</p></div>
+      <div class="card"><h3>常用网站体检与期望</h3><p>一键追踪约 30 个常见网站，表格列出各自走向。任何一次追踪都可以「固定为期望」，以后每次应用、上游更新时自动复核，不符合时提示。这借鉴自 Tailscale 策略文件的 tests。</p></div>
+    </div>
+
+    <span class="eyebrow">交互细节</span>
+    <h2>拖动之外，每个操作都有不用鼠标的做法</h2>
+    <ul>
+      <li><b>改走向</b>：把规则拖到策略组，或拖到「直连」「拦截」；也可以在详情面板的「走向」下拉框里选。</li>
+      <li><b>改优先级与组合集</b>：拖到另一规则行的上沿或下沿是插到它前后；拖到行的中间是并入它的合集。详情面板里有「提前」「推后」「拆出」，相邻且走向相同的规则集会提示「合并为合集」。兜底的 <code>MATCH</code> 永远在最后。</li>
+      <li><b>改策略组</b>：点组打开详情，四个类型一键切换，参数随类型出现，旁边是适用场景与提醒；成员可以「设为首选」（改变默认路径，图会随之重新分层）或移除，也可以把出口或别的组拖进来，会形成循环的拖动直接拒绝。</li>
+      <li><b>追踪框</b>：悬停出现 × 清空，Esc 同样清空；回车开始追踪。</li>
+      <li><b>草稿</b>：所有改动先进草稿，底部条用一句话列出每处改动。点「应用」才写入配置，随后照常生成预览并做内核检查。</li>
+      <li><b>聚焦</b>：悬停或选中任一行，只保留与它相连的路径和粒子，其余变淡；组被聚焦时显示它的候选成员。</li>
+      <li><b>手机</b>：窄屏不画连线和粒子，改为分组列表；追踪结果仍是逐步卡片。</li>
+    </ul>
+
+    <span class="eyebrow">存成什么</span>
+    <h2>应用之后，分组、合集与规则顺序归你所有，内容仍来自上游</h2>
+    <p>第一次在地图上点「应用」时，把规则源展开后的分组与规则复制进配置的 <code>routing</code> 段，此后由它决定输出，上游只是起点。规则集里具体有哪些域名，仍由 <code>rule-providers</code> 的地址从上游获取。</p>
+<pre><span class="c"># 配置文档（示意，字段名在实施时定稿）</span>
+routing:
+  from: { ref: domainrouter, at: 2026-11-15T08:00:00Z }   <span class="c"># 从哪个规则源、哪一版开始</span>
+  rules:
+    - bundle: Direct                                       <span class="c"># 合集：一个走向，成员按 domain → ipcidr → classical 输出</span>
+      sets:
+        - { url: …/release/clash-domain/Direct.mrs, behavior: domain }
+        - { url: …/release/clash-ipcidr/Direct-ipcidr.mrs, behavior: ipcidr }
+        - { url: …/release/clash-classic/Direct-classic.yaml, behavior: classical }
+      to: DIRECT
+    - set: …/release/clash-domain/ChatGPT.mrs
+      to: 🗨️ ChatGPT
+    - geoip: CN
+      to: DIRECT
+    - match: 🐳 漏网の鱼
+  groups:
+    - name: 🛫 香港专线
+      type: fallback
+      members: [🎇 香港高速, 🧊 新加坡专线]
+      url: https://www.gstatic.com/generate_204
+      interval: 97
+  checks:                                                  <span class="c"># 固定下来的期望</span>
+    - { host: chatgpt.com, via: 🗨️ ChatGPT }</pre>
+    <ul>
+      <li><b>合集的自动识别</b>：同一来源中同名的 domain、ipcidr、classical 三件套相邻且走向相同时，自动识别为合集；其他相邻同走向的规则集只提示，不自动合并。</li>
+      <li><b>上游更新</b>：记下上游快照，之后的变化与你的改动做三方比对，不冲突的逐条采纳，冲突的列出双方，不自动合并。</li>
+      <li><b>与现有层级的关系</b>：<code>routing</code> 取代规则源展开这一步，表单层与原始编辑层仍在它之上合并；生成的 YAML 顺序与格式不变，用 golden 测试锁定。</li>
+    </ul>
+
+    <span class="eyebrow">凭什么可信</span>
+    <h2>追踪用的是 mihomo 自己的匹配代码</h2>
+    <p>mihomo 的控制接口只有 <code>GET /rules</code>，没有「测一个域名命中哪条」的接口，所以追踪在服务器上做。项目已以 Go 模块依赖 <code>github.com/metacubex/mihomo v1.19.33</code>，许可同为 GPL-3.0，可以直接调用内核的 <code>rules.ParseRule</code> 与 <code>rules/provider</code> 的解析与匹配（含 MRS），判断与客户端逐条一致。</p>
+    <ul>
+      <li><b>新包</b> <code>internal/match</code>：输入配置与一次请求，输出命中路径与依据。纯函数，可以写 golden。</li>
+      <li><b>规则内容</b>：由 <code>internal/source</code> 按站点白名单、SSRF 防护、大小上限下载并缓存，按用户限频。</li>
+      <li><b>不替你查 DNS</b>：域名没被域名类规则认出时显示两条分支；也可以直接输入 IP。</li>
+      <li><b>运行时的选择</b>：select 当前选了哪个、url-test 测出哪个最快，只有客户端知道。图上按「默认第一个」画实线，url-test 的成员一律画虚线并注明「测速决定」。</li>
+      <li><b>先验证再动手</b>：第 0 步确认内核的规则集结构可以不联网地从字节加载，并实测内存与追踪耗时。</li>
+    </ul>
+
+    <span class="eyebrow">怎么画</span>
+    <h2>SVG 画轨道，Canvas 画粒子，不引入画布库</h2>
+    <ul>
+      <li><b>为什么不用 Svelte Flow / React Flow</b>：它们用元素的 <code>style</code> 属性定位节点，本站 CSP 是 <code>style-src 'self'</code>，引入就得放宽。这里的布局可以算出来，连线写进 SVG 的几何属性，CSP 不限制。</li>
+      <li><b>流向色</b>：四个独立的 token（未分类、经代理、直连、拦截），浅色与深色各一套，都用调色板校验脚本检查过亮度区间、饱和度下限、色盲模拟色差与对比度。不复用站内的成功、错误状态色。</li>
+      <li><b>粒子</b>：带短拖尾的小光点，沿预先采样的路径移动；进入规则集前为灰色，命中后在 0.35 秒内过渡到流向色；被拦截时在「拦截」处轻轻散开。一个 <code>requestAnimationFrame</code> 循环统一更新与绘制，按设备像素比渲染。</li>
+      <li><b>无障碍</b>：拖动都有菜单替代；地图另有表格视图；颜色从不单独表达含义，同时有文字、线型与追踪卡片。</li>
+    </ul>
+
+    <span class="eyebrow">参照</span>
+    <h2>借鉴的成熟产品</h2>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>产品</th><th>它怎么做</th><th>这里借鉴什么</th></tr></thead>
+        <tbody>
+          <tr><td>Cloudflare Trace</td><td>模拟一次请求，按评估顺序列出命中的规则；可切换为显示全部</td><td>追踪按匹配顺序展示；扫描动画是它的动态版</td></tr>
+          <tr><td>Google Cloud Connectivity Tests</td><td>基于配置的静态分析，逐跳卡片，明确说明验证的是配置</td><td>逐步卡片，以及「粒子是示意」的措辞</td></tr>
+          <tr><td>Tailscale 可视化策略编辑器</td><td>可视化与 JSON 同步；保存前运行 tests</td><td>地图与 YAML 同步；「固定为期望」</td></tr>
+          <tr><td>AdGuard Home「检查过滤」</td><td>输入主机名，返回命中的那条规则</td><td>直接给出命中的那一行作为依据</td></tr>
+          <tr><td>Surge 自动测试组说明</td><td>说明测速只算第二次请求、容差默认 100 毫秒的原因</td><td>组详情里的「适合 / 不适合」与容差提醒</td></tr>
+          <tr><td>Little Snitch 6、ClashMac 连接拓扑</td><td>列表、地图、图表联动；连接按 来源 → 规则 → 代理 → 出口 串起</td><td>地图、追踪卡片、详情、粒子联动聚焦</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <span class="eyebrow">怎么推进</span>
+    <h2>分五步，每步都能单独用</h2>
+    <div class="phases">
+      <div class="phase"><span class="no">第 0 步</span><div class="body"><h3>匹配引擎验证</h3><p><code>internal/match</code> 原型：从字节加载 text、yaml、mrs，实测内存与耗时；写进决定记录（0006）。不改界面。</p></div></div>
+      <div class="phase"><span class="no">第 1 步</span><div class="body"><h3>讲解图层与规则集说明</h3><p>只读，不改变任何配置。</p></div></div>
+      <div class="phase"><span class="no">第 2 步</span><div class="body"><h3>只读地图、追踪与粒子</h3><p>默认路径分层、紧凑列、候选按需显示、合集识别、追踪接口与逐步卡片、扫描动画、流向色与粒子层、常用网站体检。</p></div></div>
+      <div class="phase"><span class="no">第 3 步</span><div class="body"><h3>编辑与 routing</h3><p>草稿、拖动、合集、组类型与参数、适用场景与提醒、循环检查；<code>routing</code> 段、渲染、golden 与内核检查；手机列表模式。</p></div></div>
+      <div class="phase"><span class="no">第 4 步</span><div class="body"><h3>上游同步与期望</h3><p>三方比对、逐条采纳、期望复核与提示；文档与帮助教程。</p></div></div>
+    </div>
+
+    <span class="eyebrow">已采纳</span>
+    <h2>四件事按推荐定下，写进决定 0007</h2>
+    <div class="ask">
+      <div class="card"><b>1. 什么时候开始自己管理</b><p>第一次在地图上点「应用」时，之前一直跟随上游；追踪和讲解不触发。</p><span class="rec">应用时</span></div>
+      <div class="card"><b>2. 上游更新怎么处理</b><p>只提示，逐条采纳；不自动合并。</p><span class="rec">只提示</span></div>
+      <div class="card"><b>3. 服务器是否下载规则内容</b><p>允许，受站点白名单、大小和频率限制；部署者可以用环境变量关闭，关闭后不做域名追踪。</p><span class="rec">允许，可关闭</span></div>
+      <div class="card"><b>4. 合集如何识别</b><p>domainrouter_v2 风格的同名三件套自动识别；其他来源只提示。</p><span class="rec">三件套自动，其余提示</span></div>
+    </div>
+
+    <span class="eyebrow">交给编码</span>
+    <h2>实施规范在仓库里，按步骤直接写</h2>
+    <ul>
+      <li><code>docs/design/routing.md</code>：数据结构、引擎接入、匹配包、接口的请求与响应、前端文件与组件、布局与智能视图的算法、粒子参数、每一步的测试与验收条件。</li>
+      <li><code>docs/decisions/0007-routing-visualization.md</code>：为什么这样做（内核匹配代码的用法与限制、routing 沿用规则源模型、不用画布库、流向色、粒子是示意等）。</li>
+      <li><code>docs/design/routing-prototype.html</code>：本页的交互原型，作为布局、粒子与追踪动画的参考实现；它用了内联样式，不能照搬进站内（站内 CSP 不允许）。</li>
+    </ul>
+
+    <span class="eyebrow">来源</span>
+    <ul class="sources">
+      <li>mihomo v1.19.33 源码（本地只读参考）：<code>adapter/outboundgroup/urltest.go</code>（选择与容差）、<code>adapter/adapter.go</code>（HEAD 测速、unified-delay、只取最近一次）、<code>adapter/outboundgroup/parser.go</code>（默认间隔 300 秒、lazy 默认开启、relay 已移除）、<code>adapter/outboundgroup/fallback.go</code>、<code>adapter/provider/healthcheck.go</code></li>
+      <li>domainrouter_v2@2c812f9（本地只读参考）：<code>subconverter_config/groups.toml</code>（23 个组）、<code>docs/guide/subconverter.md</code>（合集三件套）</li>
+      <li><a href="https://wiki.metacubex.one/en/config/general">mihomo wiki · 通用配置（unified-delay）</a> · <a href="https://core-tutorial.argsment.com/zh/mihomo/proxy-groups">第三方教程 · 代理组参数表</a></li>
+      <li><a href="https://kb.nssurge.com/surge-knowledge-base/zh/technotes/testing-group">Surge 知识库 · 自动测试组的测试策略</a> · <a href="https://manual.nssurge.com/policy-groups/url-test.html">Surge 手册 · url-test</a></li>
+      <li><a href="https://newreleases.io/project/github/vernesong/mihomo/release/LightGBM-Model">vernesong/mihomo · LightGBM 模型发布说明</a> · <a href="https://clashx-web.pages.dev/en/article-11">ClashX 测速说明（不测带宽与丢包）</a></li>
+      <li><a href="https://developers.cloudflare.com/rules/trace-request/how-to/">Cloudflare Trace</a> · <a href="https://docs.cloud.google.com/network-intelligence-center/docs/connectivity-tests/concepts/overview">Google Cloud Connectivity Tests</a> · <a href="https://tailscale.com/kb/1550/visual-editor/">Tailscale 可视化策略编辑器</a> · <a href="https://pkg.go.dev/github.com/AdguardTeam/AdGuardHome/internal/filtering">AdGuard Home filtering</a></li>
+      <li><a href="https://svelteflow.dev/learn/customization/theming">Svelte Flow 主题与样式</a> · <a href="https://developer.mozilla.org/docs/Web/HTTP/Headers/Content-Security-Policy/style-src">MDN · CSP style-src</a></li>
+    </ul>
+  </section>
+</div>
+
+<!-- 讲解图层 -->
+<div class="layer" id="layer" hidden>
+  <div class="layer-card" role="dialog" aria-modal="true" aria-labelledby="layer-title">
+    <div class="layer-head">
+      <h2 id="layer-title">流量是怎么走的</h2>
+      <button class="btn ghost" type="button" id="layer-prev">上一步</button>
+      <button class="btn" type="button" id="layer-next">下一步</button>
+      <button class="btn icon ghost" type="button" id="layer-close" aria-label="关闭">×</button>
+    </div>
+    <div class="stage-scroll">
+      <svg class="stage" viewBox="0 0 880 250" role="img" aria-label="一次请求依次经过：应用、客户端、规则、策略组、出口、网站">
+        <path id="w-p" class="wire p" d="M140 125 L 330 125 C 380 125, 380 70, 430 70 L 560 70 C 610 70, 610 70, 650 70 L 740 70"/>
+        <path id="w-d" class="wire d" d="M140 125 L 330 125 C 380 125, 380 125, 430 125 L 560 125 C 610 125, 610 125, 650 125 L 740 125"/>
+        <path id="w-r" class="wire r" d="M140 125 L 330 125 C 380 125, 380 185, 430 185 L 560 185 C 590 185, 600 200, 640 205"/>
+        <g class="box" data-s="0"><rect x="20" y="95" width="120" height="60" rx="8"/><text x="80" y="122" text-anchor="middle">应用</text><text class="sub" x="80" y="140" text-anchor="middle">浏览器、App</text></g>
+        <g class="box" data-s="1"><rect x="200" y="95" width="130" height="60" rx="8"/><text x="265" y="122" text-anchor="middle">客户端</text><text class="sub" x="265" y="140" text-anchor="middle">系统代理 / TUN</text></g>
+        <g class="box" data-s="2"><rect x="430" y="40" width="130" height="170" rx="8"/><text x="495" y="64" text-anchor="middle">规则</text><text class="sub" x="495" y="84" text-anchor="middle">① 广告 → 拦截</text><text class="sub" x="495" y="104" text-anchor="middle">② Direct → 直连</text><text class="sub" x="495" y="124" text-anchor="middle">③ ChatGPT → 组</text><text class="sub" x="495" y="144" text-anchor="middle">…</text><text class="sub" x="495" y="164" text-anchor="middle">⑯ 其余 → 漏网の鱼</text><text class="sub" x="495" y="194" text-anchor="middle">自上而下，命中即停</text></g>
+        <g class="box" data-s="3"><rect x="650" y="40" width="90" height="50" rx="8"/><text x="695" y="62" text-anchor="middle">策略组</text><text class="sub" x="695" y="79" text-anchor="middle">一层层挑选</text></g>
+        <g class="box" data-s="4"><rect x="760" y="40" width="100" height="50" rx="8"/><text x="810" y="62" text-anchor="middle">节点</text><text class="sub" x="810" y="79" text-anchor="middle">代理出口</text></g>
+        <g class="box" data-s="4"><rect x="760" y="100" width="100" height="50" rx="8"/><text x="810" y="122" text-anchor="middle">直连</text><text class="sub" x="810" y="139" text-anchor="middle">本机网络</text></g>
+        <g class="box" data-s="4"><rect x="650" y="185" width="90" height="40" rx="8"/><text x="695" y="210" text-anchor="middle">拦截</text></g>
+        <text class="lbl" x="150" y="30">chatgpt.com</text><circle class="a" cx="140" cy="27" r="4"/>
+        <text class="lbl" x="270" y="30">baidu.com</text><circle class="b" cx="260" cy="27" r="4"/>
+        <text class="lbl" x="370" y="30">doubleclick.net</text><circle class="c" cx="360" cy="27" r="4"/>
+        <g id="packets"></g>
+      </svg>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="explain" id="explain"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fmtCount = (n) => n >= 10000 ? Math.round(n / 1000) + "k" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+
+  // ——— 组类型：只有官方 v1.19.33 的四种；附适用场景（建议） ———
+  const TYPES = ["select", "url-test", "fallback", "load-balance"];
+  const TYPE_INFO = {
+    select: { label: "手动选择", ch: "选", tip: "在客户端里手动选一个成员；没选过时用第一个。", first: "默认",
+      fit: "对出口 IP 敏感的服务（AI、流媒体、银行）：固定一个节点，不会被自动切走。", avoid: "节点故障时不会自动换，需要你手动切。" },
+    "url-test": { label: "自动选最快", ch: "速", tip: "定时测速，用最近一次测得延迟最低的成员；差距不超过容差时不切换。", first: "测速决定",
+      fit: "普通浏览、下载等对出口 IP 不敏感的流量；最好只放同一地区的节点。", avoid: "AI、流媒体等对 IP 敏感的服务：测速波动会让出口在节点间切换。" },
+    fallback: { label: "故障转移", ch: "备", tip: "按顺序用第一个可用的成员，不可用时换下一个。", first: "优先",
+      fit: "有明确的偏好顺序，同时要求可用：平时固定在首选，坏了才换。", avoid: "首选「能连但很慢」时不会切换：它只判断能不能连。" },
+    "load-balance": { label: "负载均衡", ch: "均", tip: "把连接分摊到所有成员上。", first: "分摊",
+      fit: "多连接下载等不在意出口 IP 的大流量；策略选「按目标固定」。", avoid: "需要登录态的网站：「轮流」会让同一网站的连接走不同出口。" },
+  };
+  const PARAM_KEYS = { select: [], "url-test": ["url", "interval", "tolerance", "lazy"], fallback: ["url", "interval", "lazy"], "load-balance": ["url", "interval", "strategy"] };
+  const PARAM_LABEL = { url: "测速地址", interval: "测速间隔（秒）", tolerance: "容差（毫秒）", lazy: "闲置时不测速", strategy: "分摊策略" };
+  const DEFAULT_PARAMS = { url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 0, lazy: true, strategy: "consistent-hashing" };
+  const STRATEGIES = { "consistent-hashing": "按目标固定", "round-robin": "轮流", "sticky-sessions": "按来源与目标固定" };
+  const BORDER = { domain: 0, ipcidr: 1, classical: 2 };
+
+  // 按参数给出的提醒：只提示，不改配置。依据见方案正文「节点策略怎么选」
+  // 地区出口代表多个节点，按节点数计成员
+  const memberCount = (g) => g.members.reduce((s, m) => s + (isExit(m) && exitOf(m).kind === "proxy" ? parseInt(exitOf(m).meta, 10) || 1 : 1), 0);
+  function lints(g) {
+    const out = [];
+    const auto = g.type !== "select";
+    if (auto && memberCount(g) < 2) out.push("只有 1 个成员，自动选择没有意义。");
+    if (g.type === "url-test") {
+      if (!g.params.tolerance) out.push("容差为 0：最近一次测速谁快就切到谁，差几毫秒也会来回切换，出口 IP 跟着变。常见做法是 50–100 毫秒。");
+      if (g.params.lazy) out.push("闲置时不测速：长时间没用后第一次连接，用的是旧的测速结果。");
+      out.push("只比较最近一次测速的延迟，不看带宽与丢包。");
+    }
+    if (g.type === "load-balance" && g.params.strategy === "round-robin") out.push("「轮流」会让同一网站的连接走不同出口，登录态和风控容易出问题。");
+    if (auto && g.params.url && g.params.url.startsWith("http://")) out.push("测速地址是 HTTP：部分机场会劫持 HTTP 测速，建议用 HTTPS。");
+    return out;
+  }
+
+  // ——— 出口：节点按地区归并；DIRECT 与 REJECT 是内置出口 ———
+  const EXITS = [
+    { id: "hk", name: "香港", meta: "6 个节点", kind: "proxy" },
+    { id: "jp", name: "日本", meta: "4 个节点", kind: "proxy" },
+    { id: "us", name: "美国", meta: "5 个节点", kind: "proxy" },
+    { id: "sg", name: "新加坡", meta: "3 个节点", kind: "proxy" },
+    { id: "DIRECT", name: "直连", meta: "本机网络", kind: "direct", builtin: true },
+    { id: "REJECT", name: "拦截", meta: "本机丢弃", kind: "reject", builtin: true },
+  ];
+  const isExit = (id) => EXITS.some((e) => e.id === id);
+  const exitOf = (id) => EXITS.find((e) => e.id === id);
+
+  // ——— 三种示例结构：1 层、3 层、domainrouter_v2 的 groups.toml（23 个组，成员与顺序照原文） ———
+  const G = (id, name, type, members, params) => ({ id, name, type, members, params: params || {} });
+  const fb = (interval) => ({ url: DEFAULT_PARAMS.url, interval, lazy: false });
+  const BIZ = (m) => [
+    G("g-sel", "🌠 节点选择", "select", m.sel), G("g-gpt", "🗨️ ChatGPT", "select", m.gpt), G("g-yt", "💻 YouTube", "select", m.yt),
+    G("g-nf", "🎬 Netflix", "select", m.nf), G("g-tg", "🛸 Telegram", "select", m.tg), G("g-bili", "📺 哔哩哔哩", "select", m.bili),
+    G("g-fish", "🐳 漏网の鱼", "select", m.fish),
+  ];
+  const PRESETS = {
+    flat: { label: "1 层", targets: { google: "g-sel", apple: "DIRECT", ms: "g-sel", tiktok: "g-sel", od: "g-sel", comm: "g-sel", media: "g-sel" },
+      groups: BIZ({ sel: ["hk", "jp", "us", "sg", "DIRECT"], gpt: ["us", "jp", "sg"], yt: ["hk", "us", "jp"], nf: ["jp", "hk", "us"], tg: ["sg", "us"], bili: ["DIRECT", "hk"], fish: ["hk", "us", "DIRECT"] }) },
+    three: { label: "3 层", targets: { google: "g-sel", apple: "DIRECT", ms: "g-sel", tiktok: "g-sel", od: "g-sel", comm: "g-sel", media: "g-sel" },
+      groups: BIZ({ sel: ["g-hkl", "g-usl", "g-jpl", "g-sgl", "DIRECT"], gpt: ["g-usl", "g-jpl", "g-sgl"], yt: ["g-hkl", "g-usl", "g-jpl"], nf: ["g-jpl", "g-hkl", "g-usl"], tg: ["g-sgl", "g-usl"], bili: ["DIRECT", "g-hkl"], fish: ["g-usl", "g-jpl", "DIRECT"] }).concat([
+        G("g-hkl", "🛫 香港专线", "fallback", ["g-hkf", "g-sgf"], fb(97)), G("g-jpl", "🌺 日本专线", "fallback", ["g-jpf", "g-usf"], fb(127)),
+        G("g-sgl", "🧊 新加坡专线", "fallback", ["g-sgf", "g-usf"], fb(177)), G("g-usl", "⛳ 美国专线", "fallback", ["g-usf"], fb(233)),
+        G("g-hkf", "🎇 香港高速", "select", ["hk"]), G("g-jpf", "🗾 日本高速", "select", ["jp"]), G("g-sgf", "🦁 新加坡高速", "select", ["sg"]), G("g-usf", "🏞️ 美利坚高速", "select", ["us"]),
+      ]) },
+    real: { label: "你的 groups.toml（23 组）", targets: { google: "g-google", apple: "g-apple", ms: "g-ms", tiktok: "g-tiktok", od: "g-od", comm: "g-comm", media: "g-media" },
+      groups: BIZ({
+        sel: ["g-hkl", "g-usl", "g-jpl", "g-sgl", "g-manual", "DIRECT"], gpt: ["g-usl", "g-jpl", "g-sgl", "g-manual"], yt: ["g-sel", "g-usl", "g-manual"],
+        nf: ["g-jpl", "g-hkl", "g-usl", "g-manual"], tg: ["g-sgl", "g-sel", "g-usl", "g-manual"], bili: ["DIRECT", "g-hkl", "g-manual"], fish: ["g-sel", "g-usl", "g-jpl", "g-manual", "DIRECT"],
+      }).concat([
+        G("g-manual", "✈️ 手动切换", "select", ["g-usl", "hk", "jp", "us", "sg"]),
+        G("g-apple", "🍎 Apple", "select", ["DIRECT", "g-sel", "g-usl"]),
+        G("g-tiktok", "📱 TikTok", "select", ["g-jpl", "g-sgl", "g-usl", "g-manual"]),
+        G("g-google", "📩 Google", "select", ["g-sel", "g-gpt", "g-sgl", "g-usl", "g-manual"]),
+        G("g-comm", "🏖️ Community", "select", ["g-sel", "g-sgl", "g-usl", "g-jpl", "g-manual"]),
+        G("g-od", "⛅ OneDrive", "select", ["g-sel", "g-usl", "DIRECT"]),
+        G("g-ms", "🪟 Microsoft", "select", ["g-sel", "g-usl", "g-manual", "DIRECT"]),
+        G("g-media", "🛖 国际流媒体", "select", ["g-sel", "g-jpl", "g-usl", "g-manual"]),
+        G("g-hkl", "🛫 香港专线", "fallback", ["g-hkf", "g-sgl"], fb(97)),
+        G("g-jpl", "🌺 日本专线", "fallback", ["g-jpf", "g-usl"], fb(127)),
+        G("g-sgl", "🧊 新加坡专线", "fallback", ["g-sgf", "g-usl"], fb(177)),
+        G("g-usl", "⛳ 美国专线", "fallback", ["g-usf", "us"], fb(233)),
+        G("g-hkf", "🎇 香港高速", "select", ["hk", "g-usl"]), G("g-jpf", "🗾 日本高速", "select", ["jp", "g-usl"]),
+        G("g-sgf", "🦁 新加坡高速", "select", ["sg", "g-usl"]), G("g-usf", "🏞️ 美利坚高速", "select", ["us"]),
+      ]) },
+    // 常见的另一种形状：ACL4SSR Online Full 风格（规则多、业务组多、带一个全节点的自动选择）；名称取自其公开模板，结构为节选
+    acl: { label: "ACL4SSR 风格（32 条规则）", rules: () => aclRules(), groups: (() => {
+      const ut = { url: "http://www.gstatic.com/generate_204", interval: 300, tolerance: 50, lazy: true };
+      const via = (first) => [first, "a-sel", "a-us", "a-hk", "a-manual"];
+      return [
+        G("a-tg", "📲 电报消息", "select", ["a-sel", "a-auto", "a-sg", "a-hk", "a-manual", "DIRECT"]),
+        G("a-ai", "💬 OpenAi", "select", ["a-sel", "a-us", "a-jp", "a-sg", "DIRECT"]),
+        G("a-yt", "📹 油管视频", "select", ["a-sel", "a-auto", "a-hk", "a-us", "a-manual", "DIRECT"]),
+        G("a-nf", "🎥 奈飞视频", "select", ["a-sel", "a-hk", "a-sg", "a-us", "a-manual", "DIRECT"]),
+        G("a-baha", "📺 巴哈姆特", "select", ["a-hk", "a-sel", "a-manual", "DIRECT"]),
+        G("a-bili", "📺 哔哩哔哩", "select", ["a-direct", "a-hk"]),
+        G("a-gmedia", "🌍 国外媒体", "select", ["a-sel", "a-auto", "a-hk", "a-manual", "DIRECT"]),
+        G("a-cmedia", "🌏 国内媒体", "select", ["DIRECT", "a-hk", "a-manual"]),
+        G("a-fcm", "📢 谷歌FCM", "select", via("DIRECT")), G("a-bing", "Ⓜ️ 微软Bing", "select", via("DIRECT")),
+        G("a-od", "Ⓜ️ 微软云盘", "select", via("DIRECT")), G("a-ms", "Ⓜ️ 微软服务", "select", via("DIRECT")),
+        G("a-apple", "🍎 苹果服务", "select", via("DIRECT")), G("a-game", "🎮 游戏平台", "select", via("DIRECT")),
+        G("a-music", "🎶 网易音乐", "select", ["DIRECT", "a-sel", "a-auto"]),
+        G("a-direct", "🎯 全球直连", "select", ["DIRECT", "a-sel", "a-auto"]),
+        G("a-ad", "🛑 广告拦截", "select", ["REJECT", "DIRECT"]), G("a-purify", "🍃 应用净化", "select", ["REJECT", "DIRECT"]),
+        G("a-fish", "🐟 漏网之鱼", "select", ["a-sel", "DIRECT", "a-auto", "a-hk", "a-manual"]),
+        G("a-sel", "🚀 节点选择", "select", ["a-auto", "a-hk", "a-jp", "a-us", "a-sg", "a-manual", "DIRECT"]),
+        G("a-manual", "🚀 手动切换", "select", ["hk", "jp", "us", "sg"]),
+        G("a-auto", "♻️ 自动选择", "url-test", ["hk", "jp", "us", "sg"], { ...ut }),
+        G("a-hk", "🇭🇰 香港节点", "url-test", ["hk"], { ...ut }), G("a-jp", "🇯🇵 日本节点", "url-test", ["jp"], { ...ut }),
+        G("a-us", "🇺🇲 美国节点", "url-test", ["us"], { ...ut }), G("a-sg", "🇸🇬 狮城节点", "url-test", ["sg"], { ...ut }),
+      ];
+    })() },
+  };
+  // ACL4SSR 风格的规则：.list 文件为 classical；条数与样例为示意
+  function aclRules() {
+    const A = (id, name, to, count, items) => R(id, name, to, `ACL4SSR 规则集 ${name}.list。`, [M("m-a-" + id, "classical", name, count, items, "Clash/" + name + ".list")]);
+    const S = (...xs) => xs.map((x) => (x.includes("/") ? ["IP-CIDR", x] : x.startsWith("~") ? ["DOMAIN-KEYWORD", x.slice(1)] : ["DOMAIN-SUFFIX", x]));
+    return [
+      A("lan", "LocalAreaNetwork", "a-direct", 120, S("local", "192.168.0.0/16")), A("unban", "UnBan", "a-direct", 40, S("api.smoot.apple.com")),
+      A("banad", "BanAD", "a-ad", 38000, S("doubleclick.net", "googlesyndication.com")), A("banprog", "BanProgramAD", "a-purify", 2600, S("umeng.com", "~adsdk")),
+      A("fcm", "GoogleFCM", "a-fcm", 12, S("mtalk.google.com")), A("gcn", "GoogleCN", "a-direct", 30, S("googleapis.cn", "gstatic.cn")),
+      A("steamcn", "SteamCN", "a-direct", 31, S("steamcontent.com", "steamserver.net")), A("bing", "Bing", "a-bing", 25, S("bing.com")),
+      A("od", "OneDrive", "a-od", 20, S("onedrive.com", "1drv.com")), A("ms", "Microsoft", "a-ms", 280, S("microsoft.com", "office.com", "live.com")),
+      A("apple", "Apple", "a-apple", 310, S("apple.com", "icloud.com")), A("tg", "Telegram", "a-tg", 40, S("telegram.org", "t.me", "91.108.4.0/22")),
+      A("ai", "OpenAi", "a-ai", 30, S("openai.com", "chatgpt.com")), A("music", "NetEaseMusic", "a-music", 60, S("music.163.com")),
+      A("epic", "Epic", "a-game", 20, S("epicgames.com")), A("origin", "Origin", "a-game", 15, S("ea.com")), A("sony", "Sony", "a-game", 25, S("playstation.com")),
+      A("steam", "Steam", "a-game", 40, S("steampowered.com", "steamcommunity.com")), A("nin", "Nintendo", "a-game", 15, S("nintendo.net")),
+      A("yt", "YouTube", "a-yt", 41, S("youtube.com", "googlevideo.com")), A("nf", "Netflix", "a-nf", 37, S("netflix.com", "nflxvideo.net")),
+      A("baha", "Bahamut", "a-baha", 8, S("gamer.com.tw")), A("bilihmt", "BilibiliHMT", "a-bili", 6, S("biliintl.com")), A("bili", "Bilibili", "a-bili", 58, S("bilibili.com", "hdslb.com")),
+      A("cmedia", "ChinaMedia", "a-cmedia", 900, S("iqiyi.com", "youku.com")), A("pmedia", "ProxyMedia", "a-gmedia", 1300, S("spotify.com", "disneyplus.com")),
+      A("gfw", "ProxyGFWlist", "a-sel", 5800, S("google.com", "github.com", "wikipedia.org")), A("cnd", "ChinaDomain", "a-direct", 89000, S("baidu.com", "qq.com", "taobao.com")),
+      A("cnip", "ChinaCompanyIp", "a-direct", 1600, S("119.29.0.0/16", "180.101.0.0/16")), A("dl", "Download", "a-direct", 50, S("~aria2")),
+      { id: "geoip", name: "中国大陆 IP", kind: "geoip", to: "a-direct", about: "前面的规则都没认出时，客户端把域名解析成 IP，再看 IP 是否在中国大陆。" },
+      { id: "final", name: "其余所有", kind: "final", to: "a-fish", about: "兜底：前面都没命中的请求，全部交给这里。" },
+    ];
+  }
+
+  // ——— 规则：合集结构仿照 domainrouter_v2，条数为示意 ———
+  const M = (id, b, n, count, items, file) => ({ id, b, n, count, items, file });
+  const R = (id, name, to, about, members) => ({ id, name, kind: "set", to, about, members });
+  function rulesFor(t) {
+    return [
+      R("reject", "广告拦截", "REJECT", "常见广告与追踪域名。命中后请求在本机就被拦下。", [
+        M("m-rej-d", "domain", "Reject", 61204, ["doubleclick.net", "googlesyndication.com", "app-measurement.com", "adservice.google.com"], "clash-domain/Reject.mrs"),
+        M("m-rej-c", "classical", "Reject-classic", 312, [["DOMAIN-KEYWORD", "adsdk"], ["DOMAIN-SUFFIX", "umeng.com"]], "clash-classic/Reject-classic.yaml")]),
+      R("direct", "Direct", "DIRECT", "国内常用网站、局域网与国内 DNS 等，直连更快。", [
+        M("m-dir-d", "domain", "Direct", 4120, ["baidu.com", "qq.com", "taobao.com", "jd.com", "163.com", "zhihu.com"], "clash-domain/Direct.mrs"),
+        M("m-dir-i", "ipcidr", "Direct-ipcidr", 38, [["192.168.", "192.168.0.0/16"], ["10.", "10.0.0.0/8"]], "clash-ipcidr/Direct-ipcidr.mrs"),
+        M("m-dir-c", "classical", "Direct-classic", 57, [["DOMAIN-KEYWORD", "alicdn"], ["DOMAIN-SUFFIX", "12306.cn"]], "clash-classic/Direct-classic.yaml")]),
+      R("gpt", "ChatGPT", "g-gpt", "OpenAI 的网页、接口与静态资源。对出口地区有要求。", [
+        M("m-gpt-d", "domain", "ChatGPT", 64, ["openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com"], "clash-domain/ChatGPT.mrs"),
+        M("m-gpt-c", "classical", "ChatGPT-classic", 6, [["DOMAIN-KEYWORD", "openaiapi"]], "clash-classic/ChatGPT-classic.yaml")]),
+      R("yt", "YouTube", "g-yt", "YouTube 的网页、视频流与图片。", [M("m-yt-d", "domain", "YouTube", 41, ["youtube.com", "googlevideo.com", "ytimg.com", "youtu.be"], "clash-domain/YouTube.mrs")]),
+      R("nf", "Netflix", "g-nf", "Netflix 的网页与视频；片库随出口地区不同。", [
+        M("m-nf-d", "domain", "Netflix", 37, ["netflix.com", "nflxvideo.net", "nflximg.net"], "clash-domain/Netflix.mrs"),
+        M("m-nf-i", "ipcidr", "Netflix-ipcidr", 12, [["45.57.", "45.57.0.0/17"], ["23.246.", "23.246.0.0/18"]], "clash-ipcidr/Netflix-ipcidr.mrs")]),
+      R("tg", "Telegram", "g-tg", "Telegram 的域名与自有 IP 段。", [
+        M("m-tg-d", "domain", "Telegram", 9, ["telegram.org", "t.me", "telegram.me"], "clash-domain/Telegram.mrs"),
+        M("m-tg-i", "ipcidr", "Telegram-ipcidr", 14, [["91.108.", "91.108.4.0/22"], ["149.154.", "149.154.160.0/20"]], "clash-ipcidr/Telegram-ipcidr.mrs")]),
+      R("bili", "哔哩哔哩", "g-bili", "B 站网页、接口与视频。", [M("m-bili-d", "domain", "Bilibili", 58, ["bilibili.com", "biliapi.net", "hdslb.com", "bilivideo.com"], "clash-domain/Bilibili.mrs")]),
+      R("google", "Google", t.google, "Google 搜索、Gmail、地图等。", [M("m-g-d", "domain", "Google", 520, ["google.com", "gstatic.com", "googleapis.com", "gmail.com"], "clash-domain/Google.mrs")]),
+      R("apple", "Apple", t.apple, "Apple 的服务与更新。", [M("m-ap-d", "domain", "Apple", 310, ["apple.com", "icloud.com", "mzstatic.com"], "clash-domain/Apple.mrs")]),
+      R("ms", "Microsoft", t.ms, "微软的网站、Office 与更新。", [M("m-ms-d", "domain", "Microsoft", 280, ["microsoft.com", "live.com", "office.com"], "clash-domain/Microsoft.mrs")]),
+      R("tiktok", "TikTok", t.tiktok, "TikTok 国际版。", [M("m-tt-d", "domain", "TikTok", 45, ["tiktok.com", "tiktokv.com", "tiktokcdn.com"], "clash-domain/TikTok.mrs")]),
+      R("od", "OneDrive", t.od, "OneDrive 与 SharePoint。", [M("m-od-d", "domain", "OneDrive", 22, ["onedrive.com", "1drv.com", "sharepoint.com"], "clash-domain/OneDrive.mrs")]),
+      R("comm", "Community", t.comm, "海外社区与论坛。", [M("m-cm-d", "domain", "Community", 140, ["discord.com", "discord.gg", "medium.com"], "clash-domain/Community.mrs")]),
+      R("media", "国际流媒体", t.media, "其他海外流媒体。", [M("m-md-d", "domain", "ProxyMedia", 1300, ["spotify.com", "disneyplus.com", "hbomax.com"], "clash-domain/ProxyMedia.mrs")]),
+      R("steam", "SteamCN", "DIRECT", "Steam 国内下载与内容服务器。", [M("m-steam-d", "domain", "SteamCN", 31, ["steamcontent.com", "steamserver.net"], "clash-domain/SteamCN.mrs")]),
+      R("gamedl", "GameDownloadCN", "DIRECT", "各游戏平台的国内下载节点。", [M("m-gdl-c", "classical", "GameDownloadCN", 44, [["DOMAIN-SUFFIX", "dl.playstation.net"], ["DOMAIN-KEYWORD", "xboxdl"]], "clash-classic/GameDownloadCN.yaml")]),
+      R("proxy", "Proxy", "g-sel", "海外常见网站（geolocation-!cn），统一交给节点选择。", [M("m-px-d", "domain", "Proxy", 28431, ["github.com", "wikipedia.org", "x.com", "reddit.com"], "clash-domain/Proxy.mrs")]),
+      { id: "geoip", name: "中国大陆 IP", kind: "geoip", to: "DIRECT", about: "前面的域名规则都没认出时，客户端把域名解析成 IP，再看 IP 是否在中国大陆。" },
+      { id: "final", name: "其余所有", kind: "final", to: "g-fish", about: "兜底：前面都没命中的请求，全部交给这里。" },
+    ];
+  }
+  const CN_IPS = ["114.114.", "119.29.", "180.101.", "220.181."];
+  const QUICK = ["chatgpt.com", "www.netflix.com", "91.108.4.10", "bilibili.com", "doubleclick.net", "github.com", "example.org", "203.0.113.7"];
+
+  let preset = "real";
+  const startOf = (p) => ({ groups: clone(PRESETS[p].groups), rules: PRESETS[p].rules ? PRESETS[p].rules() : rulesFor(PRESETS[p].targets) });
+  let ruleMode = "auto";          // 规则的显示方式：auto（超过 30 条时把相邻同走向的折叠成段）| all
+  const expanded = new Set();     // 用户点开的折叠段
+  let plan = { collapsed: [], segRules: {}, why: [] };
+  let applied = startOf(preset);
+  let draft = clone(applied);
+  let selected = null;   // { kind, id }
+  let lastTrace = null;
+  let hover = null;
+  let showCand = false;
+
+  const grp = (st, id) => st.groups.find((g) => g.id === id);
+  const nameOf = (id, st = draft) => isExit(id) ? exitOf(id).name : (grp(st, id) || grp(applied, id) || { name: id }).name;
+  const nodeKey = (id) => (isExit(id) ? "exit:" : "group:") + id;
+  function reaches(st, from, to) {
+    if (from === to) return true;
+    if (isExit(from)) return false;
+    return grp(st, from).members.some((m) => reaches(st, m, to));
+  }
+
+  // ——— 分层：沿默认成员（第一个成员）计算「到节点还要几步」 ———
+  //   不是任何组的默认成员的组 → 第一列；其余 → 列号 = 总列数 − 步数 + 1（直接连节点的组对齐最后一列）。
+  //   父组的步数一定比子组大，所以默认路径上的连线总是从左到右。
+  function groupColumns(st) {
+    const dd = {};
+    const steps = (id) => (isExit(id) ? 0 : dd[id] != null ? dd[id] : (dd[id] = 1 + steps(grp(st, id).members[0])));
+    st.groups.forEach((g) => steps(g.id));
+    const isDefaultChild = new Set(st.groups.map((g) => g.members[0]).filter((m) => !isExit(m)));
+    const hasParent = new Set(st.groups.flatMap((g) => g.members).filter((m) => !isExit(m)));
+    const ruleUsed = new Set(st.rules.map((r) => r.to));
+    // 入口列：没有任何组引用它，或者被规则直接使用且不是谁的默认成员；其余按步数从右往左排
+    const entry = (id) => !hasParent.has(id) || (ruleUsed.has(id) && !isDefaultChild.has(id));
+    const C = Math.max(1, ...Object.values(dd));
+    const col = {};
+    st.groups.forEach((g) => (col[g.id] = entry(g.id) ? 1 : C - dd[g.id] + 1));
+    // 列内顺序：按「最早被哪条规则或哪个组引用」，减少交叉
+    const key = {};
+    st.rules.forEach((r, i) => { if (!isExit(r.to) && key[r.to] == null) key[r.to] = i; });
+    [...st.groups].sort((a, b) => col[a.id] - col[b.id]).forEach((g, gi) => {
+      if (key[g.id] == null) key[g.id] = 500 + gi;
+      g.members.forEach((m, mi) => {
+        if (isExit(m) || col[m] <= col[g.id]) return;
+        const k = key[g.id] + (mi + 1) * 0.001 + (mi === 0 ? 0 : 0.5);
+        if (key[m] == null || k < key[m]) key[m] = k;
+      });
+    });
+    const cols = [];
+    for (let c = 1; c <= C; c++) cols.push(st.groups.filter((g) => col[g.id] === c).sort((a, b) => key[a.id] - key[b.id]));
+    return { cols, col };
+  }
+
+  // ——— 从一个目标沿默认成员解析到出口 ———
+  function resolve(st, id) {
+    const chain = [];
+    let cur = id, guard = 0;
+    while (!isExit(cur) && guard++ < 16) {
+      const g = grp(st, cur);
+      chain.push({ g, pick: g.members[0] });
+      cur = g.members[0];
+    }
+    return { chain, exit: exitOf(cur) };
+  }
+
+  // ——— 匹配：示例只用每个成员的几条代表内容；实际实现调用 mihomo 自己的匹配代码 ———
+  const normalize = (raw) => String(raw || "").trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/[/?#].*$/, "").replace(/:\d+$/, "").replace(/\.$/, "");
+  const isIP = (s) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s);
+  function matchMember(m, host, ip) {
+    if (m.b === "domain" && !ip) { const d = m.items.find((x) => host === x || host.endsWith("." + x)); if (d) return "+." + d; }
+    if (m.b === "ipcidr" && ip) { const c = m.items.find(([p]) => host.startsWith(p)); if (c) return c[1]; }
+    if (m.b === "classical") {
+      for (const [t, v] of m.items) {
+        if (ip) { if (t === "IP-CIDR" && host.startsWith(cidrPrefix(v))) return t + "," + v; continue; }
+        if (t === "DOMAIN-SUFFIX" && (host === v || host.endsWith("." + v))) return t + "," + v;
+        if (t === "DOMAIN-KEYWORD" && host.includes(v)) return t + "," + v;
+      }
+    }
+    return null;
+  }
+  // 示例里按整字节近似网段（/22 视为 /16）；实际实现用 mihomo 的 ipcidr 匹配
+  function cidrPrefix(c) { const [a, bits] = c.split("/"); return a.split(".").slice(0, Math.max(1, Math.floor(+bits / 8))).join(".") + "."; }
+  function trace(st, raw) {
+    const host = normalize(raw);
+    if (!host) return null;
+    const ip = isIP(host);
+    const missed = [];
+    for (let i = 0; i < st.rules.length; i++) {
+      const r = st.rules[i];
+      if (r.kind === "set") {
+        for (const m of r.members) { const ev = matchMember(m, host, ip); if (ev) return { host, ip, at: i, rule: r, member: m, ev, missed, st }; }
+      } else if (r.kind === "geoip") {
+        if (ip) { if (CN_IPS.some((p) => host.startsWith(p))) return { host, ip, at: i, rule: r, ev: "GEOIP,CN", missed, st }; }
+        else { const ri = st.rules.findIndex((x, j) => j > i && x.kind === "final"); return { host, ip, branch: true, at: i, rule: r, rest: st.rules[ri], restAt: ri, missed, st }; }
+      } else if (r.kind === "final") return { host, ip, at: i, rule: r, ev: "MATCH", missed, st };
+      missed.push(r);
+    }
+    return null;
+  }
+  function summary(t) {
+    if (!t) return "未命中";
+    if (t.branch) return "取决于 IP";
+    const res = resolve(t.st, t.rule.to);
+    return [t.rule.name, ...res.chain.map((c) => c.g.name), res.exit.name].join(" → ");
+  }
+
+  // ——— 改动对比（草稿 vs 已应用）———
+  function lisKeep(seq) {
+    const n = seq.length, len = Array(n).fill(1), prev = Array(n).fill(-1);
+    for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) if (seq[j].v < seq[i].v && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; }
+    let best = -1; for (let i = 0; i < n; i++) if (best < 0 || len[i] > len[best]) best = i;
+    const keep = new Set(); for (let i = best; i >= 0; i = prev[i]) keep.add(seq[i].id);
+    return keep;
+  }
+  function movedRules() {
+    const common = draft.rules.filter((r) => applied.rules.some((a) => a.id === r.id));
+    const seq = common.map((r) => ({ id: r.id, v: applied.rules.findIndex((a) => a.id === r.id) }));
+    const keep = lisKeep(seq);
+    return new Set(seq.filter((s) => !keep.has(s.id)).map((s) => s.id));
+  }
+  const relParams = (g) => PARAM_KEYS[g.type].map((k) => k + "=" + g.params[k]).join("&");
+  function changes() {
+    const out = [], locA = {}, locD = {};
+    applied.rules.forEach((r) => (r.members || []).forEach((m) => (locA[m.id] = r)));
+    draft.rules.forEach((r) => (r.members || []).forEach((m) => (locD[m.id] = r)));
+    Object.keys(locD).forEach((mid) => {
+      const ra = locA[mid], rd = locD[mid];
+      if (ra.id === rd.id) return;
+      const mn = rd.members.find((m) => m.id === mid).n;
+      if (!applied.rules.some((r) => r.id === rd.id)) out.push(`${mn}：从「${ra.name}」拆出为单独一条`);
+      else out.push(`${mn}：并入「${rd.name}」合集，走向随合集（${nameOf(rd.to)}）`);
+    });
+    const moved = movedRules();
+    draft.rules.forEach((r, i) => {
+      const a = applied.rules.find((x) => x.id === r.id);
+      if (!a) return;
+      if (a.to !== r.to) out.push(`${r.name}：${nameOf(a.to, applied)} → ${nameOf(r.to)}`);
+      if (moved.has(r.id)) out.push(`${r.name}：优先级第 ${applied.rules.indexOf(a) + 1} → ${i + 1} 条`);
+    });
+    draft.groups.forEach((g) => {
+      const a = grp(applied, g.id);
+      if (a.type !== g.type) out.push(`${g.name}：${TYPE_INFO[a.type].label} → ${TYPE_INFO[g.type].label}`);
+      else PARAM_KEYS[g.type].forEach((k) => { if (a.params[k] !== g.params[k]) out.push(`${g.name}：${PARAM_LABEL[k]} ${a.params[k]} → ${g.params[k]}`); });
+      g.members.filter((m) => !a.members.includes(m)).forEach((m) => out.push(`${g.name}：加入 ${nameOf(m)}`));
+      a.members.filter((m) => !g.members.includes(m)).forEach((m) => out.push(`${g.name}：移除 ${nameOf(m)}`));
+      if (g.members[0] !== a.members[0] && a.members.includes(g.members[0])) out.push(`${g.name}：首选改为 ${nameOf(g.members[0])}`);
+    });
+    return [...new Set(out)];
+  }
+  const ruleChanged = (r, moved) => {
+    const a = applied.rules.find((x) => x.id === r.id);
+    return !a || a.to !== r.to || (a.members || []).map((m) => m.id).join() !== (r.members || []).map((m) => m.id).join() || moved.has(r.id);
+  };
+  const groupChanged = (g) => { const a = grp(applied, g.id); return a.type !== g.type || a.members.join() !== g.members.join() || relParams(a) !== relParams(g); };
+
+  // ——— 渲染列 ———
+  function ruleRow(r, i, moved) {
+    const bundle = r.kind === "set" && r.members.length > 1;
+    const total = r.kind === "set" ? r.members.reduce((s, m) => s + m.count, 0) : null;
+    const tags = r.kind === "set" ? r.members.map((m) => `<span class="mtag" title="${esc(m.n)}">${m.b}</span>`).join("") : `<span class="mtag">${r.kind === "geoip" ? "GEOIP,CN" : "MATCH"}</span>`;
+    return `<div class="row${ruleChanged(r, moved) ? " changed" : ""}" tabindex="0" data-kind="rule" data-id="${r.id}"><span class="pri">${i + 1}</span><div class="rmain"><div class="rtop"><span class="nm">${esc(r.name)}</span>${bundle ? '<span class="btag">合集</span>' : ""}<span class="meta">${total != null ? fmtCount(total) : ""}</span></div><div class="mtags">${tags}</div></div></div>`;
+  }
+  const groupRow = (g, compact) => `<div class="row${groupChanged(g) ? " changed" : ""}" tabindex="0" data-kind="group" data-id="${g.id}" title="${esc(g.name)} · ${TYPE_INFO[g.type].label}"><span class="nm">${esc(g.name)}</span>${compact ? `<span class="tch">${TYPE_INFO[g.type].ch}</span>` : `<span class="gtype">${TYPE_INFO[g.type].label}</span>`}</div>`;
+  const exitRow = (e) => `<div class="row${e.builtin ? " builtin" : ""}" tabindex="0" data-kind="exit" data-id="${e.id}"><span class="nm">${esc(e.name)}</span><span class="meta">${esc(e.meta)}</span></div>`;
+
+  // ——— 智能视图：按配置的形状选择画法。都是确定的规则与阈值，界面上说明用了哪些、为什么 ———
+  function planView(st, cols, compact) {
+    const runs = [];
+    if (ruleMode === "auto" && st.rules.length > 30) {
+      for (let i = 0; i < st.rules.length; i++) {
+        const r = st.rules[i];
+        let j = i;
+        if (r.kind === "set") while (j + 1 < st.rules.length && st.rules[j + 1].kind === "set" && st.rules[j + 1].to === r.to) j++;
+        if (j > i) runs.push({ id: "seg-" + r.id, from: i, to: j, target: r.to });
+        i = j;
+      }
+    }
+    const t = lastTrace && trace(st, lastTrace);
+    const hits = (run) => t && ((t.at >= run.from && t.at <= run.to) || (t.branch && t.restAt >= run.from && t.restAt <= run.to));
+    const collapsed = runs.filter((run) => !expanded.has(run.id) && !hits(run));
+    const segRules = {};
+    collapsed.forEach((run) => (segRules[run.id] = st.rules.slice(run.from, run.to + 1).map((r) => r.id)));
+    const hidden = collapsed.reduce((s, r) => s + r.to - r.from + 1, 0);
+    const why = [collapsed.length ? `${st.rules.length} 条规则：相邻且走向相同的 ${hidden} 条折叠为 ${collapsed.length} 段` : `${st.rules.length} 条规则：逐条显示`];
+    why.push(`${st.groups.length} 个组：按默认路径分 ${cols.length} 列${compact ? "，类型缩成一个字" : ""}`);
+    const used = new Set(st.rules.map((r) => r.to).concat(st.groups.flatMap((g) => g.members)));
+    const unused = st.groups.filter((g) => !used.has(g.id)).length;
+    if (unused) why.push(`${unused} 个组没有被规则或其他组使用`);
+    why.push("节点按地区归并（全部识别出地区）");
+    const flagged = st.groups.filter((g) => lints(g).some((x) => !x.startsWith("只比较"))).length;
+    if (flagged) why.push(`${flagged} 个组有参数提醒`);
+    return { collapsed, segRules, why };
+  }
+  function ruleRows(moved) {
+    let html = "";
+    for (let i = 0; i < draft.rules.length; i++) {
+      const run = plan.collapsed.find((r) => r.from === i);
+      if (run) { html += segRow(run); i = run.to; continue; }
+      html += ruleRow(draft.rules[i], i, moved);
+    }
+    return html;
+  }
+  function segRow(run) {
+    const rs = draft.rules.slice(run.from, run.to + 1);
+    const total = rs.reduce((s, r) => s + r.members.reduce((a, m) => a + m.count, 0), 0);
+    return `<div class="row seg" tabindex="0" data-kind="seg" data-id="${run.id}" title="点击展开"><span class="pri">${run.from + 1}–${run.to + 1}</span><div class="rmain"><div class="rtop"><span class="nm">${rs.length} 条 → ${esc(nameOf(run.target))}</span><span class="meta">${fmtCount(total)}</span></div><div class="mtags">${rs.map((r) => `<span class="mtag">${esc(r.name)}</span>`).join("")}</div></div></div>`;
+  }
+
+  let L = null, lastSig = "";
+  function render() {
+    const { cols } = groupColumns(draft);
+    const compact = cols.length >= 3;
+    const moved = movedRules();
+    const grid = $("cols");
+    const gw = compact ? 120 : 160;
+    grid.classList.toggle("compact", compact);
+    grid.style.gridTemplateColumns = `52px minmax(190px, 1.2fr) repeat(${cols.length}, minmax(${gw}px, 1fr)) minmax(104px, 0.8fr) 52px`;
+    $("map").style.minWidth = 52 * 2 + 190 + gw * cols.length + 104 + 28 * (cols.length + 3) + 32 + "px";
+    $("tch-legend").hidden = !compact;
+    plan = planView(draft, cols, compact);
+    $("view-note").innerHTML = `<b>智能视图</b>` + plan.why.map((w) => `<span class="why">${esc(w)}</span>`).join("");
+    grid.innerHTML =
+      `<div class="col lane"><div class="col-h"><span class="eyebrow">请求</span></div></div>` +
+      `<div class="col" id="col-rules"><div class="col-h"><span class="eyebrow">规则 · 优先级</span><span class="hint">拖到组改走向 · 拖到行中间合并</span></div>${ruleRows(moved)}</div>` +
+      cols.map((c, ci) => `<div class="col groups"><div class="col-h"><span class="eyebrow">${ci === 0 ? "策略组" : "第 " + (ci + 1) + " 层"}</span></div>${c.map((g) => groupRow(g, compact)).join("")}</div>`).join("") +
+      `<div class="col" id="col-exits"><div class="col-h"><span class="eyebrow">出口</span></div>${EXITS.map(exitRow).join("")}</div>` +
+      `<div class="col lane"><div class="col-h"><span class="eyebrow">目的地</span></div></div>`;
+    $("presets").innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button type="button" role="radio" aria-checked="${k === preset}" class="${k === preset ? "on" : ""}" data-preset="${k}">${p.label}</button>`).join("");
+    decorate();
+    renderDetail();
+    renderTrace();
+    renderDraft();
+    syncClear();
+    pool = buildPool(draft);
+    // 只有布局、草稿或追踪目标变了才重置粒子；单纯切换选中不打断流动
+    const sig = JSON.stringify(draft) + "|" + lastTrace;
+    requestAnimationFrame(() => {
+      const nl = captureLayout();
+      const changed = !L || JSON.stringify(nl) !== JSON.stringify(L);
+      L = nl;
+      if (changed) sizeCanvas();
+      drawLinks();
+      if (changed || sig !== lastSig) resetParticles();
+      lastSig = sig;
+    });
+  }
+  function captureLayout() {
+    const map = $("map"), b = map.getBoundingClientRect();
+    const out = { rule: {}, group: {}, exit: {}, seg: {}, w: b.width, h: b.height };
+    map.querySelectorAll(".row").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      out[el.dataset.kind][el.dataset.id] = { l: r.left - b.left, r: r.right - b.left, t: r.top - b.top, b: r.bottom - b.top, y: r.top - b.top + r.height / 2 };
+    });
+    // 折叠段里的规则共用段的位置：连线与粒子都经过这一行
+    plan.collapsed.forEach((run) => plan.segRules[run.id].forEach((id) => (out.rule[id] = out.seg[run.id])));
+    out.rulesLeft = $("col-rules").getBoundingClientRect().left - b.left;
+    return out;
+  }
+
+  // ——— 聚焦集合 ———
+  function routeEdges(st, rule) {
+    const res = resolve(st, rule.to);
+    const edges = ["r:" + rule.id + ">" + rule.to];
+    const nodes = new Set(["rule:" + rule.id, nodeKey(rule.to)]);
+    res.chain.forEach((c) => { edges.push("g:" + c.g.id + ">" + c.pick); nodes.add(nodeKey(c.pick)); });
+    return { edges, nodes };
+  }
+  function focusSet() {
+    const t = lastTrace && trace(draft, lastTrace);
+    if (t) {
+      const a = routeEdges(draft, t.rule);
+      const out = { edges: new Set(a.edges), nodes: new Set(a.nodes), groups: new Set(), tracing: true };
+      if (t.branch) { const b = routeEdges(draft, t.rest); b.edges.forEach((e) => out.edges.add(e)); b.nodes.forEach((n) => out.nodes.add(n)); }
+      return out;
+    }
+    const f = hover || selected;
+    if (!f) return null;
+    const out = { edges: new Set(), nodes: new Set(), groups: new Set(), tracing: false };
+    const addRule = (r) => { const x = routeEdges(draft, r); x.edges.forEach((e) => out.edges.add(e)); x.nodes.forEach((n) => out.nodes.add(n)); };
+    if (f.kind === "rule") { const r = draft.rules.find((x) => x.id === f.id); if (r) addRule(r); }
+    if (f.kind === "group" || f.kind === "exit") {
+      const id = f.id;
+      out.nodes.add(nodeKey(id));
+      if (f.kind === "group") {
+        // 聚焦的组：显示它的全部成员（含候选）
+        out.groups.add(id);
+        grp(draft, id).members.forEach((m) => { out.edges.add("g:" + id + ">" + m); out.nodes.add(nodeKey(m)); });
+        draft.rules.filter((r) => r.to === id).forEach((r) => { out.nodes.add("rule:" + r.id); out.edges.add("r:" + r.id + ">" + id); });
+        draft.groups.filter((g) => g.members.includes(id)).forEach((g) => { out.nodes.add(nodeKey(g.id)); out.edges.add("g:" + g.id + ">" + id); out.groups.add(g.id); });
+      } else {
+        draft.rules.filter((r) => r.to === id).forEach((r) => { out.nodes.add("rule:" + r.id); out.edges.add("r:" + r.id + ">" + id); });
+        draft.groups.filter((g) => g.members.includes(id)).forEach((g) => { out.nodes.add(nodeKey(g.id)); out.edges.add("g:" + g.id + ">" + id); });
+      }
+    }
+    return out;
+  }
+  function decorate() {
+    const s = focusSet();
+    document.querySelectorAll("#map .row").forEach((el) => {
+      const k = el.dataset.kind + ":" + el.dataset.id;
+      const on = el.dataset.kind === "seg" ? !!(s && (plan.segRules[el.dataset.id] || []).some((id) => s.nodes.has("rule:" + id))) : !!(s && s.nodes.has(k));
+      el.classList.toggle("hot", on);
+      el.classList.toggle("dim", !!(s && !on));
+      el.classList.toggle("sel", !!(selected && selected.kind === el.dataset.kind && selected.id === el.dataset.id));
+    });
+  }
+
+  // ——— 轨道（SVG）：默认成员实线；候选成员只在聚焦或「显示全部候选」时画 ———
+  const fx2 = (n) => n.toFixed(1);
+  function curveD(a, b) {
+    if (b.x > a.x + 8) { const mx = (a.x + b.x) / 2; return `M${fx2(a.x)} ${fx2(a.y)} C ${fx2(mx)} ${fx2(a.y)}, ${fx2(mx)} ${fx2(b.y)}, ${fx2(b.x)} ${fx2(b.y)}`; }
+    // 同列或向左的候选：从右侧绕出去，再从左侧进入
+    const out = 26;
+    return `M${fx2(a.x)} ${fx2(a.y)} C ${fx2(a.x + out)} ${fx2(a.y)}, ${fx2(b.x - out)} ${fx2(b.y)}, ${fx2(b.x)} ${fx2(b.y)}`;
+  }
+  const boxOf = (id) => (isExit(id) ? L.exit[id] : L.group[id]);
+  function drawLinks() {
+    if (!L) return;
+    const s = focusSet();
+    let out = "";
+    const drawn = new Map(); // 折叠段内的规则共用一条线：同起点同终点只画一次，有一条高亮就高亮
+    draft.rules.forEach((r) => {
+      const a = L.rule[r.id], b = boxOf(r.to);
+      if (!a || !b) return;
+      const key = a.y + ">" + r.to, hot = !!(s && s.edges.has("r:" + r.id + ">" + r.to));
+      drawn.set(key, { d: curveD({ x: a.r, y: a.y }, { x: b.l, y: b.y }), hot: hot || (drawn.get(key) || {}).hot });
+    });
+    drawn.forEach((v) => (out += `<path class="${v.hot ? "hot" : ""}" d="${v.d}"/>`));
+    draft.groups.forEach((g) => {
+      const a = L.group[g.id];
+      g.members.forEach((m, i) => {
+        const b = boxOf(m);
+        if (!a || !b) return;
+        const equal = g.type === "url-test" || g.type === "load-balance";
+        const isDefault = i === 0 || equal;
+        const focused = s && s.groups && s.groups.has(g.id);
+        if (!isDefault && !showCand && !focused) return;
+        const cls = [g.type === "url-test" ? "alt" : !isDefault ? "cand" : "", s && s.edges.has("g:" + g.id + ">" + m) ? "hot" : ""].join(" ").trim();
+        out += `<path class="${cls}" d="${curveD({ x: a.r, y: a.y }, { x: b.l, y: b.y })}"/>`;
+      });
+    });
+    const svg = $("links");
+    svg.classList.toggle("focus", !!s);
+    svg.innerHTML = out;
+  }
+
+  // ================= 粒子层 =================
+  const canvas = $("fx"), ctx = canvas.getContext("2d");
+  const SP = 4;
+  let parts = [], halos = [], marks = [], bursts = [], pool = [];
+  // 粒子模式：all（默认，始终显示全部粒子，聚焦时只放大被追踪的那个）| focus（聚焦时其余淡出）| off
+  const fx = { mode: reduce ? "off" : "all", visible: true, spawnAcc: 0, traceWait: 0, now: 0, drawn: false, c: {}, rgb: {} };
+  function syncSeg(id, attr, value) { $(id).querySelectorAll("button").forEach((b) => { const on = b.dataset[attr] === value; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); }); }
+  syncSeg("fx-mode", "fxmode", fx.mode);
+  if (reduce) $("fx-mode").querySelectorAll("button").forEach((b) => { if (b.dataset.fxmode !== "off") { b.disabled = true; b.title = "系统已开启「减少动态效果」"; } });
+  $("fx-mode").addEventListener("click", (e) => { const b = e.target.closest("[data-fxmode]"); if (!b || b.disabled) return; fx.mode = b.dataset.fxmode; syncSeg("fx-mode", "fxmode", fx.mode); resetParticles(); });
+  $("rule-mode").addEventListener("click", (e) => { const b = e.target.closest("[data-rmode]"); if (!b) return; ruleMode = b.dataset.rmode; expanded.clear(); syncSeg("rule-mode", "rmode", ruleMode); render(); });
+  $("cand-toggle").onclick = () => { showCand = !showCand; $("cand-toggle").setAttribute("aria-pressed", String(showCand)); drawLinks(); };
+
+  const hex = (h) => { const s = h.replace("#", ""); const n = parseInt(s.length === 3 ? s.split("").map((c) => c + c).join("") : s, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (n) => cs.getPropertyValue(n).trim();
+    fx.c = { proxy: v("--flow-proxy"), direct: v("--flow-direct"), reject: v("--flow-reject"), neutral: v("--flow-neutral"), fg: v("--fg-muted"), muted: v("--fg-subtle") };
+    for (const k of ["proxy", "direct", "reject", "neutral"]) fx.rgb[k] = hex(fx.c[k] || "#888888");
+    fx.mono = v("--font-mono") || "monospace";
+    fx.sans = v("--font-sans") || "sans-serif";
+  }
+  // 未分类的灰色按进度过渡到流向色
+  function tint(kind, mix) {
+    const a = fx.rgb.neutral, b = fx.rgb[kind] || fx.rgb.neutral;
+    return `rgb(${Math.round(a[0] + (b[0] - a[0]) * mix)} ${Math.round(a[1] + (b[1] - a[1]) * mix)} ${Math.round(a[2] + (b[2] - a[2]) * mix)})`;
+  }
+  function sizeCanvas() {
+    const map = $("map"), dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(map.clientWidth * dpr); canvas.height = Math.round(map.clientHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function resetParticles() { parts = []; halos = []; marks = []; bursts = []; fx.traceWait = 200; ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+  function buildPool(st) {
+    const out = [];
+    st.rules.forEach((r) => {
+      if (r.kind !== "set") return;
+      r.members.forEach((m) => {
+        const w = Math.log10(m.count + 10) / m.items.length;
+        m.items.forEach((it) => {
+          if (m.b === "domain") out.push({ w, gen: () => (Math.random() < 0.45 ? pick(["www.", "api.", "cdn.", "m."]) : "") + it });
+          else if (m.b === "ipcidr") out.push({ w, gen: () => { const n = it[0].split(".").filter(Boolean).length; let s = it[0]; for (let i = n; i < 4; i++) s += Math.floor(rnd(1, 254)) + (i < 3 ? "." : ""); return s; } });
+          else if (it[0] === "IP-CIDR") out.push({ w, gen: () => { const p = cidrPrefix(it[1]); let s = p; for (let i = p.split(".").filter(Boolean).length; i < 4; i++) s += Math.floor(rnd(1, 254)) + (i < 3 ? "." : ""); return s; } });
+          else out.push({ w, gen: () => (it[0] === "DOMAIN-KEYWORD" ? "dl." + it[1] + ".com" : it[1]) });
+        });
+      });
+    });
+    out.push({ w: 0.9, gen: () => pick(["114.114.114.114", "119.29.29.29", "180.101.49.12"]) });
+    out.push({ w: 1.1, gen: () => pick(["203.0.113.", "198.51.100."]) + Math.floor(rnd(2, 250)) });
+    return out;
+  }
+  function sampleHost() {
+    const total = pool.reduce((s, p) => s + p.w, 0);
+    let x = Math.random() * total;
+    for (const p of pool) { x -= p.w; if (x <= 0) return p.gen(); }
+    return pool[0].gen();
+  }
+  function seg(a, b, curve) {
+    const dist = Math.hypot(b.x - a.x, b.y - a.y) * (curve ? 1.12 : 1);
+    const n = Math.max(2, Math.ceil(dist / SP)), pts = [], mx = (a.x + b.x) / 2;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      if (curve) pts.push({ x: u * u * u * a.x + 3 * u * u * t * mx + 3 * u * t * t * mx + t * t * t * b.x, y: u * u * u * a.y + 3 * u * u * t * a.y + 3 * u * t * t * b.y + t * t * t * b.y });
+      else pts.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    }
+    return pts;
+  }
+  // 从规则行开始沿默认路径走到出口
+  function routeFrom(st, rule) {
+    const Rb = L.rule[rule.id];
+    const segs = [{ pts: seg({ x: Rb.l, y: Rb.y }, { x: Rb.r, y: Rb.y }), neutral: true }];
+    let prev = { x: Rb.r, y: Rb.y };
+    const res = resolve(st, rule.to);
+    const hops = [rule.to, ...res.chain.map((c) => c.pick)];
+    const ids = new Set(["rule:" + rule.id]);
+    for (const id of hops) {
+      ids.add(nodeKey(id));
+      const box = boxOf(id);
+      if (!box) break;
+      segs.push({ pts: seg(prev, { x: box.l, y: box.y }, true), end: { halo: box } });
+      if (id === "REJECT") { segs.push({ burst: { x: box.l, y: box.y } }); return { segs, kind: "reject", ids }; }
+      segs.push({ pts: seg({ x: box.l, y: box.y }, { x: box.r, y: box.y }) });
+      prev = { x: box.r, y: box.y };
+    }
+    segs.push({ pts: seg(prev, { x: L.w - 6, y: Math.max(12, Math.min(L.h - 12, prev.y + rnd(-34, 34))) }, true), out: true });
+    return { segs, kind: res.exit.kind, ids };
+  }
+  const makeParticle = (o) => Object.assign({ si: 0, idx: 0, x: 0, y: 0, trail: [], r: 1.8, speed: rnd(140, 210), alive: true, mix: 0 }, o);
+
+  function spawnAmbient() {
+    const t = trace(draft, sampleHost());
+    if (!t || t.branch) return;
+    const Rb = L.rule[t.rule.id];
+    if (!Rb) return;
+    const start = { x: 4, y: rnd(16, L.h - 16) };
+    const rt = routeFrom(draft, t.rule);
+    parts.push(makeParticle({ segs: [{ pts: seg(start, { x: Rb.l, y: Rb.y }, true), end: { halo: Rb }, lane: true, neutral: true }].concat(rt.segs), kind: rt.kind, ids: rt.ids, label: Math.random() < 0.45 ? t.host : null, ambient: true, x: start.x, y: start.y }));
+  }
+  // 追踪粒子：沿规则列逐条经过（✗），在命中处停下（✓）并染色，再沿默认路径离开；需要 DNS 时分成两路
+  function spawnTrace() {
+    const t = trace(draft, lastTrace);
+    if (!t || !L) return;
+    const rail = L.rulesLeft - 16;
+    const first = L.rule[draft.rules[0].id];
+    const segs = [{ pts: seg({ x: 4, y: first.y }, { x: rail, y: first.y }, true), lane: true, neutral: true }];
+    // 折叠段里的规则共用一行：同一行只停一次、打一个 ✗
+    const scan = (from, to, list) => {
+      for (let i = from; i <= to; i++) {
+        const Rb = L.rule[draft.rules[i].id], prev = i > from ? L.rule[draft.rules[i - 1].id] : null;
+        if (prev && prev.y !== Rb.y) list.push({ pts: seg({ x: rail, y: prev.y }, { x: rail, y: Rb.y }), rail: true, neutral: true });
+        const next = L.rule[draft.rules[i + 1] ? draft.rules[i + 1].id : ""];
+        if (i < to && !(next && next.y === Rb.y && i + 1 < to)) list.push({ wait: 160, mark: { x: rail, y: Rb.y, s: "✗" }, rail: true, neutral: true });
+      }
+    };
+    scan(0, t.at, segs);
+    const Mb = L.rule[t.rule.id];
+    const base = { label: t.host, trace: true, r: 3, speed: 200, x: 4, y: first.y };
+    if (!t.branch) {
+      const rt = routeFrom(draft, t.rule);
+      segs.push({ wait: 340, mark: { x: rail, y: Mb.y, s: "✓", ok: true }, halo: Mb, rail: true });
+      segs.push({ pts: seg({ x: rail, y: Mb.y }, { x: Mb.l, y: Mb.y }) });
+      rt.segs[0].neutral = false;
+      parts.push(makeParticle(Object.assign({ segs: segs.concat(rt.segs), kind: rt.kind, ids: new Set([...rt.ids]) }, base)));
+      return;
+    }
+    segs.push({ wait: 380, mark: { x: rail, y: Mb.y, s: "?" }, halo: Mb, rail: true, neutral: true });
+    const a = routeFrom(draft, t.rule), b = routeFrom(draft, t.rest), Fb = L.rule[t.rest.id];
+    a.segs[0].neutral = false; b.segs[0].neutral = false;
+    const bSegs = [];
+    scan(t.at, t.restAt, bSegs);
+    bSegs.push({ wait: 260, mark: { x: rail, y: Fb.y, s: "✓", ok: true }, halo: Fb, rail: true }, { pts: seg({ x: rail, y: Fb.y }, { x: Fb.l, y: Fb.y }) });
+    segs.push({ split: [
+      { segs: [{ pts: seg({ x: rail, y: Mb.y }, { x: Mb.l, y: Mb.y }) }].concat(a.segs), kind: a.kind, label: t.host + " · 若为国内 IP" },
+      { segs: bSegs.concat(b.segs), kind: b.kind, label: t.host + " · 否则" },
+    ] });
+    parts.push(makeParticle(Object.assign({ segs, kind: "neutral", ids: new Set([...a.ids, ...b.ids]) }, base)));
+  }
+
+  function advance(p, dt) {
+    let budget = (p.speed * dt) / 1000;
+    while (p.alive && p.si < p.segs.length) {
+      const s = p.segs[p.si];
+      if (s.wait != null) {
+        if (!s._on) {
+          s._on = true; s._left = s.wait;
+          if (s.mark) marks.push({ ...s.mark, born: fx.now, kind: s.mark.ok ? p.kind : "neutral" });
+          if (s.halo) halos.push({ box: s.halo, kind: s.mark && s.mark.ok ? p.kind : "neutral", born: fx.now, strong: true });
+        }
+        s._left -= dt;
+        if (s._left > 0) return;
+        p.si++; continue;
+      }
+      if (s.split) { s.split.forEach((c) => parts.push(makeParticle({ segs: c.segs, kind: c.kind, ids: p.ids, label: c.label, trace: true, r: p.r, speed: p.speed, x: p.x, y: p.y, trail: p.trail.slice() }))); p.alive = false; return; }
+      if (s.burst) { bursts.push({ ...s.burst, kind: p.kind, born: fx.now, big: !!p.trace }); p.alive = false; return; }
+      if (budget <= 0) break;
+      const rem = s.pts.length - 1 - p.idx, step = budget / SP;
+      if (step < rem) { p.idx += step; budget = 0; }
+      else {
+        budget -= rem * SP; p.idx = 0; p.si++;
+        if (s.end && (p.trace || Math.random() < 0.2)) halos.push({ box: s.end.halo, kind: s.neutral ? "neutral" : p.kind, born: fx.now, strong: !!p.trace });
+        const last = s.pts[s.pts.length - 1]; p.x = last.x; p.y = last.y;
+        continue;
+      }
+      const i = Math.floor(p.idx), f = p.idx - i, a = s.pts[i], b = s.pts[Math.min(i + 1, s.pts.length - 1)];
+      p.x = a.x + (b.x - a.x) * f; p.y = a.y + (b.y - a.y) * f;
+    }
+    if (p.si >= p.segs.length) p.alive = false;
+  }
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+  function draw(dt) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = fx.now, tracing = !!lastTrace;
+    const focus = !tracing && (hover || selected) ? focusSet() : null;
+    // 行边缘的光圈：画在行的下面，只露出外沿；柔和、短促
+    halos = halos.filter((hl) => now - hl.born < 600);
+    for (const hl of halos) {
+      const a = (now - hl.born) / 600, e = 1 + a * 5;
+      ctx.globalAlpha = (1 - a) * (hl.strong ? 0.7 : 0.18);
+      ctx.strokeStyle = hl.kind === "neutral" ? fx.c.neutral : fx.c[hl.kind];
+      ctx.lineWidth = hl.strong ? 2 : 1.2;
+      rr(hl.box.l - e, hl.box.t - e, hl.box.r - hl.box.l + 2 * e, hl.box.b - hl.box.t + 2 * e, 7 + e);
+      ctx.stroke();
+    }
+    ctx.lineCap = "round";
+    for (const p of parts) {
+      const s = p.segs[Math.min(p.si, p.segs.length - 1)];
+      // 命中规则之前保持灰色；之后 0.35 秒内过渡到流向色
+      if (s && !s.neutral && p.kind !== "neutral") p.mix = Math.min(1, p.mix + dt / 350);
+      const col = tint(p.kind === "neutral" ? "neutral" : p.kind, p.mix);
+      let alpha = p.trace ? 0.95 : 0.62;
+      if (fx.mode === "focus") {
+        if (tracing && !p.trace) alpha = 0.1;
+        if (focus && ![...p.ids].some((x) => focus.nodes.has(x))) alpha = 0.1;
+      }
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > (p.trace ? 14 : 8)) p.trail.shift();
+      for (let k = 1; k < p.trail.length; k++) {
+        const q = k / p.trail.length;
+        ctx.globalAlpha = alpha * q * 0.4;
+        ctx.strokeStyle = col; ctx.lineWidth = p.r * q;
+        ctx.beginPath(); ctx.moveTo(p.trail[k - 1].x, p.trail[k - 1].y); ctx.lineTo(p.trail[k].x, p.trail[k].y); ctx.stroke();
+      }
+      ctx.fillStyle = col;
+      if (p.trace) { ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.6, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = alpha; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      if (p.label && s && (s.lane || s.out || (p.trace && s.rail))) {
+        let la = alpha * (p.trace ? 1 : 0.75);
+        if (s.pts && !p.trace) { const prog = p.idx / (s.pts.length - 1); la *= s.lane ? Math.min(1, (1 - prog) * 2.2) : Math.min(1, prog * 3, (1 - prog) * 3); }
+        ctx.globalAlpha = Math.max(0, la);
+        ctx.font = (p.trace ? "600 11px " : "10px ") + fx.mono;
+        ctx.fillStyle = p.trace ? fx.c.fg : fx.c.muted;
+        const tw = ctx.measureText(p.label).width;
+        let tx = s.rail ? p.x - tw - 10 : p.x + 7;
+        tx = Math.max(4, Math.min(canvas.clientWidth - tw - 4, tx));
+        ctx.fillText(p.label, tx, p.y - 7);
+      }
+    }
+    marks = marks.filter((m) => now - m.born < 1800);
+    ctx.font = "700 12px " + fx.sans;
+    for (const m of marks) {
+      const a = (now - m.born) / 1800;
+      ctx.globalAlpha = (1 - a * a) * 0.9; ctx.fillStyle = m.kind === "neutral" ? fx.c.muted : fx.c[m.kind];
+      ctx.fillText(m.s, m.x - 4, m.y + 4);
+    }
+    bursts = bursts.filter((b) => now - b.born < 600);
+    for (const b of bursts) {
+      const a = (now - b.born) / 600, R = (b.big ? 5 : 2.5) + a * (b.big ? 18 : 9);
+      ctx.globalAlpha = (1 - a) * (fx.mode === "focus" && tracing && !b.big ? 0.1 : b.big ? 0.8 : 0.45);
+      ctx.strokeStyle = fx.c[b.kind]; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(b.x, b.y, R, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  let lastTs = 0;
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(48, ts - (lastTs || ts)); lastTs = ts;
+    if (fx.mode === "off" || !fx.visible || document.hidden || !L) {
+      if (fx.drawn) { ctx.clearRect(0, 0, canvas.width, canvas.height); fx.drawn = false; }
+      return;
+    }
+    fx.now = ts;
+    fx.spawnAcc += dt;
+    const every = lastTrace && fx.mode === "focus" ? 560 : 190;
+    while (fx.spawnAcc > every) { fx.spawnAcc -= every; if (parts.filter((p) => p.ambient).length < 70) spawnAmbient(); }
+    if (lastTrace && !parts.some((p) => p.trace)) { fx.traceWait -= dt; if (fx.traceWait <= 0) { spawnTrace(); fx.traceWait = 900; } }
+    for (const p of parts) advance(p, dt);
+    parts = parts.filter((p) => p.alive);
+    draw(dt);
+    fx.drawn = true;
+  }
+  new IntersectionObserver((es) => { fx.visible = es[0].isIntersecting; }).observe($("map"));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors);
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // ================= 追踪结果 =================
+  function chainHops(st, to, n0) {
+    const res = resolve(st, to);
+    let n = n0, html = "";
+    res.chain.forEach((c) => {
+      const g = c.g, others = g.members.slice(1).map((m) => nameOf(m, st));
+      const d = g.type === "select" ? `手动选择；默认是第一个：${esc(nameOf(c.pick, st))}${others.length ? `。候选：${esc(others.join("、"))}` : ""}。`
+        : g.type === "fallback" ? `按顺序用第一个可用的：${esc(nameOf(c.pick, st))}；不可用时依次换 ${esc(others.join("、") || "—")}。`
+        : g.type === "url-test" ? `测速决定，可能是 ${esc(g.members.map((m) => nameOf(m, st)).join("、"))} 中最近一次最快的。`
+        : `分摊到 ${g.members.length} 个成员：${esc(g.members.map((m) => nameOf(m, st)).join("、"))}。`;
+      html += `<li class="hop"><span class="dot">${n++}</span><div><div class="t">交给 ${esc(g.name)} <span class="gtype">${TYPE_INFO[g.type].label}</span></div><div class="d">${d}</div></div></li>`;
+    });
+    const e = res.exit;
+    const ed = e.kind === "reject" ? "请求在本机被拦下，不会发出去。" : e.kind === "direct" ? "不经代理，用本机网络直接访问。" : `${esc(e.meta)}节点，按地区归并显示。`;
+    html += `<li class="hop k-${e.kind}"><span class="dot">${n}</span><div><div class="t">${e.kind === "reject" ? "结束：已拦截" : "从 " + esc(e.name) + " 出去"}</div><div class="d">${ed}</div></div></li>`;
+    return html;
+  }
+  function ruleLine(r, m) {
+    if (r.kind === "geoip") return `GEOIP,CN,${nameOf(r.to)}`;
+    if (r.kind === "final") return `MATCH,${nameOf(r.to)}`;
+    return `RULE-SET,${m.n},${nameOf(r.to)}${m.b === "ipcidr" ? ",no-resolve" : ""}`;
+  }
+  function hopsFor(t) {
+    const miss = t.missed.length ? `<details class="miss"><summary>前 ${t.missed.length} 条未命中</summary><ol>${t.missed.map((r) => `<li>${esc(r.name)}</li>`).join("")}</ol></details>` : "";
+    const head = `<li class="hop"><span class="dot">1</span><div><div class="t">请求 <code>${esc(t.host)}</code></div><div class="d">${t.ip ? "这是 IP 地址，跳过域名类规则，按 IP 类规则比对。" : "按域名从第 1 条规则开始往下比对，第一个命中的生效。"}</div>${miss}</div></li>`;
+    if (t.branch) {
+      return `<ol class="hops">${head}<li class="hop branch"><span class="dot">?</span><div><div class="t">第 ${t.at + 1} 条「${esc(t.rule.name)}」需要知道 IP</div><div class="d">前面的域名规则都没认出它。客户端此时会解析 IP 再比对；本站不替你查询 DNS，可以直接输入 IP 再追踪。</div><span class="ev">GEOIP,CN</span></div></li></ol>
+      <p class="d muted"><b>A · 解析到中国大陆 IP</b></p><ol class="hops">${chainHops(t.st, t.rule.to, 3)}</ol>
+      <p class="d muted"><b>B · 否则</b>：第 ${t.restAt + 1} 条「${esc(t.rest.name)}」</p><ol class="hops">${chainHops(t.st, t.rest.to, 3)}</ol>`;
+    }
+    const mdesc = t.member ? `${t.rule.members.length > 1 ? `合集「${esc(t.rule.name)}」中的 ` : ""}${t.member.b} 规则集 ${esc(t.member.n)}，共 ${t.member.count.toLocaleString("zh-CN")} 条` : esc(t.rule.about);
+    return `<ol class="hops">${head}<li class="hop"><span class="dot">2</span><div><div class="t">第 ${t.at + 1} 条规则「${esc(t.rule.name)}」命中</div><div class="d">${mdesc}</div><span class="ev">${esc(ruleLine(t.rule, t.member))}</span>${t.member ? ` <span class="ev">命中：${esc(t.ev)}</span>` : ""}</div></li>${chainHops(t.st, t.rule.to, 3)}</ol>`;
+  }
+  function renderTrace() {
+    const p = $("pane-trace");
+    if (!lastTrace) { p.innerHTML = `<h3>流向追踪</h3><p class="empty">在上方输入域名或 IP，或点一个示例。被追踪的粒子会沿规则列逐条比对，这里逐层列出依据。</p>`; return; }
+    const now = trace(draft, lastTrace), before = trace(applied, lastTrace);
+    const diff = changes().length && summary(now) !== summary(before) ? `<div class="cmp">草稿改变了它的走向。应用前：${esc(summary(before))}</div>` : "";
+    p.innerHTML = `<h3>流向追踪</h3>${now ? hopsFor(now) : '<p class="empty">没有规则命中。</p>'}${diff}`;
+  }
+
+  // ——— 追踪框：有内容时悬停或聚焦出现 ×；点它或按 Esc 清空并结束追踪 ———
+  function syncClear() { $("trace-clear").hidden = !$("trace-input").value; }
+  function clearTrace() { $("trace-input").value = ""; lastTrace = null; hover = null; render(); $("trace-input").focus(); }
+  $("trace-input").addEventListener("input", syncClear);
+  $("trace-input").addEventListener("keydown", (e) => { if (e.key === "Escape" && $("trace-input").value) { e.preventDefault(); e.stopPropagation(); clearTrace(); } });
+  $("trace-clear").addEventListener("click", clearTrace);
+
+  // ================= 详情与无鼠标编辑 =================
+  function targetOptions(cur) {
+    return draft.groups.map((g) => [g.id, g.name]).concat([["DIRECT", "直连"], ["REJECT", "拦截"]]).map(([v, n]) => `<option value="${v}"${v === cur ? " selected" : ""}>${esc(n)}</option>`).join("");
+  }
+  const sampleChips = (m) => m.items.slice(0, 4).map((it) => `<code>${esc(m.b === "domain" ? "+." + it : m.b === "ipcidr" ? it[1] : it[0] + "," + it[1])}</code>`).join("");
+  function neighbor(i) {
+    const r = draft.rules[i];
+    if (r.kind !== "set") return null;
+    for (const [j, dir] of [[i - 1, "上"], [i + 1, "下"]]) { const o = draft.rules[j]; if (o && o.kind === "set" && o.to === r.to) return { r: o, dir }; }
+    return null;
+  }
+  function merge(srcId, dstId) {
+    const src = draft.rules.find((r) => r.id === srcId), dst = draft.rules.find((r) => r.id === dstId);
+    if (!src || !dst || src === dst || src.kind !== "set" || dst.kind !== "set") return;
+    dst.members = dst.members.concat(src.members).sort((a, b) => BORDER[a.b] - BORDER[b.b]);
+    draft.rules = draft.rules.filter((r) => r !== src);
+    selected = { kind: "rule", id: dst.id };
+  }
+  function splitOut(ruleId, memberId) {
+    const i = draft.rules.findIndex((r) => r.id === ruleId), r = draft.rules[i], m = r.members.find((x) => x.id === memberId);
+    r.members = r.members.filter((x) => x !== m);
+    draft.rules.splice(i + 1, 0, { id: "r-" + m.id, name: m.n, kind: "set", to: r.to, about: `从「${r.name}」合集拆出。${r.about}`, members: [m] });
+  }
+  function moveRule(id, d) {
+    const i = draft.rules.findIndex((r) => r.id === id), j = i + d;
+    if (j < 0 || j >= draft.rules.length - 1 || draft.rules[i].kind === "final") return;
+    [draft.rules[i], draft.rules[j]] = [draft.rules[j], draft.rules[i]];
+  }
+  function insertRule(id, refId, after) {
+    const r = draft.rules.find((x) => x.id === id);
+    draft.rules = draft.rules.filter((x) => x !== r);
+    draft.rules.splice(draft.rules.findIndex((x) => x.id === refId) + (after ? 1 : 0), 0, r);
+  }
+  function groupYaml(g) {
+    const lines = ["# 写进配置的样子（示意）", `- name: ${g.name}`, `  type: ${g.type}`, "  proxies:"];
+    g.members.forEach((m) => lines.push(`    - ${nameOf(m)}`));
+    PARAM_KEYS[g.type].forEach((k) => lines.push(`  ${k}: ${g.params[k]}`));
+    return lines.join("\n");
+  }
+  function renderDetail() {
+    const p = $("pane-detail");
+    if (selected && selected.kind === "rule" && !draft.rules.some((r) => r.id === selected.id)) selected = null;
+    if (selected && selected.kind === "group" && !grp(draft, selected.id)) selected = null;
+    if (!selected) { p.innerHTML = `<h3>详情</h3><p class="empty">点任意一行查看说明并修改。规则集显示它是做什么的、每个成员有多少条；策略组可以改类型、参数与成员，并给出适用场景。</p>`; return; }
+
+    if (selected.kind === "rule") {
+      const i = draft.rules.findIndex((r) => r.id === selected.id), r = draft.rules[i];
+      const bundle = r.kind === "set" && r.members.length > 1;
+      let h = `<h3>${esc(r.name)}${bundle ? ' <span class="btag">合集</span>' : ""}</h3><p class="muted">${esc(r.about)}</p>
+        <div class="edit">
+          <div class="field"><label for="ed-to">走向</label><select class="sel" id="ed-to">${targetOptions(r.to)}</select></div>
+          <div class="field"><span>优先级</span><span class="inline">第 ${i + 1} 条 <button class="btn sm" type="button" id="ed-up"${i === 0 || r.kind === "final" ? " disabled" : ""}>提前</button><button class="btn sm" type="button" id="ed-down"${i >= draft.rules.length - 2 || r.kind === "final" ? " disabled" : ""}>推后</button></span></div>
+        </div>`;
+      if (r.kind === "set") {
+        h += `<div class="mlist">${r.members.map((m) => `<div class="mi"><span class="mtag">${m.b}</span><div class="mi-main"><div><b>${esc(m.n)}</b> <span class="muted">${m.count.toLocaleString("zh-CN")} 条</span></div><div class="samples">${sampleChips(m)}</div><div class="src mono">…/release/${esc(m.file)}</div></div>${bundle ? `<button class="btn sm" type="button" data-split="${m.id}">拆出</button>` : ""}</div>`).join("")}</div>`;
+        if (bundle) h += `<p class="note">合集的成员走向相同，按 domain → ipcidr → classical 连续输出；ipcidr 自动加 <code>no-resolve</code>。</p>`;
+        const nb = neighbor(i);
+        if (nb) h += `<button class="btn" type="button" id="ed-merge" data-with="${nb.r.id}">与${nb.dir}一条「${esc(nb.r.name)}」走向相同，合并为合集</button>`;
+      }
+      h += `<pre class="out">${esc((r.kind === "set" ? r.members.map((m) => "- " + ruleLine(r, m)) : ["- " + ruleLine(r)]).join("\n"))}</pre>`;
+      p.innerHTML = h;
+      $("ed-to").onchange = (e) => { r.to = e.target.value; render(); };
+      $("ed-up").onclick = () => { moveRule(r.id, -1); render(); };
+      $("ed-down").onclick = () => { moveRule(r.id, 1); render(); };
+      p.querySelectorAll("[data-split]").forEach((b) => (b.onclick = () => { splitOut(r.id, b.dataset.split); render(); }));
+      const mb = $("ed-merge"); if (mb) mb.onclick = () => { merge(mb.dataset.with, r.id); render(); };
+      return;
+    }
+
+    if (selected.kind === "group") {
+      const g = grp(draft, selected.id), info = TYPE_INFO[g.type];
+      const users = draft.rules.filter((r) => r.to === g.id).map((r) => r.name);
+      const parents = draft.groups.filter((x) => x.members.includes(g.id)).map((x) => x.name);
+      const candidates = EXITS.map((e) => e.id).concat(draft.groups.map((x) => x.id)).filter((id) => !g.members.includes(id) && id !== g.id && (isExit(id) || !reaches(draft, id, g.id)));
+      const field = (k) => {
+        const v = g.params[k];
+        if (k === "lazy") return `<div class="field"><label for="pf-${k}">${PARAM_LABEL[k]}</label><span><input type="checkbox" id="pf-${k}" data-p="${k}"${v ? " checked" : ""}></span></div>`;
+        if (k === "strategy") return `<div class="field"><label for="pf-${k}">${PARAM_LABEL[k]}</label><select class="sel" id="pf-${k}" data-p="${k}">${Object.entries(STRATEGIES).map(([s, n]) => `<option value="${s}"${s === v ? " selected" : ""}>${n}（${s}）</option>`).join("")}</select></div>`;
+        return `<div class="field"><label for="pf-${k}">${PARAM_LABEL[k]}</label><input class="input" id="pf-${k}" data-p="${k}" ${k === "url" ? "" : 'type="number" min="0"'} value="${esc(v)}"></div>`;
+      };
+      p.innerHTML = `<h3>${esc(g.name)}</h3>
+        <div class="seg wide" role="radiogroup" aria-label="组类型">${TYPES.map((t) => `<button type="button" role="radio" aria-checked="${t === g.type}" class="${t === g.type ? "on" : ""}" data-type="${t}">${TYPE_INFO[t].label}</button>`).join("")}</div>
+        <p class="muted">${info.tip}</p>
+        <div class="fit"><span><b>适合</b>　${info.fit}</span><span><b>不适合</b>　${info.avoid}</span></div>
+        ${lints(g).map((x) => `<div class="lint">${esc(x)}</div>`).join("")}
+        ${PARAM_KEYS[g.type].length ? `<div class="edit">${PARAM_KEYS[g.type].map(field).join("")}</div>` : ""}
+        <div class="edit"><span class="note">成员（顺序即${info.first === "默认" ? "默认与候选顺序" : info.first === "优先" ? "优先顺序" : "列表顺序"}；「设为首选」会改变默认路径，图随之重新分层）</span>
+          <div class="mlist">${g.members.map((m, mi) => `<div class="mi"><span class="mi-ord">${mi + 1}</span><div class="mi-main"><span>${esc(nameOf(m))}</span></div>${mi === 0 ? `<span class="note">${info.first}</span>` : `<button class="btn sm" type="button" data-first="${m}">设为首选</button>`}<button class="btn sm ghost" type="button" data-rm="${m}"${g.members.length < 2 ? " disabled" : ""}>移除</button></div>`).join("")}</div>
+          ${candidates.length ? `<div class="inline"><select class="sel" id="add-m" aria-label="加入成员">${candidates.map((id) => `<option value="${id}">${esc(nameOf(id))}</option>`).join("")}</select><button class="btn sm" type="button" id="add-btn">加入</button></div>` : ""}
+        </div>
+        <p class="note">被 ${users.length} 条规则直接使用${users.length ? "：" + esc(users.join("、")) : ""}${parents.length ? `；是 ${esc(parents.join("、"))} 的成员` : ""}。</p>
+        <pre class="out">${esc(groupYaml(g))}</pre>`;
+      p.querySelectorAll("[data-type]").forEach((b) => (b.onclick = () => { g.type = b.dataset.type; PARAM_KEYS[g.type].forEach((k) => { if (g.params[k] == null) g.params[k] = DEFAULT_PARAMS[k]; }); render(); }));
+      p.querySelectorAll("[data-p]").forEach((el) => (el.onchange = () => {
+        const k = el.dataset.p;
+        g.params[k] = k === "lazy" ? el.checked : k === "url" || k === "strategy" ? el.value : Math.max(0, parseInt(el.value, 10) || 0);
+        render();
+      }));
+      p.querySelectorAll("[data-first]").forEach((b) => (b.onclick = () => { g.members = [b.dataset.first, ...g.members.filter((m) => m !== b.dataset.first)]; render(); }));
+      p.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { if (g.members.length > 1) { g.members = g.members.filter((m) => m !== b.dataset.rm); render(); } }));
+      const ab = $("add-btn"); if (ab) ab.onclick = () => { g.members.push($("add-m").value); render(); };
+      return;
+    }
+
+    const e = exitOf(selected.id);
+    const gs = draft.groups.filter((g) => g.members.includes(e.id)).map((g) => g.name);
+    const rs = draft.rules.filter((r) => r.to === e.id).map((r) => r.name);
+    p.innerHTML = `<h3>${esc(e.name)}</h3><p class="muted">${esc(e.meta)}。${gs.length ? "是 " + esc(gs.join("、")) + " 的成员。" : ""}${rs.length ? "被规则直接使用：" + esc(rs.join("、")) + "。" : ""}</p>
+      <p class="note">实际页面中，地区可以展开为单个节点，显示协议、倍率与到期信息；拖动单个节点进组也可以。</p>`;
+  }
+
+  // ================= 草稿 =================
+  function renderDraft() {
+    const c = changes(), el = $("draft");
+    el.hidden = c.length === 0;
+    if (!c.length) return;
+    $("toast").hidden = true;
+    el.innerHTML = `<div class="sum"><b>${c.length} 处改动尚未应用</b><ul>${c.slice(0, 5).map((x) => `<li>${esc(x)}</li>`).join("")}${c.length > 5 ? `<li>还有 ${c.length - 5} 处…</li>` : ""}</ul></div>
+      <button class="btn" type="button" id="d-cancel">取消</button><button class="btn primary" type="button" id="d-apply">应用</button>`;
+    $("d-cancel").onclick = () => { draft = clone(applied); render(); };
+    $("d-apply").onclick = () => {
+      const n = changes().length;
+      applied = clone(draft); render();
+      const t = $("toast"); t.hidden = false;
+      t.textContent = `已应用 ${n} 处改动：写入配置的 routing 段，生成新版本并通过内核检查（演示）。可在顶部撤销。`;
+    };
+  }
+
+  // ================= 交互：点击、悬停、拖动 =================
+  const map = $("map");
+  let drag = null;
+  function dropAction(d, row, clientY) {
+    const tk = row.dataset.kind, tid = row.dataset.id;
+    if (tk === "seg") return { bad: true, cls: "nodrop", label: "先点开这一段再调整" };
+    if (d.kind === "rule") {
+      const src = draft.rules.find((r) => r.id === d.id);
+      if (tk === "group") return { act: "to", cls: "drop", label: `改走 ${nameOf(tid)}` };
+      if (tk === "exit") return exitOf(tid).builtin ? { act: "to", cls: "drop", label: `改走 ${nameOf(tid)}` } : { bad: true, cls: "nodrop", label: "规则只能交给策略组、直连或拦截" };
+      if (tk === "rule") {
+        const dst = draft.rules.find((r) => r.id === tid), b = row.getBoundingClientRect(), rel = (clientY - b.top) / b.height;
+        if (src.kind === "final") return { bad: true, cls: "nodrop", label: "兜底规则必须在最后" };
+        if (rel < 0.28) return { act: "before", cls: "ins-before", label: `移到「${dst.name}」前面` };
+        if (rel > 0.72) return dst.kind === "final" ? { bad: true, cls: "nodrop", label: "兜底规则之后不能再有规则" } : { act: "after", cls: "ins-after", label: `移到「${dst.name}」后面` };
+        if (src.kind === "set" && dst.kind === "set") return { act: "merge", cls: "drop", label: `并入「${dst.name}」合集` };
+        return { bad: true, cls: "nodrop", label: "只有规则集可以组成合集" };
+      }
+      return null;
+    }
+    if (tk !== "group") return null;
+    const g = grp(draft, tid);
+    if (g.members.includes(d.id)) return { bad: true, cls: "nodrop", label: "已在组内" };
+    if (d.kind === "group" && reaches(draft, d.id, tid)) return { bad: true, cls: "nodrop", label: "会形成循环，mihomo 不接受" };
+    return { act: "add", cls: "drop", label: `加入 ${g.name}（作为候选）` };
+  }
+  const clearDrop = () => map.querySelectorAll(".drop,.nodrop,.ins-before,.ins-after").forEach((el) => el.classList.remove("drop", "nodrop", "ins-before", "ins-after"));
+  map.addEventListener("pointerdown", (e) => {
+    const row = e.target.closest(".row");
+    if (!row || e.button !== 0) return;
+    drag = { row, kind: row.dataset.kind, id: row.dataset.id, x: e.clientX, y: e.clientY, moving: false, ghost: null, drop: null, target: null };
+  });
+  addEventListener("pointermove", (e) => {
+    if (!drag) {
+      const row = e.target.closest && e.target.closest("#map .row");
+      const h = row ? { kind: row.dataset.kind, id: row.dataset.id } : null;
+      if (JSON.stringify(h) !== JSON.stringify(hover) && !lastTrace) { hover = h; decorate(); drawLinks(); }
+      return;
+    }
+    if (!drag.moving) {
+      if (drag.kind === "seg") return; // 折叠段只能点开，不能拖
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.moving = true;
+      drag.ghost = document.createElement("div");
+      drag.ghost.className = "drag-ghost";
+      document.body.appendChild(drag.ghost);
+    }
+    drag.ghost.style.left = e.clientX + "px";
+    drag.ghost.style.top = e.clientY + "px";
+    clearDrop();
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const row = under && under.closest("#map .row");
+    drag.drop = null; drag.target = null;
+    let label = drag.row.querySelector(".nm").textContent, bad = false;
+    if (row && row !== drag.row) {
+      const res = dropAction(drag, row, e.clientY);
+      if (res) { drag.drop = res; drag.target = row; row.classList.add(res.cls); label = res.label; bad = !!res.bad; }
+    }
+    drag.ghost.textContent = label;
+    drag.ghost.classList.toggle("bad", bad);
+  });
+  addEventListener("pointerup", () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.ghost) d.ghost.remove();
+    clearDrop();
+    if (!d.moving) {
+      if (d.kind === "seg") { expanded.add(d.id); render(); return; }
+      selected = { kind: d.kind, id: d.id }; render(); return;
+    }
+    if (!d.drop || d.drop.bad) return;
+    const tid = d.target.dataset.id;
+    if (d.drop.act === "to") { draft.rules.find((r) => r.id === d.id).to = tid; selected = { kind: "rule", id: d.id }; }
+    if (d.drop.act === "before" || d.drop.act === "after") { insertRule(d.id, tid, d.drop.act === "after"); selected = { kind: "rule", id: d.id }; }
+    if (d.drop.act === "merge") merge(d.id, tid);
+    if (d.drop.act === "add") { grp(draft, tid).members.push(d.id); selected = { kind: "group", id: tid }; }
+    render();
+  });
+  map.addEventListener("keydown", (e) => {
+    const row = e.target.closest(".row");
+    if (!row || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    if (row.dataset.kind === "seg") { expanded.add(row.dataset.id); render(); return; }
+    selected = { kind: row.dataset.kind, id: row.dataset.id };
+    render();
+    requestAnimationFrame(() => { const el = map.querySelector(`.row[data-kind="${selected.kind}"][data-id="${selected.id}"]`); if (el) el.focus(); });
+  });
+  map.addEventListener("pointerleave", () => { if (!drag && hover) { hover = null; decorate(); drawLinks(); } });
+  map.addEventListener("click", (e) => { if (!e.target.closest(".row") && selected) { selected = null; render(); } });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && $("layer").hidden && selected && document.activeElement !== $("trace-input")) { selected = null; render(); } });
+
+  $("presets").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-preset]"); if (!b || b.dataset.preset === preset) return;
+    preset = b.dataset.preset; applied = startOf(preset); draft = clone(applied); selected = null; hover = null; expanded.clear(); $("toast").hidden = true; render();
+  });
+  $("trace-form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("trace-input").value; lastTrace = normalize(v) ? v : null; hover = null; render(); });
+  $("quick").innerHTML = QUICK.map((q) => `<button class="chip" type="button" data-q="${q}">${q}</button>`).join("");
+  $("quick").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; $("trace-input").value = b.dataset.q; lastTrace = b.dataset.q; hover = null; render(); });
+  let rz = 0;
+  new ResizeObserver(() => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { L = captureLayout(); sizeCanvas(); drawLinks(); resetParticles(); }); }).observe(map);
+
+  // ================= 讲解图层 =================
+  const STEPS = [
+    ["应用发出请求", "你打开 ChatGPT、百度或一个带广告的网页，每一个网址都是一次请求。此时它还没有颜色：还不知道该怎么走。"],
+    ["客户端接住", "Clash 类客户端通过<b>系统代理</b>或 <b>TUN</b> 把请求接过来。此时它只知道要去哪个域名或 IP。"],
+    ["规则从上往下比对", "从<b>第 1 条规则</b>开始往下比对，<b>第一个认出它的规则生效</b>，后面的不再看。被认出的那一刻，请求才有了颜色。几个规则集可以组成一个<b>合集</b>，共用一个走向。"],
+    ["策略组一层层挑选", "规则只说「交给哪个组」。<b>策略组</b>再决定用哪个成员：手动选择、自动选最快、坏了换下一个，或者分摊。成员也可以是另一个组，平时走的是每层的第一个成员。"],
+    ["从出口离开", "<b>紫色</b>经代理节点出去，<b>青色</b>用本机网络直连，<b>橙色虚线</b>在本机就被拦下。分流页里拖动规则、合集或节点，改的就是这张图。"],
+  ];
+  let step = 0;
+  function renderLayer() {
+    $("steps").innerHTML = STEPS.map((s, i) => `<button class="step${i === step ? " on" : ""}" type="button" data-i="${i}">${i + 1}. ${s[0]}</button>`).join("");
+    $("explain").innerHTML = `<h3>${STEPS[step][0]}</h3><p>${STEPS[step][1]}</p>`;
+    document.querySelectorAll(".stage .box").forEach((b) => b.classList.toggle("on", +b.dataset.s === step || (step === 4 && +b.dataset.s >= 3)));
+    $("layer-prev").disabled = step === 0;
+    $("layer-next").textContent = step === STEPS.length - 1 ? "完成" : "下一步";
+    $("packets").innerHTML = reduce ? "" : ["p", "d", "r"].map((w, i) => `<circle class="${"abc"[i]}" r="4"><animateMotion dur="3.4s" repeatCount="indefinite" begin="${i * 0.5}s"><mpath href="#w-${w}"/></animateMotion></circle>`).join("");
+  }
+  $("steps").addEventListener("click", (e) => { const b = e.target.closest(".step"); if (b) { step = +b.dataset.i; renderLayer(); } });
+  $("open-layer").onclick = () => { step = 0; $("layer").hidden = false; renderLayer(); $("layer-next").focus(); };
+  const closeLayer = () => { $("layer").hidden = true; $("open-layer").focus(); };
+  $("layer-close").onclick = closeLayer;
+  $("layer-prev").onclick = () => { if (step > 0) { step--; renderLayer(); } };
+  $("layer-next").onclick = () => { if (step < STEPS.length - 1) { step++; renderLayer(); } else closeLayer(); };
+  $("layer").addEventListener("pointerdown", (e) => { if (e.target === $("layer")) closeLayer(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("layer").hidden) closeLayer(); });
+
+  readColors();
+  render();
+  requestAnimationFrame(frame);
+})();
+</script>

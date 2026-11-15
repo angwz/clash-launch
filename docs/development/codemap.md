@@ -90,6 +90,7 @@
 | 预览高亮当前字段 | `lib/yaml-range.ts`（路径 → 行范围）、`components/editor/YamlView.svelte` | `yaml-range.test.ts`、e2e |
 | 方案文档的读写 | `src/lib/profile-doc.ts`（只做结构操作） | `profile-doc.test.ts` |
 | 原始编辑器 | `components/editor/RawEditor.svelte`、`lib/cm.ts`（Shadow DOM，原因见 0004 #11） | e2e |
+| 分流视图（未实施） | 计划的文件与职责见 [routing](../design/routing.md) 第 11.1 节；实施时把这一行替换为实际文件 | — |
 | 命令面板 | `components/CommandPalette.svelte`、`lib/palette.svelte.ts`；页面用 `palette.register` 添加来源 | e2e |
 | 图标 | `src/components/Icon.svelte`（自绘路径表） | — |
 | 工作量证明（浏览器端） | `src/lib/pow.ts`、`pow.worker.ts`、`sha256.ts`（与后端 `auth.LeadingZeroBits` 一致） | `sha256.test.ts`、e2e |

@@ -78,6 +78,8 @@ grep -rn "v1\.19\.33" internal --include=*.go | grep -v _test
 | `internal/node/wireguard.go` | wireguard 字段名，`ip` 接受前缀写法 | `adapter/outbound/wireguard.go` |
 | `internal/node/*.go`、`internal/kernel/links.go` | 分享链接解析 | `common/convert/converter.go` |
 | `internal/kernel/check.go` | `-t` 检查不联网 | 见文件内说明 |
+| `internal/match`（[routing](../design/routing.md) 第 5 节，实施后生效） | 规则集策略对象的构造函数与导出方法（`Insert`、`FinishInsert`、`Match`、`FromMrs`、`DumpMrs`）；`rulesParse` 的逐行规则与 MRS 文件头；`RULE-SET` 的 `no-resolve`、`src` 语义；`RuleMatchHelper` 的回调字段；`rules.ParseRule` 的签名 | `rules/provider/*.go`、`rules/parser.go`、`constant/rule.go` |
+| 组的提醒（routing 第 11.3 节） | url-test 只比较最近一次测速、`tolerance` 默认 0、`lazy` 默认开启、默认间隔 300 秒；HTTP 测速地址的警告 | `adapter/outboundgroup/urltest.go`、`parser.go`，`adapter/adapter.go` 的 `URLTest`、`LastDelayForTestUrl` |
 
 行为变了就改代码和注释，并补测试；无法确认的写进限制，不要猜。
 
