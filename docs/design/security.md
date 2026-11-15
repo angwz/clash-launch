@@ -114,9 +114,12 @@
 | ---: | --- | --- | --- |
 | E1 | 凭据列 AES-256-GCM 加密；轮换后旧密文可解密；新增的加密列（TOTP、SMTP）参与轮换 | `TestOwnerIsolationAndCrypto`、`TestKeyringRotateAndBackupCopy`、`TestSecurityRepos` | 单元 |
 | E2 | 恢复码与邀请令牌只存哈希；邀请一次性的原子性 | `TestSecurityRepos`、`TestInvites` | 单元 |
+| E3 | 节点相关的数据在数据库中没有明文（反馈 #77）：订阅地址、内容、请求头、快照及其响应头、配置与版本、生成结果及其响应头、检查结果、失败原因、链接令牌、消息、模板；逐表逐列扫描确认；迁移前的明文在启动时加密并清除 | `TestNoPlaintextAtRest`、`TestEncryptLegacy` | 单元 |
+| E4 | 每一个 `*_enc` 列都在密钥轮换列表中（此前遗漏的 `messages.body_enc` 已补上） | `TestEncryptedColumnsCovered` | 单元 |
 
 ## 已知限制
 
+- **运营者可以解密**：服务器要在用户离线时更新订阅、生成配置、回应客户端，必须持有主密钥，因此掌握服务器与密钥的人在技术上可以解密用户数据。网站内的管理员视图只返回元数据（`TestQuotaAndAdmin`），这一点在帮助「隐私与安全」中如实告知用户；不愿信任运营者的用户可以自行部署。
 - **服务器出口 IP 可见**：订阅提供方与 SMTP 服务器能看到；能添加订阅的用户也能借此得知（[0003](../decisions/0003-direct-fetch-and-invites.md)）。
 - **单实例**：退避、工作量证明与通行密钥挑战的「已使用」记录在进程内；重启后清空，多实例部署需要共享实现（[0002](../decisions/0002-storage-and-service.md) #6）。
 - **自定义安全问题**会让找回接口暴露账号存在。
