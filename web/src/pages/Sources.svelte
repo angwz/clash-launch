@@ -6,8 +6,12 @@
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
+  import ShareDialog, { type ShareTarget } from "../components/ShareDialog.svelte";
+  import NodeSummary, { type Summary } from "../components/NodeSummary.svelte";
+  import { session } from "../lib/session.svelte";
   import { api, listAll, type Source, type SourceInput } from "../lib/api/client";
-  type GSource = Source & { grant?: { id: string; from: string } };
+  // 列表项另带授权信息与节点概况（反馈 #75、#76）
+  type GSource = Source & { grant?: { id: string; from: string }; summary?: Summary };
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { nodeModePolicy } from "../lib/node-mode";
@@ -16,6 +20,9 @@
   import { toasts } from "../lib/toast.svelte";
 
   let items = $state<GSource[] | null>(null);
+  // 分享或授权给好友（反馈 #76）
+  let shareTarget = $state<ShareTarget | null>(null);
+  let refreshing = $state<string | null>(null);
   // 自己的节点与别人授权给我的节点（反馈 #75）分开显示
   const mine = $derived((items ?? []).filter((s) => !s.grant));
   const granted = $derived((items ?? []).filter((s) => !!s.grant));
@@ -91,19 +98,26 @@
     }
   }
 
+  // 立即拉取：拉取是同步完成的，完成后刷新这一行并告知结果（反馈 #76）
   async function refresh(s: Source) {
+    refreshing = s.id;
     try {
-      await api.post("/api/v1/sources/" + s.id + "/refresh");
-      toasts.push("ok", t("source.refresh_queued"));
+      const r = await api.post<{ lastError?: string }>("/api/v1/sources/" + s.id + "/refresh");
       await load();
+      if (r.lastError) toasts.push("err", t("source.refresh_failed", { reason: r.lastError }));
+      else toasts.push("ok", t("source.refresh_done"));
     } catch (e) {
       toasts.push("err", errorText(e));
+    } finally {
+      refreshing = null;
     }
   }
 
   // 后端只区分订阅与手动（单条、批量、文件都按内容自动识别），界面也只呈现这两类。
   const kindIcon = (k: string) => (k === "subscription" ? "link" : "server") as "link" | "server";
 </script>
+
+<ShareDialog bind:target={shareTarget} />
 
 <div class="page">
   <PageHeader title={t("sources.title")} subtitle={t("sources.subtitle")}>
@@ -142,13 +156,16 @@
               <td>
                 <a class="name" href={"/sources/" + s.id}>{s.name}</a>
                 {#if host(s.url)}<span class="host mono ltr">{host(s.url)}</span>{/if}
+                {#if s.summary}<NodeSummary summary={s.summary} />{/if}
               </td>
               <td><span class="kind"><Icon name={kindIcon(s.kind)} size={14} />{t("source.kind." + s.kind)}</span></td>
               <td><StatusBadge tone={st.tone} label={st.label} /></td>
               <td class="act">
                 {#if s.kind === "subscription" && !clientFetch}
-                  <button class="btn ghost icon sm" type="button" aria-label={t("source.refresh")} title={t("source.refresh")} onclick={() => void refresh(s)}><Icon name="refresh" size={14} /></button>
+                  <button class="btn ghost icon sm" class:spin={refreshing === s.id} type="button" disabled={refreshing === s.id} aria-label={t("source.refresh")} title={t("source.refresh")} onclick={() => void refresh(s)}><Icon name="refresh" size={14} /></button>
                 {/if}
+                <button class="btn ghost icon sm" type="button" aria-label={t("share.share_x", { name: s.name })} title={t("messages.share_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "share" })}><Icon name="send" size={14} /></button>
+                <button class="btn ghost icon sm" type="button" aria-label={t("share.grant_x", { name: s.name })} title={t("messages.grant_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "grant" })}><Icon name="shield" size={14} /></button>
                 <a class="btn ghost icon sm" href={"/sources/" + s.id} aria-label={t("common.open")}><Icon name="chevron-right" size={14} /></a>
               </td>
             </tr>
@@ -168,6 +185,7 @@
             <span class="g-main">
               <strong>{s.name}</strong>
               <span class="muted">{t("source.kind." + s.kind)} · {t("sources.granted_from", { name: s.grant!.from, when: i18n.date(s.createdAt) })}</span>
+              {#if s.summary}<NodeSummary summary={s.summary} />{/if}
             </span>
             <button class="btn sm ghost" type="button" onclick={() => void removeGrant(s)}>{t("messages.remove")}</button>
           </li>
@@ -197,7 +215,8 @@
       <div>
         <label class="label" for="ns-url">{t("source.url")}</label>
         <input id="ns-url" class="input mono ltr" type="url" bind:value={form.url} required placeholder="https://sub.example.com/…" autocomplete="off" spellcheck="false" />
-        <p class="hint">{t("source.url_hint")}</p>
+        <!-- 「服务器直接拉取、出口 IP」是部署者需要知道的事，只给管理员看（反馈 #76） -->
+        {#if session.isAdmin}<p class="hint">{t("source.url_hint")}</p>{/if}
       </div>
     {:else}
       <div>
@@ -267,6 +286,20 @@
     gap: var(--space-2);
     color: var(--fg-muted);
     white-space: nowrap;
+  }
+  /* 立即拉取进行中：图标旋转 */
+  .spin :global(.icon) {
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spin :global(.icon) {
+      animation: none;
+    }
   }
   .act {
     text-align: end;

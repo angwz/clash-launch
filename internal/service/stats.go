@@ -147,7 +147,9 @@ func (s *Stats) Request(q store.SubRequest) {
 	if len(q.UA) > 300 {
 		q.UA = q.UA[:300]
 	}
-	q.Client = clientOf(q.UA)
+	if q.Client == "" { // 一键导入的记录由调用方给出客户端名称（反馈 #76）
+		q.Client = clientOf(q.UA)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.reqs = append(s.reqs, q)

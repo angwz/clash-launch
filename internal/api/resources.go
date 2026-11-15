@@ -74,6 +74,8 @@ type sourceDTO struct {
 	CreatedAt  time.Time         `json:"createdAt"`
 	UpdatedAt  time.Time         `json:"updatedAt"`
 	Snapshot   *snapshotDTO      `json:"snapshot,omitempty"`
+	// Summary 是节点概况：可用节点数、协议分布、订阅的流量与到期时间（反馈 #76）
+	Summary *sourceSummary `json:"summary,omitempty"`
 	// Grant 非空表示这是别人授权给我的只读节点（反馈 #75）：不返回地址与内容，不能修改
 	Grant *sourceGrantDTO `json:"grant,omitempty"`
 }
@@ -108,6 +110,12 @@ func (s *Server) toSource(r *http.Request, u *store.User, src *store.Source) sou
 	}
 	if snap, err := s.Svc.Store.Snapshots().Get(r.Context(), u.ID, service.SourceKey(src.ID)); err == nil {
 		d.Snapshot = &snapshotDTO{FetchedAt: tp(snap.FetchedAt), LastAttempt: tp(snap.LastAttempt), LastError: snap.LastError, FailingSince: tp(snap.FailingSince), Hash: snap.Hash}
+		if src.Kind == "subscription" && len(snap.Content) > 0 {
+			d.Summary = s.summarize(src, snap.Content, snap.Headers)
+		}
+	}
+	if src.Kind != "subscription" {
+		d.Summary = s.summarize(src, src.Content, nil)
 	}
 	return d
 }
@@ -164,7 +172,16 @@ func (s *Server) listSources(w http.ResponseWriter, r *http.Request, p *principa
 			return
 		}
 		for _, g := range gs {
-			out.Items = append(out.Items, sourceDTO{ID: g.Source.ID, Name: g.Source.Name, Kind: g.Source.Kind, Interval: g.Source.Interval, Processing: json.RawMessage("{}"), CreatedAt: g.Grant.CreatedAt, UpdatedAt: g.Source.UpdatedAt, Grant: &sourceGrantDTO{ID: g.Grant.ID, From: g.From}})
+			d := sourceDTO{ID: g.Source.ID, Name: g.Source.Name, Kind: g.Source.Kind, Interval: g.Source.Interval, Processing: json.RawMessage("{}"), CreatedAt: g.Grant.CreatedAt, UpdatedAt: g.Source.UpdatedAt, Grant: &sourceGrantDTO{ID: g.Grant.ID, From: g.From}}
+			// 概况（节点数、协议）可以看，内容与地址不给（反馈 #76）
+			if g.Source.Kind == "subscription" {
+				if snap, err := s.Svc.Store.Snapshots().Get(r.Context(), g.Grant.OwnerID, service.SourceKey(g.Source.ID)); err == nil && len(snap.Content) > 0 {
+					d.Summary = s.summarize(g.Source, snap.Content, snap.Headers)
+				}
+			} else {
+				d.Summary = s.summarize(g.Source, g.Source.Content, nil)
+			}
+			out.Items = append(out.Items, d)
 		}
 	}
 	writeJSON(w, http.StatusOK, out)

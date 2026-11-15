@@ -582,3 +582,34 @@ test("管理：审计日志分页", async ({ page, request, baseURL }) => {
   await pager.getByRole("button", { name: "下一页" }).click();
   await expect(pager).toContainText("第 2 /");
 });
+
+test("节点页：显示节点概况，直接分享或授权给好友；注册时安全问题可选并逐个出现", async ({ browser, page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const bob = await createUser(request, baseURL!, "nd");
+  await seedProfile(request, baseURL!, "概况");
+  await login(page);
+  await page.goto("/sources");
+  await expect(page.locator("tbody tr").first()).toContainText("个可用节点");
+  await page.locator("tbody tr").first().getByRole("button", { name: /^授权「/ }).click();
+  const dlg = page.locator("dialog[open]");
+  await dlg.getByPlaceholder("输入对方的用户名").fill(bob);
+  await expect(dlg.locator('input[name="share-mode"][value="grant"]')).toBeChecked();
+  await dlg.getByRole("button", { name: "发送" }).click();
+  await expect(page.getByText("已授权给 " + bob)).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-sources-share.png" });
+
+  // 注册：先只显示一个安全问题，答了才出现下一个；不答也能注册
+  const admin = await apiAs(request, baseURL!);
+  await admin("PUT", "/api/v1/admin/registration", { open: true });
+  const ctx = await browser.newContext();
+  const p2 = await ctx.newPage();
+  await p2.goto("/register");
+  await expect(p2.getByLabel("第 1 个问题的答案")).toBeVisible();
+  await expect(p2.getByLabel("第 2 个问题的答案")).toHaveCount(0);
+  await p2.getByLabel("第 1 个问题的答案").fill("Beijing");
+  await expect(p2.getByLabel("第 2 个问题的答案")).toBeVisible();
+  await p2.getByLabel("第 1 个问题的答案").fill("");
+  await p2.screenshot({ path: "test-results/shot-register.png" });
+  await admin("PUT", "/api/v1/admin/registration", { open: false });
+  await ctx.close();
+});

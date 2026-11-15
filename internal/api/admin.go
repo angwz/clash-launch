@@ -71,6 +71,15 @@ func (s *Server) myQuota(w http.ResponseWriter, r *http.Request, p *principal) {
 }
 
 func (s *Server) adminUsers(w http.ResponseWriter, r *http.Request, _ *principal) {
+	if n, size, ok := pageNo(r); ok {
+		list, total, err := s.Svc.AdminUsersPaged(r.Context(), r.URL.Query().Get("q"), (n-1)*size, size)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": list, "total": total, "page": n, "size": size, "defaults": s.Svc.QuotaDefaultsView()})
+		return
+	}
 	list, err := s.Svc.AdminUsers(r.Context(), page(r))
 	if err != nil {
 		s.fail(w, err)

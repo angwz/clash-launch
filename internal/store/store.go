@@ -249,6 +249,8 @@ type UserRepo interface {
 	SetInvited(ctx context.Context, id string, invited bool) error
 	Count(ctx context.Context) (int, error)
 	List(ctx context.Context, p Page) ([]User, error) // 管理用：只含元数据
+	// Paged 按页返回用户（按用户名排序）与总数；q 非空时按用户名包含 q 过滤（管理页分页，反馈 #76）
+	Paged(ctx context.Context, q string, offset, limit int) ([]User, int, error)
 }
 
 // SessionRepo 管理会话。

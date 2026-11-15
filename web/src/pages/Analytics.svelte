@@ -121,7 +121,7 @@
   };
   // 归属地：有国家时显示旗帜与名称；本机与内网地址显示「本地网络」；其余（数据库里没有这个地址）留空（反馈 #75）
   const region = (c: string, ip = "") => (c ? `${flagOf(c)} ${regionName(c, i18n.intlLocale)}` : isLocalIP(ip) ? t("analytics.local") : "");
-  const kindLabel = (k: string) => t("analytics.kind." + (["config", "provider", "export", "short"].includes(k) ? k : "config"));
+  const kindLabel = (k: string) => t("analytics.kind." + (["config", "provider", "export", "short", "import"].includes(k) ? k : "config"));
 
   // 拉取间隔：约每 N 分钟 / 小时 / 天
   function every(sec: number): string {

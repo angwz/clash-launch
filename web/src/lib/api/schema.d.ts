@@ -3409,6 +3409,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 记录一次「一键导入到客户端」（前端在点击时上报，记为 import 类型的请求）；link 为自己的配置链接，short 为自己的短链接，code 为别人授权给自己的短链接 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        link?: string;
+                        short?: string;
+                        code?: string;
+                        /** @enum {string} */
+                        client: "verge" | "party" | "flclash" | "cmfa";
+                    };
+                };
+            };
+            responses: {
+                /** @description recorded */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/templates": {
         parameters: {
             query?: never;

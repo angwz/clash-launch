@@ -26,7 +26,7 @@ func TestAccountSecurity(t *testing.T) {
 	if r, b := anon.do("POST", "/api/v1/register", body); r.StatusCode != 400 || !strings.Contains(string(b), "pow.invalid") {
 		t.Errorf("重放的工作量证明应被拒绝：%d %s", r.StatusCode, b)
 	}
-	// 安全问题必填
+	// 安全问题可选，但填写时不能重复（反馈 #76）
 	body = registerBody(t, anon, "gina", "")
 	body["questions"] = []map[string]any{{"builtin": 0}, {"builtin": 0}, {"builtin": 1}}
 	anon.want(422, "POST", "/api/v1/register", body)

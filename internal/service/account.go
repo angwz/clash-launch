@@ -146,7 +146,7 @@ func (s *Service) SetQuestions(ctx context.Context, userID, password string, qs 
 	if !auth.VerifyPassword(u.PasswordHash, password) {
 		return ErrWrongPassword
 	}
-	if err := auth.CheckQuestions(qs, answers); err != nil {
+	if err := auth.CheckQuestions(qs, answers, 1); err != nil {
 		return err
 	}
 	stored, err := hashQuestions(qs, answers)
@@ -178,14 +178,15 @@ func (s *Service) MyQuestions(ctx context.Context, userID string) ([]auth.Questi
 // 响应形状相同，不能据此判断用户名是否存在。
 func (s *Service) RecoveryQuestions(ctx context.Context, username string) []auth.Question {
 	if u, err := s.Store.Users().ByUsername(ctx, username); err == nil && !u.Disabled {
-		if qs, err := s.MyQuestions(ctx, u.ID); err == nil && len(qs) == auth.QuestionCount {
-			return qs
+		if qs, err := s.MyQuestions(ctx, u.ID); err == nil && len(qs) > 0 {
+			return auth.PadQuestions(s.g().decoy, username, qs)
 		}
 	}
 	return auth.DecoyQuestions(s.g().decoy, username)
 }
 
-// Recover 用安全问题重设密码：答对至少 2 个时设置新密码，并注销该账号的全部会话。
+// Recover 用安全问题重设密码：答对至少 2 个（设置的问题少于 2 个时全部答对）时设置新密码，
+// 并注销该账号的全部会话。补足用的诱饵问题不参与判断。
 // 失败按账号与 IP 计数，连续失败后锁定 15 分钟。
 func (s *Service) Recover(ctx context.Context, username string, answers []string, newPassword, ip string) error {
 	g, now := s.g(), s.now()
@@ -214,7 +215,7 @@ func (s *Service) Recover(ctx context.Context, username string, answers []string
 			auth.DummyVerify(norm) // 不存在的用户同样做三次哈希，耗时一致
 		}
 	}
-	if len(stored) != auth.QuestionCount || correct < auth.RecoverThreshold {
+	if len(stored) == 0 || correct < min(auth.RecoverThreshold, len(stored)) {
 		g.recoverUser.Fail(userKey(username), now)
 		g.recoverIP.Fail("ip:"+ip, now)
 		owner := ""

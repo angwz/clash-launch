@@ -91,7 +91,8 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 	if err := auth.CheckPassword(password); err != nil {
 		return nil, err
 	}
-	if err := auth.CheckQuestions(in.Questions, in.Answers); err != nil {
+	// 安全问题可选（反馈 #76）：0–3 个
+	if err := auth.CheckQuestions(in.Questions, in.Answers, 0); err != nil {
 		return nil, err
 	}
 	open, err := s.RegistrationOpen(ctx)

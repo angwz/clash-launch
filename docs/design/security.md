@@ -60,9 +60,9 @@
 | A2 | 用户名不存在与密码错误的响应相同，耗时相近（DummyVerify） | `TestAccountSecurity`（找回）；登录走同一路径 | API |
 | A3 | 登录失败按账号退避；退避期内即使密码正确也拒绝 | `TestAccountSecurity` | API |
 | A4 | 注册默认关闭；邀请一次性、可过期、可撤销 | `TestRegistrationAndInvites`、`TestInvites`、e2e 注册 | API / e2e |
-| A5 | 注册需要 3 个互不相同的安全问题与有效的工作量证明；伪造与重放的证明被拒绝 | `TestAccountSecurity`、`TestPoW` | 单元 / API |
+| A5 | 注册需要有效的工作量证明（伪造与重放的证明被拒绝）；安全问题可选（0–3 个，反馈 #76），填写时互不相同；找回时答对 min(2, 设置的个数) 个 | `TestAccountSecurity`、`TestPoW`、`TestOptionalQuestionsTemplatesImportsPaging` | 单元 / API |
 | A6 | 找回答对 2 个即可，答案规范化（大小写、全半角、空白）；成功后全部会话失效 | `TestAccountSecurity`、`TestNormalizeAnswer`、e2e 找回 | 单元 / API / e2e |
-| A7 | 找回不泄露用户名：不存在的用户返回稳定的诱饵问题 | `TestAccountSecurity`、`TestDecoyQuestions` | 单元 / API |
+| A7 | 找回不泄露用户名与问题个数：不存在的用户返回稳定的诱饵问题，设置少于 3 个的账号用诱饵问题补足 3 个（诱饵的答案不参与判断） | `TestAccountSecurity`、`TestDecoyQuestions`、`TestCheckQuestions` | 单元 / API |
 | A8 | 找回连续失败 5 次后锁定 15 分钟（即使之后答案正确） | `TestAccountSecurity` | API |
 | A9 | TOTP 符合 RFC 6238；同一时间步不能重放；恢复码一次性 | `TestTOTPVectors`、`TestVerifyTOTP`、`TestTOTPFlow`、e2e 两步验证 | 单元 / API / e2e |
 | A10 | 启用两步验证后密码正确不建立会话；第二步凭证不可伪造、会过期 | `TestTOTPFlow`、`TestTickets` | 单元 / API |

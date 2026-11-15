@@ -133,7 +133,7 @@
         </div>
         <div class="actions">
           <button class="btn ghost" type="button" onclick={() => (editingQs = false)}>{t("common.cancel")}</button>
-          <button class="btn primary" type="submit" disabled={!qsPassword || !questionsValid(qs)}>{t("common.save")}</button>
+          <button class="btn primary" type="submit" disabled={!qsPassword || !questionsValid(qs, 1)}>{t("common.save")}</button>
         </div>
       </form>
     {/if}

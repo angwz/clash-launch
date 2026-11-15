@@ -37,8 +37,10 @@
 
   async function refresh() {
     try {
-      await api.post("/api/v1/rule-sources/" + params.id + "/refresh");
-      toasts.push("ok", t("source.refresh_queued"));
+      // 拉取是同步完成的：完成后告知结果（反馈 #76）
+      const r = await api.post<{ error?: string }>("/api/v1/rule-sources/" + params.id + "/refresh");
+      if (r?.error) toasts.push("err", t("source.refresh_failed", { reason: r.error }));
+      else toasts.push("ok", t("source.refresh_done"));
     } catch (e) {
       toasts.push("err", errorText(e));
     }

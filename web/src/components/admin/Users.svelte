@@ -5,6 +5,7 @@
   import { api } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
   import { i18n, t } from "../../lib/i18n/i18n.svelte";
+  import Icon from "../Icon.svelte";
   import { session } from "../../lib/session.svelte";
   import { toasts } from "../../lib/toast.svelte";
 
@@ -39,13 +40,25 @@
   // 配额表单：空字符串表示使用默认值；分钟与 MiB 便于输入
   let qf = $state({ sources: "", profiles: "", links: "", minInterval: "", storage: "" });
 
-  async function load() {
-    const r = await api.get<{ items: U[]; defaults: Limits }>("/api/v1/admin/users", { query: { limit: 200 } });
+  // 按页码分页并可按用户名搜索（反馈 #76）
+  const SIZE = 20;
+  let pageN = $state(1);
+  let total = $state(0);
+  let q = $state("");
+  const pages = $derived(Math.max(1, Math.ceil(total / SIZE)));
+  async function load(n = pageN) {
+    const r = await api.get<{ items: U[]; total: number; page: number; defaults: Limits }>("/api/v1/admin/users", { query: { pageNo: n, limit: SIZE, q: q.trim() || undefined } });
     users = r.items;
+    total = r.total;
+    pageN = r.page;
     defaults = r.defaults;
   }
+  // 搜索：停止输入 250 毫秒后回到第一页
+  let timer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
-    load().catch((e) => toasts.push("err", errorText(e)));
+    void q;
+    clearTimeout(timer);
+    timer = setTimeout(() => load(1).catch((e) => toasts.push("err", errorText(e))), 250);
   });
 
   const mb = (n: number) => (n / (1 << 20)).toLocaleString(i18n.intlLocale, { maximumFractionDigits: 1 }) + " MiB";
@@ -102,6 +115,11 @@
   }
 </script>
 
+<div class="search">
+  <Icon name="search" size={14} />
+  <input class="input" type="search" bind:value={q} placeholder={t("admin.user_search")} aria-label={t("admin.user_search")} />
+  <span class="muted">{t("admin.user_total", { n: total })}</span>
+</div>
 <div class="wrap">
   <table class="table flush">
     <thead>
@@ -137,6 +155,13 @@
       {/each}
     </tbody>
   </table>
+  {#if pages > 1}
+    <nav class="pager" aria-label={t("admin.user_pager")}>
+      <button class="btn sm" type="button" disabled={pageN <= 1} onclick={() => void load(pageN - 1)}>{t("audit.prev")}</button>
+      <span class="muted">{t("audit.page_of", { n: pageN, m: pages, total: i18n.number(total) })}</span>
+      <button class="btn sm" type="button" disabled={pageN >= pages} onclick={() => void load(pageN + 1)}>{t("audit.next")}</button>
+    </nav>
+  {/if}
 </div>
 
 <Dialog bind:open={resetOpen} title={t("admin.reset_password_for", { name: resetFor?.username ?? "" })}>
@@ -194,6 +219,27 @@
     background: var(--accent-soft);
     color: var(--accent-fg);
     font-size: var(--text-xs);
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-end: var(--space-3);
+    color: var(--fg-muted);
+  }
+  .search .input {
+    max-inline-size: 260px;
+  }
+  .search .muted {
+    font-size: var(--text-sm);
+  }
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-3);
+    font-size: var(--text-sm);
   }
   .role.open {
     background: var(--bg-sunken);

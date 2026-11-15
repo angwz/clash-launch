@@ -6,6 +6,7 @@
   // 删除对话会收回你们之间的全部授权。宽屏两栏，窄屏单栏。会话每 15 秒、列表每 30 秒自动刷新。
   import { tick } from "svelte";
   import Icon from "../components/Icon.svelte";
+  import UserPicker from "../components/UserPicker.svelte";
   import { api, ApiError, listAll, type Source } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -31,7 +32,8 @@
     purgeAt: string;
   }
   interface Attach {
-    kind: "nodes" | "subscription" | "grant";
+    kind: "nodes" | "subscription" | "grant" | "template";
+    note?: string;
     name: string;
     url?: string;
     nodes?: number;
@@ -55,10 +57,6 @@
     note: string;
     grantee?: string;
   }
-  interface Hit {
-    username: string;
-    accepts: boolean;
-  }
   /** 待发送的附件 */
   type Pending = { kind: "source"; mode: "share" | "grant"; id: string; name: string; sourceKind: string } | { kind: "short"; id: string; name: string };
 
@@ -75,8 +73,6 @@
   let next = $state<string | undefined>();
   let missing = $state(false);
   let to = $state("");
-  let hits = $state<Hit[] | null>(null);
-  let hitAt = $state(0);
   let text = $state("");
   let attach = $state<Pending | null>(null);
   let sources = $state<Source[] | null>(null);
@@ -140,49 +136,9 @@
   $effect(() => live(loadThreads, 30_000).stop);
   $effect(() => (peer ? live(() => loadThread(), 15_000).stop : undefined));
 
-  // —— 收件人联想：停止输入 200 毫秒后查询，标出对方是否存在、是否接收消息 ——
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  $effect(() => {
-    const q = to.trim();
-    clearTimeout(timer);
-    if (!q) {
-      hits = null;
-      return;
-    }
-    timer = setTimeout(async () => {
-      try {
-        const r = await api.get<{ items: Hit[] }>("/api/v1/users/search", { query: { q } });
-        if (to.trim() === q) {
-          hits = r.items;
-          hitAt = 0;
-        }
-      } catch {
-        hits = null;
-      }
-    }, 200);
-  });
-
   function open(name: string) {
     to = "";
-    hits = null;
     router.go("/messages/" + encodeURIComponent(name));
-  }
-
-  function start(e: SubmitEvent) {
-    e.preventDefault();
-    const h = hits?.[hitAt];
-    if (h) open(h.username);
-    else if (to.trim()) open(to.trim());
-  }
-
-  function onToKey(e: KeyboardEvent) {
-    if (!hits?.length) return;
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      hitAt = (hitAt + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length;
-    } else if (e.key === "Escape") {
-      hits = null;
-    }
   }
 
   async function send() {
@@ -251,8 +207,8 @@
 
   async function accept(m: Msg) {
     try {
-      const r = await api.post<{ source: string; name: string }>("/api/v1/messages/" + m.id + "/accept", {});
-      toasts.push("ok", t("messages.added", { name: r.name }));
+      const r = await api.post<{ kind: string; source: string; name: string }>("/api/v1/messages/" + m.id + "/accept", {});
+      toasts.push("ok", r.kind === "template" ? t("messages.added_template", { name: r.name }) : t("messages.added", { name: r.name }));
       await loadThread();
     } catch (e) {
       toasts.push("err", errorText(e));
@@ -328,48 +284,19 @@
   const daysLeft = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
   // 同一天的消息之间不重复显示日期
   const dayOf = (iso: string) => i18n.date(iso, "long").split(" ")[0];
-  const attachIcon = (a: Attach) => (a.kind === "grant" ? (a.target === "short" ? "shrink" : "shield") : a.kind === "subscription" ? "link" : "server");
+  const attachIcon = (a: Attach) => (a.kind === "template" ? "layers" : a.kind === "grant" ? (a.target === "short" ? "shrink" : "shield") : a.kind === "subscription" ? "link" : "server");
   function attachLine(a: Attach): string {
     if (a.kind === "subscription") return t("messages.attach_sub", { host: host(a.url) });
     if (a.kind === "nodes") return t("messages.attach_nodes", { n: a.nodes ?? 0 });
+    if (a.kind === "template") return a.note ? t("messages.attach_template_note", { note: a.note }) : t("messages.attach_template");
     return a.target === "short" ? t("messages.grant_short") : t("messages.grant_source");
   }
 </script>
 
 <div class="page" class:has-peer={!!peer}>
   <aside class="threads panel" aria-label={t("messages.threads")}>
-    <form class="start" onsubmit={start}>
-      <div class="to">
-        <input
-          class="input"
-          bind:value={to}
-          onkeydown={onToKey}
-          placeholder={t("messages.to_placeholder")}
-          aria-label={t("messages.to")}
-          autocomplete="off"
-          spellcheck="false"
-          role="combobox"
-          aria-expanded={!!hits?.length}
-          aria-controls="to-hits"
-          aria-autocomplete="list"
-        />
-        {#if to.trim() && hits}
-          <ul id="to-hits" class="hits" role="listbox" aria-label={t("messages.to")}>
-            {#each hits as h, i (h.username)}
-              <li role="option" aria-selected={i === hitAt} class:on={i === hitAt}>
-                <button type="button" onpointerdown={(e) => { e.preventDefault(); open(h.username); }}>
-                  <span class="avatar sm" aria-hidden="true">{h.username.slice(0, 1).toUpperCase()}</span>
-                  <span class="h-name">{h.username}</span>
-                  <span class="h-state" class:no={!h.accepts}>{h.accepts ? t("messages.hit_ok") : t("messages.hit_off")}</span>
-                </button>
-              </li>
-            {/each}
-            {#if !hits.length}
-              <li class="h-missing muted" role="presentation"><Icon name="info" size={13} />{t("messages.hit_none", { name: to.trim() })}</li>
-            {/if}
-          </ul>
-        {/if}
-      </div>
+    <form class="start" onsubmit={(e) => { e.preventDefault(); if (to.trim()) open(to.trim()); }}>
+      <UserPicker bind:value={to} onselect={open} placeholder={t("messages.to_placeholder")} />
       <button class="btn primary icon" type="submit" aria-label={t("messages.start")} title={t("messages.start")}><Icon name="plus" size={15} /></button>
     </form>
     {#if threads && !threads.length && !showBin}
@@ -478,9 +405,9 @@
                       {/if}
                     {:else if !m.mine}
                       {#if m.addedSource}
-                        <a class="btn sm ghost" href={"/sources/" + m.addedSource}><Icon name="check" size={13} />{t("messages.in_library")}</a>
+                        <a class="btn sm ghost" href={m.attach.kind === "template" ? "/" : "/sources/" + m.addedSource}><Icon name="check" size={13} />{m.attach.kind === "template" ? t("messages.in_templates") : t("messages.in_library")}</a>
                       {:else}
-                        <button class="btn sm primary" type="button" onclick={() => void accept(m)}><Icon name="plus" size={13} />{t("messages.add")}</button>
+                        <button class="btn sm primary" type="button" onclick={() => void accept(m)}><Icon name="plus" size={13} />{m.attach.kind === "template" ? t("messages.add_template") : t("messages.add")}</button>
                       {/if}
                     {/if}
                   </div>
@@ -831,65 +758,6 @@
     .back {
       display: inline-flex;
     }
-  }
-  /* 收件人联想（反馈 #75） */
-  .to {
-    position: relative;
-    flex: 1;
-  }
-  .hits {
-    position: absolute;
-    z-index: 30;
-    inset-inline: 0;
-    inset-block-start: calc(100% + 4px);
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--bg-raised);
-    box-shadow: var(--shadow-md);
-  }
-  .hits button {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    inline-size: 100%;
-    padding: 6px var(--space-2);
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--fg);
-    font: inherit;
-    text-align: start;
-    cursor: pointer;
-  }
-  .hits li.on button,
-  .hits button:hover {
-    background: var(--bg-hover);
-  }
-  .h-name {
-    flex: 1;
-    font-weight: 560;
-  }
-  .h-state {
-    color: var(--ok);
-    font-size: var(--text-xs);
-  }
-  .h-state.no {
-    color: var(--fg-muted);
-  }
-  .h-missing {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-    padding: 6px var(--space-2);
-    font-size: var(--text-sm);
-  }
-  .avatar.sm {
-    inline-size: 22px;
-    block-size: 22px;
-    font-size: 11px;
   }
   /* 会话列表：每行右侧的 × 删除（悬停或聚焦时出现） */
   .list {

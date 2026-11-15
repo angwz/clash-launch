@@ -11,6 +11,7 @@
   import { ordered, prefs } from "../lib/prefs.svelte";
   import { presetInput } from "../lib/rules";
   import { toasts } from "../lib/toast.svelte";
+  import { session } from "../lib/session.svelte";
 
   let step = $state(0);
   let preset = $state("mihomo");
@@ -101,7 +102,7 @@
       {#if kind === "subscription"}
         <label class="label" for="wz-url">{t("source.url")}</label>
         <input id="wz-url" class="input mono ltr" type="url" bind:value={url} placeholder="https://sub.example.com/…" spellcheck="false" />
-        <p class="hint">{t("source.url_hint")}</p>
+        {#if session.isAdmin}<p class="hint">{t("source.url_hint")}</p>{/if}
       {:else}
         <label class="label" for="wz-c">{t("source.content")}</label>
         <textarea id="wz-c" class="textarea mono ltr" rows="7" bind:value={content} placeholder={t("source.content_placeholder")} spellcheck="false"></textarea>

@@ -327,6 +327,7 @@ type attachDTO struct {
 	URL   string `json:"url,omitempty"`
 	Nodes int    `json:"nodes,omitempty"` // 手动节点的行数（粗略的节点数）
 	// 授权（反馈 #75）：Target 为 source 或 short；Active 表示授权仍有效
+	Note       string `json:"note,omitempty"` // 配置模板的说明
 	Target     string `json:"target,omitempty"`
 	GrantID    string `json:"grantId,omitempty"`
 	SourceKind string `json:"sourceKind,omitempty"`
@@ -352,7 +353,7 @@ func (s *Server) toMessage(ctx context.Context, me string, m *store.Message) mes
 		d.AddedSource = m.AddedSource
 	}
 	if a := b.Attach; a != nil {
-		d.Attach = &attachDTO{Kind: a.Kind, Name: a.Name, URL: a.URL, Target: a.Target, GrantID: a.GrantID, SourceKind: a.SourceKind}
+		d.Attach = &attachDTO{Kind: a.Kind, Name: a.Name, URL: a.URL, Note: a.Note, Target: a.Target, GrantID: a.GrantID, SourceKind: a.SourceKind}
 		if a.Kind == "grant" {
 			if g, err := s.Svc.Store.Grants().Get(ctx, me, a.GrantID); err == nil {
 				d.Attach.Active = g.Active()
@@ -422,17 +423,18 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 
 func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principal) {
 	var req struct {
-		To     string `json:"to"`
-		Text   string `json:"text"`
-		Source string `json:"source"`
-		Short  string `json:"short"`
-		Mode   string `json:"mode"` // share | grant
+		To       string `json:"to"`
+		Text     string `json:"text"`
+		Source   string `json:"source"`
+		Short    string `json:"short"`
+		Template string `json:"template"`
+		Mode     string `json:"mode"` // share | grant
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
 		return
 	}
-	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, service.AttachRequest{Source: req.Source, Short: req.Short, Mode: req.Mode})
+	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, service.AttachRequest{Source: req.Source, Short: req.Short, Template: req.Template, Mode: req.Mode})
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -446,7 +448,7 @@ func (s *Server) acceptMessage(w http.ResponseWriter, r *http.Request, p *princi
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"source": src.ID, "name": src.Name})
+	writeJSON(w, http.StatusOK, map[string]string{"kind": src.Kind, "source": src.ID, "name": src.Name})
 }
 
 func (s *Server) hideMessage(w http.ResponseWriter, r *http.Request, p *principal) {

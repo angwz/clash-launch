@@ -33,7 +33,7 @@ const dynamic: Record<string, string[]> = {
   "palette.kind.": ["page", "field", "command"],
   "mode.": ["inline", "provider"],
   "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],
-  "analytics.kind.": ["config", "provider", "export", "short"],
+  "analytics.kind.": ["config", "provider", "export", "short", "import"],
   "analytics.range_": ["7", "30", "90", "365"],
   "short.state.": ["active", "disabled", "expired"],
   "profiles.nodes_kind.": ["subscription", "batch"],

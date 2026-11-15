@@ -284,3 +284,60 @@ func attachment(name string) string {
 	}, name)
 	return `attachment; filename="` + ascii + `"; filename*=UTF-8''` + url.PathEscape(name)
 }
+
+// importClients 是「导入到客户端」菜单中的客户端（与 web/src/lib/clients.ts 一致），用于记录名称。
+var importClients = map[string]string{"verge": "Clash Verge Rev", "party": "Mihomo Party", "flclash": "FlClash", "cmfa": "Clash Meta for Android"}
+
+// recordImport 记录一次「一键导入到客户端」（反馈 #76）：浏览器只是打开客户端的导入链接，本站收不到请求，
+// 所以由前端在点击时上报，记为 import 类型的一次请求（客户端随后真正拉取配置时另记一次）。
+// 可以是自己的配置链接（link）、自己的短链接（short），或别人授权给自己的短链接（code，计入授权者的统计）。
+func (s *Server) recordImport(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Link   string `json:"link"`
+		Short  string `json:"short"`
+		Code   string `json:"code"`
+		Client string `json:"client"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	name, ok := importClients[req.Client]
+	if !ok {
+		s.fail(w, badRequest("unknown client"))
+		return
+	}
+	ctx := r.Context()
+	var l *store.Link
+	var shortID string
+	var err error
+	switch {
+	case req.Link != "":
+		l, err = s.Svc.Store.Links().Get(ctx, p.User.ID, req.Link)
+	case req.Short != "":
+		var sl *store.ShortLink
+		if sl, err = s.Svc.Store.ShortLinks().Get(ctx, p.User.ID, req.Short); err == nil {
+			shortID = sl.ID
+			l, err = s.Svc.Store.Links().Get(ctx, sl.OwnerID, sl.LinkID)
+		}
+	case req.Code != "":
+		var sl *store.ShortLink
+		if sl, err = s.Svc.Store.ShortLinks().ByCode(ctx, req.Code); err == nil {
+			if _, err = s.Svc.Store.Grants().ActiveFor(ctx, p.User.ID, "short", sl.ID); err == nil {
+				shortID = sl.ID
+				l, err = s.Svc.Store.Links().Get(ctx, sl.OwnerID, sl.LinkID)
+			}
+		}
+	default:
+		err = store.ErrNotFound
+	}
+	if err != nil {
+		s.fail(w, store.ErrNotFound)
+		return
+	}
+	addr := s.clientIP(r)
+	g := s.Svc.Geo.Lookup(addr)
+	s.Svc.Stats().Request(store.SubRequest{At: time.Now(), IP: addr.String(), UA: r.UserAgent(), Client: name, Status: http.StatusOK, Kind: "import",
+		LinkID: l.ID, OwnerID: l.OwnerID, ShortID: shortID, Country: g.Country, ASN: g.ASN, Org: g.Org})
+	w.WriteHeader(http.StatusNoContent)
+}

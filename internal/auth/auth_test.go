@@ -67,24 +67,43 @@ func TestNormalizeAnswer(t *testing.T) {
 
 func TestCheckQuestions(t *testing.T) {
 	ok := []Question{{Builtin: 0}, {Builtin: 3}, {Builtin: -1, Text: "我的第一辆自行车"}}
-	if err := CheckQuestions(ok, []string{"ab", "答案", "red"}); err != nil {
+	if err := CheckQuestions(ok, []string{"ab", "答案", "red"}, 3); err != nil {
 		t.Fatalf("合法的问题被拒绝：%v", err)
 	}
 	bad := map[string][][]Question{
 		"重复":    {{{Builtin: 1}, {Builtin: 1}, {Builtin: 2}}},
 		"越界":    {{{Builtin: 0}, {Builtin: 1}, {Builtin: BuiltinQuestions}}},
 		"自定义太短": {{{Builtin: 0}, {Builtin: 1}, {Builtin: -1, Text: "x"}}},
-		"数量":    {{{Builtin: 0}, {Builtin: 1}}},
+		"数量":    {{{Builtin: 0}, {Builtin: 1}, {Builtin: 2}, {Builtin: 4}}},
 	}
 	for name, qss := range bad {
 		for _, qs := range qss {
-			if err := CheckQuestions(qs, []string{"ab", "cd", "ef"}[:len(qs)]); err == nil {
+			if err := CheckQuestions(qs, []string{"ab", "cd", "ef", "gh"}[:len(qs)], 0); err == nil {
 				t.Errorf("%s：应拒绝", name)
 			}
 		}
 	}
-	if err := CheckQuestions(ok, []string{"ab", " a ", "red"}); err == nil {
+	if err := CheckQuestions(ok, []string{"ab", " a ", "red"}, 0); err == nil {
 		t.Error("规范化后少于 2 个字符的答案应拒绝")
+	}
+	// 反馈 #76：数量可选，下限由调用方决定
+	if err := CheckQuestions(nil, nil, 0); err != nil {
+		t.Errorf("注册时可以不设问题：%v", err)
+	}
+	if err := CheckQuestions(nil, nil, 1); err == nil {
+		t.Error("修改时至少 1 个")
+	}
+	// 补足的诱饵问题稳定、不与真实问题重复，总数为 3
+	real := []Question{{Builtin: 2}}
+	p1, p2 := PadQuestions([]byte("k"), "Alice", real), PadQuestions([]byte("k"), "alice", real)
+	if len(p1) != 3 || p1[0] != real[0] || p1[1] != p2[1] || p1[2] != p2[2] || p1[1] == p1[0] || p1[2] == p1[0] || p1[1] == p1[2] {
+		t.Errorf("补足：%+v %+v", p1, p2)
+	}
+	all := []Question{{Builtin: 0}, {Builtin: 1}}
+	for i := range BuiltinQuestions {
+		if q := PadQuestions([]byte{byte(i)}, "x", all); len(q) != 3 {
+			t.Fatalf("补足应总能结束：%+v", q)
+		}
 	}
 }
 

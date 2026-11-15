@@ -127,7 +127,7 @@
                   <tr title={q.ua}>
                     <td>{i18n.date(q.at)}</td>
                     <td class="mono ltr">{q.ip}</td>
-                    <td><span class="code" data-tone={statusTone(q.status)}>{q.status}</span>{#if q.kind === "provider"}<span class="muted kind">{t("links.kind_provider")}</span>{:else if q.kind === "export"}<span class="muted kind">{t("links.kind_export")}</span>{/if}</td>
+                    <td><span class="code" data-tone={statusTone(q.status)}>{q.status}</span>{#if q.kind === "provider"}<span class="muted kind">{t("links.kind_provider")}</span>{:else if q.kind === "export"}<span class="muted kind">{t("links.kind_export")}</span>{:else if q.kind === "import"}<span class="muted kind">{t("links.kind_import")}</span>{/if}</td>
                     <td class="mono">{q.client || "—"}</td>
                     <td class="num">{kb(q.bytes)}</td>
                   </tr>

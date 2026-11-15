@@ -35,6 +35,20 @@ func (s *Service) AdminUsers(ctx context.Context, p store.Page) ([]AdminUser, er
 	if err != nil {
 		return nil, err
 	}
+	return s.adminView(ctx, users)
+}
+
+// AdminUsersPaged 按页列出用户，可按用户名过滤；返回总数（反馈 #76）。
+func (s *Service) AdminUsersPaged(ctx context.Context, q string, offset, limit int) ([]AdminUser, int, error) {
+	users, total, err := s.Store.Users().Paged(ctx, q, offset, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	out, err := s.adminView(ctx, users)
+	return out, total, err
+}
+
+func (s *Service) adminView(ctx context.Context, users []store.User) ([]AdminUser, error) {
 	out := make([]AdminUser, 0, len(users))
 	for _, u := range users {
 		usage, err := s.Store.Quotas().Usage(ctx, u.ID)

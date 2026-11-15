@@ -107,6 +107,9 @@ type Attachment struct {
 	UA       string `json:"ua,omitempty"`
 	Interval int    `json:"interval,omitempty"`
 	// 授权（反馈 #75）：Target 为 source 或 short；GrantID 指向 grants 表；SourceKind 是被授权节点的类型
+	// 配置模板（反馈 #76）：说明与模板文档
+	Note       string `json:"note,omitempty"`
+	Doc        string `json:"doc,omitempty"`
 	Target     string `json:"target,omitempty"`
 	GrantID    string `json:"grantId,omitempty"`
 	SourceKind string `json:"sourceKind,omitempty"`
@@ -138,9 +141,10 @@ func (s *Service) inbox(ctx context.Context, userID string) (inboxPrefs, error) 
 //   - Source + Mode=grant：授权对方只能使用这个节点（软链接，随你更新，可随时收回）；
 //   - Short（只能授权）：为对方单独生成一个新的短链接，指向同一份配置，使用情况在订阅分析中按好友统计。
 type AttachRequest struct {
-	Source string
-	Short  string
-	Mode   string // share | grant
+	Source   string
+	Short    string
+	Template string // 配置模板（只能分享，反馈 #76）
+	Mode     string // share | grant
 }
 
 // SendMessage 发送一条消息，可以附带节点（分享或授权）或短链接（授权）。收件人开启自动加入时，
@@ -148,13 +152,13 @@ type AttachRequest struct {
 // 授权不占对方配额，直接出现在对方的节点页或短链接页。
 func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text string, at AttachRequest) (*store.Message, error) {
 	text = strings.TrimSpace(text)
-	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && at.Source == "" && at.Short == "") {
+	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && at.Source == "" && at.Short == "" && at.Template == "") {
 		return nil, ErrMessage
 	}
 	if at.Mode == "" {
 		at.Mode = "share"
 	}
-	if (at.Mode != "share" && at.Mode != "grant") || (at.Short != "" && (at.Mode != "grant" || at.Source != "")) {
+	if (at.Mode != "share" && at.Mode != "grant") || (at.Short != "" && (at.Mode != "grant" || at.Source != "")) || (at.Template != "" && (at.Mode != "share" || at.Source != "" || at.Short != "")) {
 		return nil, ErrMessage
 	}
 	rcpt, err := s.Store.Users().ByUsername(ctx, strings.TrimSpace(to))
@@ -199,6 +203,12 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 			a.Kind, a.Content = "nodes", string(src.Content)
 		}
 		body.Attach, kind = a, a.Kind
+	case at.Template != "":
+		tpl, err := s.Store.Templates().Get(ctx, from.ID, at.Template)
+		if err != nil {
+			return nil, err
+		}
+		body.Attach, kind = &Attachment{Kind: "template", Name: tpl.Name, Note: tpl.Note, Doc: string(tpl.Doc)}, "template"
 	case at.Short != "":
 		orig, err := s.Store.ShortLinks().Get(ctx, from.ID, at.Short)
 		if err != nil || orig.GranteeID != "" {
@@ -239,8 +249,8 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 			s.rerenderUsing(ctx, rcpt.ID, usesSource(grant.TargetID))
 		}
 	} else if body.Attach != nil && (pref.AutoAdd == nil || *pref.AutoAdd) {
-		if src, err := s.AcceptAttachment(ctx, rcpt, m.ID); err == nil {
-			m.AddedSource = src.ID
+		if added, err := s.AcceptAttachment(ctx, rcpt, m.ID); err == nil {
+			m.AddedSource = added.ID
 		} else if s.Log != nil {
 			s.Log.Info("message attachment not added automatically", "message", m.ID, "reason", err.Error())
 		}
@@ -248,19 +258,22 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 	return m, nil
 }
 
-// AcceptAttachment 把一条消息的附件加入收件人的节点页（只能加入一次）。名称后注明来自谁。
-func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string) (*store.Source, error) {
+// Added 是收件人由附件得到的东西：节点源（source）或配置模板（template）。
+type Added struct {
+	Kind string `json:"kind"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// AcceptAttachment 把一条消息的附件加入收件人的节点页（节点）或模板（配置模板，反馈 #76），只加入一次。
+// 名称后注明来自谁。授权不需要接受（它本来就出现在对方那里）。
+func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string) (*Added, error) {
 	m, err := s.Store.Messages().Get(ctx, u.ID, id)
 	if err != nil {
 		return nil, err
 	}
 	if m.RecipientID != u.ID {
 		return nil, store.ErrNotFound
-	}
-	if m.AddedSource != "" {
-		if src, err := s.Store.Sources().Get(ctx, u.ID, m.AddedSource); err == nil {
-			return src, nil
-		}
 	}
 	var body MessageBody
 	if err := json.Unmarshal(m.Body, &body); err != nil {
@@ -269,12 +282,37 @@ func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string
 	if body.Attach == nil || body.Attach.Kind == "grant" {
 		return nil, ErrMessage
 	}
+	a := body.Attach
+	if m.AddedSource != "" {
+		if a.Kind == "template" {
+			if t, err := s.Store.Templates().Get(ctx, u.ID, m.AddedSource); err == nil {
+				return &Added{Kind: "template", ID: t.ID, Name: t.Name}, nil
+			}
+		} else if src, err := s.Store.Sources().Get(ctx, u.ID, m.AddedSource); err == nil {
+			return &Added{Kind: "source", ID: src.ID, Name: src.Name}, nil
+		}
+	}
 	sender := "?"
 	if su, err := s.Store.Users().ByID(ctx, m.SenderID); err == nil {
 		sender = su.Username
 	}
-	a := body.Attach
-	src := &store.Source{Name: a.Name + "（来自 " + sender + "）"}
+	name := a.Name + "（来自 " + sender + "）"
+	if a.Kind == "template" {
+		// 模板中引用的节点源属于发件人，对收件人不存在：用模板新建配置时会跳过并提示（已有行为）
+		if err := s.CheckStorage(ctx, u, int64(len(a.Doc))); err != nil {
+			return nil, err
+		}
+		t := &store.Template{Name: name, Note: a.Note, Doc: []byte(a.Doc)}
+		if err := s.Store.Templates().Create(ctx, u.ID, t); err != nil {
+			return nil, err
+		}
+		if err := s.Store.Messages().SetAdded(ctx, u.ID, id, t.ID); err != nil {
+			return nil, err
+		}
+		s.audit(ctx, u.ID, "message.template_added", map[string]string{"from": sender, "template": t.Name})
+		return &Added{Kind: "template", ID: t.ID, Name: t.Name}, nil
+	}
+	src := &store.Source{Name: name}
 	if a.Kind == "subscription" {
 		src.Kind, src.URL, src.UA = "subscription", a.URL, a.UA
 		// 拉取间隔不低于收件人的配额
@@ -294,7 +332,7 @@ func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string
 		return nil, err
 	}
 	s.audit(ctx, u.ID, "message.source_added", map[string]string{"from": sender, "source": src.Name})
-	return src, nil
+	return &Added{Kind: "source", ID: src.ID, Name: src.Name}, nil
 }
 
 // Thread 是一个会话的摘要。

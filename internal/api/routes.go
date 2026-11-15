@@ -111,6 +111,7 @@ func (s *Server) routes() []Route {
 		{"DELETE", "/api/v1/messages/with/{username}", a(s.deleteThread)},
 		{"POST", "/api/v1/messages/with/{username}/restore", a(s.restoreThread)},
 		{"GET", "/api/v1/grants", a(s.listGrants)},
+		{"POST", "/api/v1/imports", a(s.recordImport)},
 		{"POST", "/api/v1/grants/{id}/revoke", a(s.revokeGrant)},
 
 		{"GET", "/api/v1/templates", a(s.listTemplates)},

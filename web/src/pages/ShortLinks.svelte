@@ -8,6 +8,7 @@
   import QRCode from "../components/QRCode.svelte";
   import DayBars from "../components/stats/DayBars.svelte";
   import ImportMenu from "../components/links/ImportMenu.svelte";
+  import ShareDialog, { type ShareTarget } from "../components/ShareDialog.svelte";
   import { api, listAll, type Link, type Profile } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -50,6 +51,7 @@
   }
 
   let items = $state<Short[] | null>(null);
+  let shareTarget = $state<ShareTarget | null>(null);
   let received = $state<Received[]>([]);
   let groups = $state<{ profile: string; links: Option[] }[]>([]);
   let error = $state("");
@@ -157,6 +159,8 @@
   const statusOf = (s: Short) => (s.disabled ? "disabled" : expired(s) ? "expired" : "active");
 </script>
 
+<ShareDialog bind:target={shareTarget} />
+
 <div class="page">
   <PageHeader title={t("nav.short_links")} subtitle={t("short.subtitle")} />
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
@@ -213,7 +217,8 @@
             </div>
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(s.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
-              <ImportMenu url={s.url} name={s.target.profileName} ondownload={() => poll?.soon()} />
+              <ImportMenu url={s.url} name={s.target.profileName} track={{ short: s.id }} ondownload={() => poll?.soon()} />
+              {#if !s.grantee}<button class="btn sm ghost" type="button" title={t("messages.grant_short_hint")} onclick={() => (shareTarget = { kind: "short", id: s.id, name: "/" + s.code })}><Icon name="shield" size={14} />{t("share.grant_friend")}</button>{/if}
               <button class="btn sm ghost icon" type="button" aria-label={t("links.qr")} aria-expanded={qrFor === s.id} onclick={() => (qrFor = qrFor === s.id ? null : s.id)}><Icon name="qr" size={15} /></button>
             </div>
           </div>
@@ -261,7 +266,7 @@
             </div>
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(g.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
-              <ImportMenu url={g.url} name={g.name || g.from} />
+              <ImportMenu url={g.url} name={g.name || g.from} track={{ code: g.code }} />
               <button class="btn sm ghost" type="button" onclick={() => void revokeGrant(g.grantId, "/" + g.code, false)}>{t("messages.remove")}</button>
             </div>
           </div>

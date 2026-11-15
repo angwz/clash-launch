@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ShareDialog, { type ShareTarget } from "../components/ShareDialog.svelte";
   import { uniqueName } from "../lib/names";
   import Emoji from "../components/Emoji.svelte";
   import Dialog from "../components/Dialog.svelte";
@@ -49,6 +50,8 @@
     const d = templates.find((x) => x.default);
     start = d ? "t:" + d.id : "p:" + (catalog.meta?.presets[0]?.id ?? "mihomo");
   }
+
+  let shareTarget = $state<ShareTarget | null>(null);
 
   async function patchTemplate(x: Template, patch: { name?: string; note?: string; default?: boolean }) {
     try {
@@ -200,6 +203,8 @@
   {/snippet}
 </Dialog>
 
+<ShareDialog bind:target={shareTarget} />
+
 <Dialog bind:open={managing} title={t("templates.manage")}>
   <ul class="tpl-list">
     {#each templates as x (x.id)}
@@ -214,6 +219,8 @@
         {:else}
           <button class="btn sm ghost" type="button" onclick={() => void setDefault(x)}>{t("templates.make_default")}</button>
         {/if}
+        <!-- 模板没有私密内容，只能分享（复制一份给对方，反馈 #76） -->
+        <button class="btn sm ghost" type="button" onclick={() => { managing = false; shareTarget = { kind: "template", id: x.id, name: x.name }; }}><Icon name="send" size={13} />{t("messages.share")}</button>
         <button class="btn sm ghost danger" type="button" onclick={() => void removeTemplate(x)}>{t("common.delete")}</button>
       </li>
     {/each}

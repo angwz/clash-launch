@@ -28,6 +28,7 @@
   }
 
   let data = $state<AdminStats | null>(null);
+  let probeLimit = $state(20); // 来源可能很多：先显示 20 个（反馈 #76）
   let error = $state("");
   $effect(() => {
     void Promise.all([api.get<AdminStats>("/api/v1/admin/stats"), catalog.load()])
@@ -104,7 +105,7 @@
         <table class="table flush">
           <thead><tr><th>IP</th><th>{t("stats.col_count")}</th><th>{t("stats.col_first")}</th><th>{t("stats.col_last")}</th><th>{t("stats.col_client")}</th></tr></thead>
           <tbody>
-            {#each data.probes as p (p.ip)}
+            {#each data.probes.slice(0, probeLimit) as p (p.ip)}
               <tr>
                 <td class="mono ltr">{p.ip}</td>
                 <td class="num">{(p.ok + p.fail).toLocaleString(i18n.intlLocale)}</td>
@@ -116,6 +117,7 @@
           </tbody>
         </table>
       </div>
+      {#if data.probes.length > probeLimit}<button class="btn sm" type="button" onclick={() => (probeLimit += 50)}>{t("links.load_more")}</button>{/if}
     {:else}
       <p class="muted">{t("stats.no_probes")}</p>
     {/if}

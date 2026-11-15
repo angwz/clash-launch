@@ -9,6 +9,7 @@
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { nodeModePolicy } from "../lib/node-mode";
+  import { live } from "../lib/live";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
 
@@ -72,6 +73,14 @@
 
   $effect(() => void load());
 
+  // 自动刷新（反馈 #76）：只更新拉取状态与节点列表，不覆盖正在编辑的表单
+  async function refreshView() {
+    src = await api.get<Source>("/api/v1/sources/" + params.id);
+    await loadNodes();
+  }
+  $effect(() => live(refreshView, 30_000).stop);
+  let refreshing = $state(false);
+
   async function save() {
     if (!src) return;
     saving = true;
@@ -101,11 +110,17 @@
 
   async function refresh() {
     if (!src) return;
+    refreshing = true;
     try {
-      await api.post("/api/v1/sources/" + src.id + "/refresh");
-      toasts.push("ok", t("source.refresh_queued"));
+      // 拉取是同步完成的：完成后立即刷新拉取状态与节点列表，并告知结果
+      const r = await api.post<{ lastError?: string }>("/api/v1/sources/" + src.id + "/refresh");
+      await refreshView();
+      if (r.lastError) toasts.push("err", t("source.refresh_failed", { reason: r.lastError }));
+      else toasts.push("ok", t("source.refresh_done_n", { n: nodes.length }));
     } catch (e) {
       toasts.push("err", errorText(e));
+    } finally {
+      refreshing = false;
     }
   }
 
@@ -170,7 +185,7 @@
   {:else}
     <PageHeader title={src.name} subtitle={t("source.kind." + src.kind) + (format ? " · " + format : "")}>
       {#snippet actions()}
-        {#if src?.kind === "subscription" && !clientFetch}<button class="btn" type="button" onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>{/if}
+        {#if src?.kind === "subscription" && !clientFetch}<button class="btn" type="button" disabled={refreshing} onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>{/if}
         <button class="btn danger" type="button" onclick={() => void remove()}><Icon name="trash" size={15} />{t("common.delete")}</button>
         <button class="btn primary" type="button" disabled={saving} onclick={() => void save()}>{t("common.save")}</button>
       {/snippet}

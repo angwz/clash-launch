@@ -279,6 +279,28 @@ func (r users) ByUsername(ctx context.Context, name string) (*User, error) {
 	return scanUser(r.d.row(ctx, "SELECT "+userCols+" FROM users WHERE username_norm = ?", NormalizeUsername(name)))
 }
 
+func (r users) Paged(ctx context.Context, q string, offset, limit int) ([]User, int, error) {
+	like := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(NormalizeUsername(q)) + "%"
+	var n int
+	if err := r.d.row(ctx, "SELECT COUNT(*) FROM users WHERE username_norm LIKE ? ESCAPE '!'", like).Scan(&n); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE username_norm LIKE ? ESCAPE '!' ORDER BY username_norm LIMIT ? OFFSET ?", like, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, *u)
+	}
+	return out, n, rows.Err()
+}
+
 func (r users) Search(ctx context.Context, prefix string, limit int) ([]User, error) {
 	// LIKE 的通配符按字面量处理；转义字符用 !（两种数据库都支持 ESCAPE，且不涉及反斜杠的转义差异）
 	p := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(NormalizeUsername(prefix))

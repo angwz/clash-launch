@@ -1012,6 +1012,13 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {description: revoked}}
+  /api/v1/imports:
+    post:
+      tags: [stats]
+      summary: 记录一次「一键导入到客户端」（前端在点击时上报，记为 import 类型的请求）；link 为自己的配置链接，short 为自己的短链接，code 为别人授权给自己的短链接
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [client], properties: {link: {type: string}, short: {type: string}, code: {type: string}, client: {type: string, enum: [verge, party, flclash, cmfa]}}}}}}
+      responses: {'204': {description: recorded}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/templates:
     get:
       tags: [profiles]
