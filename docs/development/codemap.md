@@ -80,6 +80,7 @@
 | --- | --- | --- |
 | 颜色、间距、字号、主题 | `src/styles/tokens.css`（深色定义两处，`styles.test.ts` 检查一致） | `styles.test.ts` |
 | 通用控件样式（按钮、输入框、表格） | `src/styles/base.css` | — |
+| 分流：讲解图层（第 1 步，入口在节点与分流页「分流规则」标题旁的「?」，按需加载） | `src/components/routing/ExplainLayer.svelte`；流向色 `--flow-*` 在 `tokens.css`；规则集说明目录 `catalog/rulesets/descriptions.yaml`（`internal/ruleset/descriptions.go`，第 2 步起经接口提供） | e2e「讲解图层」、`TestRulesetDescriptions` |
 | 界面文字 | `src/lib/i18n/messages/{zh-CN,en}.json`；动态前缀登记在 `i18n.test.ts` 的 `dynamic` | `i18n.test.ts`（缺失、多余、ICU 语法） |
 | 字段说明文字 | 不在前端：来自目录（`catalog/`） | — |
 | 页面与路由 | `src/lib/router.svelte.ts`（路由表）+ `src/App.svelte`（懒加载表）+ `src/pages/*` | `e2e/app.spec.ts` |

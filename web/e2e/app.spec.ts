@@ -656,3 +656,39 @@ test("消息是悬浮窗：在当前页面上打开，不离开页面，Esc 关�
   await page.locator(".msg-btn").click();
   await expect(win).toHaveCount(0);
 });
+
+test("讲解图层：从分流规则旁的「?」打开，逐步切换，Esc 关闭", async ({ page, request, baseURL }) => {
+  const problems = watch(page);
+  const { profile } = await seedProfile(request, baseURL!, "讲解测试");
+  await login(page);
+  await page.goto(`/profiles/${profile}`);
+  await page.getByRole("button", { name: "流量是怎么走的" }).click();
+  const dlg = page.getByRole("dialog", { name: "流量是怎么走的" });
+  await expect(dlg).toBeVisible();
+  const panel = dlg.getByRole("tabpanel");
+  await expect(panel.locator("h3")).toHaveText("应用发出请求");
+  await expect(dlg.getByRole("button", { name: "上一步" })).toBeDisabled();
+  // 「下一步」逐步前进，步骤按钮直接跳转，最后一步变为「完成」
+  await dlg.getByRole("button", { name: "下一步" }).click();
+  await expect(panel.locator("h3")).toHaveText("客户端接住");
+  await dlg.getByRole("tab", { name: "5. 从出口离开" }).click();
+  await expect(dlg.getByRole("tab", { name: "5. 从出口离开" })).toHaveAttribute("aria-selected", "true");
+  await expect(dlg.getByRole("button", { name: "完成" })).toBeVisible();
+  await page.screenshot({ path: `test-results/shot-explain-${test.info().project.name}.png` });
+  await dlg.getByRole("tab", { name: "3. 规则从上往下比对" }).click();
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({ path: `test-results/shot-explain-dark-${test.info().project.name}.png` });
+  await page.emulateMedia({ colorScheme: "light" });
+  await dlg.getByRole("tab", { name: "5. 从出口离开" }).click();
+  // 页面本身没有横向滚动（窄屏时图在自己的容器里滚动）
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(dlg).toBeHidden();
+  // 再次打开从第一步开始；「完成」关闭
+  await page.getByRole("button", { name: "流量是怎么走的" }).click();
+  await expect(panel.locator("h3")).toHaveText("应用发出请求");
+  await dlg.getByRole("tab", { name: "5. 从出口离开" }).click();
+  await dlg.getByRole("button", { name: "完成" }).click();
+  await expect(dlg).toBeHidden();
+  expect(problems).toEqual([]);
+});

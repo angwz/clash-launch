@@ -540,7 +540,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-4) var(--space-2);
     border-block-end: 1px solid var(--border);
     background: var(--bg-raised);
   }

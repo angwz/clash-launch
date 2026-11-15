@@ -1,6 +1,6 @@
 # 分流视图、追踪与 routing 段
 
-> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）已完成，第 1–4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
+> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）、第 1 步（讲解图层、规则集说明目录）已完成，第 2–4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
 > 取舍与理由见 [0007](../decisions/0007-routing-visualization.md)，本文只写「做什么、怎么做、怎么验收」。
 > 交互原型 [routing-prototype.html](routing-prototype.html) 是布局、粒子与追踪动画的参考实现（用浏览器直接打开）。它用了内联样式与示例数据，**不能照搬进站内**：站内 CSP 不允许 `style` 属性，数据来自接口。
 
@@ -425,6 +425,7 @@ col(g)       = entry(g) ? 1 : C − steps(g) + 1
 - `ExplainLayer`、SourcesPanel 的「?」入口。
 - 目录 `catalog/rulesets/descriptions.yaml`：按 URL 正则匹配常见上游的规则集，给出中英文说明、仓库、许可与核对日期；`TestRulesetDescriptions` 检查正则可编译、每条至少匹配一个预设中的地址。
 - 验收：e2e「讲解图层可打开、逐步切换、Esc 关闭」；截图确认。
+- 完成情况（2026-11-15）：讲解图层用示意的规则与网址；原型中「已有配置时用自己的规则集与组名」依赖第 2 步的图数据，届时补上。说明目录收录了能在本地参考资料中核对的两家：domainrouter_v2（按 README 写整套规则集的组织方式）与 ACL4SSR（按 README 的「Clash规则碎片」表逐个写，14 条）；Loyalsoldier、blackmatrix7、MetaCubeX、SukkaW 本地没有其文档，未收录。
 
 ### 第 2 步 · 只读地图、追踪、粒子、体检
 

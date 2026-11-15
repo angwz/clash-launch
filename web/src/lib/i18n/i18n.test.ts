@@ -51,6 +51,9 @@ const dynamic: Record<string, string[]> = {
   "guide.basis.": ["official", "practice"],
   "guide.basis_hint.": ["official", "practice"],
   "guide.suggest.": ["official", "practice"],
+  // 讲解图层的五步（components/routing/ExplainLayer.svelte）
+  "routing.explain.title_": ["1", "2", "3", "4", "5"],
+  "routing.explain.body_": ["1", "2", "3", "4", "5"],
 };
 
 describe("messages", () => {

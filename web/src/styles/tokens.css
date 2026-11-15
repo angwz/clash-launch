@@ -91,6 +91,12 @@
   --raw: #8a4b00;
   --raw-soft: #fff2df;
 
+  /* 流向色（0007 #13，独立于状态色）：未分类、经代理、直连、拦截 */
+  --flow-none: #a9a9b3;
+  --flow-proxy: #7a73d4;
+  --flow-direct: #10a2a8;
+  --flow-reject: #cf7a3c;
+
   --shadow-sm: 0 1px 2px rgb(16 16 24 / 0.06);
   --shadow-md: 0 4px 16px rgb(16 16 24 / 0.08), 0 1px 3px rgb(16 16 24 / 0.06);
   --shadow-lg: 0 16px 48px rgb(16 16 24 / 0.16), 0 2px 6px rgb(16 16 24 / 0.08);
@@ -142,6 +148,11 @@
   --raw: #f0a64a;
   --raw-soft: #2e2213;
 
+  --flow-none: #5f5f6a;
+  --flow-proxy: #8580e2;
+  --flow-direct: #23a3a6;
+  --flow-reject: #c98042;
+
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
@@ -188,6 +199,10 @@
     --info-soft: #152238;
     --raw: #f0a64a;
     --raw-soft: #2e2213;
+    --flow-none: #5f5f6a;
+    --flow-proxy: #8580e2;
+    --flow-direct: #23a3a6;
+    --flow-reject: #c98042;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);

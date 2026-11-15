@@ -16,6 +16,14 @@
 
   let { editor }: { editor: EditorState } = $props();
 
+  // 讲解图层按需加载：只在第一次点「?」时下载（routing 第 13 节第 1 步）
+  let Explain: typeof import("../routing/ExplainLayer.svelte").default | undefined = $state();
+  let explainOpen = $state(false);
+  async function openExplain() {
+    Explain ??= (await import("../routing/ExplainLayer.svelte")).default;
+    explainOpen = true;
+  }
+
   const refs = $derived(editor.sourceRefs);
   const byId = $derived(new Map(editor.sources.map((s) => [s.id, s])));
   const numbering = $derived(new Map((editor.preview?.numbering ?? []).map((n) => [n.ref, n.groupId])));
@@ -151,7 +159,10 @@
 <section class="panel-sec" aria-labelledby="sec-rules-ref">
   <header class="head">
     <div>
-      <h2 id="sec-rules-ref">{t("editor.rules_title")}</h2>
+      <div class="title">
+        <h2 id="sec-rules-ref">{t("editor.rules_title")}</h2>
+        <button class="btn ghost icon sm" type="button" aria-label={t("routing.explain.open")} title={t("routing.explain.open")} onclick={() => void openExplain()}><Icon name="help" size={15} /></button>
+      </div>
       <p class="muted sub">{t("editor.rules_sub")}</p>
     </div>
     <a class="btn sm" href="/rules"><Icon name="rules" size={14} />{t("editor.manage_rules")}</a>
@@ -178,6 +189,8 @@
   {/if}
 </section>
 
+{#if Explain}<Explain bind:open={explainOpen} />{/if}
+
 <style>
   .empty-groups {
     display: flex;
@@ -202,6 +215,11 @@
     justify-content: space-between;
     gap: var(--space-3);
     flex-wrap: wrap;
+  }
+  .title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
   }
   h2 {
     font-size: var(--text-xl);

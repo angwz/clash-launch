@@ -8,9 +8,10 @@
     open = $bindable(false),
     title,
     wide = false,
+    xl = false,
     children,
     footer,
-  }: { open?: boolean; title: string; wide?: boolean; children: Snippet; footer?: Snippet } = $props();
+  }: { open?: boolean; title: string; wide?: boolean; xl?: boolean; children: Snippet; footer?: Snippet } = $props();
 
   let el: HTMLDialogElement | undefined = $state();
   let opener: Element | null = null;
@@ -31,7 +32,7 @@
   }
 </script>
 
-<dialog bind:this={el} class:wide onclose={onClose} aria-labelledby="dlg-title">
+<dialog bind:this={el} class:wide class:xl onclose={onClose} aria-labelledby="dlg-title">
   <header>
     <h2 id="dlg-title">{title}</h2>
     <button class="btn ghost icon sm" type="button" aria-label={t("common.close")} onclick={() => (open = false)}>
@@ -56,6 +57,9 @@
     background: var(--bg-raised);
     color: var(--fg);
     box-shadow: var(--shadow-lg);
+  }
+  dialog.xl {
+    inline-size: min(920px, calc(100vw - 2 * var(--space-4)));
   }
   dialog.wide {
     inline-size: min(720px, calc(100vw - 2 * var(--space-4)));
