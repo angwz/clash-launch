@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/angwz/clash-launch/internal/profile"
+	"github.com/angwz/clash-launch/internal/source"
 	"github.com/angwz/clash-launch/internal/store"
 )
 
@@ -88,4 +89,32 @@ func (p NodeModePolicy) effective(m profile.Mode) profile.Mode {
 		return profile.ModeInline
 	}
 	return m
+}
+
+// RuleHostsFor 返回用户拉取分流规则地址时允许的站点（反馈 #72）；管理员不受限制，返回 nil。
+func (s *Service) RuleHostsFor(u *store.User) source.Hosts {
+	if u.Role == "admin" {
+		return nil
+	}
+	if s.RuleHosts != nil {
+		return s.RuleHosts
+	}
+	return source.DefaultRuleHosts
+}
+
+// CheckRuleURLs 在保存规则源前检查它的地址是否来自允许的站点。粘贴的文本不受限制。
+func (s *Service) CheckRuleURLs(u *store.User, rs *store.RuleSource) error {
+	h := s.RuleHostsFor(u)
+	if h == nil {
+		return nil
+	}
+	for _, x := range []string{rs.GroupsURL, rs.RulesetsURL, rs.INIURL} {
+		if x == "" {
+			continue
+		}
+		if err := h.Check(x); err != nil {
+			return err
+		}
+	}
+	return nil
 }

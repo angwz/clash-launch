@@ -102,3 +102,20 @@ func (s *Server) putPrefs(w http.ResponseWriter, r *http.Request, p *principal) 
 	}
 	writeJSON(w, http.StatusOK, req)
 }
+
+// putTimezone 保存用户的时区（反馈 #72）：界面上的时间按它显示；空字符串表示跟随浏览器。
+func (s *Server) putTimezone(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Timezone string `json:"timezone"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	tz, err := s.Svc.SetTimezone(r.Context(), p.User.ID, req.Timezone)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"timezone": tz})
+}

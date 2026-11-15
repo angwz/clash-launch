@@ -2,7 +2,7 @@
   // 系统状态：版本、内核、目录、主密钥、数据库、可选功能是否可用。
   import { api } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
-  import { t } from "../../lib/i18n/i18n.svelte";
+  import { i18n, t } from "../../lib/i18n/i18n.svelte";
   import { toasts } from "../../lib/toast.svelte";
 
   interface Status {
@@ -34,7 +34,7 @@
     <dd>
       <span class="mono">{st.version}</span>
       {#if st.commit}· <a class="mono" href={"https://github.com/angwz/clash-launch/commit/" + st.commit} target="_blank" rel="noopener noreferrer">{st.commit.slice(0, 7)}</a>{/if}
-      {#if st.built}· {t("admin.st_built", { d: new Date(st.built).toLocaleString() })}{/if}
+      {#if st.built}· {t("admin.st_built", { d: i18n.date(st.built) })}{/if}
       <span class="hint ver-hint">{t("admin.st_version_hint")}</span>
     </dd>
     <dt>{t("admin.st_kernel")}</dt>

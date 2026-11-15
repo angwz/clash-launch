@@ -49,11 +49,18 @@ func (s *Server) rateLimited(w http.ResponseWriter, r *http.Request, tok string)
 }
 
 // subscribe 提供方案最近一次成功的渲染结果。只读缓存，不触发拉取或渲染（第 13.3 节）。
+// 带 ?download=1 时作为文件下载（反馈 #72「导出」）：内容相同，附带文件名，总是返回完整内容，
+// 请求记录中单独记为 export。
 func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 	sw := &statusWriter{ResponseWriter: w}
 	w = sw
 	var link *store.Link
-	defer func() { s.recordSub(r, link, sw, "config") }()
+	download := r.URL.Query().Get("download") != ""
+	kind := "config"
+	if download {
+		kind = "export"
+	}
+	defer func() { s.recordSub(r, link, sw, kind) }()
 	tok := r.PathValue("token")
 	if s.rateLimited(w, r, tok) {
 		return
@@ -87,6 +94,11 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 	h.Set("Content-Type", "text/yaml; charset=utf-8")
 	h.Set("Cache-Control", "private, no-cache")
 	h.Set("ETag", tag)
+	if download {
+		h.Set("Content-Disposition", attachment(s.exportName(r, l)))
+		_, _ = w.Write(body) //nolint:gosec // 同下
+		return
+	}
 	if match := r.Header.Get("If-None-Match"); match != "" && strings.Contains(match, tag) {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -170,4 +182,33 @@ func (s *Server) recordSub(r *http.Request, l *store.Link, w *statusWriter, kind
 		q.LinkID, q.OwnerID = l.ID, l.OwnerID
 	}
 	s.Svc.Stats().Request(q)
+}
+
+// exportName 是导出文件的名称：配置名（去掉文件名中不能用的字符）加 .yaml；取不到名称时为 clash-launch.yaml。
+func (s *Server) exportName(r *http.Request, l *store.Link) string {
+	name := ""
+	if p, err := s.Svc.Store.Profiles().Get(r.Context(), l.OwnerID, l.ProfileID); err == nil {
+		name = p.Name
+	}
+	name = strings.Map(func(c rune) rune {
+		if c < 0x20 || c == 0x7F || strings.ContainsRune(`\/:*?"<>|`, c) {
+			return -1
+		}
+		return c
+	}, strings.TrimSpace(name))
+	if name == "" {
+		name = "clash-launch"
+	}
+	return name + ".yaml"
+}
+
+// attachment 生成 Content-Disposition：ASCII 回退名加 RFC 5987 的 UTF-8 名称（中文配置名也能正确保存）。
+func attachment(name string) string {
+	ascii := strings.Map(func(c rune) rune {
+		if c < 0x20 || c > 0x7E || c == '"' || c == 0x5C { // 0x5C 是反斜杠
+			return '_'
+		}
+		return c
+	}, name)
+	return `attachment; filename="` + ascii + `"; filename*=UTF-8''` + url.PathEscape(name)
 }

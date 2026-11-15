@@ -62,6 +62,7 @@ docker compose pull && docker compose up -d
 | `CLASH_LAUNCH_MASTER_KEY` / `_FILE` | — | 主密钥；都没有时生成 `/data/master.key` |
 | `CLASH_LAUNCH_TRUSTED_PROXIES` | — | 受信任的反向代理网段，逗号分隔；只有来自这些地址的请求才采信 `X-Forwarded-For`/`-Proto` |
 | `CLASH_LAUNCH_FETCH_ALLOWLIST` | — | SSRF 白名单：网段、IP 或主机名 |
+| `CLASH_LAUNCH_RULE_HOSTS` | 内置列表 | 普通用户的分流规则地址允许的站点，逗号分隔的主机名（精确匹配、只接受 https）；设置后替换内置列表（GitHub、jsDelivr、GitLab、Codeberg、Gitee 等，见 `internal/source/hosts.go`）。管理员不受限制 |
 | `CLASH_LAUNCH_MIHOMO` · `_GEODATA` | `/opt/mihomo/mihomo` · `/opt/mihomo/geodata` | 内核检查用的 mihomo 与地理数据 |
 | `CLASH_LAUNCH_LOG_LEVEL` | `info` | `debug`、`info`、`warn`、`error` |
 | `CLASH_LAUNCH_POW_BITS` | `20` | 注册与找回的工作量证明难度（前导零位数）；每加 1 位耗时翻倍，20 位在桌面浏览器上约 1 秒 |

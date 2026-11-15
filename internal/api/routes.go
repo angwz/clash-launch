@@ -36,6 +36,7 @@ func (s *Server) routes() []Route {
 		{"PUT", "/api/v1/account/password", a(s.changePassword)},
 		{"GET", "/api/v1/account/prefs", a(s.getPrefs)},
 		{"PUT", "/api/v1/account/prefs", a(s.putPrefs)},
+		{"PUT", "/api/v1/account/timezone", a(s.putTimezone)},
 		{"GET", "/api/v1/account/sessions", a(s.listSessions)},
 		{"DELETE", "/api/v1/account/sessions/{id}", a(s.deleteSession)},
 		{"POST", "/api/v1/session/totp", s.sessionTOTP},
@@ -91,6 +92,7 @@ func (s *Server) routes() []Route {
 		{"PUT", "/api/v1/rule-sources/{id}", a(s.updateRule)},
 		{"DELETE", "/api/v1/rule-sources/{id}", a(s.deleteRule)},
 		{"POST", "/api/v1/rule-sources/{id}/refresh", a(s.refreshRule)},
+		{"GET", "/api/v1/rule-hosts", a(s.ruleHosts)},
 
 		{"GET", "/api/v1/templates", a(s.listTemplates)},
 		{"POST", "/api/v1/templates", a(s.createTemplate)},

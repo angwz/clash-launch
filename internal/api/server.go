@@ -229,6 +229,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
 		problem(w, http.StatusBadRequest, "bad_request", strings.TrimPrefix(err.Error(), errBadRequest.Error()+": "))
+	case errors.Is(err, service.ErrTimezone):
+		problem(w, http.StatusUnprocessableEntity, "account.timezone", err.Error())
+	case errors.Is(err, source.ErrHostNotAllowed):
+		problem(w, http.StatusUnprocessableEntity, "rule.host_not_allowed", err.Error())
 	case errors.Is(err, service.ErrClientFetch):
 		problem(w, http.StatusConflict, "source.client_fetch", "subscriptions on this account are fetched by the client, not the server")
 	case errors.Is(err, service.ErrNodeMode):

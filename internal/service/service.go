@@ -56,6 +56,8 @@ type Service struct {
 	PoWBits int
 	// QuotaDefaults 是全局默认配额；零值字段使用内置默认（见 quota.go）。
 	QuotaDefaults QuotaDefaults
+	// RuleHosts 是普通用户的分流规则地址允许的站点；nil 时使用 source.DefaultRuleHosts（反馈 #72）。
+	RuleHosts source.Hosts
 	// OpenQuotaDefaults 是开放注册用户的默认配额；零值字段使用内置默认（见 quota.go）。
 	OpenQuotaDefaults QuotaDefaults
 	// AuditRetention 是审计日志的保留期；0 表示不清理。
@@ -147,6 +149,11 @@ func (s *Service) RefreshRuleSource(ctx context.Context, owner, id string) error
 	if err != nil {
 		return err
 	}
+	usr, err := s.Store.Users().ByID(ctx, owner)
+	if err != nil {
+		return fmt.Errorf("读取规则源所有者 %s: %w", owner, err)
+	}
+	hosts := s.RuleHostsFor(usr) // 普通用户只能从允许的站点拉取（反馈 #72）
 	parts := map[string]string{"groups": rs.GroupsURL, "rulesets": rs.RulesetsURL, "ini": rs.INIURL}
 	var firstErr error
 	for _, part := range []string{"groups", "rulesets", "ini"} {
@@ -155,7 +162,7 @@ func (s *Service) RefreshRuleSource(ctx context.Context, owner, id string) error
 			continue
 		}
 		prev, _ := s.Store.Snapshots().Get(ctx, owner, RuleKey(id, part))
-		resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: u})
+		resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: u, Hosts: hosts})
 		if err != nil && firstErr == nil {
 			firstErr = err
 		}
@@ -224,9 +231,18 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 	var hashes []string
 	latest := profileUpdated
 	headers := map[string]map[string]string{}
-	policy, err := s.nodeModeOf(ctx, owner)
+	usr, err := s.Store.Users().ByID(ctx, owner)
+	if err != nil {
+		return in, nil, latest, nil, ds, fmt.Errorf("读取配置所有者 %s: %w", owner, err)
+	}
+	policy, err := s.NodeModeFor(ctx, usr)
 	if err != nil {
 		return in, nil, latest, nil, ds, err
+	}
+	// 文件头时间：配置没有指定时区时按用户设置的时区显示（反馈 #72）；时区变化时缓存键随之变化
+	if p.Output.Timezone == "" && usr.Timezone != "" {
+		p.Output.Timezone = usr.Timezone
+		hashes = append(hashes, "tz:"+usr.Timezone)
 	}
 	for i, ref := range p.Refs() {
 		src, err := s.Store.Sources().Get(ctx, owner, ref.Ref)

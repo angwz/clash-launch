@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RuleHostsHint from "../components/RuleHostsHint.svelte";
   import { hostOf, uniqueName } from "../lib/names";
   // 规则源：预设画廊（domainrouter_v2、ACL4SSR 等）与自定义（toml 或外部配置 ini）。
   import Dialog from "../components/Dialog.svelte";
@@ -125,12 +126,13 @@
     {#if custom.kind === "toml" && via === "url"}
       <div>
         <label class="label" for="nr-g">groups.toml URL</label>
-        <input id="nr-g" class="input mono ltr" bind:value={custom.groupsUrl} placeholder="https://example.com/groups.toml" />
+        <input id="nr-g" class="input mono ltr" bind:value={custom.groupsUrl} placeholder="https://raw.githubusercontent.com/…/groups.toml" />
       </div>
       <div>
         <label class="label" for="nr-r">rulesets.toml URL</label>
-        <input id="nr-r" class="input mono ltr" bind:value={custom.rulesetsUrl} placeholder="https://example.com/rulesets.toml" />
+        <input id="nr-r" class="input mono ltr" bind:value={custom.rulesetsUrl} placeholder="https://raw.githubusercontent.com/…/rulesets.toml" />
       </div>
+      <RuleHostsHint />
     {:else if custom.kind === "toml"}
       <div>
         <label class="label" for="nr-gt">groups.toml</label>
@@ -143,7 +145,8 @@
     {:else if via === "url"}
       <div>
         <label class="label" for="nr-i">INI URL</label>
-        <input id="nr-i" class="input mono ltr" bind:value={custom.iniUrl} placeholder="https://example.com/config.ini" />
+        <input id="nr-i" class="input mono ltr" bind:value={custom.iniUrl} placeholder="https://raw.githubusercontent.com/…/config.ini" />
+        <RuleHostsHint />
       </div>
     {:else}
       <div>

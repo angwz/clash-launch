@@ -382,6 +382,10 @@ func (s *Server) createRule(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	if err := s.Svc.CheckRuleURLs(p.User, x); err != nil {
+		s.fail(w, err)
+		return
+	}
 	if err := s.quota(r, p, "", int64(len(x.GroupsText)+len(x.RulesetsText)+len(x.INIText)), x.Interval); err != nil {
 		s.fail(w, err)
 		return
@@ -421,6 +425,10 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request, p *principal
 		return
 	}
 	if err := s.applyRule(req, x); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.Svc.CheckRuleURLs(p.User, x); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -708,6 +716,12 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 		return
 	}
 	writeJSON(w, http.StatusOK, previewResp{YAML: cmp.Or(string(res.Preview), string(res.YAML)), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Chains: nonNil(res.Chains), Outbounds: nonNil(res.Outbounds), Nodes: len(res.Nodes)})
+}
+
+// ruleHosts 返回当前用户的分流规则地址可以使用的站点（反馈 #72）；restricted=false 表示不限制（管理员）。
+func (s *Server) ruleHosts(w http.ResponseWriter, _ *http.Request, p *principal) {
+	h := s.Svc.RuleHostsFor(p.User)
+	writeJSON(w, http.StatusOK, map[string]any{"restricted": h != nil, "hosts": nonNil([]string(h))})
 }
 
 // absorb 把在完整 YAML 上的修改换算成原始编辑层（反馈 #70）。不保存：前端把结果写回草稿，

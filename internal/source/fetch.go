@@ -36,6 +36,8 @@ type Request struct {
 	URL     string
 	UA      string            // 为空时使用 DefaultUA
 	Headers map[string]string // 用户为该源设置的请求头
+	// Hosts 非 nil 时只允许这些站点上的 https 地址，重定向的每一跳同样检查（反馈 #72）
+	Hosts Hosts
 }
 
 // Response 是成功的拉取结果。
@@ -82,6 +84,9 @@ func New(cfg Config) (*Fetcher, error) {
 				return fmt.Errorf("source: 重定向超过 %d 次", cfg.MaxRedirects)
 			}
 			req.Header.Del("Referer")
+			if h, ok := hostsFrom(req.Context()); ok && !h.Allows(req.URL) {
+				return fmt.Errorf("%w：重定向到 %s", ErrHostNotAllowed, req.URL.Hostname())
+			}
 			return cfg.Guard.CheckURL(req.URL)
 		},
 	}
@@ -96,6 +101,12 @@ func (f *Fetcher) Fetch(ctx context.Context, r Request) (*Response, error) {
 	}
 	if err := f.cfg.Guard.CheckURL(u); err != nil {
 		return nil, err
+	}
+	if r.Hosts != nil {
+		if !r.Hosts.Allows(u) {
+			return nil, fmt.Errorf("%w：%s", ErrHostNotAllowed, u.Hostname())
+		}
+		ctx = withHosts(ctx, r.Hosts)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -142,6 +153,8 @@ func (f *Fetcher) Fetch(ctx context.Context, r Request) (*Response, error) {
 // classify 保留错误类别，同时去掉可能含有 URL（及其中凭据）的细节。
 func classify(err error) error {
 	switch {
+	case errors.Is(err, ErrHostNotAllowed):
+		return fmt.Errorf("%w（重定向）", ErrHostNotAllowed) // 保留类别，界面据此提示改用允许的站点
 	case errors.Is(err, ErrBlocked):
 		return fmt.Errorf("%w", ErrBlocked)
 	case errors.Is(err, context.DeadlineExceeded):

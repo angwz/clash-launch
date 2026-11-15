@@ -1,6 +1,7 @@
 // 会话：/api/v1/me 返回当前用户与 CSRF 令牌；未登录时 user 为 null。
 // 登录可能分两步：密码正确且启用了第二因素时，服务端返回 {mfa, ticket} 而不建立会话。
 import { api, ApiError, setCsrf, type Session, type User } from "./api/client";
+import { i18n } from "./i18n/i18n.svelte";
 
 export interface MFAChallenge {
   mfa: ("totp" | "passkey")[];
@@ -50,12 +51,21 @@ class SessionState {
       await api.del("/api/v1/session");
     } finally {
       this.user = null;
+      i18n.timeZone = undefined;
       setCsrf("");
     }
   }
 
+  /** 保存时区（反馈 #72）：空字符串表示跟随浏览器。界面上的时间立即按新时区显示。 */
+  async setTimezone(tz: string): Promise<void> {
+    const r = await api.put<{ timezone: string }>("/api/v1/account/timezone", { timezone: tz });
+    if (this.user) this.user = { ...this.user, timezone: r.timezone };
+    i18n.timeZone = r.timezone || undefined;
+  }
+
   #apply(s: Session): void {
     this.user = s.user;
+    i18n.timeZone = s.user?.timezone || undefined;
     setCsrf(s.csrf);
   }
 }

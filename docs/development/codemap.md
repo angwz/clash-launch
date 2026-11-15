@@ -46,7 +46,7 @@
 | 表结构 | 新增 `migrations/{sqlite,postgres}/000N_*.sql`（只向前，两套同号） | `TestMigrationsEquivalent` | [0002](../decisions/0002-storage-and-service.md) |
 | 仓储方法 | `internal/store/store.go`（接口）+ `sql.go`（实现）；每个方法以所有者为第一个参数 | `store_test.go` | — |
 | 加密列 | `internal/store/crypto.go`；AAD 为「表.列:行 ID」 | `TestOwnerIsolationAndCrypto` | [0002](../decisions/0002-storage-and-service.md) |
-| 拉取、SSRF | `internal/source/fetch.go`、`guard.go` | `source_test.go` | [network](../design/network.md) |
+| 拉取、SSRF、规则地址的站点限制 | `internal/source/fetch.go`、`guard.go`、`hosts.go` | `source_test.go`、`hosts_test.go` | [network](../design/network.md) |
 | 后台调度 | `internal/service/jobs.go` | API 端到端 | — |
 | 注册、邀请 | `internal/service/register.go`、`internal/api/register.go` | `TestRegistrationAndInvites`、`TestInvites` | [0003](../decisions/0003-direct-fetch-and-invites.md) |
 | 节点写法默认值与锁定 | `internal/service/nodemode.go`、`internal/api/nodemode.go`、`migrations/*/0004_user_invited.sql`、`web/src/components/editor/SourcesPanel.svelte` | `TestNodeModePolicy` | [feedback](feedback.md) #46 |

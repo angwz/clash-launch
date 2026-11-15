@@ -88,12 +88,21 @@ class I18n {
     return String(f.format(values as Record<string, string | number>));
   };
 
+  /** 用户在设置中选择的时区（反馈 #72，保存在账号中）；未设置时跟随浏览器。 */
+  timeZone = $state<string | undefined>(undefined);
+
   // —— 显示用的格式化：配置值本身不经过 Intl（第 15.3 节）——
   date = (iso: string | undefined, style: "short" | "long" = "short"): string => {
     if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
-    return new Intl.DateTimeFormat(this.intlLocale, style === "short" ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "long", timeStyle: "medium" }).format(d);
+    const opts: Intl.DateTimeFormatOptions = style === "short" ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "long", timeStyle: "medium" };
+    try {
+      return new Intl.DateTimeFormat(this.intlLocale, { ...opts, timeZone: this.timeZone }).format(d);
+    } catch {
+      // 浏览器不认识这个时区（极旧的浏览器）：按浏览器时区显示
+      return new Intl.DateTimeFormat(this.intlLocale, opts).format(d);
+    }
   };
 
   relative = (iso: string | undefined): string => {

@@ -399,3 +399,36 @@ test("统计：配置链接页显示足迹与请求记录，管理页显示全�
   await expect(page.getByRole("heading", { name: "统计" })).toBeVisible();
   await expect(page.getByText("每天的订阅请求")).toBeVisible();
 });
+
+test("时区：输入时不区分大小写自动补全，保存到账号；配置链接可以导出", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "导出");
+  const call = await apiAs(request, baseURL!);
+  await call("POST", `/api/v1/profiles/${profile}/links`, { note: "电脑" });
+  await login(page);
+  await page.goto("/settings");
+  const tz = page.locator("#st-tz");
+  await tz.click();
+  await page.keyboard.type("asia/sh");
+  await expect(tz).toHaveValue("Asia/Shanghai"); // 自动补全为规范写法
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("已保存时区")).toBeVisible();
+  const me = await call<{ user: { timezone: string } }>("GET", "/api/v1/me");
+  expect(me.user.timezone).toBe("Asia/Shanghai");
+  await tz.click();
+  await page.keyboard.type("TOKYO");
+  await expect(page.getByRole("option", { name: /Asia\/Tokyo/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.screenshot({ path: "test-results/shot-settings-tz.png" });
+
+  await page.goto(`/profiles/${profile}/links`);
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "导出" }).first().click();
+  expect((await download).suggestedFilename()).toBe("导出.yaml");
+  await page.reload();
+  await page.getByRole("button", { name: "请求记录" }).first().click();
+  await page.getByRole("tab", { name: "逐条记录" }).click();
+  await expect(page.locator(".lstats table").first()).toContainText("导出");
+  await page.screenshot({ path: "test-results/shot-links-export.png" });
+  await call("PUT", "/api/v1/account/timezone", { timezone: "" });
+});

@@ -47,11 +47,12 @@ type config struct {
 	Geodata        string
 	PoWBits        int // 注册与找回的工作量证明难度（前导零位数），默认 20，约 1 秒
 	Quota          service.QuotaDefaults
+	RuleHosts      source.Hosts          // 普通用户的分流规则地址允许的站点；空时用内置列表（反馈 #72）
 	OpenQuota      service.QuotaDefaults // 开放注册用户的默认配额（反馈 #71）
 	AuditDays      int                   // 审计日志保留天数，默认 180；0 表示不清理
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -90,6 +91,11 @@ func loadConfig() (config, error) {
 		return config{}, fmt.Errorf("CLASH_LAUNCH_POW_BITS 需要 1–32 的整数")
 	}
 	c.PoWBits = bits
+	hosts, err := source.ParseHosts(get("RULE_HOSTS", ""))
+	if err != nil {
+		return config{}, fmt.Errorf("CLASH_LAUNCH_RULE_HOSTS：%w", err)
+	}
+	c.RuleHosts = hosts
 	// 配额默认值与审计保留期：非负整数；配额为 0 时使用内置默认（见 internal/service/quota.go）
 	nums := map[string]int{}
 	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180"} {
@@ -181,7 +187,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

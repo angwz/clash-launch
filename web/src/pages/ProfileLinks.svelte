@@ -143,6 +143,8 @@
           <div class="url-row">
             <code class="url ltr">{l.url}</code>
             <button class="btn sm" type="button" onclick={() => void copy(l.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
+            <!-- 导出（反馈 #72）：下载这条链接当前提供的配置文件，记为一次「导出」请求 -->
+            <a class="btn sm" href={l.url + "?download=1"} download title={t("links.export_hint")}><Icon name="download" size={14} />{t("links.export")}</a>
             <button class="btn sm ghost icon" type="button" aria-label={t("links.qr")} aria-expanded={qrFor === l.id} onclick={() => (qrFor = qrFor === l.id ? null : l.id)}><Icon name="qr" size={15} /></button>
           </div>
           <p class="meta muted">

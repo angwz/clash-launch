@@ -86,7 +86,10 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description 非空时作为文件下载（导出）：附带文件名、总是返回完整内容，请求记录中记为 export */
+                    download?: string;
+                };
                 header?: never;
                 path: {
                     /** @description 256 位随机令牌（base64url，43 个字符） */
@@ -819,6 +822,51 @@ export interface paths {
                     };
                 };
                 400: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/timezone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 保存时区（IANA 名称；空字符串表示跟随浏览器）。界面时间按它显示，配置未指定时区时文件头时间也按它显示 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        timezone: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            timezone?: string;
+                        };
+                    };
+                };
+                422: components["responses"]["Problem"];
             };
         };
         post?: never;
@@ -2636,6 +2684,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rule-hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前用户的分流规则地址可以使用的站点；restricted=false 表示不限制（管理员） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            restricted?: boolean;
+                            hosts?: string[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

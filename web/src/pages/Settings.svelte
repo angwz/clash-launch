@@ -6,6 +6,7 @@
   // 语言与主题存在当前浏览器（登录前也要生效）；其余存在账号中，换设备一致。
   import PageHeader from "../components/PageHeader.svelte";
   import OrderDialog from "../components/OrderDialog.svelte";
+  import TimezonePicker from "../components/TimezonePicker.svelte";
   import Icon from "../components/Icon.svelte";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
@@ -36,6 +37,21 @@
     try {
       // 开是默认值，不写入偏好
       await prefs.save({ ...prefs.data, autoCheck: on ? undefined : false });
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
+  // 时区（反馈 #72）：保存在账号中，换设备一致；界面时间与配置文件头时间都按它显示
+  let now = $state(new Date().toISOString());
+  $effect(() => {
+    const id = setInterval(() => (now = new Date().toISOString()), 30_000);
+    return () => clearInterval(id);
+  });
+  async function setTimezone(tz: string) {
+    try {
+      await session.setTimezone(tz);
+      toasts.push("ok", t("settings.tz_saved"));
     } catch (e) {
       toasts.push("err", errorText(e));
     }
@@ -73,6 +89,21 @@
       </div>
     </div>
     <p class="hint">{t("account.local_hint")}</p>
+  </section>
+
+  <section class="panel box" aria-labelledby="st-time">
+    <h2 id="st-time">{t("settings.time")}</h2>
+    <div class="grid two">
+      <div>
+        <label class="label" for="st-tz">{t("settings.tz")}</label>
+        <TimezonePicker id="st-tz" value={session.user?.timezone ?? ""} onchange={(z) => void setTimezone(z)} />
+      </div>
+      <div class="tz-now">
+        <span class="label">{t("settings.tz_now")}</span>
+        <strong>{i18n.date(now, "long")}</strong>
+      </div>
+    </div>
+    <p class="hint">{t("settings.tz_hint")}</p>
   </section>
 
   <section class="panel box" aria-labelledby="st-editor">
@@ -136,6 +167,15 @@
   }
   .grid.two {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .tz-now {
+    display: grid;
+    align-content: start;
+  }
+  .tz-now strong {
+    padding-block: 7px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
   }
   .row {
     display: flex;

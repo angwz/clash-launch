@@ -1,5 +1,6 @@
 <script lang="ts">
   // 规则源详情：地址或粘贴的文本（toml / ini）。策略组预览与可点选的选择器标签在后续迭代中加入。
+  import RuleHostsHint from "../components/RuleHostsHint.svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import { api, type RuleSource } from "../lib/api/client";
@@ -78,6 +79,7 @@
         <div>
           <label class="label" for="rd-r">rulesets.toml URL</label>
           <input id="rd-r" class="input mono ltr" bind:value={rs.rulesetsUrl} spellcheck="false" />
+          <RuleHostsHint />
         </div>
         <div>
           <label class="label" for="rd-gt">{t("rules.groups_text")}</label>
@@ -91,6 +93,7 @@
         <div>
           <label class="label" for="rd-i">INI URL</label>
           <input id="rd-i" class="input mono ltr" bind:value={rs.iniUrl} spellcheck="false" />
+          <RuleHostsHint />
         </div>
         <div>
           <label class="label" for="rd-it">{t("rules.ini_text")}</label>

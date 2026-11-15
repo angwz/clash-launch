@@ -54,6 +54,8 @@ func (s *Snapshot) StaleFor(d time.Duration, now time.Time) bool {
 // Reason 把错误转换为可以展示与存储的原因（不含 URL 与凭据）。
 func Reason(err error) string {
 	switch {
+	case errors.Is(err, ErrHostNotAllowed):
+		return "host not allowed for rule sources"
 	case errors.Is(err, ErrBlocked):
 		return "blocked by the fetch policy"
 	case errors.Is(err, ErrTooLarge):

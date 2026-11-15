@@ -429,7 +429,7 @@ paths:
       tags: [subscription]
       summary: 方案最近一次成功的渲染结果
       description: 只读缓存，不触发拉取或渲染。支持 If-None-Match；按 IP 与令牌限流（默认每分钟 30 次）。
-      parameters: [{$ref: '#/components/parameters/token'}]
+      parameters: [{$ref: '#/components/parameters/token'}, {name: download, in: query, schema: {type: string}, description: 非空时作为文件下载（导出）：附带文件名、总是返回完整内容，请求记录中记为 export}]
       responses:
         '200':
           description: text/yaml；附 Content-Disposition、profile-update-interval、可选的 subscription-userinfo 与 profile-web-page-url
@@ -548,6 +548,13 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Prefs'}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Prefs'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/timezone:
+    put:
+      tags: [account]
+      summary: 保存时区（IANA 名称；空字符串表示跟随浏览器）。界面时间按它显示，配置未指定时区时文件头时间也按它显示
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [timezone], properties: {timezone: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {timezone: {type: string}}}}}}, '422': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/sessions:
     get:
       tags: [account]
@@ -866,6 +873,12 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: ok}}
+  /api/v1/rule-hosts:
+    get:
+      tags: [rule-sources]
+      summary: 当前用户的分流规则地址可以使用的站点；restricted=false 表示不限制（管理员）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {restricted: {type: boolean}, hosts: {type: array, items: {type: string}}}}}}}}
   /api/v1/templates:
     get:
       tags: [profiles]

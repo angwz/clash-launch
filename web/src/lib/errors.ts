@@ -25,6 +25,8 @@ const known: Record<string, string> = {
   rate_limited: "error.rate",
   "rate_limited.check": "error.rate",
   "source.client_fetch": "source.client_fetch",
+  "rule.host_not_allowed": "error.rule_host",
+  "account.timezone": "error.timezone",
   conflict: "error.conflict",
   exists: "error.exists",
   not_found: "error.not_found",
