@@ -46,10 +46,11 @@ type Server struct {
 	// 按用户限制预览渲染与内核检查（反馈 #71）：渲染与 mihomo -t 都占用服务器 CPU，开放注册后需要上限
 	renderLimit  *limiter
 	checkLimit   *limiter
-	missLimit    *limiter // /u/ 上猜错短码的次数（按 IP），超过后限速一段时间（反馈 #74）
-	regLimit     *limiter // 注册：每个 IP 每小时 10 次
-	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
-	passkeyLimit *limiter // 通行密钥登录的开始：每个 IP 每小时 120 次
+	missLimit    *limiter     // /u/ 上猜错短码的次数（按 IP），超过后限速一段时间（反馈 #74）
+	static       http.Handler // 前端构建产物；短链接查不到时交给它（反馈 #75）
+	regLimit     *limiter     // 注册：每个 IP 每小时 10 次
+	recoverLimit *limiter     // 找回（取问题与提交）：每个 IP 每小时 30 次
+	passkeyLimit *limiter     // 通行密钥登录的开始：每个 IP 每小时 120 次
 	mux          *http.ServeMux
 }
 
@@ -72,7 +73,8 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
 	if cfg.Static != nil {
-		s.mux.Handle("GET /", staticHandler(cfg.Static))
+		s.static = staticHandler(cfg.Static)
+		s.mux.Handle("GET /", s.static)
 	}
 	return s
 }

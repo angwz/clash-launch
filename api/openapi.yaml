@@ -950,6 +950,12 @@ paths:
       security: [{session: []}]
       parameters: [{name: username, in: path, required: true, schema: {type: string}}, {name: cursor, in: query, schema: {type: string}}]
       responses: {'200': {description: ok}}
+    delete:
+      tags: [messages]
+      summary: 删除与某人的对话：放入回收站保存一年，并收回双方之间的全部授权
+      security: [{session: [], csrf: []}]
+      parameters: [{name: username, in: path, required: true, schema: {type: string}}]
+      responses: {'204': {description: deleted}}
   /api/v1/messages/{id}/accept:
     post:
       tags: [messages]
@@ -964,6 +970,48 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {description: hidden}}
+  /{code}:
+    get:
+      tags: [subscription]
+      summary: 站点根路径下的短链接（反馈 #75），与 /u/{code} 相同；保留路径与查不到的短码交给前端页面
+      description: 保留路径见 internal/service/reserved.go（本站页面、静态文件与软件项目常用路径）。
+      parameters: [{name: code, in: path, required: true, schema: {type: string}}, {name: download, in: query, schema: {type: string}}]
+      responses:
+        '200': {description: text/yaml（短链接）或前端页面}
+        '429': {description: 猜错次数过多}
+  /api/v1/users/search:
+    get:
+      tags: [messages]
+      summary: 按用户名前缀联想收件人（不区分大小写，最多 8 个），并标出是否接收消息
+      security: [{session: []}]
+      parameters: [{name: q, in: query, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/messages/deleted:
+    get:
+      tags: [messages]
+      summary: 回收站中的会话（删除后保存一年）
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+  /api/v1/messages/with/{username}/restore:
+    post:
+      tags: [messages]
+      summary: 从回收站恢复会话（被收回的授权不恢复）
+      security: [{session: [], csrf: []}]
+      parameters: [{name: username, in: path, required: true, schema: {type: string}}]
+      responses: {'204': {description: restored}}
+  /api/v1/grants:
+    get:
+      tags: [messages]
+      summary: 我给出的与收到的授权（节点与短链接，含已收回的）
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+  /api/v1/grants/{id}/revoke:
+    post:
+      tags: [messages]
+      summary: 收回授权（授权者）或移除收到的授权（被授权者）；短链接授权会停用为对方生成的短链接
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {description: revoked}}
   /api/v1/templates:
     get:
       tags: [profiles]

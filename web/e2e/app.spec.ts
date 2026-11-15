@@ -317,8 +317,9 @@ test("调整菜单顺序：保存到账号，刷新后保持", async ({ page }) 
   await page.getByRole("menuitem", { name: "设置" }).click();
   await page.getByRole("button", { name: "调整顺序…" }).click();
   const dlg = page.locator("dialog[open]");
-  // 把「帮助」上移到第一位
-  for (let i = 0; i < 3; i++) await dlg.getByRole("button", { name: "上移 帮助" }).click();
+  // 把「帮助」上移到第一位（按钮到顶时不可用，不依赖菜单项的个数）
+  const up = dlg.getByRole("button", { name: "上移 帮助" });
+  while (await up.isEnabled()) await up.click();
   await dlg.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.locator("nav.sidebar li").first()).toContainText("帮助");
   await page.reload();
@@ -474,8 +475,9 @@ test("短链接与订阅分析：生成短链接、访问计入统计，分析�
   await page.getByPlaceholder("留空则随机生成").fill("e2e-" + Date.now().toString(36));
   await page.getByRole("button", { name: "生成短链接" }).click();
   await expect(page.getByText("短链接已生成")).toBeVisible();
-  const code = (await page.locator(".code-big").first().textContent())!.replace("/u/", "");
-  for (const ua of ["mihomo/1.19.33", "clash-verge/v2.2.3", "FlClash/0.8"]) await request.get("/u/" + code, { headers: { "User-Agent": ua } });
+  const code = (await page.locator(".code-big").first().textContent())!.replace("/", "");
+  // 短链接直接在根路径下（反馈 #75）
+  for (const ua of ["mihomo/1.19.33", "clash-verge/v2.2.3", "FlClash/0.8"]) await request.get("/" + code, { headers: { "User-Agent": ua } });
   await page.reload();
   await expect(page.locator(".item").first()).toContainText("3");
   await page.waitForTimeout(300);
@@ -506,7 +508,7 @@ test("站内消息：发送文字与节点，对方的节点页自动加入，�
   await page.getByRole("button", { name: "表情" }).click();
   await page.getByRole("option", { name: "🎁" }).click();
   await page.getByRole("button", { name: "附上节点" }).click();
-  await page.locator(".pop.sources button").first().click();
+  await page.locator(".pick").first().getByRole("button", { name: "分享" }).click();
   await expect(page.locator(".chip")).toBeVisible();
   await page.getByRole("button", { name: "发送" }).click();
   await expect(page.locator(".msg.mine .text").last()).toHaveText("送你一组节点 🎁");
@@ -517,11 +519,66 @@ test("站内消息：发送文字与节点，对方的节点页自动加入，�
   const ctx = await browser.newContext();
   const p2 = await ctx.newPage();
   await login(p2, { username: bob, password: "a long enough password" });
-  await expect(p2.locator(".sidebar .badge")).toHaveText("1");
+  await expect(p2.locator(".msg-btn .dot")).toHaveText("1"); // 右上角的消息图标（反馈 #75）
   await p2.goto("/messages/admin");
   await expect(p2.getByRole("link", { name: "已在节点页" })).toBeVisible();
-  await expect(p2.locator(".sidebar .badge")).toHaveCount(0);
+  await expect(p2.locator(".msg-btn .dot")).toHaveCount(0);
   await p2.goto("/sources");
   await expect(p2.getByText(/来自 admin/)).toBeVisible();
   await ctx.close();
+});
+
+test("授权与回收站：联想收件人，授权节点给好友，对方只读使用；删除对话收回授权，可从回收站恢复", async ({ browser, page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const bob = await createUser(request, baseURL!, "gr");
+  await seedProfile(request, baseURL!, "授权");
+  await login(page);
+  await page.goto("/messages");
+  await page.getByPlaceholder("输入用户名，开始新会话").fill(bob.slice(0, 4));
+  await expect(page.locator(".hits").getByText(bob)).toBeVisible();
+  await expect(page.locator(".hits").getByText("可以发消息").first()).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-messages-hits.png" });
+  await page.locator(".hits").getByText(bob).click();
+  await expect(page).toHaveURL(new RegExp("/messages/" + bob));
+  await page.getByRole("button", { name: "附上节点" }).click();
+  await page.locator(".pick").first().getByRole("button", { name: "授权" }).click();
+  await expect(page.locator(".chip")).toContainText("授权");
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect(page.locator(".msg.mine .card")).toContainText("有效");
+  await page.screenshot({ path: "test-results/shot-messages-grant.png" });
+
+  const ctx = await browser.newContext();
+  const p2 = await ctx.newPage();
+  await login(p2, { username: bob, password: "a long enough password" });
+  await p2.goto("/sources");
+  await expect(p2.getByRole("heading", { name: "别人授权给我的节点" })).toBeVisible();
+  await expect(p2.locator(".granted li")).toHaveCount(1);
+  await p2.screenshot({ path: "test-results/shot-sources-granted.png" });
+
+  // 删除对话：放进回收站，授权收回
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: "删除对话" }).click();
+  await expect(page.getByText("对话在回收站中")).toBeVisible();
+  await p2.reload();
+  await expect(p2.locator(".granted li")).toHaveCount(0);
+  await page.getByRole("button", { name: /回收站/ }).click();
+  await expect(page.locator(".th.bin")).toContainText(bob);
+  await page.screenshot({ path: "test-results/shot-messages-bin.png" });
+  await page.locator(".th.bin").getByRole("button", { name: "恢复" }).click();
+  await expect(page.locator(".msg.mine .card")).toContainText("已收回");
+  await ctx.close();
+});
+
+test("管理：审计日志分页", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  // 先产生足够多的审计记录（每新建一条配置链接记一条），保证不止一页
+  const { profile } = await seedProfile(request, baseURL!, "审计");
+  const call = await apiAs(request, baseURL!);
+  for (let i = 0; i < 32; i++) await call("POST", `/api/v1/profiles/${profile}/links`, { note: "a" + i });
+  await login(page);
+  await page.goto("/admin");
+  const pager = page.getByRole("navigation", { name: "审计日志分页" });
+  await expect(pager).toContainText("第 1 /");
+  await pager.getByRole("button", { name: "下一页" }).click();
+  await expect(pager).toContainText("第 2 /");
 });

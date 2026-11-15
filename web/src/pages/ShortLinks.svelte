@@ -1,5 +1,7 @@
 <script lang="ts">
-  // 短链接（反馈 #74）：把自己的配置链接变成好记的短地址 /u/<短码>。访问短链接时直接返回配置内容，
+  // 短链接（反馈 #74、#75）：把自己的配置链接变成好记的短地址 域名/<短码>。
+  // 在消息里授权给好友时，会为对方单独生成一个新的短链接（这里标出「授权给谁」，可以收回）；
+  // 别人授权给我的短链接列在页面下方，只能复制与导入。访问短链接时直接返回配置内容，
   // 请求同时计入原链接与短链接，在「订阅分析」中可以单独查看。可以停用、设置过期时间、一键导入到客户端。
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -30,6 +32,17 @@
     total: number;
     series: number[];
     version: number;
+    grantee?: string;
+    grantId?: string;
+    granted?: boolean;
+  }
+  interface Received {
+    grantId: string;
+    code: string;
+    url: string;
+    from: string;
+    name: string;
+    createdAt: string;
   }
   interface Option {
     id: string;
@@ -37,6 +50,7 @@
   }
 
   let items = $state<Short[] | null>(null);
+  let received = $state<Received[]>([]);
   let groups = $state<{ profile: string; links: Option[] }[]>([]);
   let error = $state("");
   let qrFor = $state<string | null>(null);
@@ -51,7 +65,9 @@
   const origin = location.origin;
 
   async function loadList() {
-    items = (await api.get<{ items: Short[] }>("/api/v1/short-links")).items;
+    const r = await api.get<{ items: Short[]; received: Received[] }>("/api/v1/short-links");
+    items = r.items;
+    received = r.received;
   }
 
   async function loadTargets() {
@@ -126,6 +142,17 @@
     }
   }
 
+  async function revokeGrant(id: string, name: string, mine: boolean) {
+    if (!confirm(mine ? t("messages.revoke_confirm", { name }) : t("messages.remove_confirm", { name }))) return;
+    try {
+      await api.post("/api/v1/grants/" + id + "/revoke", {});
+      toasts.push("ok", mine ? t("messages.revoked") : t("messages.removed"));
+      await loadList();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   const expired = (s: Short) => !!s.expiresAt && new Date(s.expiresAt).getTime() <= Date.now();
   const statusOf = (s: Short) => (s.disabled ? "disabled" : expired(s) ? "expired" : "active");
 </script>
@@ -149,7 +176,7 @@
       <label class="field code">
         <span class="label">{t("short.code")}</span>
         <span class="prefix-input">
-          <span class="prefix ltr">{origin}/u/</span>
+          <span class="prefix ltr">{origin}/</span>
           <input class="input mono ltr" bind:value={form.code} placeholder={t("short.code_random")} maxlength="32" autocomplete="off" spellcheck="false" />
         </span>
       </label>
@@ -180,8 +207,9 @@
         <li class="item panel" class:off={statusOf(s) !== "active"}>
           <div class="head">
             <div class="title">
-              <code class="code-big ltr">/u/{s.code}</code>
+              <code class="code-big ltr">/{s.code}</code>
               <span class="tag" data-state={statusOf(s)}>{t("short.state." + statusOf(s))}</span>
+              {#if s.grantee}<span class="tag friend"><Icon name="shield" size={11} />{s.granted ? t("short.granted_to", { name: s.grantee }) : t("short.revoked_from", { name: s.grantee })}</span>{/if}
             </div>
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(s.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
@@ -205,7 +233,11 @@
             <div class="qr-box"><QRCode text={s.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
           {/if}
           <div class="foot">
-            <button class="btn sm ghost" type="button" onclick={() => void patch(s, { disabled: !s.disabled })}>{s.disabled ? t("short.enable") : t("short.disable")}</button>
+            {#if s.grantee}
+              {#if s.granted && s.grantId}<button class="btn sm ghost" type="button" onclick={() => void revokeGrant(s.grantId!, "/" + s.code, true)}>{t("messages.revoke")}</button>{/if}
+            {:else}
+              <button class="btn sm ghost" type="button" onclick={() => void patch(s, { disabled: !s.disabled })}>{s.disabled ? t("short.enable") : t("short.disable")}</button>
+            {/if}
             {#if s.expiresAt}<button class="btn sm ghost" type="button" onclick={() => void patch(s, { clearExpiry: true })}>{t("short.never_expire")}</button>{/if}
             <button class="btn sm ghost danger" type="button" onclick={() => void remove(s)}><Icon name="trash" size={14} />{t("common.delete")}</button>
           </div>
@@ -214,6 +246,28 @@
     </ul>
   {:else if !error}
     <p class="muted">{t("common.loading")}</p>
+  {/if}
+
+  {#if received.length}
+    <h2 class="sub-h"><Icon name="shield" size={15} />{t("short.received")}</h2>
+    <p class="hint">{t("short.received_hint")}</p>
+    <ul class="list">
+      {#each received as g (g.grantId)}
+        <li class="item panel">
+          <div class="head">
+            <div class="title">
+              <code class="code-big ltr">/{g.code}</code>
+              <span class="muted">{t("sources.granted_from", { name: g.from, when: i18n.date(g.createdAt) })}{#if g.name} · {g.name}{/if}</span>
+            </div>
+            <div class="actions">
+              <button class="btn sm" type="button" onclick={() => void copy(g.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
+              <ImportMenu url={g.url} name={g.name || g.from} />
+              <button class="btn sm ghost" type="button" onclick={() => void revokeGrant(g.grantId, "/" + g.code, false)}>{t("messages.remove")}</button>
+            </div>
+          </div>
+        </li>
+      {/each}
+    </ul>
   {/if}
 </div>
 
@@ -350,6 +404,20 @@
     display: grid;
     justify-items: start;
     gap: var(--space-2);
+  }
+  .sub-h {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block: var(--space-6) var(--space-1);
+    font-size: var(--text-lg);
+  }
+  .tag.friend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
   }
   .empty {
     padding: var(--space-6) 0;

@@ -50,6 +50,8 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	anon.want(201, "POST", "/api/v1/register", registerBody(t, anon, "carol", ""))
 	msg := decode[messageDTO](t, a.want(201, "POST", "/api/v1/messages", map[string]any{"to": "carol", "text": "hi", "source": srcs.Items[0].ID}))
 	ids["/api/v1/messages/"] = msg.ID
+	gm := decode[messageDTO](t, a.want(201, "POST", "/api/v1/messages", map[string]any{"to": "carol", "source": srcs.Items[0].ID, "mode": "grant"}))
+	ids["/api/v1/grants/"] = gm.Attach.GrantID
 	// 按调用者自身划定范围的路由：B 只能看到自己参与的会话，不存在「A 的资源」，另由 TestMessages 检查
 	scoped := map[string]bool{"GET /api/v1/messages/with/{username}": true}
 	// 每条路由一个能通过格式校验的请求体（接口拒绝未知字段），使所有权检查成为决定结果的那一步
@@ -82,6 +84,8 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 			}
 		}
 		path = strings.Replace(path, "{lid}", l.ID, 1)
+		// 会话按调用者自身的联系人查找：B 与 carol 没有交流过，删除与恢复都应是 404
+		path = strings.Replace(path, "{username}", "carol", 1)
 		if strings.Contains(path, "{") {
 			t.Errorf("%s %s：没有对应的资源 ID，请在 ids 中补上", r.Method, r.Pattern)
 			continue

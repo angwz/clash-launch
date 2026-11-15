@@ -54,6 +54,20 @@ type shortDTO struct {
 	Total     int64      `json:"total"`
 	Series    []int64    `json:"series"` // 近 30 天每天的请求数（UTC）
 	Version   int64      `json:"version"`
+	// 为好友生成的短链接（反馈 #75）：Grantee 是对方的用户名，Granted 表示授权仍有效
+	Grantee string `json:"grantee,omitempty"`
+	GrantID string `json:"grantId,omitempty"`
+	Granted bool   `json:"granted,omitempty"`
+}
+
+// receivedShortDTO 是别人授权给我使用的短链接。
+type receivedShortDTO struct {
+	GrantID   string    `json:"grantId"`
+	Code      string    `json:"code"`
+	URL       string    `json:"url"`
+	From      string    `json:"from"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -90,17 +104,64 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 			byDay[x.Key] = append(byDay[x.Key], x)
 		}
 	}
-	out := list[shortDTO]{Items: []shortDTO{}}
+	given, err := s.Svc.Store.Grants().Given(ctx, p.User.ID, false)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	grantOf := map[string]store.Grant{}
+	for _, g := range given {
+		if g.Kind == "short" {
+			grantOf[g.TargetID] = g
+		}
+	}
+	out := []shortDTO{}
 	for _, x := range items {
 		d := s.toShort(r, &x, labels[x.LinkID])
 		d.Total, d.Series = totals[x.ID], series(byDay[x.ID], days)
-		out.Items = append(out.Items, d)
+		if x.GranteeID != "" {
+			if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
+				d.Grantee = u.Username
+			}
+			if g, ok := grantOf[x.ID]; ok {
+				d.GrantID, d.Granted = g.ID, g.Active()
+			}
+		}
+		out = append(out, d)
 	}
-	writeJSON(w, http.StatusOK, out)
+	// 别人授权给我的短链接：只能复制与导入，不显示对方配置的细节
+	received := []receivedShortDTO{}
+	gs, err := s.Svc.Store.Grants().Received(ctx, p.User.ID, true)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	for _, g := range gs {
+		if g.Kind != "short" {
+			continue
+		}
+		sl, err := s.Svc.Store.ShortLinks().Get(ctx, g.OwnerID, g.TargetID)
+		if err != nil {
+			continue
+		}
+		from := ""
+		if u, err := s.Svc.Store.Users().ByID(ctx, g.OwnerID); err == nil {
+			from = u.Username
+		}
+		// 显示对方配置的名称（只有名称，不含内容），便于区分多个授权
+		name := ""
+		if l, err := s.Svc.Store.Links().Get(ctx, g.OwnerID, sl.LinkID); err == nil {
+			if pr, err := s.Svc.Store.Profiles().Get(ctx, g.OwnerID, l.ProfileID); err == nil {
+				name = pr.Name
+			}
+		}
+		received = append(received, receivedShortDTO{GrantID: g.ID, Code: sl.Code, URL: s.baseURL(r) + "/" + sl.Code, From: from, Name: name, CreatedAt: g.CreatedAt})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": out, "received": received})
 }
 
 func (s *Server) toShort(r *http.Request, x *store.ShortLink, target linkInfo) shortDTO {
-	d := shortDTO{ID: x.ID, Code: x.Code, URL: s.baseURL(r) + "/u/" + x.Code, LinkID: x.LinkID, Target: target, Note: x.Note, Disabled: x.Disabled, CreatedAt: x.CreatedAt, Version: x.Version, Series: []int64{}}
+	d := shortDTO{ID: x.ID, Code: x.Code, URL: s.baseURL(r) + "/" + x.Code, LinkID: x.LinkID, Target: target, Note: x.Note, Disabled: x.Disabled, CreatedAt: x.CreatedAt, Version: x.Version, Series: []int64{}}
 	if !x.ExpiresAt.IsZero() {
 		d.ExpiresAt = &x.ExpiresAt
 	}
@@ -157,6 +218,13 @@ func (s *Server) patchShortLink(w http.ResponseWriter, r *http.Request, p *princ
 		sl.Note = strings.TrimSpace(*req.Note)
 	}
 	if req.Disabled != nil {
+		if !*req.Disabled && sl.GranteeID != "" {
+			// 为好友生成的短链接：授权收回后不能在这里重新启用（重新授权请再发一次）
+			if g, err := s.Svc.Store.Grants().ActiveFor(r.Context(), sl.GranteeID, "short", sl.ID); err != nil || !g.Active() {
+				s.fail(w, store.ErrConflict)
+				return
+			}
+		}
 		sl.Disabled = *req.Disabled
 	}
 	if req.ExpiresAt != nil {
@@ -210,40 +278,59 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 		s.fail(w, err)
 		return
 	}
-	if link, short := q.Get("link"), q.Get("short"); link != "" || short != "" {
+	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	// 为好友生成的短链接 → 好友（反馈 #75）：好友的使用情况单独统计，也可以只看某位好友
+	granteeOf, friends := map[string]string{}, map[string]string{}
+	codes := map[string]string{}
+	for _, x := range shorts {
+		codes[x.ID] = x.Code
+		if x.GranteeID != "" {
+			granteeOf[x.ID] = x.GranteeID
+			if _, ok := friends[x.GranteeID]; !ok {
+				if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
+					friends[x.GranteeID] = u.Username
+				} else {
+					friends[x.GranteeID] = "?"
+				}
+			}
+		}
+	}
+	link, short, friend := q.Get("link"), q.Get("short"), q.Get("friend")
+	if link != "" || short != "" || friend != "" {
 		kept := rs[:0]
 		for _, x := range rs {
-			if (link == "" || x.LinkID == link) && (short == "" || x.ShortID == short) {
+			if (link == "" || x.LinkID == link) && (short == "" || x.ShortID == short) && (friend == "" || granteeOf[x.ShortID] == friend) {
 				kept = append(kept, x)
 			}
 		}
 		rs = kept
 	}
 	a := service.Analyze(rs, from, to, loc, cut)
+	a.Friends = service.FriendUsage(rs, granteeOf, from, to)
 	labels, err := s.linkLabels(ctx, p.User.ID)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	codes := map[string]string{}
-	for _, x := range shorts {
-		codes[x.ID] = x.Code
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes})
+	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends})
 }
 
 // —— 站内消息 ——
 
 type attachDTO struct {
-	Kind  string `json:"kind"`
+	Kind  string `json:"kind"` // nodes | subscription | grant
 	Name  string `json:"name"`
 	URL   string `json:"url,omitempty"`
 	Nodes int    `json:"nodes,omitempty"` // 手动节点的行数（粗略的节点数）
+	// 授权（反馈 #75）：Target 为 source 或 short；Active 表示授权仍有效
+	Target     string `json:"target,omitempty"`
+	GrantID    string `json:"grantId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
+	Active     bool   `json:"active,omitempty"`
 }
 
 type messageDTO struct {
@@ -256,7 +343,8 @@ type messageDTO struct {
 	AddedSource string     `json:"addedSource,omitempty"`
 }
 
-func toMessage(me string, m *store.Message) messageDTO {
+// toMessage 转换消息；授权附件查询授权当前是否有效（收发双方都能读取这项授权）。
+func (s *Server) toMessage(ctx context.Context, me string, m *store.Message) messageDTO {
 	var b service.MessageBody
 	_ = json.Unmarshal(m.Body, &b)
 	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
@@ -264,7 +352,12 @@ func toMessage(me string, m *store.Message) messageDTO {
 		d.AddedSource = m.AddedSource
 	}
 	if a := b.Attach; a != nil {
-		d.Attach = &attachDTO{Kind: a.Kind, Name: a.Name, URL: a.URL}
+		d.Attach = &attachDTO{Kind: a.Kind, Name: a.Name, URL: a.URL, Target: a.Target, GrantID: a.GrantID, SourceKind: a.SourceKind}
+		if a.Kind == "grant" {
+			if g, err := s.Svc.Store.Grants().Get(ctx, me, a.GrantID); err == nil {
+				d.Attach.Active = g.Active()
+			}
+		}
 		if a.Kind == "nodes" {
 			for _, line := range strings.Split(a.Content, "\n") {
 				if strings.TrimSpace(line) != "" {
@@ -302,6 +395,11 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, store.ErrNotFound)
 		return
 	}
+	// 对话在回收站中：不返回消息，界面显示「已删除」与恢复按钮（反馈 #75）
+	if c, err := s.Svc.Store.Contacts().Get(ctx, p.User.ID, other.ID); err == nil && !c.DeletedAt.IsZero() {
+		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username}, "items": []messageDTO{}, "deletedAt": c.DeletedAt, "purgeAt": c.DeletedAt.Add(365 * 24 * time.Hour)})
+		return
+	}
 	items, err := s.Svc.Store.Messages().Thread(ctx, p.User.ID, other.ID, page(r))
 	if err != nil {
 		s.fail(w, err)
@@ -313,7 +411,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 	}
 	out := list[messageDTO]{Items: []messageDTO{}}
 	for i := range items {
-		out.Items = append(out.Items, toMessage(p.User.ID, &items[i]))
+		out.Items = append(out.Items, s.toMessage(ctx, p.User.ID, &items[i]))
 	}
 	if len(items) > 0 && len(items) == pageSize(r) {
 		last := items[len(items)-1]
@@ -327,17 +425,19 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principa
 		To     string `json:"to"`
 		Text   string `json:"text"`
 		Source string `json:"source"`
+		Short  string `json:"short"`
+		Mode   string `json:"mode"` // share | grant
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
 		return
 	}
-	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, req.Source)
+	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, service.AttachRequest{Source: req.Source, Short: req.Short, Mode: req.Mode})
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, toMessage(p.User.ID, m))
+	writeJSON(w, http.StatusCreated, s.toMessage(r.Context(), p.User.ID, m))
 }
 
 func (s *Server) acceptMessage(w http.ResponseWriter, r *http.Request, p *principal) {

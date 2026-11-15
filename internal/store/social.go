@@ -20,6 +20,8 @@ type ShortLink struct {
 	Note      string
 	Disabled  bool
 	ExpiresAt time.Time // 零值表示不过期
+	// GranteeID 非空表示这是为好友单独生成的短链接（反馈 #75）
+	GranteeID string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Version   int64
@@ -48,12 +50,12 @@ func (d *DB) ShortLinks() ShortLinkRepo { return shortLinks{d} }
 
 type shortLinks struct{ d *DB }
 
-const shortCols = "id, owner_id, link_id, code, note, disabled, expires_at, created_at, updated_at, version"
+const shortCols = "id, owner_id, link_id, code, note, disabled, expires_at, created_at, updated_at, version, grantee_id"
 
 func scanShort(row interface{ Scan(...any) error }) (*ShortLink, error) {
 	var s ShortLink
 	var dis, exp, c, u int64
-	if err := row.Scan(&s.ID, &s.OwnerID, &s.LinkID, &s.Code, &s.Note, &dis, &exp, &c, &u, &s.Version); err != nil {
+	if err := row.Scan(&s.ID, &s.OwnerID, &s.LinkID, &s.Code, &s.Note, &dis, &exp, &c, &u, &s.Version, &s.GranteeID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -108,8 +110,8 @@ func (r shortLinks) Create(ctx context.Context, owner string, s *ShortLink) erro
 		if n == 0 {
 			return ErrNotFound
 		}
-		_, err := x.exec(ctx, "INSERT INTO short_links ("+shortCols+") VALUES (?,?,?,?,?,?,?,?,?,1)",
-			s.ID, owner, s.LinkID, s.Code, s.Note, b2i(s.Disabled), msOrZero(s.ExpiresAt), ms(now), ms(now))
+		_, err := x.exec(ctx, "INSERT INTO short_links ("+shortCols+") VALUES (?,?,?,?,?,?,?,?,?,1,?)",
+			s.ID, owner, s.LinkID, s.Code, s.Note, b2i(s.Disabled), msOrZero(s.ExpiresAt), ms(now), ms(now), s.GranteeID)
 		if err != nil && isUnique(err) {
 			return ErrExists
 		}
@@ -183,8 +185,9 @@ type MessageRepo interface {
 	Recent(ctx context.Context, user string, limit int) ([]Message, error)
 	// MarkRead 把 other 发给 user 的未读消息标为已读。
 	MarkRead(ctx context.Context, user, other string, at time.Time) error
-	// Unread 返回 user 的未读消息数。
+	// Unread 返回 user 的未读消息数（不含回收站中的对话）；UnreadFrom 只算 other 发来的。
 	Unread(ctx context.Context, user string) (int, error)
+	UnreadFrom(ctx context.Context, user, other string) (int, error)
 	// Hide 对 user 隐藏一条消息（发件人与收件人各自独立）。
 	Hide(ctx context.Context, user, id string) error
 	// SetAdded 记录收件人由附件加入的源。
@@ -252,9 +255,21 @@ func (r messages) Create(ctx context.Context, m *Message) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.d.exec(ctx, "INSERT INTO messages ("+messageCols+") VALUES (?,?,?,?,?,?,0,0,0,?)",
-		m.ID, m.SenderID, m.RecipientID, m.Kind, enc, ms(m.CreatedAt), m.AddedSource)
-	return err
+	return r.d.Tx(ctx, func(st Store) error {
+		x := st.(*DB)
+		if _, err := x.exec(ctx, "INSERT INTO messages ("+messageCols+") VALUES (?,?,?,?,?,?,0,0,0,?)",
+			m.ID, m.SenderID, m.RecipientID, m.Kind, enc, ms(m.CreatedAt), m.AddedSource); err != nil {
+			return err
+		}
+		// 双方都成为（或恢复为）联系人，按这条消息的时间排序（反馈 #75）
+		for _, pair := range [][2]string{{m.SenderID, m.RecipientID}, {m.RecipientID, m.SenderID}} {
+			if _, err := x.exec(ctx, "INSERT INTO contacts (user_id, peer_id, last_at, deleted_at) VALUES (?,?,?,0) "+
+				"ON CONFLICT (user_id, peer_id) DO UPDATE SET last_at = excluded.last_at, deleted_at = 0", pair[0], pair[1], ms(m.CreatedAt)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r messages) Get(ctx context.Context, user, id string) (*Message, error) {
@@ -285,7 +300,14 @@ func (r messages) MarkRead(ctx context.Context, user, other string, at time.Time
 
 func (r messages) Unread(ctx context.Context, user string) (int, error) {
 	var n int
-	err := r.d.row(ctx, "SELECT COUNT(*) FROM messages WHERE recipient_id=? AND recipient_hidden=0 AND read_at=0", user).Scan(&n)
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM messages m WHERE recipient_id=? AND recipient_hidden=0 AND read_at=0 "+
+		"AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.user_id=m.recipient_id AND c.peer_id=m.sender_id AND c.deleted_at <> 0)", user).Scan(&n)
+	return n, err
+}
+
+func (r messages) UnreadFrom(ctx context.Context, user, other string) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM messages WHERE recipient_id=? AND sender_id=? AND recipient_hidden=0 AND read_at=0", user, other).Scan(&n)
 	return n, err
 }
 

@@ -16,6 +16,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/readyz", s.readyz},
 		{"GET", "/s/{token}", s.subscribe},
 		{"GET", "/u/{code}", s.short},
+		{"GET", "/{code}", s.rootShort},
 		{"GET", "/p/{token}/{source}", s.hosted},
 
 		{"GET", "/api/v1/setup", s.setupStatus},
@@ -105,6 +106,12 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/messages/with/{username}", a(s.threadWith)},
 		{"POST", "/api/v1/messages/{id}/accept", a(s.acceptMessage)},
 		{"DELETE", "/api/v1/messages/{id}", a(s.hideMessage)},
+		{"GET", "/api/v1/users/search", a(s.searchUsers)},
+		{"GET", "/api/v1/messages/deleted", a(s.deletedThreads)},
+		{"DELETE", "/api/v1/messages/with/{username}", a(s.deleteThread)},
+		{"POST", "/api/v1/messages/with/{username}/restore", a(s.restoreThread)},
+		{"GET", "/api/v1/grants", a(s.listGrants)},
+		{"POST", "/api/v1/grants/{id}/revoke", a(s.revokeGrant)},
 
 		{"GET", "/api/v1/templates", a(s.listTemplates)},
 		{"POST", "/api/v1/templates", a(s.createTemplate)},

@@ -7,6 +7,7 @@
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { api, listAll, type Source, type SourceInput } from "../lib/api/client";
+  type GSource = Source & { grant?: { id: string; from: string } };
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { nodeModePolicy } from "../lib/node-mode";
@@ -14,7 +15,20 @@
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
 
-  let items = $state<Source[] | null>(null);
+  let items = $state<GSource[] | null>(null);
+  // 自己的节点与别人授权给我的节点（反馈 #75）分开显示
+  const mine = $derived((items ?? []).filter((s) => !s.grant));
+  const granted = $derived((items ?? []).filter((s) => !!s.grant));
+  async function removeGrant(s: GSource) {
+    if (!s.grant || !confirm(t("messages.remove_confirm", { name: s.name }))) return;
+    try {
+      await api.post("/api/v1/grants/" + s.grant.id + "/revoke", {});
+      toasts.push("ok", t("messages.removed"));
+      await load();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
   // 订阅只由客户端拉取（反馈 #71）：不显示拉取状态与「立即拉取」
   let clientFetch = $state(false);
   $effect(() => {
@@ -104,12 +118,13 @@
 
   {#if items === null}
     <div class="skeleton" aria-busy="true"></div>
-  {:else if items.length === 0}
+  {:else if mine.length === 0 && granted.length === 0}
     <div class="empty panel">
       <Emoji name="mailbox" size={40} />
       <p>{t("sources.empty")}</p>
     </div>
   {:else}
+    {#if mine.length}
     <div class="panel table-wrap">
       <table class="table">
         <thead>
@@ -121,7 +136,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each items as s (s.id)}
+          {#each mine as s (s.id)}
             {@const st = status(s)}
             <tr>
               <td>
@@ -141,6 +156,24 @@
         </tbody>
       </table>
     </div>
+    {/if}
+    {#if granted.length}
+      <!-- 别人授权给我的节点（反馈 #75）：只能在配置中使用，不能查看内容或修改；可以移除 -->
+      <h2 class="sub-h"><Icon name="shield" size={15} />{t("sources.granted")}</h2>
+      <p class="hint">{t("sources.granted_hint")}</p>
+      <ul class="granted">
+        {#each granted as s (s.id)}
+          <li class="panel">
+            <Icon name={kindIcon(s.kind)} size={16} />
+            <span class="g-main">
+              <strong>{s.name}</strong>
+              <span class="muted">{t("source.kind." + s.kind)} · {t("sources.granted_from", { name: s.grant!.from, when: i18n.date(s.createdAt) })}</span>
+            </span>
+            <button class="btn sm ghost" type="button" onclick={() => void removeGrant(s)}>{t("messages.remove")}</button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   {/if}
 </div>
 
@@ -181,6 +214,33 @@
 </Dialog>
 
 <style>
+  /* 别人授权给我的节点（反馈 #75） */
+  .sub-h {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block: var(--space-6) var(--space-1);
+    font-size: var(--text-lg);
+  }
+  .granted {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .granted li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+  .g-main {
+    display: grid;
+    flex: 1;
+    min-inline-size: 0;
+    font-size: var(--text-sm);
+  }
   .page {
     max-inline-size: 1120px;
     margin-inline: auto;

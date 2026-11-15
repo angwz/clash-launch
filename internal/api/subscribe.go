@@ -69,22 +69,45 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 	s.serveConfig(sw, r, l, tok, kind == "export")
 }
 
-// short 提供短链接（反馈 #74）：/u/<短码> 直接返回所指配置链接的内容（不重定向，不暴露原链接），
-// 请求同时计入原链接与短链接。不存在、已停用或已过期的短码返回 404；同一 IP 连续猜错会被限速。
+// short 提供旧式短链接 /u/<短码>（反馈 #74，继续有效）。
 func (s *Server) short(w http.ResponseWriter, r *http.Request) {
+	s.serveShort(w, r, r.PathValue("code"), true)
+}
+
+// rootShort 提供站点根路径下的短链接 /<短码>（反馈 #75）。保留的路径（本站页面、静态文件、常见软件路径）
+// 与带点的文件名直接交给前端；查不到短码时也交给前端，由前端显示「页面不存在」。
+func (s *Server) rootShort(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	if strings.Contains(code, ".") || service.IsReservedCode(code) {
+		s.fallback(w, r)
+		return
+	}
+	s.serveShort(w, r, code, false)
+}
+
+// fallback 交给前端构建产物（单页应用）；没有前端时返回 404。
+func (s *Server) fallback(w http.ResponseWriter, r *http.Request) {
+	if s.static != nil {
+		s.static.ServeHTTP(w, r)
+		return
+	}
+	problem(w, http.StatusNotFound, "not_found", "resource not found")
+}
+
+// serveShort 直接返回短链接所指配置链接的内容（不重定向，不暴露原链接），请求同时计入原链接与短链接。
+// 不存在、已停用、已过期或已收回授权的短码：/u/ 返回 404 并记入试探来源；根路径交给前端。
+// 同一 IP 一小时内猜错 30 次后限速。
+func (s *Server) serveShort(w http.ResponseWriter, r *http.Request, code string, legacy bool) {
 	sw := &statusWriter{ResponseWriter: w}
-	var link *store.Link
-	var shortID string
-	kind := kindOf(r, "config")
-	defer func() { s.recordSub(r, link, sw, kind, shortID) }()
 	ip := s.clientIP(r).String()
 	now := time.Now()
 	if s.missLimit.over(ip, now) {
 		sw.Header().Set("Retry-After", "600")
 		http.Error(sw, "too many requests", http.StatusTooManyRequests)
+		s.recordSub(r, nil, sw, "config", "")
 		return
 	}
-	code := strings.ToLower(r.PathValue("code"))
+	code = strings.ToLower(code)
 	sl, err := s.Svc.Store.ShortLinks().ByCode(r.Context(), code)
 	var l *store.Link
 	if err == nil && sl.Active(now) {
@@ -92,13 +115,19 @@ func (s *Server) short(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil || l == nil {
 		s.missLimit.allow(ip, now) // 只记录猜错的次数
-		http.NotFound(sw, r)
+		if legacy {
+			http.NotFound(sw, r)
+			s.recordSub(r, nil, sw, "config", "")
+			return
+		}
+		s.fallback(w, r)
 		return
 	}
+	kind := kindOf(r, "config")
+	defer func() { s.recordSub(r, l, sw, kind, sl.ID) }()
 	if s.rateLimited(sw, r, "short:"+code) {
 		return
 	}
-	link, shortID = l, sl.ID
 	s.serveConfig(sw, r, l, l.Token, kind == "export")
 }
 

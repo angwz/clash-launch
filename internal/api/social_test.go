@@ -18,13 +18,13 @@ func TestShortLinksAnalyticsMessages(t *testing.T) {
 		t.Errorf("短码太短应拒绝：%s", b)
 	}
 	sl := decode[shortDTO](t, admin.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID, "code": "Home-1", "note": "家里"}))
-	if sl.Code != "home-1" || !strings.HasSuffix(sl.URL, "/u/home-1") || sl.Target.Note != "手机" {
+	if sl.Code != "home-1" || !strings.HasSuffix(sl.URL, "/home-1") || strings.Contains(sl.URL, "/u/") || sl.Target.Note != "手机" {
 		t.Fatalf("短链接：%+v", sl)
 	}
 	admin.want(409, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID, "code": "HOME-1"})
 	rnd := decode[shortDTO](t, admin.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID}))
-	if len(rnd.Code) != 8 {
-		t.Errorf("随机短码应为 8 位：%q", rnd.Code)
+	if len(rnd.Code) != 5 {
+		t.Errorf("随机短码应为 5 位：%q", rnd.Code)
 	}
 	_, full := anon.do("GET", strings.TrimPrefix(l.URL, h.http.URL), nil)
 	resp, body := anon.do("GET", "/u/HOME-1", nil, "User-Agent", "mihomo/1.19.33")

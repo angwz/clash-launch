@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/angwz/clash-launch/internal/store"
@@ -29,6 +30,19 @@ func toAudit(e store.AuditEntry) auditDTO {
 
 // myAudit 返回与本人有关的审计记录（新的在前）。
 func (s *Server) myAudit(w http.ResponseWriter, r *http.Request, p *principal) {
+	if n, size, ok := pageNo(r); ok {
+		list, total, err := s.Svc.Store.Audit().Paged(r.Context(), p.User.ID, (n-1)*size, size)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		out := make([]auditDTO, 0, len(list))
+		for _, e := range list {
+			out = append(out, toAudit(e))
+		}
+		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: total, Page: n, Size: size})
+		return
+	}
 	list, err := s.Svc.Store.Audit().List(r.Context(), p.User.ID, page(r))
 	if err != nil {
 		s.fail(w, err)
@@ -125,7 +139,17 @@ func (s *Server) adminSetQuota(w http.ResponseWriter, r *http.Request, p *princi
 
 // adminAudit 返回全部审计记录，并附上账号名。
 func (s *Server) adminAudit(w http.ResponseWriter, r *http.Request, _ *principal) {
-	list, err := s.Svc.Store.Audit().All(r.Context(), page(r))
+	var (
+		list  []store.AuditEntry
+		total int
+		err   error
+	)
+	n, size, paged := pageNo(r)
+	if paged {
+		list, total, err = s.Svc.Store.Audit().PagedAll(r.Context(), (n-1)*size, size)
+	} else {
+		list, err = s.Svc.Store.Audit().All(r.Context(), page(r))
+	}
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -144,7 +168,32 @@ func (s *Server) adminAudit(w http.ResponseWriter, r *http.Request, _ *principal
 		}
 		out = append(out, d)
 	}
+	if paged {
+		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: total, Page: n, Size: size})
+		return
+	}
 	writeJSON(w, http.StatusOK, auditList(out))
+}
+
+// pagedDTO 是按页码分页的列表（反馈 #75）：总数与页码，供界面显示「第 n / m 页」。
+type pagedDTO[T any] struct {
+	Items []T `json:"items"`
+	Total int `json:"total"`
+	Page  int `json:"page"`
+	Size  int `json:"size"`
+}
+
+// pageNo 读取 ?pageNo=（从 1 开始）与 limit；没有 pageNo 时返回 ok=false，接口按游标分页（兼容旧客户端）。
+func pageNo(r *http.Request) (n, size int, ok bool) {
+	v := r.URL.Query().Get("pageNo")
+	if v == "" {
+		return 0, 0, false
+	}
+	n, _ = strconv.Atoi(v)
+	if n < 1 || n > 100000 {
+		n = 1
+	}
+	return n, pageSize(r), true
 }
 
 // adminStatus 是系统状态：版本、内核、目录、主密钥、可选功能是否可用。

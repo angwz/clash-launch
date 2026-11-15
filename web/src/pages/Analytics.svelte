@@ -11,7 +11,7 @@
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { live } from "../lib/live";
-  import { flagOf, regionName } from "../lib/regions";
+  import { flagOf, isLocalIP, regionName } from "../lib/regions";
   import { browserZone } from "../components/TimezonePicker.svelte";
 
   interface Count {
@@ -45,6 +45,22 @@
     linkId: string;
     shortId?: string;
   }
+  // 好友经由授权短链接的使用情况（反馈 #75）
+  interface Friend {
+    userId: string;
+    requests: number;
+    ok: number;
+    fail: number;
+    ips: number;
+    countries: string[];
+    orgs: string[];
+    clients: string[];
+    shorts: string[];
+    daily: number[];
+    first: string;
+    last: string;
+    interval: number;
+  }
   interface Data {
     analytics: {
       zone: string;
@@ -63,7 +79,9 @@
       recent: Req[];
       newIps: number;
       peak?: { day: string; count: number };
+      friends: Friend[];
     };
+    friends: Record<string, string>;
     links: Record<string, { profileId: string; profileName: string; note: string }>;
     shorts: Record<string, string>;
   }
@@ -72,12 +90,13 @@
   let days = $state(Number(q.get("days")) || 30);
   let link = $state(q.get("link") ?? "");
   let short = $state(q.get("short") ?? "");
+  let friend = $state(q.get("friend") ?? "");
   let data = $state<Data | null>(null);
   let error = $state("");
   let ipLimit = $state(20);
 
   async function load() {
-    const d = await api.get<Data>("/api/v1/analytics", { query: { days, link: link || undefined, short: short || undefined, tz: browserZone() } });
+    const d = await api.get<Data>("/api/v1/analytics", { query: { days, link: link || undefined, short: short || undefined, friend: friend || undefined, tz: browserZone() } });
     data = d;
     error = "";
   }
@@ -87,6 +106,7 @@
     if (days !== 30) p.set("days", String(days));
     if (link) p.set("link", link);
     if (short) p.set("short", short);
+    if (friend) p.set("friend", friend);
     history.replaceState(history.state, "", location.pathname + (p.size ? "?" + p : ""));
     load().catch((e) => (error = errorText(e)));
   });
@@ -99,7 +119,8 @@
     const l = data?.links[id];
     return l ? `${l.profileName} · ${l.note || t("links.untitled")}` : t("analytics.deleted_link");
   };
-  const region = (c: string) => (c ? `${flagOf(c)} ${regionName(c, i18n.intlLocale)}` : t("analytics.unknown_region"));
+  // 归属地：有国家时显示旗帜与名称；本机与内网地址显示「本地网络」；其余（数据库里没有这个地址）留空（反馈 #75）
+  const region = (c: string, ip = "") => (c ? `${flagOf(c)} ${regionName(c, i18n.intlLocale)}` : isLocalIP(ip) ? t("analytics.local") : "");
   const kindLabel = (k: string) => t("analytics.kind." + (["config", "provider", "export", "short"].includes(k) ? k : "config"));
 
   // 拉取间隔：约每 N 分钟 / 小时 / 天
@@ -127,8 +148,14 @@
     </select>
     <select class="select" aria-label={t("analytics.short")} bind:value={short}>
       <option value="">{t("analytics.all_shorts")}</option>
-      {#each Object.entries(data?.shorts ?? {}) as [id, code] (id)}<option value={id}>/u/{code}</option>{/each}
+      {#each Object.entries(data?.shorts ?? {}) as [id, code] (id)}<option value={id}>/{code}</option>{/each}
     </select>
+    {#if Object.keys(data?.friends ?? {}).length}
+      <select class="select" aria-label={t("analytics.friend")} bind:value={friend}>
+        <option value="">{t("analytics.all_people")}</option>
+        {#each Object.entries(data?.friends ?? {}) as [id, name] (id)}<option value={id}>{t("analytics.friend_only", { name })}</option>{/each}
+      </select>
+    {/if}
     {#if a}<span class="zone muted"><Icon name="globe" size={13} />{a.zone}</span>{/if}
   </div>
 
@@ -197,10 +224,42 @@
         />
         {#if a.shorts.length}
           <h3>{t("nav.short_links")}</h3>
-          <RankBars items={a.shorts.map((x) => ({ label: "/u/" + (data?.shorts[x.key] ?? "?"), count: x.count, mono: true }))} empty={t("stats.none")} />
+          <RankBars items={a.shorts.map((x) => ({ label: "/" + (data?.shorts[x.key] ?? "?"), count: x.count, mono: true }))} empty={t("stats.none")} />
         {/if}
       </section>
     </div>
+
+    {#if a.friends.length}
+      <!-- 好友的使用情况：经由授权给好友的短链接的请求，逐项列出（反馈 #75） -->
+      <section class="panel box">
+        <h2>{t("analytics.friends")}</h2>
+        <p class="hint">{t("analytics.friends_hint")}</p>
+        <div class="wrap">
+          <table class="table flush">
+            <thead>
+              <tr><th>{t("analytics.friend")}</th><th>{t("stats.col_count")}</th><th>IP</th><th>{t("analytics.region")}</th><th>{t("analytics.org")}</th><th>{t("stats.col_client")}</th><th>{t("analytics.interval")}</th><th>{t("stats.col_first")}</th><th>{t("stats.col_last")}</th><th>{t("nav.short_links")}</th><th></th></tr>
+            </thead>
+            <tbody>
+              {#each a.friends as f (f.userId)}
+                <tr>
+                  <td><strong>{data?.friends[f.userId] ?? "?"}</strong></td>
+                  <td class="num">{i18n.number(f.requests)}{#if f.fail} <span class="bad">({t("analytics.fail_n", { n: f.fail })})</span>{/if}</td>
+                  <td class="num">{f.ips}</td>
+                  <td>{f.countries.map((c) => flagOf(c) + " " + regionName(c, i18n.intlLocale)).join("、") || ""}</td>
+                  <td class="org" title={f.orgs.join(" · ")}>{f.orgs.join("、") || ""}</td>
+                  <td class="mono">{f.clients.join(", ") || "—"}</td>
+                  <td>{every(f.interval)}</td>
+                  <td>{i18n.date(f.first)}</td>
+                  <td>{i18n.relative(f.last)}</td>
+                  <td class="mono">{f.shorts.map((id) => "/" + (data?.shorts[id] ?? "?")).join(" ")}</td>
+                  <td><button class="btn sm ghost" type="button" onclick={() => (friend = f.userId)}>{t("analytics.only_this")}</button></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {/if}
 
     <section class="panel box">
       <h2>{t("analytics.ip_detail")}</h2>
@@ -214,7 +273,7 @@
             {#each a.ips.slice(0, ipLimit) as x (x.ip)}
               <tr>
                 <td class="mono ltr">{x.ip}{#if x.new} <span class="new-tag">{t("analytics.new")}</span>{/if}</td>
-                <td>{region(x.country)}</td>
+                <td class:muted={!x.country}>{region(x.country, x.ip)}</td>
                 <td class="org" title={x.asn}>{x.org || "—"}</td>
                 <td class="mono">{x.client || "—"}</td>
                 <td class="num">{i18n.number(x.count)}{#if x.fail} <span class="bad">({t("analytics.fail_n", { n: x.fail })})</span>{/if}</td>
@@ -241,10 +300,10 @@
               <tr title={r.ua}>
                 <td>{i18n.date(r.at, "long")}</td>
                 <td class="mono ltr">{r.ip}</td>
-                <td>{region(r.country)}</td>
+                <td class:muted={!r.country}>{region(r.country, r.ip)}</td>
                 <td class="mono">{r.client || "—"}</td>
                 <td><span class="code" data-tone={statusTone(r.status)}>{r.status}</span></td>
-                <td>{r.shortId ? "/u/" + (data?.shorts[r.shortId] ?? "?") : linkLabel(r.linkId)}{#if r.kind !== "config"} · {kindLabel(r.kind)}{/if}</td>
+                <td>{r.shortId ? "/" + (data?.shorts[r.shortId] ?? "?") : linkLabel(r.linkId)}{#if r.kind !== "config"} · {kindLabel(r.kind)}{/if}</td>
               </tr>
             {/each}
           </tbody>

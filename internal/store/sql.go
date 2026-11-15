@@ -279,6 +279,25 @@ func (r users) ByUsername(ctx context.Context, name string) (*User, error) {
 	return scanUser(r.d.row(ctx, "SELECT "+userCols+" FROM users WHERE username_norm = ?", NormalizeUsername(name)))
 }
 
+func (r users) Search(ctx context.Context, prefix string, limit int) ([]User, error) {
+	// LIKE 的通配符按字面量处理；转义字符用 !（两种数据库都支持 ESCAPE，且不涉及反斜杠的转义差异）
+	p := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(NormalizeUsername(prefix))
+	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE username_norm LIKE ? ESCAPE '!' ORDER BY username_norm LIMIT ?", p+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *u)
+	}
+	return out, rows.Err()
+}
+
 func (r users) Update(ctx context.Context, u *User) error {
 	now := time.Now()
 	res, err := r.d.exec(ctx, "UPDATE users SET password_hash=?, role=?, disabled=?, lang=?, timezone=?, updated_at=?, version=version+1 WHERE id=? AND version=?",
@@ -1007,6 +1026,24 @@ func (r audits) All(ctx context.Context, p Page) ([]AuditEntry, error) {
 		after = p.After
 	}
 	return r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p)))
+}
+
+func (r audits) Paged(ctx context.Context, owner string, offset, limit int) ([]AuditEntry, int, error) {
+	var n int
+	if err := r.d.row(ctx, "SELECT COUNT(*) FROM audit WHERE owner_id=?", owner).Scan(&n); err != nil {
+		return nil, 0, err
+	}
+	out, err := r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=? ORDER BY id DESC LIMIT ? OFFSET ?", owner, limit, offset))
+	return out, n, err
+}
+
+func (r audits) PagedAll(ctx context.Context, offset, limit int) ([]AuditEntry, int, error) {
+	var n int
+	if err := r.d.row(ctx, "SELECT COUNT(*) FROM audit").Scan(&n); err != nil {
+		return nil, 0, err
+	}
+	out, err := r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit ORDER BY id DESC LIMIT ? OFFSET ?", limit, offset))
+	return out, n, err
 }
 
 func (r audits) Prune(ctx context.Context, before time.Time) (int64, error) {

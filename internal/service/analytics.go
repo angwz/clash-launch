@@ -37,6 +37,8 @@ type Analytics struct {
 	Recent    []AnRequest  `json:"recent"`
 	NewIPs    int          `json:"newIps"`
 	Peak      *AnPeakCount `json:"peak,omitempty"`
+	// Friends 是好友经由授权短链接的使用情况（反馈 #75），由调用方填入
+	Friends []AnFriend `json:"friends"`
 }
 
 // AnTotals 是区间内的总数。
@@ -239,4 +241,97 @@ func medianGap(ts []time.Time) int64 {
 	}
 	slices.Sort(gaps)
 	return gaps[len(gaps)/2]
+}
+
+// AnFriend 是一位好友通过授权的短链接使用你的配置的情况（反馈 #75）。
+type AnFriend struct {
+	UserID    string    `json:"userId"`
+	Requests  int       `json:"requests"`
+	OK        int       `json:"ok"`
+	Fail      int       `json:"fail"`
+	IPs       int       `json:"ips"`
+	Countries []string  `json:"countries"` // 出现过的国家（按次数降序）
+	Orgs      []string  `json:"orgs"`      // 出现过的运营商（按次数降序，最多 5 个）
+	Clients   []string  `json:"clients"`   // 出现过的客户端（按次数降序）
+	Shorts    []string  `json:"shorts"`    // 经由的短链接 ID
+	Daily     []int     `json:"daily"`     // 与 Analytics.Days 对齐（区间起点是所选时区的零点，按 24 小时切分）
+	First     time.Time `json:"first"`
+	Last      time.Time `json:"last"`
+	Interval  int64     `json:"interval"` // 典型拉取间隔（秒），0 表示样本不足
+}
+
+// FriendUsage 按好友汇总经由授权短链接的请求。granteeOf 是短链接 ID → 好友 ID。
+// 返回值按请求次数降序；没有请求的好友不列出（界面另外列出全部授权）。
+func FriendUsage(rs []store.SubRequest, granteeOf map[string]string, from, to time.Time) []AnFriend {
+	type acc struct {
+		f                        *AnFriend
+		ips                      map[string]bool
+		countries, orgs, clients map[string]int
+		shorts                   map[string]bool
+		times                    []time.Time
+	}
+	days := int(to.Sub(from).Hours()/24 + 0.5)
+	by := map[string]*acc{}
+	var order []string
+	for _, q := range rs {
+		uid := granteeOf[q.ShortID]
+		if uid == "" {
+			continue
+		}
+		a := by[uid]
+		if a == nil {
+			a = &acc{f: &AnFriend{UserID: uid, First: q.At, Daily: make([]int, max(days, 1))}, ips: map[string]bool{}, countries: map[string]int{}, orgs: map[string]int{}, clients: map[string]int{}, shorts: map[string]bool{}}
+			by[uid] = a
+			order = append(order, uid)
+		}
+		f := a.f
+		f.Requests++
+		if q.Status < 400 {
+			f.OK++
+			a.times = append(a.times, q.At)
+		} else {
+			f.Fail++
+		}
+		f.Last = q.At
+		a.ips[q.IP] = true
+		if q.Country != "" {
+			a.countries[q.Country]++
+		}
+		if q.Org != "" {
+			a.orgs[q.Org]++
+		}
+		if q.Client != "" {
+			a.clients[q.Client]++
+		}
+		a.shorts[q.ShortID] = true
+		if i := int(q.At.Sub(from).Hours() / 24); i >= 0 && i < len(f.Daily) {
+			f.Daily[i]++
+		}
+	}
+	keys := func(m map[string]int, n int) []string {
+		out := []string{}
+		for _, c := range rank(m, n) {
+			out = append(out, c.Key)
+		}
+		return out
+	}
+	out := make([]AnFriend, 0, len(order))
+	for _, uid := range order {
+		a := by[uid]
+		a.f.IPs = len(a.ips)
+		a.f.Countries, a.f.Orgs, a.f.Clients = keys(a.countries, 20), keys(a.orgs, 5), keys(a.clients, 10)
+		for id := range a.shorts {
+			a.f.Shorts = append(a.f.Shorts, id)
+		}
+		sort.Strings(a.f.Shorts)
+		a.f.Interval = medianGap(a.times)
+		out = append(out, *a.f)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Requests != out[j].Requests {
+			return out[i].Requests > out[j].Requests
+		}
+		return out[i].UserID < out[j].UserID
+	})
+	return out
 }

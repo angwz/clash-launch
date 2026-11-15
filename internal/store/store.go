@@ -213,6 +213,8 @@ type Store interface {
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo
+	Contacts() ContactRepo
+	Grants() GrantRepo
 	Links() LinkRepo
 	Renders() RenderRepo
 	Audit() AuditRepo
@@ -237,6 +239,8 @@ type UserRepo interface {
 	Create(ctx context.Context, u *User) error
 	ByID(ctx context.Context, id string) (*User, error)
 	ByUsername(ctx context.Context, username string) (*User, error)
+	// Search 按用户名前缀查找（不区分大小写，按用户名排序，最多 limit 个），用于收件人联想（反馈 #75）。
+	Search(ctx context.Context, prefix string, limit int) ([]User, error)
 	Update(ctx context.Context, u *User) error
 	// Prefs 与 SetPrefs 读写界面偏好（JSON 对象，反馈 #37）；不改变 version。
 	Prefs(ctx context.Context, id string) ([]byte, error)
@@ -324,6 +328,9 @@ type AuditRepo interface {
 	List(ctx context.Context, owner string, p Page) ([]AuditEntry, error)
 	// All 供管理员查看全部记录（新的在前）。
 	All(ctx context.Context, p Page) ([]AuditEntry, error)
+	// Paged 按页返回本人的记录（新的在前）与总数；PagedAll 是管理员视图（反馈 #75：审计日志分页）。
+	Paged(ctx context.Context, owner string, offset, limit int) ([]AuditEntry, int, error)
+	PagedAll(ctx context.Context, offset, limit int) ([]AuditEntry, int, error)
 	// Prune 删除 before 之前的记录，返回删除的条数（保留期，第 14.7 节）。
 	Prune(ctx context.Context, before time.Time) (int64, error)
 }

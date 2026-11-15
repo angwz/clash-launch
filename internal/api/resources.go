@@ -74,6 +74,13 @@ type sourceDTO struct {
 	CreatedAt  time.Time         `json:"createdAt"`
 	UpdatedAt  time.Time         `json:"updatedAt"`
 	Snapshot   *snapshotDTO      `json:"snapshot,omitempty"`
+	// Grant 非空表示这是别人授权给我的只读节点（反馈 #75）：不返回地址与内容，不能修改
+	Grant *sourceGrantDTO `json:"grant,omitempty"`
+}
+
+type sourceGrantDTO struct {
+	ID   string `json:"id"`
+	From string `json:"from"`
 }
 
 type sourceReq struct {
@@ -148,6 +155,17 @@ func (s *Server) listSources(w http.ResponseWriter, r *http.Request, p *principa
 	}
 	if len(items) > 0 && len(items) == pageSize(r) {
 		out.Next = items[len(items)-1].ID
+	}
+	// 别人授权给我的节点附在第一页之后（只读，反馈 #75）；分页只针对自己的节点
+	if page(r).After == "" {
+		gs, err := s.Svc.GrantedSources(r.Context(), p.User)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		for _, g := range gs {
+			out.Items = append(out.Items, sourceDTO{ID: g.Source.ID, Name: g.Source.Name, Kind: g.Source.Kind, Interval: g.Source.Interval, Processing: json.RawMessage("{}"), CreatedAt: g.Grant.CreatedAt, UpdatedAt: g.Source.UpdatedAt, Grant: &sourceGrantDTO{ID: g.Grant.ID, From: g.From}})
+		}
 	}
 	writeJSON(w, http.StatusOK, out)
 }

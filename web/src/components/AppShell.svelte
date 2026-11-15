@@ -27,7 +27,7 @@
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
-  const nav = $derived(mainNav(session.isAdmin, prefs.data.nav, inbox.unread).map((n) => ({ ...n, active: n.matches(router.route.name) })));
+  const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
 
@@ -108,6 +108,12 @@
       <span class="search-label">{t("palette.open")}</span>
       <span class="kbd">Ctrl K</span>
     </button>
+
+    <!-- 消息（反馈 #75）：右上角的图标，未读时带角标 -->
+    <a class="btn ghost icon msg-btn" href="/messages" class:active={router.route.name.startsWith("message")} aria-label={inbox.unread ? t("messages.unread_n", { n: inbox.unread }) : t("nav.messages")} title={t("nav.messages")}>
+      <Icon name="message" />
+      {#if inbox.unread}<span class="dot">{inbox.unread > 99 ? "99+" : inbox.unread}</span>{/if}
+    </a>
 
     <Menu label={t("shell.language")} icon="globe">
       {#snippet items(close)}
@@ -362,6 +368,29 @@
   }
   .rail .sidebar .label {
     display: none;
+  }
+  /* 右上角的消息图标与未读数（反馈 #75） */
+  .msg-btn {
+    position: relative;
+  }
+  .msg-btn.active {
+    color: var(--accent-fg);
+  }
+  .dot {
+    position: absolute;
+    inset-block-start: 1px;
+    inset-inline-end: 0;
+    min-inline-size: 16px;
+    padding-inline: 4px;
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 16px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
   }
   /* 未读角标（反馈 #74）：收起侧栏时缩成图标右上角的小圆点 */
   .sidebar a {

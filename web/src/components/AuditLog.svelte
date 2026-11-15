@@ -5,13 +5,15 @@
     "admin.node_mode", "admin.registration", "template.create", "template.delete", "admin.user.disable", "admin.user.enable", "admin.user.password", "admin.user.quota", "link.create", "link.delete",
     "link.reset", "login.failed", "login.ok", "mfa.disable", "mfa.enable", "mfa.failed", "mfa.recovery_code", "mfa.recovery_codes",
     "passkey.add", "passkey.delete", "passkey.login_failed", "profile.create", "profile.delete", "profile.update", "recovery.failed",
-    "recovery.ok", "register", "session.revoke", "smtp.delete", "smtp.update", "smtp.verified",
+    "recovery.ok", "register", "session.revoke", "smtp.delete", "smtp.update", "smtp.verified", "grant.create", "grant.revoke", "message.source_added",
   ];
 </script>
 
 <script lang="ts">
-  // 审计记录：scope="me" 为本人的记录；scope="all" 为管理员查看全部（附账号名）。按页加载。
+  // 审计记录：scope="me" 为本人的记录；scope="all" 为管理员查看全部（附账号名）。
+  // 按页码分页（反馈 #75）：上一页、下一页与跳到首页、末页，显示「第 n / m 页 · 共 k 条」。
   import { untrack } from "svelte";
+  import Icon from "./Icon.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -26,33 +28,32 @@
   }
 
   let { scope }: { scope: "me" | "all" } = $props();
+  const SIZE = 30;
   let items = $state<Entry[]>([]);
-  let next = $state<string | undefined>();
+  let pageN = $state(1);
+  let total = $state(0);
   let loading = $state(false);
+  const pages = $derived(Math.max(1, Math.ceil(total / SIZE)));
 
   const path = $derived(scope === "me" ? "/api/v1/account/audit" : "/api/v1/admin/audit");
 
-  async function more() {
+  async function go(n: number) {
     loading = true;
     try {
-      const r = await api.get<{ items: Entry[]; next?: string }>(path, { query: { limit: 30, cursor: next } });
-      items = [...items, ...r.items];
-      next = r.items.length === 30 ? r.next : undefined;
+      const r = await api.get<{ items: Entry[]; total: number; page: number }>(path, { query: { pageNo: n, limit: SIZE } });
+      items = r.items;
+      total = r.total;
+      pageN = r.page;
     } catch (e) {
       toasts.push("err", errorText(e));
     } finally {
       loading = false;
     }
   }
-  // 只随 path 重新加载。more() 会同步读取 next：不放进 untrack 时，加载后设置 next 会再次触发本 effect，
-  // 清空列表并重新加载，形成无限循环（记录超过一页时出现）。
+  // 只随 path 重新加载（go() 读写的状态放在 untrack 中，避免加载后再次触发本 effect）
   $effect(() => {
     void path;
-    untrack(() => {
-      items = [];
-      next = undefined;
-      void more();
-    });
+    untrack(() => void go(1));
   });
 
   const label = (a: string) => (AUDIT_ACTIONS.includes(a) ? t("audit.action." + a) : a);
@@ -87,8 +88,14 @@
         {/each}
       </tbody>
     </table>
-    {#if next}
-      <button class="btn sm ghost more" type="button" disabled={loading} onclick={() => void more()}>{t("audit.more")}</button>
+    {#if pages > 1}
+      <nav class="pager" aria-label={t("audit.pager")}>
+        <button class="btn sm ghost icon" type="button" disabled={loading || pageN <= 1} onclick={() => void go(1)} aria-label={t("audit.first")} title={t("audit.first")}><Icon name="chevron-up" size={14} /></button>
+        <button class="btn sm" type="button" disabled={loading || pageN <= 1} onclick={() => void go(pageN - 1)}>{t("audit.prev")}</button>
+        <span class="muted" aria-live="polite">{t("audit.page_of", { n: pageN, m: pages, total: i18n.number(total) })}</span>
+        <button class="btn sm" type="button" disabled={loading || pageN >= pages} onclick={() => void go(pageN + 1)}>{t("audit.next")}</button>
+        <button class="btn sm ghost icon" type="button" disabled={loading || pageN >= pages} onclick={() => void go(pages)} aria-label={t("audit.last")} title={t("audit.last")}><Icon name="chevron-down" size={14} /></button>
+      </nav>
     {/if}
   {/if}
 </div>
@@ -117,7 +124,14 @@
   .empty {
     padding: var(--space-4);
   }
-  .more {
-    margin-block-start: var(--space-2);
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-3);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
   }
 </style>

@@ -19,11 +19,12 @@ import (
 // —— 短链接 ——
 
 // ErrShortCode 表示自定义短码不合规。
-var ErrShortCode = errors.New("service: 短码只能包含小写字母、数字与连字符，3–32 个字符，以字母或数字开头")
+var ErrShortCode = errors.New("service: 短码只能包含小写字母、数字与连字符，3–32 个字符，以字母或数字开头，且不能是保留的路径")
 
 var shortCodeRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{2,31}$`)
 
-// 随机短码的字符表：去掉容易看错的 0 o 1 l i；8 位约 40 比特，配合 /u/ 的试探限速，不可能被逐个猜出。
+// 随机短码的字符表：去掉容易看错的 0 o 1 l i。从 5 位起（约 2,800 万种），撞上已有短码时逐步加长；
+// 配合「同一 IP 一小时猜错 30 次即限速」，逐个猜测不可行（反馈 #75）。
 const shortAlphabet = "abcdefghjkmnpqrstuvwxyz23456789"
 
 func randomCode(n int) string {
@@ -57,14 +58,17 @@ func (s *Service) CreateShortLink(ctx context.Context, u *store.User, sl *store.
 	}
 	if sl.Code != "" {
 		sl.Code = strings.ToLower(strings.TrimSpace(sl.Code))
-		if !shortCodeRe.MatchString(sl.Code) {
+		if !shortCodeRe.MatchString(sl.Code) || IsReservedCode(sl.Code) {
 			return ErrShortCode
 		}
 		return s.Store.ShortLinks().Create(ctx, u.ID, sl)
 	}
-	// 随机短码：极少数情况下撞上已有短码，换一个再试
-	for range 5 {
-		sl.Code = randomCode(8)
+	// 随机短码：撞上已有短码或保留路径时换一个，每两次失败加长一位
+	for i := range 12 {
+		sl.Code = randomCode(5 + i/2)
+		if IsReservedCode(sl.Code) {
+			continue
+		}
 		err := s.Store.ShortLinks().Create(ctx, u.ID, sl)
 		if !errors.Is(err, store.ErrExists) {
 			return err
@@ -96,12 +100,16 @@ type MessageBody struct {
 
 // Attachment 是随消息发送的节点：手动节点的原文，或订阅地址。不包含发件人设置的请求头（可能含凭据）。
 type Attachment struct {
-	Kind     string `json:"kind"` // nodes | subscription
+	Kind     string `json:"kind"` // nodes | subscription | grant
 	Name     string `json:"name"`
 	Content  string `json:"content,omitempty"`
 	URL      string `json:"url,omitempty"`
 	UA       string `json:"ua,omitempty"`
 	Interval int    `json:"interval,omitempty"`
+	// 授权（反馈 #75）：Target 为 source 或 short；GrantID 指向 grants 表；SourceKind 是被授权节点的类型
+	Target     string `json:"target,omitempty"`
+	GrantID    string `json:"grantId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
 }
 
 // inboxPrefs 是收件人在偏好中的消息设置（与 api/prefs.go 的字段一致）。
@@ -125,11 +133,28 @@ func (s *Service) inbox(ctx context.Context, userID string) (inboxPrefs, error) 
 	return p, nil
 }
 
-// SendMessage 发送一条消息；sourceID 非空时附上发件人的这个节点源。收件人开启自动加入时，
-// 附件立即加入收件人的节点页（配额不足等原因加入失败时，消息照常送达，收件人可稍后手动加入）。
-func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text, sourceID string) (*store.Message, error) {
+// AttachRequest 是发送消息时附带的内容（反馈 #75）：
+//   - Source + Mode=share：复制一份节点给对方，对方可以随意修改；
+//   - Source + Mode=grant：授权对方只能使用这个节点（软链接，随你更新，可随时收回）；
+//   - Short（只能授权）：为对方单独生成一个新的短链接，指向同一份配置，使用情况在订阅分析中按好友统计。
+type AttachRequest struct {
+	Source string
+	Short  string
+	Mode   string // share | grant
+}
+
+// SendMessage 发送一条消息，可以附带节点（分享或授权）或短链接（授权）。收件人开启自动加入时，
+// 分享的附件立即加入收件人的节点页（配额不足等原因加入失败时，消息照常送达，收件人可稍后手动加入）；
+// 授权不占对方配额，直接出现在对方的节点页或短链接页。
+func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text string, at AttachRequest) (*store.Message, error) {
 	text = strings.TrimSpace(text)
-	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && sourceID == "") {
+	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && at.Source == "" && at.Short == "") {
+		return nil, ErrMessage
+	}
+	if at.Mode == "" {
+		at.Mode = "share"
+	}
+	if (at.Mode != "share" && at.Mode != "grant") || (at.Short != "" && (at.Mode != "grant" || at.Source != "")) {
 		return nil, ErrMessage
 	}
 	rcpt, err := s.Store.Users().ByUsername(ctx, strings.TrimSpace(to))
@@ -157,18 +182,45 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text, s
 	}
 	body := MessageBody{Text: text}
 	kind := "text"
-	if sourceID != "" {
-		src, err := s.Store.Sources().Get(ctx, from.ID, sourceID)
+	var grant *store.Grant
+	switch {
+	case at.Source != "":
+		src, err := s.Store.Sources().Get(ctx, from.ID, at.Source)
 		if err != nil {
 			return nil, err
 		}
-		a := &Attachment{Name: src.Name}
-		if src.Kind == "subscription" {
+		a := &Attachment{Name: src.Name, SourceKind: src.Kind}
+		if at.Mode == "grant" {
+			grant = &store.Grant{OwnerID: from.ID, GranteeID: rcpt.ID, Kind: "source", TargetID: src.ID}
+			a.Kind, a.Target = "grant", "source"
+		} else if src.Kind == "subscription" {
 			a.Kind, a.URL, a.UA, a.Interval = "subscription", src.URL, src.UA, src.Interval
 		} else {
 			a.Kind, a.Content = "nodes", string(src.Content)
 		}
 		body.Attach, kind = a, a.Kind
+	case at.Short != "":
+		orig, err := s.Store.ShortLinks().Get(ctx, from.ID, at.Short)
+		if err != nil || orig.GranteeID != "" {
+			return nil, store.ErrNotFound // 只能从自己用的短链接授权，授权出去的短链接不能再转授
+		}
+		derived := &store.ShortLink{LinkID: orig.LinkID, GranteeID: rcpt.ID, Note: rcpt.Username}
+		if err := s.CreateShortLink(ctx, from, derived); err != nil {
+			return nil, err
+		}
+		grant = &store.Grant{OwnerID: from.ID, GranteeID: rcpt.ID, Kind: "short", TargetID: derived.ID}
+		name := orig.Note
+		if name == "" {
+			name = orig.Code
+		}
+		body.Attach, kind = &Attachment{Kind: "grant", Target: "short", Name: name}, "grant"
+	}
+	if grant != nil {
+		grant.CreatedAt = s.now()
+		if err := s.Store.Grants().Create(ctx, grant); err != nil {
+			return nil, err
+		}
+		body.Attach.GrantID = grant.ID
 	}
 	raw, err := json.Marshal(body)
 	if err != nil {
@@ -176,9 +228,17 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text, s
 	}
 	m := &store.Message{SenderID: from.ID, RecipientID: rcpt.ID, Kind: kind, Body: raw, CreatedAt: s.now()}
 	if err := s.Store.Messages().Create(ctx, m); err != nil {
+		if grant != nil {
+			_ = s.RevokeGrant(ctx, from, grant.ID)
+		}
 		return nil, err
 	}
-	if body.Attach != nil && (pref.AutoAdd == nil || *pref.AutoAdd) {
+	if grant != nil {
+		s.audit(ctx, from.ID, "grant.create", map[string]string{"to": rcpt.Username, "kind": grant.Kind, "name": body.Attach.Name})
+		if grant.Kind == "source" {
+			s.rerenderUsing(ctx, rcpt.ID, usesSource(grant.TargetID))
+		}
+	} else if body.Attach != nil && (pref.AutoAdd == nil || *pref.AutoAdd) {
 		if src, err := s.AcceptAttachment(ctx, rcpt, m.ID); err == nil {
 			m.AddedSource = src.ID
 		} else if s.Log != nil {
@@ -206,7 +266,7 @@ func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string
 	if err := json.Unmarshal(m.Body, &body); err != nil {
 		return nil, fmt.Errorf("消息 %s 的内容无效：%w", id, err)
 	}
-	if body.Attach == nil {
+	if body.Attach == nil || body.Attach.Kind == "grant" {
 		return nil, ErrMessage
 	}
 	sender := "?"
@@ -246,44 +306,6 @@ type Thread struct {
 	LastAt   time.Time `json:"lastAt"`
 	Mine     bool      `json:"mine"` // 最后一条是自己发的
 	Unread   int       `json:"unread"`
-}
-
-// Threads 返回用户的会话列表（最近的在前）。
-func (s *Service) Threads(ctx context.Context, u *store.User) ([]Thread, error) {
-	ms, err := s.Store.Messages().Recent(ctx, u.ID, 1000)
-	if err != nil {
-		return nil, err
-	}
-	byUser := map[string]*Thread{}
-	var order []string
-	for _, m := range ms {
-		other, mine := m.SenderID, false
-		if m.SenderID == u.ID {
-			other, mine = m.RecipientID, true
-		}
-		t := byUser[other]
-		if t == nil {
-			var body MessageBody
-			_ = json.Unmarshal(m.Body, &body)
-			t = &Thread{UserID: other, Last: preview(body), LastKind: m.Kind, LastAt: m.CreatedAt, Mine: mine}
-			byUser[other] = t
-			order = append(order, other)
-		}
-		if !mine && m.ReadAt.IsZero() {
-			t.Unread++
-		}
-	}
-	out := make([]Thread, 0, len(order))
-	for _, id := range order {
-		t := byUser[id]
-		if ou, err := s.Store.Users().ByID(ctx, id); err == nil {
-			t.Username = ou.Username
-		} else {
-			continue // 对方账号已删除：会话随之消失（消息已级联删除）
-		}
-		out = append(out, *t)
-	}
-	return out, nil
 }
 
 func preview(b MessageBody) string {

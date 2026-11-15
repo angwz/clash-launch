@@ -135,6 +135,7 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 		return nil, err
 	}
 	s.Log.Info("refresh source", "owner", owner, "source", id, "ok", snap.LastError == "", "error", snap.LastError)
+	s.rerenderGrantees(ctx, owner, id) // 被授权使用这个节点源的人（反馈 #75）
 	s.rerenderUsing(ctx, owner, func(p *profile.Profile) bool {
 		for _, r := range p.Sources {
 			if r.Ref == id {
@@ -248,7 +249,8 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		hashes = append(hashes, "tz:"+usr.Timezone)
 	}
 	for i, ref := range p.Refs() {
-		src, err := s.Store.Sources().Get(ctx, owner, ref.Ref)
+		// 自己的节点源，或别人授权给自己的只读软链接（反馈 #75）；快照按节点源的所有者保存
+		src, srcOwner, granted, err := s.resolveSource(ctx, owner, ref.Ref)
 		if errors.Is(err, store.ErrNotFound) {
 			ds.Add(diag.ProfileSourceRef, "sources["+strconv.Itoa(i)+"]", "ref", ref.Ref)
 			continue
@@ -256,7 +258,10 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		if err != nil {
 			return in, nil, latest, nil, ds, err
 		}
-		if m := policy.effective(ref.Mode); m != ref.Mode {
+		if granted {
+			// 授权的节点一律写入配置：用授权者的快照，不把授权者的订阅地址交给对方的客户端
+			ref.Mode = profile.ModeInline
+		} else if m := policy.effective(ref.Mode); m != ref.Mode {
 			ds.Add(diag.ProfileModeLocked, "sources["+strconv.Itoa(i)+"]", "source", src.Name, "mode", string(m))
 			ref.Mode = m
 		}
@@ -270,7 +275,7 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		switch si.Kind {
 		case engine.KindSubscription:
 			si.URL = src.URL
-			if snap, err := s.Store.Snapshots().Get(ctx, owner, SourceKey(src.ID)); err == nil {
+			if snap, err := s.Store.Snapshots().Get(ctx, srcOwner, SourceKey(src.ID)); err == nil {
 				si.Content, si.Updated = snap.Content, snap.FetchedAt
 				headers[src.ID] = snap.Headers
 				hashes = append(hashes, "src:"+snap.Hash)

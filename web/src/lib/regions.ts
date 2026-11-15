@@ -27,3 +27,18 @@ export function regionName(code: string, locale: string): string {
     return code;
   }
 }
+
+/**
+ * 是否为本机或内网地址（回环、私有网段、链路本地、CGNAT、IPv6 唯一本地地址）。
+ * 这类地址没有国家归属，分析页显示为「本地网络」，而不是「未知」（反馈 #75）。
+ */
+export function isLocalIP(ip: string): boolean {
+  const v4 = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(ip);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+  }
+  const s = ip.toLowerCase();
+  return s === "::1" || s.startsWith("fc") || s.startsWith("fd") || s.startsWith("fe8") || s.startsWith("fe9") || s.startsWith("fea") || s.startsWith("feb") || s.startsWith("::ffff:127.");
+}
