@@ -7,7 +7,6 @@ const known: Record<string, string> = {
   "auth.required": "error.auth_required",
   "auth.csrf": "error.csrf",
   "auth.weak_password": "error.weak_password",
-  "setup.invalid": "error.setup_invalid",
   "register.closed": "error.register_closed",
   "register.username": "error.username",
   "register.rate": "error.rate",

@@ -2,7 +2,7 @@
 
 ## The client did not change after updating
 
-Make sure the editor has saved (no "unsaved" bar at the bottom), then update the subscription manually in the client. Some clients cache configs and need the config re-selected.
+The editor saves automatically. Update the subscription manually in the client. Some clients cache configs and need the config re-selected.
 
 ## The check results show errors
 

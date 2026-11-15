@@ -37,13 +37,13 @@ func All() map[Code]CodeInfo {
 
 // —— 方案文档 ——
 var (
-	ProfileInvalid     = reg("profile.invalid", Error, "Config document is invalid: {reason}", "配置文档无效：{reason}")
-	ProfileVersion     = reg("profile.version", Error, "Unsupported config document version {version}", "不支持的配置文档版本 {version}")
-	ProfileUnknownKey  = reg("profile.unknown_key", Warning, "Unknown key {key} in config document; ignored", "配置文档中的未知键 {key}，已忽略")
-	ProfileSourceRef   = reg("profile.source_ref", Error, "Source {ref} referenced by the config does not exist", "配置引用的源 {ref} 不存在")
+	ProfileInvalid     = reg("profile.invalid", Error, "The config is invalid: {reason}", "配置无效：{reason}")
+	ProfileVersion     = reg("profile.version", Error, "Unsupported config format version {version}", "不支持的配置格式版本 {version}")
+	ProfileUnknownKey  = reg("profile.unknown_key", Warning, "Unknown key {key} in the config; ignored", "配置中有无法识别的键 {key}，已忽略")
+	ProfileSourceRef   = reg("profile.source_ref", Error, "Node source {ref} used by the config no longer exists", "配置用到的节点来源 {ref} 已不存在")
 	ProfileRuleRef     = reg("profile.rule_ref", Error, "Routing rules {ref} referenced by the config does not exist", "配置引用的分流规则 {ref} 不存在")
-	ProfileModeLocked  = reg("profile.mode_locked", Info, "Source {source} uses the administrator default ({mode}); this account cannot choose how nodes are written", "源 {source} 按管理员设定的默认写法（{mode}）生成；此账号不能自选节点写法")
-	ProfileSnapshotOld = reg("profile.snapshot_stale", Warning, "Source {source} has failed since {since}; using the last good snapshot", "源 {source} 自 {since} 起拉取失败，沿用上次成功的快照")
+	ProfileModeLocked  = reg("profile.mode_locked", Info, "{source} uses the administrator's default ({mode}); this account cannot change how nodes are written", "{source} 使用管理员设定的默认写法（{mode}）；此账号不能更改节点写法")
+	ProfileSnapshotOld = reg("profile.snapshot_stale", Warning, "{source} has failed to update since {since}; using the nodes from the last successful fetch", "{source} 自 {since} 起拉取失败，继续使用上次成功拉取的节点")
 )
 
 // —— YAML 输入 ——
@@ -63,16 +63,16 @@ var (
 	LayerPatchKey     = reg("layer.patch_key", Error, "Element of !patch-by:{key} has no scalar {key}", "!patch-by:{key} 的元素缺少标量键 {key}")
 	LayerPatchTarget  = reg("layer.patch_target", Error, "!patch-by:{key} applies only to lists of mappings", "!patch-by:{key} 只能用于元素为映射的列表")
 	LayerDeleteMiss   = reg("layer.delete_missing", Info, "!delete on {path}: nothing to delete", "{path} 上的 !delete：没有可删除的内容")
-	LayerRawField     = reg("layer.raw_field", Info, "{path} comes from directly edited YAML", "{path} 来自直接编辑的 YAML")
-	LayerOffCatalog   = reg("layer.off_catalog", Info, "{path} is not in the field catalog; written as-is", "{path} 不在字段目录中，按原样输出")
-	LayerAlias        = reg("layer.alias_expanded", Info, "Anchors and aliases were expanded in the output", "输出中的锚点与别名已展开")
+	LayerRawField     = reg("layer.raw_field", Info, "{path} is set in the directly edited YAML", "{path} 由直接编辑的 YAML 设置")
+	LayerOffCatalog   = reg("layer.off_catalog", Info, "{path} is not in the form; written as-is", "表单里没有 {path}，已按原样写入")
+	LayerAlias        = reg("layer.alias_expanded", Info, "YAML anchors and aliases were written out in full", "YAML 中的锚点与别名已展开为完整内容")
 	LayerDanglingRef  = reg("layer.dangling_ref", Warning, "{path} references {name}, which does not exist", "{path} 引用的 {name} 不存在")
-	LayerCanPromote   = reg("layer.can_promote", Info, "{path} is now a catalog field and can move to the form", "{path} 已是目录字段，可以转为表单字段")
+	LayerCanPromote   = reg("layer.can_promote", Info, "{path} can now be set in the form", "{path} 现在可以在表单里设置了")
 	FormValueType     = reg("form.value_type", Error, "{path} expects {want}, got {got}", "{path} 需要 {want}，实际为 {got}")
-	FormUnknownField  = reg("form.unknown_field", Error, "{path} is not a catalog field; edit YAML directly for fields outside the catalog", "{path} 不是目录字段；目录外字段请直接编辑 YAML")
+	FormUnknownField  = reg("form.unknown_field", Error, "{path} is not in the form; set it by editing YAML directly", "表单里没有 {path}，请直接编辑 YAML 设置")
 	FormEnumValue     = reg("form.enum_value", Error, "{path} must be one of {values}", "{path} 只能取 {values}")
-	FormGenerated     = reg("form.generated_section", Error, "{path} is produced by the node and rule generators; edit YAML directly", "{path} 由节点与规则生成器产出；如需修改请直接编辑 YAML")
-	FormNotMapping    = reg("form.not_mapping", Error, "The form layer must be a mapping", "表单层必须是映射")
+	FormGenerated     = reg("form.generated_section", Error, "{path} is generated from your nodes and rules; edit YAML directly to change it", "{path} 由节点与分流规则自动生成；如需修改请直接编辑 YAML")
+	FormNotMapping    = reg("form.not_mapping", Error, "Form settings must be a mapping", "表单设置必须是映射（键: 值）")
 )
 
 // —— 目标适配 ——
@@ -82,15 +82,15 @@ var (
 	TargetSince       = reg("target.since", Warning, "{path} requires core {since} or later; selected core is {core}", "{path} 需要内核 {since} 或更新，所选内核为 {core}")
 	TargetRemoved     = reg("target.removed", Warning, "{path} was removed in core {removed}; selected core is {core}", "{path} 在内核 {removed} 中已移除，所选内核为 {core}")
 	TargetDeprecated  = reg("target.deprecated", Info, "{path} is deprecated; use {replacement}", "{path} 已弃用，请改用 {replacement}")
-	TargetCoreNoCheck = reg("target.no_kernel", Info, "No kernel check is available for {preset}; only catalog and format checks ran", "{preset} 没有可用的内核检查，只做了目录与格式检查")
+	TargetCoreNoCheck = reg("target.no_kernel", Info, "No kernel check is available for {preset}; only the format was checked", "{preset} 没有可用的内核检查，只检查了格式")
 )
 
 // —— 渲染与检查 ——
 var (
-	RenderSelfCheck       = reg("render.self_check", Error, "Format self-check failed at {path}: {reason}", "格式自检失败（{path}）：{reason}")
+	RenderSelfCheck       = reg("render.self_check", Error, "The generated YAML failed its format check at {path}: {reason}", "生成的 YAML 未通过格式检查（{path}）：{reason}")
 	RenderDisabledSection = reg("render.disabled_section", Info, "{section} is disabled, so the whole section is left out of the served config (shown as comments in the preview)", "{section} 未启用，整段不写入下发的配置（预览中显示为注释）")
-	RenderLongLine        = reg("render.long_line", Warning, "Line {line} is {length} characters long", "第 {line} 行长度为 {length} 个字符")
-	RenderFallback        = reg("render.layout_fallback", Info, "Section spacing was disabled to keep a block scalar exact", "为保证块标量逐字节一致，已取消分节空行")
+	RenderLongLine        = reg("render.long_line", Warning, "Line {line} is long ({length} characters)", "第 {line} 行较长（{length} 个字符）")
+	RenderFallback        = reg("render.layout_fallback", Info, "Blank lines between sections were left out to keep multi-line text exact", "为保持多行文本原样，分节之间不加空行")
 	KernelFailed          = reg("kernel.failed", Error, "mihomo -t rejected the configuration: {reason}", "mihomo -t 未通过：{reason}")
 	KernelUnavailable     = reg("kernel.unavailable", Warning, "Kernel check skipped: {reason}", "未进行内核检查：{reason}")
 	KernelTimeout         = reg("kernel.timeout", Error, "Kernel check timed out after {timeout}", "内核检查超时（{timeout}）")

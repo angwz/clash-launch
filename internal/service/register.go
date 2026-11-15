@@ -21,7 +21,7 @@ const settingRegistration = "registration.open"
 var ErrRegistrationClosed = errors.New("service: 注册已关闭，需要有效的邀请")
 
 // ErrUsername 表示用户名不合规。
-var ErrUsername = errors.New("service: 用户名需为 3–32 个字符，不含空白与控制字符")
+var ErrUsername = errors.New("service: 用户名需为 1–32 个字符，不能包含空格或控制字符")
 
 // RegistrationOpen 报告是否允许无邀请注册。
 func (s *Service) RegistrationOpen(ctx context.Context) (bool, error) {

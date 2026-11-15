@@ -24,5 +24,5 @@ Open a config in the editor:
 
 - **Nodes & routing**: add or reorder node sources, switch routing rules, set up proxy chains.
 - **Core settings**: DNS, TUN, inbound ports and more. Every field has **Details & advice**; when unsure, click the suggestion to apply it.
-- The preview shows the generated YAML, and the top bar runs a kernel check (`mihomo -t`).
+- The preview shows the generated YAML, and every save is checked automatically with the mihomo kernel (`mihomo -t`); the result shows in the top bar.
 - After saving, clients pick up the change on their next update.
