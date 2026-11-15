@@ -149,6 +149,19 @@
     else chat.close();
   }
 
+  // 点击窗口外的页面时关闭（反馈 #80）。用 pointerdown 而不是 click：拖选文字时在窗口内按下、窗口外松开不会误关。
+  // 例外：右上角消息图标自己负责开关（否则这里先关、按钮又打开）；提示框里的按钮（如「打开会话」）也不算窗口外。
+  let win: HTMLDivElement | undefined = $state();
+  // 用 composedPath() 判断：它在事件分发时就固定了。窗口内的元素（如联想列表的选项）可能在 pointerdown 里
+  // 被立即移出 DOM，等事件冒泡到 window 时再用 contains() 就会误判为「窗口外」。
+  function onWindowPointer(e: PointerEvent) {
+    if (!win) return;
+    const path = e.composedPath();
+    if (path.includes(win)) return;
+    if (path.some((n) => n instanceof Element && n.matches(".msg-btn, .toasts"))) return;
+    chat.close();
+  }
+
   async function send() {
     if (sending || !peer || (!text.trim() && !attach)) return;
     sending = true;
@@ -301,9 +314,9 @@
   }
 </script>
 
-<svelte:window onkeydown={onWindowKey} />
+<svelte:window onkeydown={onWindowKey} onpointerdown={onWindowPointer} />
 
-<div class="window" role="dialog" aria-modal="false" aria-labelledby="chat-title">
+<div class="window" bind:this={win} role="dialog" aria-modal="false" aria-labelledby="chat-title">
   <header class="win-head">
     <Icon name="message" size={16} />
     <h2 id="chat-title">{t("nav.messages")}</h2>

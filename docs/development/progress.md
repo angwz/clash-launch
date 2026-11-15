@@ -23,6 +23,7 @@
 - **反馈 #77（2026-11-15）**：节点相关的剩余明文改为加密保存（迁移 0010：快照响应头、渲染响应头、检查结果、失败原因；旧明文在启动时加密并清除）；密钥轮换补上遗漏的 `messages.body_enc`，并以测试保证每个 `*_enc` 列都参与轮换；`TestNoPlaintextAtRest` 逐表逐列扫描确认没有明文；帮助新增「隐私与安全」，节点页加一句说明，如实写明运营者在技术上可以解密。验证：`go test ./...`、前端 88 项单元、e2e 29 通过（三次全量运行中有一次出现过一个 toHaveText 断言失败，未能复现）。
 - **反馈 #78（2026-11-15）**：短链接卡片默认折叠，只显示短码、状态、指向、请求次数与上次请求时间（`StatsRepo.LastByShort`），趋势、二维码与管理操作在「详情」里；节点页每行的编辑改为带文字的「编辑」按钮。验证：`go test ./internal/api/ ./internal/store/`、前端 88 项单元、e2e 29 通过；截图检查了两个页面。
 - **反馈 #79（2026-11-15）**：消息改为悬浮窗（`components/chat/ChatPanel.svelte`，状态在 `lib/chat.svelte.ts`），首次打开时按需加载；宽度 `clamp(320px, 62vw, 880px)`、高度随视口变化，容器查询按窗口自身宽度在两栏与单栏间切换，640px 以下铺满屏幕；`/messages` 与 `/messages/{name}` 重定向为打开悬浮窗。验证：`npm run check`、构建、首屏预算 65.2 KiB、e2e 30 通过（新增悬浮窗尺寸与 Esc 关闭）；截图检查了 900×640 与 1440×900。
+- **反馈 #80（2026-11-15）**：消息悬浮窗点击窗口外关闭（`pointerdown` + `composedPath()`，避免窗口内被立即移除的元素如联想选项被误判为窗口外）。验证：`npm run check`、构建、预算 65.2 KiB、e2e 30 通过（新增窗口外点击关闭、窗口内点击不关闭、图标开关）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 

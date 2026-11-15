@@ -644,4 +644,15 @@ test("消息是悬浮窗：在当前页面上打开，不离开页面，Esc 关�
   await page.screenshot({ path: "test-results/shot-chat-window.png" });
   await page.keyboard.press("Escape");
   await expect(win).toHaveCount(0);
+  // 点击窗口外的页面也会关闭；点击窗口内不会；消息图标再点一次是收起
+  await page.locator(".msg-btn").click();
+  await expect(win).toBeVisible();
+  await win.locator(".win-head h2").click();
+  await expect(win).toBeVisible();
+  await page.mouse.click(40, 600);
+  await expect(win).toHaveCount(0);
+  await page.locator(".msg-btn").click();
+  await expect(win).toBeVisible();
+  await page.locator(".msg-btn").click();
+  await expect(win).toHaveCount(0);
 });
