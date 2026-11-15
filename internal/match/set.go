@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/metacubex/mihomo/common/yaml"
@@ -59,6 +60,9 @@ type Set struct {
 	lines   []string // text、yaml、inline 的条目原文；mrs 为空，依据改用 DumpMrs 遍历
 	entries []*entry // classical：按原顺序
 	ip      bool     // 是否可能因目的 IP 命中（ipcidr，或 classical 中含 IP 类条目）
+
+	sampleOnce sync.Once
+	samples    []string
 }
 
 // IPDependent 报告规则集是否可能因目的 IP 命中。

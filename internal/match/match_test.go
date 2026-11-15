@@ -387,3 +387,34 @@ func TestGeoWithoutData(t *testing.T) {
 		t.Errorf("GEOIP,lan: %+v", s)
 	}
 }
+
+func TestSamples(t *testing.T) {
+	dom := mustCompile(t, "domain", "text", []byte("+.example.com\n.sub.example.net\n*.w.example.org\n+.cn\nexact.example.org\n"))
+	if got := dom.Samples(8); !slices.Equal(got, []string{"example.com", "www.sub.example.net", "exact.example.org"}) {
+		t.Errorf("domain: %v", got)
+	}
+	mrs := mustCompile(t, "domain", "mrs", mrsOf(t, P.Domain, "+.example.com\nexact.example.org\n"))
+	if got := mrs.Samples(8); len(got) != 2 {
+		t.Errorf("mrs: %v", got)
+	}
+	cidr := mustCompile(t, "ipcidr", "text", []byte("192.0.2.0/24\n2001:db8::/32\n198.51.100.7/32\n"))
+	if got := cidr.Samples(8); !slices.Equal(got, []string{"192.0.2.1", "2001:db8::1", "198.51.100.7"}) {
+		t.Errorf("ipcidr: %v", got)
+	}
+	cl := mustCompile(t, "classical", "text", []byte("DOMAIN-KEYWORD,example\nDOMAIN-SUFFIX,example.com\nIP-CIDR,192.0.2.0/24,no-resolve\nSRC-IP-CIDR,192.0.2.0/24\n"))
+	if got := cl.Samples(8); !slices.Equal(got, []string{"example.com", "192.0.2.1"}) {
+		t.Errorf("classical: %v", got)
+	}
+	// 均匀分布：从 100 个候选中取 8 个
+	var b strings.Builder
+	for i := 0; i < 100; i++ {
+		fmt.Fprintf(&b, "h%02d.example.com\n", i)
+	}
+	big := mustCompile(t, "domain", "text", []byte(b.String()))
+	if got := big.Samples(8); len(got) != 8 || got[0] != "h00.example.com" || got[1] != "h12.example.com" || got[7] != "h87.example.com" {
+		t.Errorf("均匀分布: %v", got)
+	}
+	if got := big.Samples(3); len(got) != 3 {
+		t.Errorf("Samples(3): %v", got)
+	}
+}

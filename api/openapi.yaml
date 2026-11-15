@@ -15,6 +15,7 @@ tags:
   - {name: sources}
   - {name: rule-sources}
   - {name: profiles}
+  - {name: routing, description: 分流地图、追踪与体检（docs/design/routing.md）}
   - {name: links}
   - {name: admin}
   - {name: account}
@@ -55,6 +56,95 @@ components:
         severity: {type: string, enum: [error, warning, info]}
         path: {type: string}
         args: {type: object, additionalProperties: {type: string}}
+    RoutingGraph:
+      type: object
+      required: [state, editable, rules, groups, exits, pending, traceEnabled, diagnostics]
+      properties:
+        state: {type: string, enum: [follow, own]}
+        editable: {type: boolean}
+        readonlyReason: {type: string, enum: [raw_override, no_rules]}
+        rules: {type: array, items: {$ref: '#/components/schemas/RoutingRule'}}
+        groups: {type: array, items: {$ref: '#/components/schemas/RoutingGroup'}}
+        exits: {type: array, items: {$ref: '#/components/schemas/RoutingExit'}}
+        pending: {type: integer, description: 正在后台拉取的规则集个数}
+        traceEnabled: {type: boolean}
+        diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+    RoutingRule:
+      type: object
+      required: [index, raw, type, target, origin, flags]
+      properties:
+        index: {type: integer}
+        raw: {type: string}
+        type: {type: string}
+        target: {type: string}
+        origin: {type: string, enum: [routing, rules, raw]}
+        set: {$ref: '#/components/schemas/RoutingRuleSet'}
+        flags: {type: array, items: {type: string, enum: [logic, sub-rule, process, no-resolve]}}
+    RoutingRuleSet:
+      type: object
+      required: [name, behavior, format]
+      properties:
+        name: {type: string}
+        behavior: {type: string}
+        format: {type: string}
+        url: {type: string}
+        count: {type: integer}
+        samples: {type: array, items: {type: object, required: [host, hit], properties: {host: {type: string}, hit: {type: integer}}}}
+        description: {type: object, required: [source, repo, license, checked, text], properties: {source: {type: string}, repo: {type: string}, license: {type: string}, checked: {type: string}, text: {type: object, additionalProperties: {type: string}}}}
+        stale: {type: boolean}
+    RoutingGroup:
+      type: object
+      required: [name, type, members, params, origin, lints]
+      properties:
+        name: {type: string}
+        type: {type: string}
+        members: {type: array, items: {type: object, required: [name, kind], properties: {name: {type: string}, kind: {type: string, enum: [group, node, builtin, provider]}}}}
+        use: {type: array, items: {type: string}}
+        filter: {type: string}
+        params: {type: object, properties: {url: {type: string}, interval: {type: integer}, tolerance: {type: integer}, lazy: {type: boolean}, strategy: {type: string}}}
+        origin: {type: string, enum: [routing, rules, raw]}
+        lints: {type: array, items: {type: string}}
+    RoutingExit:
+      type: object
+      required: [name, kind]
+      properties:
+        name: {type: string}
+        kind: {type: string, enum: [node, builtin, provider]}
+        region: {type: string}
+        source: {type: string}
+        protocol: {type: string}
+        via: {type: string}
+        filter: {type: string}
+    RoutingTraceExit:
+      type: object
+      required: [kind, name]
+      properties:
+        kind: {type: string, enum: [node, builtin, provider, unknown]}
+        name: {type: string}
+        region: {type: string}
+        via: {type: string}
+    RoutingTrace:
+      type: object
+      required: [host, steps, hit, chain, exit]
+      properties:
+        host: {type: string}
+        ip: {type: string}
+        steps: {type: array, items: {type: object, required: [index, result], properties: {index: {type: integer}, result: {type: string, enum: [miss, hit, needs-ip, unknown]}, evidence: {type: string}, reason: {type: string}}}}
+        hit: {type: integer}
+        chain: {type: array, items: {type: object, required: [group, type, pick, candidates], properties: {group: {type: string}, type: {type: string}, pick: {type: string}, candidates: {type: array, items: {type: string}}}}}
+        exit: {$ref: '#/components/schemas/RoutingTraceExit'}
+        needsIp: {type: object, required: [at, candidates], properties: {at: {type: integer}, candidates: {type: array, items: {type: integer}}}}
+        stale: {type: boolean}
+    RoutingHealthItem:
+      type: object
+      required: [host, category, hit, rule, exit, uncertain]
+      properties:
+        host: {type: string}
+        category: {type: string}
+        hit: {type: integer}
+        rule: {type: string}
+        exit: {$ref: '#/components/schemas/RoutingTraceExit'}
+        uncertain: {type: boolean}
     User:
       type: object
       required: [id, username, role]
@@ -1116,6 +1206,30 @@ paths:
       parameters: [{$ref: '#/components/parameters/id'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc, yaml], properties: {doc: {type: string}, yaml: {type: string}}}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {ok: {type: boolean}, raw: {type: string}, diagnostics: {type: array, items: {type: object}}}}}}}}
+  /api/v1/profiles/{id}/routing/graph:
+    post:
+      tags: [routing]
+      summary: 分流地图的数据（按最终配置）；规则内容未缓存时在后台拉取，pending 大于 0 时稍后再取
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc], properties: {doc: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RoutingGraph'}}}}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/routing/trace:
+    post:
+      tags: [routing]
+      summary: 追踪一个域名或 IP 的走向（每用户每分钟 60 次）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc, host], properties: {doc: {type: string}, host: {type: string}, process: {type: string}, network: {type: string, enum: [tcp, udp]}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [current], properties: {current: {$ref: '#/components/schemas/RoutingTrace'}}}}}}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/routing/health:
+    post:
+      tags: [routing]
+      summary: 常用网站体检：逐个追踪 catalog/routing/health.yaml 中的网站（计 1 次追踪）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc], properties: {doc: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/RoutingHealthItem'}}}}}}}, '404': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles/{id}/render:
     get:
       tags: [profiles]

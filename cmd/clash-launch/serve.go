@@ -25,6 +25,7 @@ import (
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/kernel"
+	"github.com/angwz/clash-launch/internal/match"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/source"
@@ -51,9 +52,11 @@ type config struct {
 	RuleHosts      source.Hosts          // 普通用户的分流规则地址允许的站点；空时用内置列表（反馈 #72）
 	OpenQuota      service.QuotaDefaults // 开放注册用户的默认配额（反馈 #71）
 	AuditDays      int                   // 审计日志保留天数，默认 180；0 表示不清理
+	TraceOff       bool                  // CLASH_LAUNCH_TRACE=off：关闭分流追踪与体检（routing 第 6 节）
+	TraceCacheMB   int                   // 规则内容缓存上限，默认 256
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "TRACE", "TRACE_CACHE_MB"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -99,7 +102,7 @@ func loadConfig() (config, error) {
 	c.RuleHosts = hosts
 	// 配额默认值与审计保留期：非负整数；配额为 0 时使用内置默认（见 internal/service/quota.go）
 	nums := map[string]int{}
-	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180"} {
+	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180", "TRACE_CACHE_MB": "256"} {
 		n, err := strconv.Atoi(get(k, def))
 		if err != nil || n < 0 {
 			return config{}, fmt.Errorf("CLASH_LAUNCH_%s 需要非负整数", k)
@@ -109,6 +112,14 @@ func loadConfig() (config, error) {
 	c.Quota = service.QuotaDefaults{Sources: nums["QUOTA_SOURCES"], Profiles: nums["QUOTA_PROFILES"], Links: nums["QUOTA_LINKS"], MinInterval: time.Duration(nums["QUOTA_MIN_INTERVAL"]) * time.Minute, Storage: int64(nums["QUOTA_STORAGE_MB"]) << 20}
 	c.OpenQuota = service.QuotaDefaults{Sources: nums["OPEN_QUOTA_SOURCES"], Profiles: nums["OPEN_QUOTA_PROFILES"], Links: nums["OPEN_QUOTA_LINKS"], MinInterval: time.Duration(nums["OPEN_QUOTA_MIN_INTERVAL"]) * time.Minute, Storage: int64(nums["OPEN_QUOTA_STORAGE_MB"]) << 20}
 	c.AuditDays = nums["AUDIT_DAYS"]
+	c.TraceCacheMB = nums["TRACE_CACHE_MB"]
+	switch t := strings.ToLower(get("TRACE", "on")); t {
+	case "on":
+	case "off":
+		c.TraceOff = true
+	default:
+		return config{}, fmt.Errorf("CLASH_LAUNCH_TRACE 只能是 on 或 off，得到 %q", t)
+	}
 	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
 	return c, nil
 }
@@ -182,6 +193,14 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 	} else if geodb == nil {
 		log.Info("没有地理数据，订阅请求不记录归属地", "path", c.Geodata)
 	}
+	// 分流追踪的地理规则（GEOIP、GEOSITE、IP-ASN）：只读加载同一目录，不调用内核会联网下载的初始化（决定 0007「实测」）
+	var matchGeo *match.Geo
+	if !c.TraceOff {
+		if matchGeo, err = match.OpenGeo(c.Geodata); err != nil {
+			log.Warn("地理数据无法加载，追踪中的地理规则标为无法判断", "path", c.Geodata, "error", err)
+			matchGeo = nil
+		}
+	}
 	var trusted []netip.Prefix
 	for _, p := range strings.Split(c.TrustedProxies, ",") {
 		if p = strings.TrimSpace(p); p == "" {
@@ -196,7 +215,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo}}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

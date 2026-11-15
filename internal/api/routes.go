@@ -127,6 +127,9 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/profiles/{id}/rollback", a(s.rollback)},
 		{"POST", "/api/v1/profiles/{id}/preview", a(s.preview)},
 		{"POST", "/api/v1/profiles/{id}/absorb", a(s.absorb)},
+		{"POST", "/api/v1/profiles/{id}/routing/graph", a(s.routingGraph)},
+		{"POST", "/api/v1/profiles/{id}/routing/trace", a(s.routingTrace)},
+		{"POST", "/api/v1/profiles/{id}/routing/health", a(s.routingHealth)},
 		{"GET", "/api/v1/profiles/{id}/render", a(s.renderStatus)},
 		{"GET", "/api/v1/profiles/{id}/export", a(s.exportProfile)},
 

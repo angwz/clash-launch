@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/diag"
 	"github.com/angwz/clash-launch/internal/engine"
@@ -70,8 +72,13 @@ type Service struct {
 	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。
 	Notifier Notifier
 
+	// Trace 是分流追踪的配置（routing 第 6 节）
+	Trace TraceConfig
+
 	guardsState
-	locks sync.Map // 方案 ID → *sync.Mutex：同一方案的渲染串行
+	traceOnce sync.Once
+	rules     *ruleCache
+	locks     sync.Map // 方案 ID → *sync.Mutex：同一方案的渲染串行
 }
 
 func (s *Service) now() time.Time {
@@ -221,6 +228,7 @@ type Result struct {
 	Numbering   []engine.Numbered    `json:"numbering"`
 	Chains      []engine.ChainResult `json:"chains"`
 	Outbounds   []string             `json:"outbounds"`
+	Generated   *yaml.Node           `json:"-"` // 生成阶段的结果（合并表单层与原始编辑之前），分流地图据此区分来源
 }
 
 // OK 报告结果可以发布：没有致命错误，内核检查没有失败。
@@ -350,7 +358,7 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 		latest = built.Updated
 	}
 	out, rerr := engine.Render(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Diagnostics: append(ds.Items(), built.Diagnostics...), Updated: latest})
-	res := &Result{YAML: out.YAML, Preview: out.Preview, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds}
+	res := &Result{YAML: out.YAML, Preview: out.Preview, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds, Generated: built.Generated}
 	if rerr != nil {
 		res.Fatal = rerr.Error()
 		return res, nil

@@ -1,0 +1,36 @@
+# 常用网站体检（docs/design/routing.md 第 13 节第 2 步）：分流页「体检」按这里的顺序逐个追踪，
+# 显示每个网站命中哪条规则、从哪个出口离开。只列主域名；追踪按 443 端口、TCP。
+# category 是界面上的分组键（routing.health.category.*）。
+
+sites:
+  - {host: chatgpt.com, category: ai}
+  - {host: claude.ai, category: ai}
+  - {host: gemini.google.com, category: ai}
+  - {host: www.google.com, category: search}
+  - {host: www.bing.com, category: search}
+  - {host: www.baidu.com, category: search}
+  - {host: www.youtube.com, category: video}
+  - {host: www.netflix.com, category: video}
+  - {host: www.bilibili.com, category: video}
+  - {host: www.tiktok.com, category: video}
+  - {host: x.com, category: social}
+  - {host: telegram.org, category: social}
+  - {host: www.instagram.com, category: social}
+  - {host: www.facebook.com, category: social}
+  - {host: weibo.com, category: social}
+  - {host: www.zhihu.com, category: social}
+  - {host: github.com, category: dev}
+  - {host: stackoverflow.com, category: dev}
+  - {host: registry.npmjs.org, category: dev}
+  - {host: pypi.org, category: dev}
+  - {host: www.apple.com, category: platform}
+  - {host: www.icloud.com, category: platform}
+  - {host: www.microsoft.com, category: platform}
+  - {host: store.steampowered.com, category: game}
+  - {host: www.epicgames.com, category: game}
+  - {host: www.taobao.com, category: shop}
+  - {host: www.jd.com, category: shop}
+  - {host: www.amazon.com, category: shop}
+  - {host: www.qq.com, category: cn}
+  - {host: doubleclick.net, category: ads}
+  - {host: googlesyndication.com, category: ads}

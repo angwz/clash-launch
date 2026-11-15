@@ -46,6 +46,7 @@ type Server struct {
 	// 按用户限制预览渲染与内核检查（反馈 #71）：渲染与 mihomo -t 都占用服务器 CPU，开放注册后需要上限
 	renderLimit  *limiter
 	checkLimit   *limiter
+	traceLimit   *limiter     // 分流追踪与体检：每个用户每分钟 60 次（体检计 1 次，routing 第 7 节）
 	missLimit    *limiter     // /u/ 上猜错短码的次数（按 IP），超过后限速一段时间（反馈 #74）
 	static       http.Handler // 前端构建产物；短链接查不到时交给它（反馈 #75）
 	regLimit     *limiter     // 注册：每个 IP 每小时 10 次
@@ -68,7 +69,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), renderLimit: newLimiter(renderPerMinute, time.Minute), checkLimit: newLimiter(checksPerMinute, time.Minute), missLimit: newLimiter(30, time.Hour), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), renderLimit: newLimiter(renderPerMinute, time.Minute), checkLimit: newLimiter(checksPerMinute, time.Minute), traceLimit: newLimiter(tracesPerMinute, time.Minute), missLimit: newLimiter(30, time.Hour), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -240,6 +241,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "message.invalid", err.Error())
 	case errors.Is(err, service.ErrTimezone):
 		problem(w, http.StatusUnprocessableEntity, "account.timezone", err.Error())
+	case errors.Is(err, service.ErrTraceDisabled):
+		problem(w, http.StatusNotFound, "feature_disabled", "routing trace is disabled on this server")
+	case errors.Is(err, service.ErrInvalidHost):
+		problem(w, http.StatusBadRequest, "invalid_host", err.Error())
 	case errors.Is(err, source.ErrHostNotAllowed):
 		problem(w, http.StatusUnprocessableEntity, "rule.host_not_allowed", err.Error())
 	case errors.Is(err, service.ErrClientFetch):
@@ -318,6 +323,7 @@ func readJSON(r *http.Request, v any) error {
 const (
 	renderPerMinute = 240
 	checksPerMinute = 30
+	tracesPerMinute = 60
 )
 
 // renderAllowed 检查用户的预览与内核检查配额；超出时写出 429 并返回 false。

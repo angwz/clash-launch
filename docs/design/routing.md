@@ -285,6 +285,14 @@ type UpstreamChange = { id: string; kind: "group" | "ruleset"; op: "add" | "remo
 
 图数据由 `service.RoutingGraph` 生成：调用与预览相同的渲染路径得到**最终配置**（表单层与原始编辑层合并之后），从中读取 `rules`、`proxy-groups`、`rule-providers`；用引擎生成阶段的结果（合并之前）判断每条的 `origin`（最终配置有而生成结果没有的记 `raw`）；节点的地区、来源、协议取自 `Result.Nodes`；链式代理取自 `Result.Chains`。
 
+实现与上表的差别（第 2 步，2026-11-15）：
+
+- `GraphDTO` 另有 `pending`（正在后台拉取的规则集个数，大于 0 时前端稍后再取）与 `traceEnabled`；地图只读已缓存的规则内容，从不为画图而等待拉取。`RuleDTO.set` 另有 `description`（规则集说明目录）与 `stale`；`GroupDTO.members[].entry` 与 `bundle` 依赖 `routing` 段，第 3 步补上。
+- 体检项为 `{host, category, hit, rule, exit, uncertain}`：`rule` 是命中行原文，`uncertain` 表示命中之前有无法判断的行或需要 IP。网站列表在 `catalog/routing/health.yaml`。
+- 追踪按内核 `tunnel.match` 跳过目标不存在或为 `PASS` 的命中行，该步记 `miss`，`reason` 为 `no-target` 或 `pass`。节点是否支持 UDP 取决于客户端实际选中的成员，不判断。
+- `draft` 参数随 `routing` 段在第 3 步加入。
+- 原始编辑「整段替换」按合并语义判断：列表未加标签、`!replace`、`!delete` 为整段；`!append`、`!prepend`、`!patch-by` 与映射的递归合并只把对应的行与组标为 `raw`。
+
 ## 8. 布局（`web/src/lib/routing/layout.ts`，纯函数，可单测）
 
 ### 8.1 默认路径
