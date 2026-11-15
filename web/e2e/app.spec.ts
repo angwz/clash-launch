@@ -505,7 +505,7 @@ test("站内消息：发送文字与节点，对方的节点页自动加入，�
   await page.goto("/messages");
   await page.getByPlaceholder("输入用户名，开始新会话").fill(bob);
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp("/messages/" + bob));
+  await expect(page.locator(".window .peer")).toHaveText(bob); // 悬浮窗内切换到会话（反馈 #79）
   const box = page.getByPlaceholder("输入消息，回车发送，Shift + 回车换行");
   await box.fill("送你一组节点 ");
   await page.getByRole("button", { name: "表情" }).click();
@@ -542,7 +542,7 @@ test("授权与回收站：联想收件人，授权节点给好友，对方只�
   await expect(page.locator(".hits").getByText("可以发消息").first()).toBeVisible();
   await page.screenshot({ path: "test-results/shot-messages-hits.png" });
   await page.locator(".hits").getByText(bob).click();
-  await expect(page).toHaveURL(new RegExp("/messages/" + bob));
+  await expect(page.locator(".window .peer")).toHaveText(bob); // 悬浮窗内切换到会话（反馈 #79）
   await page.getByRole("button", { name: "附上节点" }).click();
   await page.locator(".pick").first().getByRole("button", { name: "授权" }).click();
   await expect(page.locator(".chip")).toContainText("授权");
@@ -626,4 +626,22 @@ test("隐私说明：节点页提示加密保存，链接到帮助中的「隐�
   await expect(page.getByRole("heading", { name: "隐私与安全" }).first()).toBeVisible();
   await expect(page.getByText("在技术上可以绕过网站去解密")).toBeVisible();
   await page.screenshot({ path: "test-results/shot-privacy.png", fullPage: true });
+});
+
+test("消息是悬浮窗：在当前页面上打开，不离开页面，Esc 关闭，大小随窗口变化", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "手机上铺满屏幕，另见下方");
+  await login(page);
+  await page.goto("/sources");
+  await page.locator(".msg-btn").click();
+  const win = page.locator(".window");
+  await expect(win).toBeVisible();
+  await expect(page).toHaveURL(/\/sources$/); // 不离开当前页面
+  const big = (await win.boundingBox())!;
+  await page.setViewportSize({ width: 900, height: 640 });
+  const small = (await win.boundingBox())!;
+  expect(small.width).toBeLessThan(big.width);
+  expect(small.height).toBeLessThanOrEqual(640);
+  await page.screenshot({ path: "test-results/shot-chat-window.png" });
+  await page.keyboard.press("Escape");
+  await expect(win).toHaveCount(0);
 });

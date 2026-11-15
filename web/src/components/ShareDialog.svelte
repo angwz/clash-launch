@@ -10,7 +10,7 @@
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { t } from "../lib/i18n/i18n.svelte";
-  import { router } from "../lib/router.svelte";
+  import { chat } from "../lib/chat.svelte";
   import { toasts } from "../lib/toast.svelte";
 
   export type ShareTarget = { kind: "source" | "template" | "short"; id: string; name: string; mode?: "share" | "grant" };
@@ -45,7 +45,7 @@
       const name = to.trim();
       open = false;
       toasts.push("ok", mode === "grant" ? t("share.granted_to", { name }) : t("share.shared_to", { name }), {
-        action: { label: t("share.open_chat"), run: () => router.go("/messages/" + encodeURIComponent(name)) },
+        action: { label: t("share.open_chat"), run: () => chat.show(name) },
       });
     } catch (e) {
       toasts.push("err", errorText(e));

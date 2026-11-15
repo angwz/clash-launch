@@ -14,6 +14,9 @@
   import { prefs } from "../lib/prefs.svelte";
   import { mainNav } from "../lib/nav";
   import { inbox } from "../lib/inbox.svelte";
+  import { chat } from "../lib/chat.svelte";
+  // 消息悬浮窗按需加载：第一次打开时才下载，不增加首屏体积
+  const loadChat = () => import("./chat/ChatPanel.svelte");
   import { stats } from "../lib/stats.svelte";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
@@ -38,6 +41,7 @@
 
   async function logout() {
     inbox.stop();
+    chat.close();
     await session.logout();
     router.go("/login");
   }
@@ -110,10 +114,11 @@
     </button>
 
     <!-- 消息（反馈 #75）：右上角的图标，未读时带角标 -->
-    <a class="btn ghost icon msg-btn" href="/messages" class:active={router.route.name.startsWith("message")} aria-label={inbox.unread ? t("messages.unread_n", { n: inbox.unread }) : t("nav.messages")} title={t("nav.messages")}>
+    <!-- 点击打开或收起消息悬浮窗（反馈 #79），不离开当前页面 -->
+    <button class="btn ghost icon msg-btn" type="button" class:active={chat.open} aria-expanded={chat.open} onclick={() => chat.toggle()} aria-label={inbox.unread ? t("messages.unread_n", { n: inbox.unread }) : t("nav.messages")} title={t("nav.messages")}>
       <Icon name="message" />
       {#if inbox.unread}<span class="dot">{inbox.unread > 99 ? "99+" : inbox.unread}</span>{/if}
-    </a>
+    </button>
 
     <Menu label={t("shell.language")} icon="globe">
       {#snippet items(close)}
@@ -164,6 +169,9 @@
       </a>
     </div>
   </nav>
+  {#if chat.open}
+    {#await loadChat() then m}<m.default />{/await}
+  {/if}
   {#if shell.drawer}
     <button class="scrim" type="button" aria-label={t("common.close")} onclick={() => (shell.drawer = false)}></button>
   {/if}

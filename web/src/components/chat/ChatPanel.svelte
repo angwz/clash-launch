@@ -3,18 +3,20 @@
   // 右侧聊天。输入用户名时联想并标出对方是否存在、是否接收消息。
   // 附件：自己的节点可以「分享」（复制一份，对方可随意修改）或「授权」（对方只能使用，随你更新，可随时收回）；
   // 自己的短链接只能「授权」（为对方单独生成一个新的短链接，使用情况在订阅分析中按好友统计）。
-  // 删除对话会收回你们之间的全部授权。宽屏两栏，窄屏单栏。会话每 15 秒、列表每 30 秒自动刷新。
+  // 删除对话会收回你们之间的全部授权。会话每 15 秒、列表每 30 秒自动刷新。
+  // 反馈 #79：不再是独立页面，而是浮在当前页面之上的窗口（右上角消息图标打开，Esc 或 × 关闭）；
+  // 大小随浏览器窗口变化，窗口够宽时左右两栏，否则单栏（用容器查询按窗口自身宽度切换），手机上铺满屏幕。
   import { tick } from "svelte";
-  import Icon from "../components/Icon.svelte";
-  import UserPicker from "../components/UserPicker.svelte";
-  import { api, ApiError, listAll, type Source } from "../lib/api/client";
-  import { errorText } from "../lib/errors";
-  import { i18n, t } from "../lib/i18n/i18n.svelte";
-  import { inbox } from "../lib/inbox.svelte";
-  import { live } from "../lib/live";
-  import { prefs } from "../lib/prefs.svelte";
-  import { router } from "../lib/router.svelte";
-  import { toasts } from "../lib/toast.svelte";
+  import Icon from "../Icon.svelte";
+  import UserPicker from "../UserPicker.svelte";
+  import { api, ApiError, listAll, type Source } from "../../lib/api/client";
+  import { errorText } from "../../lib/errors";
+  import { i18n, t } from "../../lib/i18n/i18n.svelte";
+  import { inbox } from "../../lib/inbox.svelte";
+  import { live } from "../../lib/live";
+  import { prefs } from "../../lib/prefs.svelte";
+  import { chat } from "../../lib/chat.svelte";
+  import { toasts } from "../../lib/toast.svelte";
 
   interface Thread {
     userId: string;
@@ -60,8 +62,7 @@
   /** 待发送的附件 */
   type Pending = { kind: "source"; mode: "share" | "grant"; id: string; name: string; sourceKind: string } | { kind: "short"; id: string; name: string };
 
-  let { params }: { params: Record<string, string> } = $props();
-  const peer = $derived(params.username ? decodeURIComponent(params.username) : "");
+  const peer = $derived(chat.peer);
 
   let threads = $state<Thread[] | null>(null);
   let deleted = $state<Deleted[]>([]);
@@ -138,7 +139,14 @@
 
   function open(name: string) {
     to = "";
-    router.go("/messages/" + encodeURIComponent(name));
+    chat.show(name);
+  }
+
+  // Esc 关闭悬浮窗（弹出的表情或附件面板先收起）
+  function onWindowKey(e: KeyboardEvent) {
+    if (e.key !== "Escape") return;
+    if (panel) panel = "";
+    else chat.close();
   }
 
   async function send() {
@@ -293,6 +301,15 @@
   }
 </script>
 
+<svelte:window onkeydown={onWindowKey} />
+
+<div class="window" role="dialog" aria-modal="false" aria-labelledby="chat-title">
+  <header class="win-head">
+    <Icon name="message" size={16} />
+    <h2 id="chat-title">{t("nav.messages")}</h2>
+    {#if inbox.unread}<span class="badge">{inbox.unread}</span>{/if}
+    <button class="btn ghost icon close" type="button" onclick={() => chat.close()} aria-label={t("common.close")} title={t("common.close")}><Icon name="x" size={16} /></button>
+  </header>
 <div class="page" class:has-peer={!!peer}>
   <aside class="threads panel" aria-label={t("messages.threads")}>
     <form class="start" onsubmit={(e) => { e.preventDefault(); if (to.trim()) open(to.trim()); }}>
@@ -306,7 +323,7 @@
       <ul class="list">
         {#each threads ?? [] as th (th.userId)}
           <li class="th">
-            <a href={"/messages/" + encodeURIComponent(th.username)} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
+            <a href={"/messages/" + encodeURIComponent(th.username)} onclick={(e) => { e.preventDefault(); open(th.username); }} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
               <span class="avatar" aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
               <span class="th-main">
                 <span class="th-top"><strong>{th.username}</strong><span class="muted when">{i18n.relative(th.lastAt)}</span></span>
@@ -353,11 +370,11 @@
     {:else if missing}
       <div class="placeholder">
         <p>{t("messages.no_user", { name: peer })}</p>
-        <a class="btn sm" href="/messages">{t("common.close")}</a>
+        <button class="btn sm" type="button" onclick={() => (chat.peer = "")}>{t("messages.back_to_threads")}</button>
       </div>
     {:else}
       <header class="chat-head">
-        <a class="back btn ghost icon" href="/messages" aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></a>
+        <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
         <span class="avatar" aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
         <strong class="peer">{other?.username ?? peer}</strong>
         {#if other && !deletedAt}
@@ -475,16 +492,59 @@
   </section>
 </div>
 
+</div>
 <style>
+  /* 悬浮窗：贴在右上角的消息图标下方；宽高随浏览器窗口变化，并留出边距 */
+  .window {
+    position: fixed;
+    z-index: 60;
+    inset-block-start: 60px;
+    inset-inline-end: 16px;
+    display: flex;
+    flex-direction: column;
+    inline-size: clamp(320px, 62vw, 880px);
+    block-size: clamp(420px, calc(100dvh - 84px), 680px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    box-shadow: var(--shadow-lg, 0 16px 48px rgb(0 0 0 / 0.18));
+    overflow: hidden;
+    container-type: inline-size;
+    animation: pop var(--dur-fast, 0.15s) var(--ease, ease-out);
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .window {
+      animation: none;
+    }
+  }
+  .win-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border-block-end: 1px solid var(--border);
+    background: var(--bg-raised);
+  }
+  .win-head h2 {
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+  .win-head .close {
+    margin-inline-start: auto;
+  }
   .page {
-    max-inline-size: 1120px;
-    margin-inline: auto;
-    padding: var(--space-6);
+    flex: 1;
+    min-block-size: 0;
+    padding: var(--space-3);
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr);
-    gap: var(--space-4);
-    block-size: calc(100dvh - var(--topbar-h, 56px));
-    min-block-size: 480px;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: var(--space-3);
   }
   .threads,
   .chat {
@@ -746,10 +806,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  @media (max-width: 860px) {
+  @container (max-width: 640px) {
     .page {
       grid-template-columns: minmax(0, 1fr);
-      padding: var(--space-3);
+      padding: var(--space-2);
     }
     .page.has-peer .threads,
     .page:not(.has-peer) .chat {
@@ -757,6 +817,15 @@
     }
     .back {
       display: inline-flex;
+    }
+  }
+  @media (max-width: 640px) {
+    .window {
+      inset: 0;
+      inline-size: auto;
+      block-size: auto;
+      border: 0;
+      border-radius: 0;
     }
   }
   /* 会话列表：每行右侧的 × 删除（悬停或聚焦时出现） */
