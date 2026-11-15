@@ -3,6 +3,7 @@ id: meta-rules-dat
 label: {en: MetaCubeX meta-rules-dat, zh: MetaCubeX meta-rules-dat}
 repo: https://github.com/MetaCubeX/meta-rules-dat
 license: GPL-3.0
+rank: 4
 checked: "2026-11-09"
 notes:
   en: MRS rule sets built from geosite and geoip; a small template covering common categories.

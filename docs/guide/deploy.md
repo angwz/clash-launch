@@ -98,4 +98,4 @@ docker compose exec clash-launch /clash-launch backup /data/backups/manual.db
 - 备份数据库时**必须同时备份主密钥**（`/data/master.key`）：丢失密钥就无法解密。
 - 升级时启动会自动执行迁移，执行前自动备份到 `/data/backups/`；不支持降级，降级需要恢复备份。数据库被更新的版本迁移过之后，旧版本程序会拒绝启动并提示原因（`ErrNewerSchema`），不会在不认识的表结构上运行。
 - 轮换主密钥：`/clash-launch keys rotate`（追加新密钥并重新加密全部数据）。
-- 迁到 PostgreSQL：`/clash-launch db copy -from sqlite:///data/clash-launch.db -to postgres://…`，然后把 `CLASH_LAUNCH_DATABASE_URL` 改为 PostgreSQL。
+- 迁到 PostgreSQL 或换机器：`db copy`，步骤与保证见 [data](data.md)。

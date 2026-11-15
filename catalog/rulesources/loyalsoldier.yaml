@@ -4,6 +4,7 @@ id: loyalsoldier
 label: {en: Loyalsoldier clash-rules, zh: Loyalsoldier clash-rules}
 repo: https://github.com/Loyalsoldier/clash-rules
 license: GPL-3.0
+rank: 2
 checked: "2026-11-09"
 stars: 29199
 notes:

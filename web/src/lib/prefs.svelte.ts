@@ -10,6 +10,8 @@ export interface PrefsData {
   fieldClick?: FieldClickMode | boolean;
   /** 自动保存后自动做内核检查；默认开（反馈 #64） */
   autoCheck?: boolean;
+  /** 分流规则（预设与自己的规则源）的顺序（反馈 #73） */
+  rules?: string[];
 }
 
 export type FieldClickMode = "button" | "text" | "card";

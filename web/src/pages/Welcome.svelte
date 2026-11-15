@@ -1,5 +1,5 @@
 <script lang="ts">
-  // 首次向导（第 16.1 节）：选择目标客户端 → 添加节点或订阅 → 选择规则源（可一键使用 domainrouter_v2）→ 得到订阅链接与二维码。
+  // 首次向导（第 16.1 节）：选择目标客户端 → 添加节点或订阅 → 选择规则源（预设按用户的规则顺序列出，默认第一个）→ 得到订阅链接与二维码。
   import Icon from "../components/Icon.svelte";
   import QRCode from "../components/QRCode.svelte";
   import { api, type Link, type Profile, type RuleSource, type Source, type SourceInput } from "../lib/api/client";
@@ -8,6 +8,7 @@
   import { t } from "../lib/i18n/i18n.svelte";
   import { ProfileDoc } from "../lib/profile-doc";
   import { createProfile } from "../lib/profiles";
+  import { ordered, prefs } from "../lib/prefs.svelte";
   import { presetInput } from "../lib/rules";
   import { toasts } from "../lib/toast.svelte";
 
@@ -16,7 +17,10 @@
   let kind = $state<"subscription" | "batch">("subscription");
   let url = $state("");
   let content = $state("");
-  let rules = $state<"domainrouter" | "none">("domainrouter");
+  // 规则预设按用户在分流规则页排的顺序（反馈 #73）；默认选第一个
+  const presets = $derived(ordered(catalog.meta?.ruleSources ?? [], (p) => p.id, prefs.data.rules));
+  let picked = $state<string | null>(null);
+  const rules = $derived(picked ?? presets[0]?.id ?? "none");
   let busy = $state(false);
   let link = $state<Link | null>(null);
   let profileId = $state("");
@@ -32,8 +36,8 @@
       const srcBody: SourceInput = kind === "subscription" ? { name: t("wizard.source_name"), kind, url: url.trim() } : { name: t("wizard.source_name"), kind, content };
       const src = await api.post<Source>("/api/v1/sources", srcBody);
       let ruleId: string | undefined;
-      if (rules === "domainrouter") {
-        const p = catalog.meta?.ruleSources.find((x) => x.id === "domainrouter");
+      if (rules !== "none") {
+        const p = presets.find((x) => x.id === rules);
         if (p) ruleId = (await api.post<RuleSource>("/api/v1/rule-sources", presetInput(p, p.variants[0]!, catalog.label(p.label)))).id;
       }
       const prof = await createProfile(t("wizard.profile_name"), preset);
@@ -105,13 +109,15 @@
     {:else if step === 2}
       <h2>{t("wizard.rules_q")}</h2>
       <div class="options">
-        <label class="opt" class:on={rules === "domainrouter"}>
-          <input type="radio" bind:group={rules} value="domainrouter" />
-          <strong>domainrouter_v2 <span class="rec">{t("rules.recommended")}</span></strong>
-          <span class="muted">{catalog.label(catalog.meta?.ruleSources.find((x) => x.id === "domainrouter")?.notes)}</span>
-        </label>
+        {#each presets as p (p.id)}
+          <label class="opt" class:on={rules === p.id}>
+            <input type="radio" name="wz-rules" value={p.id} checked={rules === p.id} onchange={() => (picked = p.id)} />
+            <strong>{catalog.label(p.label)}{#if p.recommended} <span class="rec">{t("rules.recommended")}</span>{/if}</strong>
+            <span class="muted">{catalog.label(p.notes)}</span>
+          </label>
+        {/each}
         <label class="opt" class:on={rules === "none"}>
-          <input type="radio" bind:group={rules} value="none" />
+          <input type="radio" name="wz-rules" value="none" checked={rules === "none"} onchange={() => (picked = "none")} />
           <strong>{t("wizard.rules_later")}</strong>
           <span class="muted">{t("wizard.rules_later_desc")}</span>
         </label>

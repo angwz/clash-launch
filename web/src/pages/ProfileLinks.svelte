@@ -9,6 +9,7 @@
   import { api, listAll, type Link, type Profile } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
+  import { live, type Live } from "../lib/live";
   import { toasts } from "../lib/toast.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
@@ -46,6 +47,19 @@
     }
   }
   $effect(() => void load());
+
+  // 自动刷新（反馈 #73）：请求记录、最近访问会因客户端拉取而变化；页面可见时每 30 秒刷新，导出后稍等即刷新
+  let poll: Live | undefined;
+  $effect(() => {
+    const l = live(async () => {
+      [links, ps] = await Promise.all([
+        listAll<Link>(base),
+        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + params.id + "/stats"),
+      ]);
+    }, 30_000);
+    poll = l;
+    return l.stop;
+  });
 
   async function create(e: SubmitEvent) {
     e.preventDefault();
@@ -144,7 +158,7 @@
             <code class="url ltr">{l.url}</code>
             <button class="btn sm" type="button" onclick={() => void copy(l.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
             <!-- 导出（反馈 #72）：下载这条链接当前提供的配置文件，记为一次「导出」请求 -->
-            <a class="btn sm" href={l.url + "?download=1"} download title={t("links.export_hint")}><Icon name="download" size={14} />{t("links.export")}</a>
+            <a class="btn sm" href={l.url + "?download=1"} download title={t("links.export_hint")} onclick={() => poll?.soon()}><Icon name="download" size={14} />{t("links.export")}</a>
             <button class="btn sm ghost icon" type="button" aria-label={t("links.qr")} aria-expanded={qrFor === l.id} onclick={() => (qrFor = qrFor === l.id ? null : l.id)}><Icon name="qr" size={15} /></button>
           </div>
           <p class="meta muted">

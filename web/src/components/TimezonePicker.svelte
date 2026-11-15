@@ -1,6 +1,20 @@
 <script lang="ts" module>
-  // 浏览器支持的 IANA 时区（不含 UTC 时补上）。只在第一次打开时计算。
+  // 常用时区排在前面（反馈 #73），其余按字母。排序综合两点：
+  //   1. 需要代理工具的用户集中在哪里：中国大陆远多于其他地区，其次是港澳台、新加坡等华人聚居地，
+  //      以及网络管控较多的俄罗斯、伊朗、土耳其、越南等；
+  //   2. 国家体量与网络用户规模：美、日、英、德、韩、印等。
+  // 每个国家只列一个代表时区（美国按东、西、中部人口列三个）。这是编辑判断，不是统计数据。
+  // 全部使用 Go 与浏览器都接受的 IANA 名称；浏览器列表里的旧别名（如 Asia/Calcutta）合并到这里，不重复显示。
+  const COMMON = [
+    "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Macau", "Asia/Singapore", "Asia/Tokyo",
+    "America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Seoul", "Europe/Moscow", "Europe/Berlin",
+    "Asia/Tehran", "Europe/Istanbul", "Asia/Kuala_Lumpur", "Australia/Sydney", "America/Chicago", "Asia/Dubai",
+    "Europe/Paris", "America/Toronto", "Asia/Kolkata", "Asia/Ho_Chi_Minh", "Asia/Bangkok", "Asia/Jakarta",
+    "Asia/Manila", "Europe/Amsterdam", "Asia/Riyadh", "Asia/Karachi", "America/Sao_Paulo", "UTC",
+  ];
+  const ALIASES = new Set(["Asia/Calcutta", "Asia/Saigon", "Asia/Macao", "Asia/Istanbul", "Etc/UTC", "Etc/GMT", "GMT", "UCT", "Universal", "Zulu", "PRC", "ROC", "ROK", "Japan", "Hongkong", "Singapore", "Turkey", "Iran", "W-SU"]);
   let zonesCache: string[] | null = null;
+  /** 常用时区在前，其余为浏览器支持的 IANA 时区按字母排列。只在第一次打开时计算。 */
   export function allZones(): string[] {
     if (zonesCache) return zonesCache;
     let list: string[] = [];
@@ -9,9 +23,12 @@
     } catch {
       list = [];
     }
-    zonesCache = ["UTC", ...list.filter((z) => z !== "UTC")];
+    const common = new Set(COMMON);
+    zonesCache = [...COMMON, ...list.filter((z) => !common.has(z) && !ALIASES.has(z)).sort()];
     return zonesCache;
   }
+  /** 常用时区的个数：列表在这之后显示分隔 */
+  export const commonCount = COMMON.length;
 
   /** 浏览器当前所在的时区 */
   export function browserZone(): string {
@@ -65,18 +82,19 @@
   const results = $derived.by(() => {
     const q = norm(typed);
     const zones = allZones();
-    if (!q) return [FOLLOW, ...zones].slice(0, 60);
+    if (!q) return [FOLLOW, ...zones]; // 不输入时列出全部：常用在前，之后按字母
     const words = q.split(" ");
-    const scored: { z: string; s: number }[] = [];
-    for (const z of zones) {
+    const scored: { z: string; s: number; i: number }[] = [];
+    for (const [i, z] of zones.entries()) {
       const n = norm(z);
       const off = norm(offsetOf(z));
       if (!words.every((w) => n.includes(w) || off.includes(w))) continue;
       // 排序：整体以输入开头 > 城市名以输入开头 > 其他
       const city = n.slice(n.lastIndexOf(" ") + 1);
-      scored.push({ z, s: n.startsWith(q) ? 0 : city.startsWith(q) ? 1 : 2 });
+      scored.push({ z, i, s: n.startsWith(q) ? 0 : city.startsWith(q) ? 1 : 2 });
     }
-    scored.sort((a, b) => a.s - b.s || a.z.localeCompare(b.z));
+    // 同一匹配档内按列表顺序：常用时区在前
+    scored.sort((a, b) => a.s - b.s || a.i - b.i);
     return scored.slice(0, 60).map((x) => x.z);
   });
 
@@ -188,6 +206,7 @@
           role="option"
           aria-selected={i === active}
           class:active={i === active}
+          class:others={!typed && i === commonCount + 1}
           onpointerdown={(e) => {
             e.preventDefault(); // 不让输入框失焦，点击即确认
             commit(z);
@@ -235,6 +254,13 @@
   }
   li.active {
     background: var(--accent-soft);
+  }
+  /* 常用时区与其余时区之间的分隔 */
+  li.others {
+    margin-block-start: 4px;
+    border-block-start: 1px solid var(--border);
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
   }
   .off {
     color: var(--fg-muted);

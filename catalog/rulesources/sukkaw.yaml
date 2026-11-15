@@ -3,6 +3,7 @@ id: sukkaw
 label: {en: Sukka Ruleset, zh: SukkaW 规则集}
 repo: https://github.com/SukkaW/Surge
 license: AGPL-3.0
+rank: 5
 checked: "2026-11-09"
 stars: 4647
 notes:

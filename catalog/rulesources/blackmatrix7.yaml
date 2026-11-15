@@ -3,6 +3,7 @@ id: blackmatrix7
 label: {en: blackmatrix7 ios_rule_script, zh: blackmatrix7 ios_rule_script}
 repo: https://github.com/blackmatrix7/ios_rule_script
 license: GPL-2.0
+rank: 3
 checked: "2026-11-09"
 stars: 28583
 notes:

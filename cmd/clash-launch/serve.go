@@ -410,6 +410,9 @@ func cmdDB(args []string) int {
 		}
 		for _, s := range stats {
 			fmt.Fprintf(os.Stderr, "%-14s %6d 行  %s\n", s.Table, s.Rows, s.Checksum[:12])
+			for _, c := range s.Skipped {
+				fmt.Fprintf(os.Stderr, "  跳过已废弃的列 %s：%s\n", c, store.RetiredColumns[c])
+			}
 		}
 		return 0
 	}

@@ -3,6 +3,8 @@ id: acl4ssr
 label: {en: ACL4SSR, zh: ACL4SSR}
 repo: https://github.com/ACL4SSR/ACL4SSR
 license: CC-BY-SA-4.0
+rank: 1
+recommended: true
 checked: "2026-11-09"
 stars: 6909
 notes:

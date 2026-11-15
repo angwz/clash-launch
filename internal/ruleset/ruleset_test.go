@@ -363,7 +363,8 @@ func TestPresets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ps) < 6 || ps[0].ID != "domainrouter" {
+	// 默认顺序按 rank（反馈 #73）：ACL4SSR 在前且是唯一的推荐项
+	if len(ps) < 6 || ps[0].ID != "acl4ssr" || !ps[0].Recommended {
 		t.Fatalf("预设：%d 个，首个 %s", len(ps), ps[0].ID)
 	}
 	for _, p := range ps {

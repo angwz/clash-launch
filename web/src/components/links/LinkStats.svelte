@@ -60,6 +60,14 @@
     }
   }
 
+  // 请求数变化（自动刷新或导出后）时，已展开的逐条记录重新载入第一页
+  let seen: number | undefined;
+  $effect(() => {
+    const n = stat.total;
+    if (seen !== undefined && n !== seen && open && reqs.length) void loadMore(true);
+    seen = n;
+  });
+
   function toggle() {
     open = !open;
     if (open && !reqs.length) void loadMore(true);

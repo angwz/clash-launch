@@ -43,7 +43,7 @@
 | --- | --- | --- | --- |
 | 新增 API | `internal/api/routes.go`（路由表）+ 处理器 + `api/openapi.yaml` | `TestContract` 逐条对照路由与契约；改契约后在 `web/` 运行 `npm run gen:api` | — |
 | 错误到 HTTP 状态的映射 | `internal/api/server.go` 的 `fail` | `api_test.go` | 前端 `web/src/lib/errors.ts` 的映射表 |
-| 表结构 | 新增 `migrations/{sqlite,postgres}/000N_*.sql`（只向前，两套同号） | `TestMigrationsEquivalent` | [0002](../decisions/0002-storage-and-service.md) |
+| 表结构 | 新增 `migrations/{sqlite,postgres}/000N_*.sql`（只向前，两套同号，登记 `migrations/SUMS`）；新表加入 `store.Tables`；废弃列登记 `store.RetiredColumns` | `TestMigrationsEquivalent`、`TestMigrationsFrozen`、`TestUpgradePreservesData` | [data](../guide/data.md) |
 | 仓储方法 | `internal/store/store.go`（接口）+ `sql.go`（实现）；每个方法以所有者为第一个参数 | `store_test.go` | — |
 | 加密列 | `internal/store/crypto.go`；AAD 为「表.列:行 ID」 | `TestOwnerIsolationAndCrypto` | [0002](../decisions/0002-storage-and-service.md) |
 | 拉取、SSRF、规则地址的站点限制 | `internal/source/fetch.go`、`guard.go`、`hosts.go` | `source_test.go`、`hosts_test.go` | [network](../design/network.md) |

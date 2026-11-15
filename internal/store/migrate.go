@@ -23,6 +23,11 @@ import (
 var ErrNewerSchema = errors.New("store: 数据库版本比程序新")
 
 func (d *DB) Migrate(ctx context.Context, backupDir string) ([]int, error) {
+	return d.migrateTo(ctx, backupDir, 0)
+}
+
+// migrateTo 执行到版本 upto 为止的迁移（0 表示全部）。只供测试模拟「旧版本建的数据库」。
+func (d *DB) migrateTo(ctx context.Context, backupDir string, upto int) ([]int, error) {
 	if _, err := d.root.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS schema_migrations (version BIGINT NOT NULL PRIMARY KEY, applied_at BIGINT NOT NULL)"); err != nil {
 		return nil, err
 	}
@@ -53,7 +58,7 @@ func (d *DB) Migrate(ctx context.Context, backupDir string) ([]int, error) {
 			return nil, err
 		}
 		known[v] = true
-		if !applied[v] {
+		if !applied[v] && (upto == 0 || v <= upto) {
 			pending = append(pending, f)
 		}
 	}
@@ -152,22 +157,50 @@ type CopyStats struct {
 	Table    string
 	Rows     int
 	Checksum string
+	// Skipped 是源库中跳过的已废弃列（见 RetiredColumns）。
+	Skipped []string
 }
 
+// RetiredColumns 是已经不再使用、但可能还留在旧数据库里的列（表.列 → 原因）。
+//
+// 迁移只向前，已执行过的迁移不得修改（TestMigrationsFrozen 锁定）。但在这条规则建立之前，
+// 提交 4219e64 曾直接从 0001 中删掉 sources.allow_direct（出站代理随决定 0003 取消），
+// 因此在那之前建的数据库多这一列。程序读写都写明列名，不受影响；db copy 复制时按列名对应，
+// 只有登记在这里的列可以跳过，其他对不上的列一律报错，不静默丢弃数据。
+var RetiredColumns = map[string]string{
+	"sources.allow_direct": "出站代理已取消（决定 0003）；该列只在 4219e64 之前建的数据库中存在",
+}
+
+// ErrSchemaMismatch 表示源库与目标库的迁移版本或表结构对不上。
+var ErrSchemaMismatch = errors.New("store: 源库与目标库的表结构不一致")
+
 // Copy 把 src 中的全部业务数据按表流式复制到 dst（dst 必须已迁移且为空），并校验行数与校验和。
-// 用于从 SQLite 迁到 PostgreSQL（clash-launch db copy）。密文原样复制：两边使用同一把主密钥。
+// 用于在数据库之间搬迁（SQLite → PostgreSQL、SQLite → SQLite 等，clash-launch db copy）。
+// 两边必须处于同一迁移版本：源库较旧时先用本版本程序执行 db migrate（会先自动备份）。
+// 按列名对应复制；密文原样复制，两边使用同一把主密钥。
 func Copy(ctx context.Context, src, dst *DB) ([]CopyStats, error) {
+	sv, err := appliedVersions(ctx, src)
+	if err != nil {
+		return nil, err
+	}
+	dv, err := appliedVersions(ctx, dst)
+	if err != nil {
+		return nil, err
+	}
+	if sv != dv {
+		return nil, fmt.Errorf("%w：源库迁移到 %s，目标库迁移到 %s。请先用同一版本的程序对两边执行 db migrate", ErrSchemaMismatch, sv, dv)
+	}
 	var stats []CopyStats
 	for _, t := range Tables {
 		var n int
-		if err := dst.root.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+t).Scan(&n); err != nil {
+		if err := dst.root.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+t).Scan(&n); err != nil { //nolint:gosec // 表名来自常量列表 Tables
 			return stats, err
 		}
 		if n > 0 {
 			return stats, fmt.Errorf("store: 目标表 %s 不为空", t)
 		}
 	}
-	err := dst.Tx(ctx, func(s Store) error {
+	err = dst.Tx(ctx, func(s Store) error {
 		tx := s.(*DB)
 		for _, t := range Tables {
 			st, err := copyTable(ctx, src, tx, t)
@@ -182,7 +215,11 @@ func Copy(ctx context.Context, src, dst *DB) ([]CopyStats, error) {
 		return nil, err
 	}
 	for i, st := range stats {
-		sum, rows, err := tableChecksum(ctx, dst, st.Table)
+		cols, err := columnsOf(ctx, dst, st.Table)
+		if err != nil {
+			return stats, err
+		}
+		sum, rows, err := tableChecksum(ctx, dst, st.Table, cols)
 		if err != nil {
 			return stats, err
 		}
@@ -194,46 +231,104 @@ func Copy(ctx context.Context, src, dst *DB) ([]CopyStats, error) {
 	return stats, nil
 }
 
+// appliedVersions 返回已执行的迁移版本（逗号分隔，升序），用于比较两个库是否同一版本。
+func appliedVersions(ctx context.Context, d *DB) (string, error) {
+	rows, err := d.root.QueryContext(ctx, "SELECT version FROM schema_migrations ORDER BY version")
+	if err != nil {
+		return "", fmt.Errorf("store: 读取迁移版本（数据库是否已初始化？）：%w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var vs []string
+	for rows.Next() {
+		var v int
+		if err := rows.Scan(&v); err != nil {
+			return "", err
+		}
+		vs = append(vs, strconv.Itoa(v))
+	}
+	if len(vs) == 0 {
+		return "（无）", rows.Err()
+	}
+	return strings.Join(vs, ","), rows.Err()
+}
+
+// columnsOf 返回表的列名（按表定义顺序）。走 d.q：在事务中时用事务自己的连接
+// （SQLite 只有一个连接，绕开事务另取连接会一直等待）。
+func columnsOf(ctx context.Context, d *DB, table string) ([]string, error) {
+	rows, err := d.q.QueryContext(ctx, "SELECT * FROM "+table+" WHERE 1=0") //nolint:gosec // 表名来自常量列表 Tables
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	return rows.Columns()
+}
+
 func copyTable(ctx context.Context, src, dst *DB, table string) (CopyStats, error) {
-	rows, err := src.root.QueryContext(ctx, "SELECT * FROM "+table+" ORDER BY 1") //nolint:gosec // 表名来自常量列表 Tables
+	scols, err := columnsOf(ctx, src, table)
+	if err != nil {
+		return CopyStats{}, err
+	}
+	dcols, err := columnsOf(ctx, dst, table)
+	if err != nil {
+		return CopyStats{}, err
+	}
+	// 按列名对应：目标库的每一列源库都必须有；源库多出的列只允许是登记过的废弃列
+	have := map[string]bool{}
+	for _, c := range scols {
+		have[c] = true
+	}
+	want := map[string]bool{}
+	for _, c := range dcols {
+		want[c] = true
+		if !have[c] {
+			return CopyStats{}, fmt.Errorf("%w：源库缺少列 %s.%s", ErrSchemaMismatch, table, c)
+		}
+	}
+	st := CopyStats{Table: table}
+	for _, c := range scols {
+		if want[c] {
+			continue
+		}
+		if _, ok := RetiredColumns[table+"."+c]; !ok {
+			return CopyStats{}, fmt.Errorf("%w：源库多出列 %s.%s，且不是已登记的废弃列", ErrSchemaMismatch, table, c)
+		}
+		st.Skipped = append(st.Skipped, table+"."+c)
+	}
+	list := strings.Join(dcols, ",")
+	rows, err := src.root.QueryContext(ctx, "SELECT "+list+" FROM "+table+" ORDER BY 1") //nolint:gosec // 表名与列名来自数据库自身的表定义
 	if err != nil {
 		return CopyStats{}, err
 	}
 	defer func() { _ = rows.Close() }()
-	cols, err := rows.Columns()
-	if err != nil {
-		return CopyStats{}, err
-	}
-	ph := strings.TrimSuffix(strings.Repeat("?,", len(cols)), ",")
-	insert := "INSERT INTO " + table + " (" + strings.Join(cols, ",") + ") VALUES (" + ph + ")"
+	ph := strings.TrimSuffix(strings.Repeat("?,", len(dcols)), ",")
+	insert := "INSERT INTO " + table + " (" + list + ") VALUES (" + ph + ")"
 	h := sha256.New()
-	n := 0
 	for rows.Next() {
-		vals := make([]any, len(cols))
-		ptrs := make([]any, len(cols))
+		vals := make([]any, len(dcols))
+		ptrs := make([]any, len(dcols))
 		for i := range vals {
 			ptrs[i] = &vals[i]
 		}
 		if err := rows.Scan(ptrs...); err != nil {
-			return CopyStats{}, err
+			return st, err
 		}
 		normalize(vals)
 		hashRow(h, vals)
 		if _, err := dst.exec(ctx, insert, vals...); err != nil {
-			return CopyStats{}, err
+			return st, err
 		}
-		n++
+		st.Rows++
 	}
-	return CopyStats{Table: table, Rows: n, Checksum: hex.EncodeToString(h.Sum(nil))}, rows.Err()
+	st.Checksum = hex.EncodeToString(h.Sum(nil))
+	return st, rows.Err()
 }
 
-func tableChecksum(ctx context.Context, d *DB, table string) (string, int, error) {
-	rows, err := d.root.QueryContext(ctx, "SELECT * FROM "+table+" ORDER BY 1") //nolint:gosec // 同上
+func tableChecksum(ctx context.Context, d *DB, table string, cols []string) (string, int, error) {
+	rows, err := d.root.QueryContext(ctx, "SELECT "+strings.Join(cols, ",")+" FROM "+table+" ORDER BY 1") //nolint:gosec // 同上
 	if err != nil {
 		return "", 0, err
 	}
 	defer func() { _ = rows.Close() }()
-	cols, _ := rows.Columns()
 	h := sha256.New()
 	n := 0
 	for rows.Next() {

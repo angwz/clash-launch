@@ -3,8 +3,8 @@ id: domainrouter
 label: {en: domainrouter_v2, zh: domainrouter_v2}
 repo: https://github.com/angwz/domainrouter_v2
 license: 见仓库
+rank: 6
 checked: "2026-11-09"
-recommended: true
 notes:
   en: Rule sets compiled and optimised daily by domainrouter_v2; groups.toml defines the policy groups.
   zh: domainrouter_v2 每日编译、去重与优化的规则集；groups.toml 定义策略组。

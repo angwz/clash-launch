@@ -7,6 +7,7 @@
   import { catalog } from "../../lib/catalog.svelte";
   import { errorText } from "../../lib/errors";
   import { i18n, t } from "../../lib/i18n/i18n.svelte";
+  import { live } from "../../lib/live";
 
   interface IP {
     ip: string;
@@ -33,6 +34,8 @@
       .then(([d]) => (data = d))
       .catch((e) => (error = errorText(e)));
   });
+  // 自动刷新（反馈 #73）：页面可见时每分钟刷新
+  $effect(() => live(async () => (data = await api.get<AdminStats>("/api/v1/admin/stats")), 60_000).stop);
 
   const last30 = (xs: number[] | undefined) => (xs ?? []).slice(-30).reduce((a, b) => a + b, 0);
   // 页面类型显示为菜单里的名称；没有对应名称的保留原样

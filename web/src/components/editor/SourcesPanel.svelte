@@ -11,6 +11,7 @@
   import { catalog } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
+  import { ordered, prefs } from "../../lib/prefs.svelte";
   import type { EmptyGroups, SourceRef } from "../../lib/profile-doc";
 
   let { editor }: { editor: EditorState } = $props();
@@ -157,7 +158,8 @@
   </header>
   <select class="select" value={editor.rulesRef ?? ""} onchange={(e) => editor.setRules(e.currentTarget.value || undefined)} aria-label={t("editor.rules_title")}>
     <option value="">{t("editor.no_rules")}</option>
-    {#each editor.ruleSources as rs (rs.id)}
+    <!-- 按用户在分流规则页排的顺序（反馈 #73） -->
+    {#each ordered(editor.ruleSources, (x) => x.id, prefs.data.rules) as rs (rs.id)}
       <option value={rs.id}>{rs.name}{presetLabel(rs.preset)}</option>
     {/each}
   </select>

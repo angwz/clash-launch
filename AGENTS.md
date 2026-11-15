@@ -9,4 +9,5 @@
 | 了解当前进度、最近一次验证 | [docs/development/progress.md](docs/development/progress.md) |
 | 改什么去哪里 | [docs/development/codemap.md](docs/development/codemap.md) |
 | 跟进 mihomo 新版本 | [docs/development/mihomo-upgrade.md](docs/development/mihomo-upgrade.md) |
+| 改表结构、数据搬迁 | [docs/guide/data.md](docs/guide/data.md) |
 | 本机工具链与常用命令 | [docs/development/setup.md](docs/development/setup.md) |

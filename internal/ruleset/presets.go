@@ -20,8 +20,11 @@ type Preset struct {
 	Checked     string            `yaml:"checked" json:"checked"`
 	Stars       int               `yaml:"stars" json:"stars,omitempty"`
 	Recommended bool              `yaml:"recommended" json:"recommended,omitempty"`
-	Notes       map[string]string `yaml:"notes" json:"notes"`
-	Variants    []PresetVariant   `yaml:"variants" json:"variants"`
+	// Rank 是默认展示顺序（小的在前，反馈 #73）：按社区使用面与口碑（GitHub 星数、能否直接组成完整分流）人工排定。
+	// 用户可以拖动调整，保存在账号偏好中。
+	Rank     int               `yaml:"rank" json:"rank"`
+	Notes    map[string]string `yaml:"notes" json:"notes"`
+	Variants []PresetVariant   `yaml:"variants" json:"variants"`
 }
 
 // PresetVariant 是预设的一个变体：一对 toml 地址、一份 ini 地址，或内联的 toml 模板。
@@ -35,7 +38,7 @@ type PresetVariant struct {
 	RulesetsText string            `yaml:"rulesets-text" json:"rulesetsText,omitempty"`
 }
 
-// LoadPresets 加载全部规则源预设，推荐的排在最前，其余按 ID 排序。
+// LoadPresets 加载全部规则源预设，按 rank 排序（相同时按 ID）。
 func LoadPresets(fsys fs.FS) ([]Preset, error) {
 	entries, err := fs.ReadDir(fsys, "rulesources")
 	if err != nil {
@@ -56,8 +59,8 @@ func LoadPresets(fsys fs.FS) ([]Preset, error) {
 		if err := dec.Decode(&p); err != nil {
 			return nil, fmt.Errorf("ruleset: 解析预设 %s: %w", e.Name(), err)
 		}
-		if p.ID+".yaml" != e.Name() || p.Repo == "" || p.License == "" || p.Checked == "" || p.Label["en"] == "" || p.Label["zh"] == "" || len(p.Variants) == 0 {
-			return nil, fmt.Errorf("ruleset: 预设 %s 缺少 id、repo、license、checked、中英文名称或变体", e.Name())
+		if p.ID+".yaml" != e.Name() || p.Repo == "" || p.License == "" || p.Checked == "" || p.Label["en"] == "" || p.Label["zh"] == "" || len(p.Variants) == 0 || p.Rank <= 0 {
+			return nil, fmt.Errorf("ruleset: 预设 %s 缺少 id、repo、license、checked、rank、中英文名称或变体", e.Name())
 		}
 		for _, v := range p.Variants {
 			urls := v.INI != "" || (v.Groups != "" && v.Rulesets != "")
@@ -69,8 +72,8 @@ func LoadPresets(fsys fs.FS) ([]Preset, error) {
 		out = append(out, p)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Recommended != out[j].Recommended {
-			return out[i].Recommended
+		if out[i].Rank != out[j].Rank {
+			return out[i].Rank < out[j].Rank
 		}
 		return out[i].ID < out[j].ID
 	})

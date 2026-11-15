@@ -1,7 +1,11 @@
 <script lang="ts">
   import RuleHostsHint from "../components/RuleHostsHint.svelte";
   import { hostOf, uniqueName } from "../lib/names";
-  // 规则源：预设画廊（domainrouter_v2、ACL4SSR 等）与自定义（toml 或外部配置 ini）。
+  // 规则源：预设画廊（ACL4SSR、Loyalsoldier 等）与自定义（toml 或外部配置 ini）。
+  // 两个列表都可以拖动排序（反馈 #73），顺序保存在账号偏好 rules 中；未排过的项按默认顺序排在后面。
+  import { flip } from "svelte/animate";
+  import { ordered, prefs } from "../lib/prefs.svelte";
+  import { moveItem, sortable } from "../lib/sortable";
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -58,6 +62,29 @@
   }
 
   let variantOf = $state<Record<string, string>>({});
+
+  // 拖动时在本地实时重排，松手后保存；偏好变化（保存成功、另一设备修改后重新载入）时以偏好为准
+  let mine = $state<RuleSource[]>([]);
+  let presets = $state<RulePreset[]>([]);
+  $effect(() => {
+    mine = ordered(items ?? [], (x) => x.id, prefs.data.rules);
+  });
+  $effect(() => {
+    presets = ordered(catalog.meta?.ruleSources ?? [], (p) => p.id, prefs.data.rules);
+  });
+  const customized = $derived((prefs.data.rules?.length ?? 0) > 0);
+
+  async function saveOrder(rules: string[] | undefined) {
+    try {
+      await prefs.save({ ...prefs.data, rules });
+    } catch (e) {
+      toasts.push("err", errorText(e));
+      // 保存失败：回到已保存的顺序
+      mine = ordered(items ?? [], (x) => x.id, prefs.data.rules);
+      presets = ordered(catalog.meta?.ruleSources ?? [], (p) => p.id, prefs.data.rules);
+    }
+  }
+  const persist = () => void saveOrder([...mine.map((x) => x.id), ...presets.map((p) => p.id)]);
 </script>
 
 <div class="page">
@@ -68,11 +95,17 @@
   </PageHeader>
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
 
-  {#if items && items.length}
+  <p class="order-hint muted">
+    {t("rules.order_hint")}
+    {#if customized}<button class="linkish" type="button" onclick={() => void saveOrder(undefined)}>{t("order.reset")}</button>{/if}
+  </p>
+
+  {#if mine.length}
     <h2 class="h">{t("rules.mine")}</h2>
-    <ul class="mine panel">
-      {#each items as r (r.id)}
-        <li>
+    <ul class="mine panel" use:sortable={{ onmove: (a, b) => (mine = moveItem(mine, a, b)), ondone: persist }}>
+      {#each mine as r, i (r.id)}
+        <li data-sort-index={i} animate:flip={{ duration: 160 }}>
+          <button class="grip" type="button" data-sort-handle aria-label={t("rules.reorder", { name: r.name })} title={t("rules.reorder", { name: r.name })}><Icon name="grip" size={14} /></button>
           <a href={"/rules/" + r.id}>{r.name}</a>
           <span class="muted mono">{r.kind}</span>
           <span class="muted">{i18n.relative(r.updatedAt)}</span>
@@ -82,10 +115,11 @@
   {/if}
 
   <h2 class="h">{t("rules.presets")}</h2>
-  <ul class="gallery">
-    {#each catalog.meta?.ruleSources ?? [] as p (p.id)}
-      <li class="preset panel" class:rec={p.recommended}>
+  <ul class="gallery" use:sortable={{ onmove: (a, b) => (presets = moveItem(presets, a, b)), ondone: persist }}>
+    {#each presets as p, i (p.id)}
+      <li class="preset panel" class:rec={p.recommended} data-sort-index={i} animate:flip={{ duration: 160 }}>
         <div class="ph">
+          <button class="grip" type="button" data-sort-handle aria-label={t("rules.reorder", { name: catalog.label(p.label) })} title={t("rules.reorder", { name: catalog.label(p.label) })}><Icon name="grip" size={14} /></button>
           <h3>{catalog.label(p.label)}</h3>
           {#if p.recommended}<span class="rec-badge">{t("rules.recommended")}</span>{/if}
         </div>
@@ -172,10 +206,51 @@
     font-size: var(--text-lg);
     margin-block: var(--space-6) var(--space-3);
   }
+  .order-hint {
+    margin-block-start: var(--space-2);
+    font-size: var(--text-sm);
+  }
+  .linkish {
+    margin-inline-start: var(--space-2);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  /* 拖动手柄（反馈 #73）：只有它能开始拖动；触屏上按住即可拖，不触发页面滚动 */
+  .grip {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    inline-size: 22px;
+    block-size: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--fg-subtle);
+    cursor: grab;
+    touch-action: none;
+  }
+  .grip:hover,
+  .grip:focus-visible {
+    color: var(--fg);
+    background: var(--bg-sunken);
+  }
+  :global(.sort-active) .grip {
+    cursor: grabbing;
+  }
+  :global(.sorting) {
+    opacity: 0.6;
+    outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 2px;
+  }
   .mine li {
     display: flex;
     gap: var(--space-3);
-    align-items: baseline;
+    align-items: center;
     padding: var(--space-3) var(--space-4);
     border-block-end: 1px solid var(--border);
   }
@@ -204,8 +279,10 @@
   .ph {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-2);
+  }
+  .ph h3 {
+    flex: 1;
   }
   .rec-badge {
     padding-inline: 7px;

@@ -425,10 +425,39 @@ test("时区：输入时不区分大小写自动补全，保存到账号；配�
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: "导出" }).first().click();
   expect((await download).suggestedFilename()).toBe("导出.yaml");
-  await page.reload();
+  // 不刷新页面：导出后自动刷新，记录里出现这次导出（反馈 #73）
   await page.getByRole("button", { name: "请求记录" }).first().click();
   await page.getByRole("tab", { name: "逐条记录" }).click();
   await expect(page.locator(".lstats table").first()).toContainText("导出");
   await page.screenshot({ path: "test-results/shot-links-export.png" });
   await call("PUT", "/api/v1/account/timezone", { timezone: "" });
+});
+
+test("分流规则：拖动手柄调整预设顺序，保存到账号；向导按此顺序默认选第一个", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const call = await apiAs(request, baseURL!);
+  await call("PUT", "/api/v1/account/prefs", {});
+  await login(page);
+  await page.goto("/rules");
+  const cards = page.locator(".gallery > li h3");
+  await expect(cards.first()).toHaveText("ACL4SSR"); // 默认第一位
+  const third = await cards.nth(2).textContent();
+  // 按住第三张卡片的手柄拖到第一张上
+  const from = await page.locator(".gallery > li").nth(2).locator("[data-sort-handle]").boundingBox();
+  const to = await page.locator(".gallery > li").nth(0).boundingBox();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(cards.first()).toHaveText(third!);
+  await expect.poll(async () => (await call<{ rules?: string[] }>("GET", "/api/v1/account/prefs")).rules?.length ?? 0).toBeGreaterThan(0);
+  await page.reload();
+  await expect(cards.first()).toHaveText(third!);
+  // 键盘：聚焦手柄后按方向键下移
+  await page.locator(".gallery > li").first().locator("[data-sort-handle]").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(cards.nth(1)).toHaveText(third!);
+  await page.waitForTimeout(400); // 等换位动画结束
+  await page.screenshot({ path: "test-results/shot-rules-order.png" });
+  await call("PUT", "/api/v1/account/prefs", {});
 });

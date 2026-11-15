@@ -7,6 +7,7 @@
 | 文档 | 读完你会知道 |
 | --- | --- |
 | [guide/deploy.md](guide/deploy.md) | 怎样用 Docker Compose 部署、配置项、备份与升级 |
+| [guide/data.md](guide/data.md) | 数据在哪里、备份与升级、在数据库之间搬迁；改表结构时必须遵守的规则 |
 | [guide/reverse-proxy.md](guide/reverse-proxy.md) | Caddy 与 Nginx 的 HTTPS 配置，以及为什么订阅链接必须走 HTTPS |
 | [guide/cli.md](guide/cli.md) | 怎样用命令行离线渲染一份方案文档，诊断怎么读 |
 
