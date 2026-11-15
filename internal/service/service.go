@@ -21,6 +21,7 @@ import (
 	"github.com/angwz/clash-launch/internal/catalog"
 	"github.com/angwz/clash-launch/internal/diag"
 	"github.com/angwz/clash-launch/internal/engine"
+	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/kernel"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
@@ -56,6 +57,8 @@ type Service struct {
 	PoWBits int
 	// QuotaDefaults 是全局默认配额；零值字段使用内置默认（见 quota.go）。
 	QuotaDefaults QuotaDefaults
+	// Geo 查询订阅请求的国家与运营商（反馈 #74）；nil 时不记录归属地。
+	Geo *geo.DB
 	// RuleHosts 是普通用户的分流规则地址允许的站点；nil 时使用 source.DefaultRuleHosts（反馈 #72）。
 	RuleHosts source.Hosts
 	// OpenQuotaDefaults 是开放注册用户的默认配额；零值字段使用内置默认（见 quota.go）。

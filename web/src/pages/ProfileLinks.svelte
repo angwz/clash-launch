@@ -6,6 +6,7 @@
   import QRCode from "../components/QRCode.svelte";
   import Emoji from "../components/Emoji.svelte";
   import LinkStats, { type LinkStat } from "../components/links/LinkStats.svelte";
+  import ImportMenu from "../components/links/ImportMenu.svelte";
   import { api, listAll, type Link, type Profile } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -157,8 +158,8 @@
           <div class="url-row">
             <code class="url ltr">{l.url}</code>
             <button class="btn sm" type="button" onclick={() => void copy(l.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
-            <!-- 导出（反馈 #72）：下载这条链接当前提供的配置文件，记为一次「导出」请求 -->
-            <a class="btn sm" href={l.url + "?download=1"} download title={t("links.export_hint")} onclick={() => poll?.soon()}><Icon name="download" size={14} />{t("links.export")}</a>
+            <!-- 导入到客户端与导出文件（反馈 #72、#74）；导出记为一次请求，稍后自动刷新统计 -->
+            <ImportMenu url={l.url} name={profile?.name ?? ""} ondownload={() => poll?.soon()} />
             <button class="btn sm ghost icon" type="button" aria-label={t("links.qr")} aria-expanded={qrFor === l.id} onclick={() => (qrFor = qrFor === l.id ? null : l.id)}><Icon name="qr" size={15} /></button>
           </div>
           <p class="meta muted">

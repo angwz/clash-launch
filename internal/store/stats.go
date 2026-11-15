@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +39,13 @@ type SubRequest struct {
 	Client  string
 	Status  int
 	Bytes   int64
-	Kind    string // config | provider
+	Kind    string // config | provider | export
+	// 归属地（反馈 #74）：记录时由本机地理数据库查出
+	Country string // ISO 两位代码
+	ASN     string // 如 AS4134
+	Org     string
+	// ShortID 非空表示经短链接访问
+	ShortID string
 }
 
 // SubIP 是某条链接上一个 IP 的汇总。
@@ -50,6 +58,8 @@ type SubIP struct {
 	Fail    int64
 	Client  string
 	OwnerID string
+	Country string
+	Org     string
 }
 
 // StatsRepo 管理统计数据。
@@ -66,6 +76,9 @@ type StatsRepo interface {
 	Requests(ctx context.Context, owner, linkID string, p Page) ([]SubRequest, error)
 	// IPs 返回某条链接的 IP 汇总；owner 为空且 linkID 为空时返回令牌无效的请求来源（管理员）。
 	IPs(ctx context.Context, owner, linkID string) ([]SubIP, error)
+	// Range 返回某个用户在 [from, to) 内的全部请求记录（时间正序），最多 limit 条；用于订阅分析（反馈 #74）。
+	// 第二个返回值表示是否因超过 limit 而截断（此时返回的是区间内最新的 limit 条）。
+	Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error)
 }
 
 func (d *DB) Stats() StatsRepo { return stats{d} }
@@ -154,8 +167,8 @@ func (r stats) AddRequests(ctx context.Context, rs []SubRequest) error {
 				if q.ID == "" {
 					q.ID = NewID()
 				}
-				if _, err := x.exec(ctx, "INSERT INTO sub_requests (id, link_id, owner_id, at, ip, ua, client, status, bytes, kind) VALUES (?,?,?,?,?,?,?,?,?,?)",
-					q.ID, q.LinkID, q.OwnerID, at, q.IP, q.UA, q.Client, q.Status, q.Bytes, q.Kind); err != nil {
+				if _, err := x.exec(ctx, "INSERT INTO sub_requests ("+requestCols+") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+					q.ID, q.LinkID, q.OwnerID, at, q.IP, q.UA, q.Client, q.Status, q.Bytes, q.Kind, q.Country, q.ASN, q.Org, q.ShortID); err != nil {
 					return err
 				}
 			}
@@ -165,9 +178,9 @@ func (r stats) AddRequests(ctx context.Context, rs []SubRequest) error {
 			} else {
 				fail = 1
 			}
-			if _, err := x.exec(ctx, "INSERT INTO sub_ips (link_id, ip, owner_id, first_at, last_at, ok, fail, client) VALUES (?,?,?,?,?,?,?,?) "+
-				"ON CONFLICT (link_id, ip) DO UPDATE SET last_at = excluded.last_at, ok = sub_ips.ok + excluded.ok, fail = sub_ips.fail + excluded.fail, client = excluded.client",
-				q.LinkID, q.IP, q.OwnerID, at, at, ok, fail, q.Client); err != nil {
+			if _, err := x.exec(ctx, "INSERT INTO sub_ips (link_id, ip, owner_id, first_at, last_at, ok, fail, client, country, org) VALUES (?,?,?,?,?,?,?,?,?,?) "+
+				"ON CONFLICT (link_id, ip) DO UPDATE SET last_at = excluded.last_at, ok = sub_ips.ok + excluded.ok, fail = sub_ips.fail + excluded.fail, client = excluded.client, country = excluded.country, org = excluded.org",
+				q.LinkID, q.IP, q.OwnerID, at, at, ok, fail, q.Client, q.Country, q.Org); err != nil {
 				return err
 			}
 		}
@@ -183,17 +196,23 @@ func (r stats) Requests(ctx context.Context, owner, linkID string, p Page) ([]Su
 			at, id = n, b
 		}
 	}
-	rows, err := r.d.query(ctx, "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind FROM sub_requests WHERE owner_id=? AND link_id=? AND (at < ? OR (at = ? AND id < ?)) ORDER BY at DESC, id DESC LIMIT ?",
+	rows, err := r.d.query(ctx, "SELECT "+requestCols+" FROM sub_requests WHERE owner_id=? AND link_id=? AND (at < ? OR (at = ? AND id < ?)) ORDER BY at DESC, id DESC LIMIT ?",
 		owner, linkID, at, at, id, limitOf(p))
 	if err != nil {
 		return nil, err
 	}
+	return scanRequests(rows)
+}
+
+const requestCols = "id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id"
+
+func scanRequests(rows *sql.Rows) ([]SubRequest, error) {
 	defer func() { _ = rows.Close() }()
 	var out []SubRequest
 	for rows.Next() {
 		var q SubRequest
 		var at int64
-		if err := rows.Scan(&q.ID, &q.LinkID, &q.OwnerID, &at, &q.IP, &q.UA, &q.Client, &q.Status, &q.Bytes, &q.Kind); err != nil {
+		if err := rows.Scan(&q.ID, &q.LinkID, &q.OwnerID, &at, &q.IP, &q.UA, &q.Client, &q.Status, &q.Bytes, &q.Kind, &q.Country, &q.ASN, &q.Org, &q.ShortID); err != nil {
 			return nil, err
 		}
 		q.At = fromMS(at)
@@ -202,8 +221,27 @@ func (r stats) Requests(ctx context.Context, owner, linkID string, p Page) ([]Su
 	return out, rows.Err()
 }
 
+func (r stats) Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error) {
+	// 取区间内最新的 limit+1 条（倒序），再翻转为正序；多出一条说明被截断
+	rows, err := r.d.query(ctx, "SELECT "+requestCols+" FROM sub_requests WHERE owner_id=? AND at>=? AND at<? ORDER BY at DESC, id DESC LIMIT ?",
+		owner, ms(from), ms(to), limit+1)
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := scanRequests(rows)
+	if err != nil {
+		return nil, false, err
+	}
+	cut := len(out) > limit
+	if cut {
+		out = out[:limit]
+	}
+	slices.Reverse(out)
+	return out, cut, nil
+}
+
 func (r stats) IPs(ctx context.Context, owner, linkID string) ([]SubIP, error) {
-	rows, err := r.d.query(ctx, "SELECT link_id, ip, owner_id, first_at, last_at, ok, fail, client FROM sub_ips WHERE owner_id=? AND link_id=? ORDER BY last_at DESC LIMIT 1000",
+	rows, err := r.d.query(ctx, "SELECT link_id, ip, owner_id, first_at, last_at, ok, fail, client, country, org FROM sub_ips WHERE owner_id=? AND link_id=? ORDER BY last_at DESC LIMIT 1000",
 		owner, linkID)
 	if err != nil {
 		return nil, err
@@ -213,7 +251,7 @@ func (r stats) IPs(ctx context.Context, owner, linkID string) ([]SubIP, error) {
 	for rows.Next() {
 		var x SubIP
 		var f, l int64
-		if err := rows.Scan(&x.LinkID, &x.IP, &x.OwnerID, &f, &l, &x.OK, &x.Fail, &x.Client); err != nil {
+		if err := rows.Scan(&x.LinkID, &x.IP, &x.OwnerID, &f, &l, &x.OK, &x.Fail, &x.Client, &x.Country, &x.Org); err != nil {
 			return nil, err
 		}
 		x.First, x.Last = fromMS(f), fromMS(l)

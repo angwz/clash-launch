@@ -34,6 +34,10 @@
     admin: () => import("./pages/Admin.svelte"),
     help: () => import("./pages/Help.svelte"),
     settings: () => import("./pages/Settings.svelte"),
+    analytics: () => import("./pages/Analytics.svelte"),
+    "short-links": () => import("./pages/ShortLinks.svelte"),
+    messages: () => import("./pages/Messages.svelte"),
+    "message-thread": () => import("./pages/Messages.svelte"),
     notfound: () => import("./pages/NotFound.svelte"),
   };
 

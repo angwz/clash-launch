@@ -422,8 +422,10 @@ test("时区：输入时不区分大小写自动补全，保存到账号；配�
   await page.screenshot({ path: "test-results/shot-settings-tz.png" });
 
   await page.goto(`/profiles/${profile}/links`);
+  // 导出在「导入」菜单里（反馈 #74）
+  await page.getByRole("button", { name: "导入" }).first().click();
   const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "导出" }).first().click();
+  await page.getByRole("menuitem", { name: "导出" }).click();
   expect((await download).suggestedFilename()).toBe("导出.yaml");
   // 不刷新页面：导出后自动刷新，记录里出现这次导出（反馈 #73）
   await page.getByRole("button", { name: "请求记录" }).first().click();
@@ -460,4 +462,66 @@ test("分流规则：拖动手柄调整预设顺序，保存到账号；向导�
   await page.waitForTimeout(400); // 等换位动画结束
   await page.screenshot({ path: "test-results/shot-rules-order.png" });
   await call("PUT", "/api/v1/account/prefs", {});
+});
+
+test("短链接与订阅分析：生成短链接、访问计入统计，分析页显示趋势、热力图与 IP 明细", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "短链");
+  const call = await apiAs(request, baseURL!);
+  await call("POST", `/api/v1/profiles/${profile}/links`, { note: "路由器" });
+  await login(page);
+  await page.goto("/short-links");
+  await page.getByPlaceholder("留空则随机生成").fill("e2e-" + Date.now().toString(36));
+  await page.getByRole("button", { name: "生成短链接" }).click();
+  await expect(page.getByText("短链接已生成")).toBeVisible();
+  const code = (await page.locator(".code-big").first().textContent())!.replace("/u/", "");
+  for (const ua of ["mihomo/1.19.33", "clash-verge/v2.2.3", "FlClash/0.8"]) await request.get("/u/" + code, { headers: { "User-Agent": ua } });
+  await page.reload();
+  await expect(page.locator(".item").first()).toContainText("3");
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: "test-results/shot-short-links.png" });
+  // 导入菜单列出客户端
+  await page.getByRole("button", { name: "导入" }).first().click();
+  await expect(page.getByRole("menuitem", { name: /Clash Verge Rev/ })).toHaveAttribute("href", /^clash:\/\/install-config\?url=/);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("link", { name: "查看分析" }).first().click();
+  await expect(page).toHaveURL(/\/analytics\?short=/);
+  await expect(page.locator(".tile").first()).toContainText("3");
+  await expect(page.locator(".heat .cell:not(.zero)")).not.toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "IP 明细" })).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-analytics.png", fullPage: true });
+});
+
+test("站内消息：发送文字与节点，对方的节点页自动加入，未读角标与已读", async ({ browser, page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const bob = await createUser(request, baseURL!, "bob");
+  await login(page);
+  await page.goto("/messages");
+  await page.getByPlaceholder("输入用户名，开始新会话").fill(bob);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp("/messages/" + bob));
+  const box = page.getByPlaceholder("输入消息，回车发送，Shift + 回车换行");
+  await box.fill("送你一组节点 ");
+  await page.getByRole("button", { name: "表情" }).click();
+  await page.getByRole("option", { name: "🎁" }).click();
+  await page.getByRole("button", { name: "附上节点" }).click();
+  await page.locator(".pop.sources button").first().click();
+  await expect(page.locator(".chip")).toBeVisible();
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect(page.locator(".msg.mine .text").last()).toHaveText("送你一组节点 🎁");
+  await expect(page.locator(".msg.mine .card")).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-messages.png" });
+
+  // 收件人：角标、自动加入、已读
+  const ctx = await browser.newContext();
+  const p2 = await ctx.newPage();
+  await login(p2, { username: bob, password: "a long enough password" });
+  await expect(p2.locator(".sidebar .badge")).toHaveText("1");
+  await p2.goto("/messages/admin");
+  await expect(p2.getByRole("link", { name: "已在节点页" })).toBeVisible();
+  await expect(p2.locator(".sidebar .badge")).toHaveCount(0);
+  await p2.goto("/sources");
+  await expect(p2.getByText(/来自 admin/)).toBeVisible();
+  await ctx.close();
 });

@@ -25,6 +25,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	inv := decode[inviteDTO](t, a.want(201, "POST", "/api/v1/admin/invites", map[string]any{"hours": 1}))
 	p := decode[profileDTO](t, a.want(200, "GET", "/api/v1/profiles/"+pid, nil))
 	tpl := decode[templateDTO](t, a.want(201, "POST", "/api/v1/templates", map[string]any{"name": "t", "doc": p.Doc}))
+	sl := decode[shortDTO](t, a.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID}))
 
 	// 路由前缀 → A 的资源 ID
 	ids := map[string]string{
@@ -36,6 +37,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/admin/invites/":    inv.ID,
 		"/api/v1/admin/users/":      firstAdmin(t, h),
 		"/api/v1/templates/":        tpl.ID,
+		"/api/v1/short-links/":      sl.ID,
 	}
 
 	// B：普通用户
@@ -44,6 +46,12 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	anon.want(201, "POST", "/api/v1/register", registerBody(t, anon, "bob", ""))
 	b := h.client()
 	b.login("bob", bpw)
+	// A 发给第三人 carol 的消息：B 既不是发件人也不是收件人
+	anon.want(201, "POST", "/api/v1/register", registerBody(t, anon, "carol", ""))
+	msg := decode[messageDTO](t, a.want(201, "POST", "/api/v1/messages", map[string]any{"to": "carol", "text": "hi", "source": srcs.Items[0].ID}))
+	ids["/api/v1/messages/"] = msg.ID
+	// 按调用者自身划定范围的路由：B 只能看到自己参与的会话，不存在「A 的资源」，另由 TestMessages 检查
+	scoped := map[string]bool{"GET /api/v1/messages/with/{username}": true}
 	// 每条路由一个能通过格式校验的请求体（接口拒绝未知字段），使所有权检查成为决定结果的那一步
 	bodies := map[string]any{
 		"PATCH /api/v1/account/passkeys/{id}":       map[string]string{"name": "x"},
@@ -56,12 +64,16 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"POST /api/v1/profiles/{id}/links":          map[string]string{"note": "x"},
 		"PATCH /api/v1/profiles/{id}/links/{lid}":   map[string]string{"note": "x"},
 		"PATCH /api/v1/templates/{id}":              map[string]string{"name": "x"},
+		"PATCH /api/v1/short-links/{id}":            map[string]string{"note": "x"},
 	}
 
 	checked := 0
 	for _, r := range h.srv.Routes() {
 		if !strings.Contains(r.Pattern, "{") || !strings.HasPrefix(r.Pattern, "/api/v1/") || strings.Contains(r.Pattern, "{pack}") {
-			continue // 公开接口与令牌接口（/s/、/p/、目录）不属于所有者资源
+			continue // 公开接口与令牌接口（/s/、/p/、/u/、目录）不属于所有者资源
+		}
+		if scoped[r.Method+" "+r.Pattern] {
+			continue
 		}
 		path := r.Pattern
 		for prefix, id := range ids {

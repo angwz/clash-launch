@@ -1,0 +1,358 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/angwz/clash-launch/internal/service"
+	"github.com/angwz/clash-launch/internal/store"
+)
+
+// 订阅分析、短链接与站内消息（反馈 #74）。
+
+// linkLabels 返回用户全部配置链接的说明（「配置名 · 链接备注」），按链接 ID 索引。
+func (s *Server) linkLabels(ctx context.Context, owner string) (map[string]linkInfo, error) {
+	ps, err := s.Svc.Store.Profiles().List(ctx, owner, store.Page{Limit: 200})
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]linkInfo{}
+	for _, p := range ps {
+		ls, err := s.Svc.Store.Links().List(ctx, owner, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, l := range ls {
+			out[l.ID] = linkInfo{ProfileID: p.ID, ProfileName: p.Name, Note: l.Note}
+		}
+	}
+	return out, nil
+}
+
+type linkInfo struct {
+	ProfileID   string `json:"profileId"`
+	ProfileName string `json:"profileName"`
+	Note        string `json:"note"`
+}
+
+// —— 短链接 ——
+
+type shortDTO struct {
+	ID        string     `json:"id"`
+	Code      string     `json:"code"`
+	URL       string     `json:"url"`
+	LinkID    string     `json:"linkId"`
+	Target    linkInfo   `json:"target"`
+	Note      string     `json:"note"`
+	Disabled  bool       `json:"disabled"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+	Total     int64      `json:"total"`
+	Series    []int64    `json:"series"` // 近 30 天每天的请求数（UTC）
+	Version   int64      `json:"version"`
+}
+
+func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *principal) {
+	ctx := r.Context()
+	items, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	labels, err := s.linkLabels(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	s.Svc.FlushStats(ctx)
+	ids := make([]string, 0, len(items))
+	for _, x := range items {
+		ids = append(ids, x.ID)
+	}
+	from, to, days := dayRange(time.Now(), 30)
+	totals, byDay := map[string]int64{}, map[string][]store.DayCount{}
+	if len(ids) > 0 {
+		st := s.Svc.Store.Stats()
+		if totals, err = st.Totals(ctx, "short", ids); err != nil {
+			s.fail(w, err)
+			return
+		}
+		rows, err := st.Daily(ctx, "short", ids, from, to)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		for _, x := range rows {
+			byDay[x.Key] = append(byDay[x.Key], x)
+		}
+	}
+	out := list[shortDTO]{Items: []shortDTO{}}
+	for _, x := range items {
+		d := s.toShort(r, &x, labels[x.LinkID])
+		d.Total, d.Series = totals[x.ID], series(byDay[x.ID], days)
+		out.Items = append(out.Items, d)
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) toShort(r *http.Request, x *store.ShortLink, target linkInfo) shortDTO {
+	d := shortDTO{ID: x.ID, Code: x.Code, URL: s.baseURL(r) + "/u/" + x.Code, LinkID: x.LinkID, Target: target, Note: x.Note, Disabled: x.Disabled, CreatedAt: x.CreatedAt, Version: x.Version, Series: []int64{}}
+	if !x.ExpiresAt.IsZero() {
+		d.ExpiresAt = &x.ExpiresAt
+	}
+	return d
+}
+
+type shortReq struct {
+	LinkID    string     `json:"linkId"`
+	Code      string     `json:"code"`
+	Note      *string    `json:"note"`
+	Disabled  *bool      `json:"disabled"`
+	ExpiresAt *time.Time `json:"expiresAt"`
+	// ClearExpiry：改为不过期（PATCH 时 expiresAt 为 null 无法与「不修改」区分）
+	ClearExpiry bool  `json:"clearExpiry"`
+	Version     int64 `json:"version"`
+}
+
+func (s *Server) createShortLink(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req shortReq
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	sl := &store.ShortLink{LinkID: req.LinkID, Code: req.Code}
+	if req.Note != nil {
+		sl.Note = strings.TrimSpace(*req.Note)
+	}
+	if req.ExpiresAt != nil {
+		sl.ExpiresAt = req.ExpiresAt.UTC()
+	}
+	if err := s.Svc.CreateShortLink(r.Context(), p.User, sl); err != nil {
+		s.fail(w, err)
+		return
+	}
+	labels, _ := s.linkLabels(r.Context(), p.User.ID)
+	writeJSON(w, http.StatusCreated, s.toShort(r, sl, labels[sl.LinkID]))
+}
+
+func (s *Server) patchShortLink(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req shortReq
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	sl, err := s.Svc.Store.ShortLinks().Get(r.Context(), p.User.ID, r.PathValue("id"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if req.Version != 0 {
+		sl.Version = req.Version
+	}
+	if req.Note != nil {
+		sl.Note = strings.TrimSpace(*req.Note)
+	}
+	if req.Disabled != nil {
+		sl.Disabled = *req.Disabled
+	}
+	if req.ExpiresAt != nil {
+		sl.ExpiresAt = req.ExpiresAt.UTC()
+	}
+	if req.ClearExpiry {
+		sl.ExpiresAt = time.Time{}
+	}
+	if err := s.Svc.Store.ShortLinks().Update(r.Context(), p.User.ID, sl); err != nil {
+		s.fail(w, err)
+		return
+	}
+	labels, _ := s.linkLabels(r.Context(), p.User.ID)
+	writeJSON(w, http.StatusOK, s.toShort(r, sl, labels[sl.LinkID]))
+}
+
+func (s *Server) deleteShortLink(w http.ResponseWriter, r *http.Request, p *principal) {
+	if err := s.Svc.Store.ShortLinks().Delete(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// —— 订阅分析 ——
+
+// analytics 汇总当前用户的订阅请求。参数：days（1–365，默认 30）、link、short（只看某条链接或短链接）、
+// tz（用户没有设置时区时，前端传入浏览器时区）。
+func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal) {
+	ctx := r.Context()
+	q := r.URL.Query()
+	days, _ := strconv.Atoi(q.Get("days"))
+	if days <= 0 || days > 365 {
+		days = 30
+	}
+	zone := p.User.Timezone
+	if zone == "" {
+		zone = q.Get("tz")
+	}
+	loc, err := time.LoadLocation(zone)
+	if err != nil || zone == "" || zone == "Local" {
+		loc = time.UTC
+	}
+	s.Svc.FlushStats(ctx)
+	// 区间结束于所选时区的明天零点，开始于 days 天前的零点：每天的柱子都是完整的自然日
+	now := time.Now().In(loc)
+	to := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
+	from := to.AddDate(0, 0, -days)
+	rs, cut, err := s.Svc.Store.Stats().Range(ctx, p.User.ID, from, to, service.AnalyticsMaxRows)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if link, short := q.Get("link"), q.Get("short"); link != "" || short != "" {
+		kept := rs[:0]
+		for _, x := range rs {
+			if (link == "" || x.LinkID == link) && (short == "" || x.ShortID == short) {
+				kept = append(kept, x)
+			}
+		}
+		rs = kept
+	}
+	a := service.Analyze(rs, from, to, loc, cut)
+	labels, err := s.linkLabels(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	codes := map[string]string{}
+	for _, x := range shorts {
+		codes[x.ID] = x.Code
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes})
+}
+
+// —— 站内消息 ——
+
+type attachDTO struct {
+	Kind  string `json:"kind"`
+	Name  string `json:"name"`
+	URL   string `json:"url,omitempty"`
+	Nodes int    `json:"nodes,omitempty"` // 手动节点的行数（粗略的节点数）
+}
+
+type messageDTO struct {
+	ID          string     `json:"id"`
+	Mine        bool       `json:"mine"`
+	Text        string     `json:"text"`
+	Attach      *attachDTO `json:"attach,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ReadAt      *time.Time `json:"readAt,omitempty"`
+	AddedSource string     `json:"addedSource,omitempty"`
+}
+
+func toMessage(me string, m *store.Message) messageDTO {
+	var b service.MessageBody
+	_ = json.Unmarshal(m.Body, &b)
+	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
+	if !d.Mine {
+		d.AddedSource = m.AddedSource
+	}
+	if a := b.Attach; a != nil {
+		d.Attach = &attachDTO{Kind: a.Kind, Name: a.Name, URL: a.URL}
+		if a.Kind == "nodes" {
+			for _, line := range strings.Split(a.Content, "\n") {
+				if strings.TrimSpace(line) != "" {
+					d.Attach.Nodes++
+				}
+			}
+		}
+	}
+	return d
+}
+
+func (s *Server) listThreads(w http.ResponseWriter, r *http.Request, p *principal) {
+	ts, err := s.Svc.Threads(r.Context(), p.User)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": nonNil(ts)})
+}
+
+func (s *Server) unreadMessages(w http.ResponseWriter, r *http.Request, p *principal) {
+	n, err := s.Svc.Store.Messages().Unread(r.Context(), p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"count": n})
+}
+
+// threadWith 返回与某个用户的消息（新的在前，分页），并把对方发来的消息标为已读。
+func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal) {
+	ctx := r.Context()
+	other, err := s.Svc.Store.Users().ByUsername(ctx, r.PathValue("username"))
+	if err != nil {
+		s.fail(w, store.ErrNotFound)
+		return
+	}
+	items, err := s.Svc.Store.Messages().Thread(ctx, p.User.ID, other.ID, page(r))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if err := s.Svc.Store.Messages().MarkRead(ctx, p.User.ID, other.ID, time.Now()); err != nil {
+		s.fail(w, err)
+		return
+	}
+	out := list[messageDTO]{Items: []messageDTO{}}
+	for i := range items {
+		out.Items = append(out.Items, toMessage(p.User.ID, &items[i]))
+	}
+	if len(items) > 0 && len(items) == pageSize(r) {
+		last := items[len(items)-1]
+		out.Next = strconv.FormatInt(last.CreatedAt.UnixMilli(), 10) + "|" + last.ID
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username}, "items": out.Items, "next": out.Next})
+}
+
+func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		To     string `json:"to"`
+		Text   string `json:"text"`
+		Source string `json:"source"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, req.Source)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, toMessage(p.User.ID, m))
+}
+
+func (s *Server) acceptMessage(w http.ResponseWriter, r *http.Request, p *principal) {
+	src, err := s.Svc.AcceptAttachment(r.Context(), p.User, r.PathValue("id"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"source": src.ID, "name": src.Name})
+}
+
+func (s *Server) hideMessage(w http.ResponseWriter, r *http.Request, p *principal) {
+	if err := s.Svc.Store.Messages().Hide(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

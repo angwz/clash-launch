@@ -57,6 +57,16 @@
     }
   }
 
+  // 站内消息（反馈 #74）：默认值不写入偏好
+  async function savePrefs(patch: Partial<typeof prefs.data>) {
+    try {
+      await prefs.save({ ...prefs.data, ...patch });
+      toasts.push("ok", t("common.saved"));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   async function setClick(m: FieldClickMode) {
     try {
       // card 是默认值，不写入偏好
@@ -104,6 +114,30 @@
       </div>
     </div>
     <p class="hint">{t("settings.tz_hint")}</p>
+  </section>
+
+  <section class="panel box" aria-labelledby="st-msg">
+    <h2 id="st-msg">{t("nav.messages")}</h2>
+    <label class="choice">
+      <input type="checkbox" checked={prefs.data.inbox !== "off"} onchange={(e) => void savePrefs({ inbox: e.currentTarget.checked ? undefined : "off" })} />
+      <span>
+        <strong>{t("settings.inbox")}</strong>
+        <span class="muted">{t("settings.inbox_hint")}</span>
+      </span>
+    </label>
+    <label class="choice">
+      <input type="checkbox" checked={prefs.data.autoAdd !== false} disabled={prefs.data.inbox === "off"} onchange={(e) => void savePrefs({ autoAdd: e.currentTarget.checked ? undefined : false })} />
+      <span>
+        <strong>{t("settings.auto_add")}</strong>
+        <span class="muted">{t("settings.auto_add_hint")}</span>
+      </span>
+    </label>
+    {#if prefs.data.blocked?.length}
+      <p class="row-inline">
+        <span>{t("settings.blocked_n", { n: prefs.data.blocked.length })}</span>
+        <button class="btn sm" type="button" onclick={() => void savePrefs({ blocked: undefined })}>{t("settings.unblock_all")}</button>
+      </p>
+    {/if}
   </section>
 
   <section class="panel box" aria-labelledby="st-editor">
@@ -167,6 +201,12 @@
   }
   .grid.two {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .row-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
   }
   .tz-now {
     display: grid;

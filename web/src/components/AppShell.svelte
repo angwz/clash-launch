@@ -13,6 +13,7 @@
   import Emoji, { type EmojiName } from "./Emoji.svelte";
   import { prefs } from "../lib/prefs.svelte";
   import { mainNav } from "../lib/nav";
+  import { inbox } from "../lib/inbox.svelte";
   import { stats } from "../lib/stats.svelte";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
@@ -22,10 +23,11 @@
   onMount(() => {
     shell.init();
     stats.start();
+    inbox.start(); // 未读消息角标（反馈 #74）
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
-  const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
+  const nav = $derived(mainNav(session.isAdmin, prefs.data.nav, inbox.unread).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
 
@@ -35,6 +37,7 @@
   }
 
   async function logout() {
+    inbox.stop();
     await session.logout();
     router.go("/login");
   }
@@ -140,6 +143,7 @@
           <a href={n.href} class:active={n.active} aria-current={n.active ? "page" : undefined} title={shell.rail ? n.label : undefined}>
             <Icon name={n.icon} size={17} />
             <span class="label">{n.label}</span>
+            {#if n.badge}<span class="badge" aria-label={t("messages.unread_n", { n: n.badge })}>{n.badge > 99 ? "99+" : n.badge}</span>{/if}
           </a>
         </li>
       {/each}
@@ -358,6 +362,33 @@
   }
   .rail .sidebar .label {
     display: none;
+  }
+  /* 未读角标（反馈 #74）：收起侧栏时缩成图标右上角的小圆点 */
+  .sidebar a {
+    position: relative;
+  }
+  .badge {
+    margin-inline-start: auto;
+    min-inline-size: 18px;
+    padding-inline: 5px;
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .rail .sidebar .badge {
+    position: absolute;
+    inset-block-start: 3px;
+    inset-inline-end: 6px;
+    min-inline-size: 8px;
+    block-size: 8px;
+    padding: 0;
+    font-size: 0;
+    line-height: 0;
   }
   .rail .sidebar a {
     justify-content: center;

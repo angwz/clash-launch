@@ -1,5 +1,5 @@
 // 极简路由（决定 0004）：History API + 路径模式匹配，不引入路由库。
-// 前端路径避开后端保留的 /api、/s、/p（订阅与托管地址）；未知路径由后端回退到 index.html。
+// 前端路径避开后端保留的 /api、/s、/p、/u（订阅、托管地址与短链接）；未知路径由后端回退到 index.html。
 
 export interface Match {
   name: RouteName;
@@ -24,6 +24,10 @@ export type RouteName =
   | "admin"
   | "help"
   | "settings"
+  | "analytics"
+  | "short-links"
+  | "messages"
+  | "message-thread"
   | "notfound";
 
 const table: [RouteName, string][] = [
@@ -44,6 +48,10 @@ const table: [RouteName, string][] = [
   ["admin", "/admin"],
   ["help", "/help"],
   ["settings", "/settings"],
+  ["analytics", "/analytics"],
+  ["short-links", "/short-links"],
+  ["messages", "/messages"],
+  ["message-thread", "/messages/:username"],
 ];
 
 /** 公开页面：未登录也可以访问。 */

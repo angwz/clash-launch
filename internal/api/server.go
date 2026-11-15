@@ -46,6 +46,7 @@ type Server struct {
 	// 按用户限制预览渲染与内核检查（反馈 #71）：渲染与 mihomo -t 都占用服务器 CPU，开放注册后需要上限
 	renderLimit  *limiter
 	checkLimit   *limiter
+	missLimit    *limiter // /u/ 上猜错短码的次数（按 IP），超过后限速一段时间（反馈 #74）
 	regLimit     *limiter // 注册：每个 IP 每小时 10 次
 	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
 	passkeyLimit *limiter // 通行密钥登录的开始：每个 IP 每小时 120 次
@@ -66,7 +67,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), renderLimit: newLimiter(renderPerMinute, time.Minute), checkLimit: newLimiter(checksPerMinute, time.Minute), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), renderLimit: newLimiter(renderPerMinute, time.Minute), checkLimit: newLimiter(checksPerMinute, time.Minute), missLimit: newLimiter(30, time.Hour), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -229,6 +230,12 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
 		problem(w, http.StatusBadRequest, "bad_request", strings.TrimPrefix(err.Error(), errBadRequest.Error()+": "))
+	case errors.Is(err, service.ErrShortCode):
+		problem(w, http.StatusUnprocessableEntity, "short.code", err.Error())
+	case errors.Is(err, service.ErrRecipient):
+		problem(w, http.StatusNotFound, "message.recipient", "the recipient does not exist or does not accept messages")
+	case errors.Is(err, service.ErrMessage):
+		problem(w, http.StatusUnprocessableEntity, "message.invalid", err.Error())
 	case errors.Is(err, service.ErrTimezone):
 		problem(w, http.StatusUnprocessableEntity, "account.timezone", err.Error())
 	case errors.Is(err, source.ErrHostNotAllowed):
@@ -341,6 +348,20 @@ type limiter struct {
 
 func newLimiter(n int, window time.Duration) *limiter {
 	return &limiter{n: n, window: window, hits: map[string][]time.Time{}}
+}
+
+// over 报告 key 在当前窗口内是否已经用完次数（只查看，不计数）。
+func (l *limiter) over(key string, now time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	cut := now.Add(-l.window)
+	n := 0
+	for _, t := range l.hits[key] {
+		if !t.Before(cut) {
+			n++
+		}
+	}
+	return n >= l.n
 }
 
 // allow 报告 key 在当前窗口内是否还能请求；否则返回需要等待的秒数。

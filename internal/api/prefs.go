@@ -22,6 +22,10 @@ type prefsDTO struct {
 	AutoCheck *bool `json:"autoCheck,omitempty"`
 	// Rules：分流规则页的顺序（反馈 #73），预设 ID 与用户规则源 ID 混排。
 	Rules []string `json:"rules,omitempty"`
+	// 站内消息（反馈 #74）：Inbox 为 off 时不接收；AutoAdd 收到的节点自动加入节点页（默认开）；Blocked 屏蔽的用户 ID。
+	Inbox   string   `json:"inbox,omitempty"`
+	AutoAdd *bool    `json:"autoAdd,omitempty"`
+	Blocked []string `json:"blocked,omitempty"`
 }
 
 // fieldClick 兼容早期保存的布尔值（反馈 #50 的第一版）：false 读作 button，true 读作默认。
@@ -56,9 +60,12 @@ func (p prefsDTO) validate() error {
 	default:
 		return badRequest("fieldClick must be button, text or card")
 	}
-	for i, list := range [][]string{p.Nav, p.Sections, p.Rules} {
+	if p.Inbox != "" && p.Inbox != "off" {
+		return badRequest("inbox must be empty or off")
+	}
+	for i, list := range [][]string{p.Nav, p.Sections, p.Rules, p.Blocked} {
 		limit := prefsMaxItems
-		if i == 2 {
+		if i >= 2 {
 			limit = prefsMaxRules
 		}
 		if len(list) > limit {

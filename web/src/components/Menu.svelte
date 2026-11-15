@@ -8,8 +8,9 @@
     icon = "more",
     align = "end",
     text = false,
+    buttonClass = "btn ghost",
     items,
-  }: { label: string; icon?: IconName; align?: "start" | "end"; text?: boolean; items: Snippet<[() => void]> } = $props();
+  }: { label: string; icon?: IconName; align?: "start" | "end"; text?: boolean; buttonClass?: string; items: Snippet<[() => void]> } = $props();
 
   let open = $state(false);
   let root: HTMLDivElement | undefined = $state();
@@ -68,7 +69,7 @@
 <div class="menu" bind:this={root} onkeydown={onKey}>
   <button
     bind:this={button}
-    class="btn ghost"
+    class={buttonClass}
     class:icon={!text}
     type="button"
     aria-haspopup="menu"

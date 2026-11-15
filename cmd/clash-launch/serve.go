@@ -23,6 +23,7 @@ import (
 	catalogdata "github.com/angwz/clash-launch/catalog"
 	"github.com/angwz/clash-launch/internal/api"
 	"github.com/angwz/clash-launch/internal/catalog"
+	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/kernel"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/service"
@@ -173,6 +174,14 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 	} else {
 		log.Warn("没有找到 mihomo，内核检查不可用", "path", c.Mihomo)
 	}
+	// 订阅请求的归属地（反馈 #74）：与内核检查共用地理数据目录；没有数据时只是不记录归属地
+	geodb, err := geo.Open(c.Geodata)
+	if err != nil {
+		log.Warn("地理数据无法打开，订阅请求不记录归属地", "path", c.Geodata, "error", err)
+		geodb = nil
+	} else if geodb == nil {
+		log.Info("没有地理数据，订阅请求不记录归属地", "path", c.Geodata)
+	}
 	var trusted []netip.Prefix
 	for _, p := range strings.Split(c.TrustedProxies, ",") {
 		if p = strings.TrimSpace(p); p == "" {
@@ -187,7 +196,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour}
 	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 

@@ -11,6 +11,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/metacubex/mihomo v1.19.33
+	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/pelletier/go-toml/v2 v2.4.3
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.33.0

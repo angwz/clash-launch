@@ -879,6 +879,91 @@ paths:
       summary: 当前用户的分流规则地址可以使用的站点；restricted=false 表示不限制（管理员）
       security: [{session: []}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {restricted: {type: boolean}, hosts: {type: array, items: {type: string}}}}}}}}
+  /u/{code}:
+    get:
+      tags: [subscription]
+      summary: 短链接（反馈 #74）：直接返回所指配置链接的内容，与 /s/ 相同；请求同时计入原链接与短链接
+      description: 不重定向，不暴露原链接。不存在、已停用或已过期时返回 404；同一 IP 一小时内猜错 30 次后返回 429。支持 ?download=1。
+      parameters: [{name: code, in: path, required: true, schema: {type: string}}, {name: download, in: query, schema: {type: string}}]
+      responses:
+        '200': {description: text/yaml, content: {text/yaml: {schema: {type: string}}}}
+        '404': {description: 短码无效}
+        '429': {description: 猜错次数过多或超出频率限制}
+  /api/v1/short-links:
+    get:
+      tags: [short-links]
+      summary: 自己的短链接，含所指链接、累计请求数与近 30 天趋势
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+    post:
+      tags: [short-links]
+      summary: 新建短链接；只能指向自己的配置链接；code 留空时随机生成 8 位
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [linkId], properties: {linkId: {type: string}, code: {type: string}, note: {type: string}, expiresAt: {type: string, format: date-time}}}}}}
+      responses: {'201': {description: created}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/short-links/{id}:
+    patch:
+      tags: [short-links]
+      summary: 修改备注、停用与过期时间（clearExpiry 改为不过期）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {note: {type: string}, disabled: {type: boolean}, expiresAt: {type: string, format: date-time}, clearExpiry: {type: boolean}, version: {type: integer}}}}}}
+      responses: {'200': {description: ok}}
+    delete:
+      tags: [short-links]
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {description: deleted}}
+  /api/v1/analytics:
+    get:
+      tags: [stats]
+      summary: 订阅分析（反馈 #74）：按天、星期 × 小时、地区、运营商、客户端、IP 明细与最近的请求
+      security: [{session: []}]
+      parameters:
+        - {name: days, in: query, schema: {type: integer, minimum: 1, maximum: 365}}
+        - {name: link, in: query, schema: {type: string}, description: 只看某条配置链接}
+        - {name: short, in: query, schema: {type: string}, description: 只看某个短链接}
+        - {name: tz, in: query, schema: {type: string}, description: 用户未设置时区时使用的浏览器时区}
+      responses: {'200': {description: ok}}
+  /api/v1/messages:
+    get:
+      tags: [messages]
+      summary: 会话列表（最近的在前，含未读数）
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+    post:
+      tags: [messages]
+      summary: 发送消息；source 为自己的节点源 ID 时作为附件（不含请求头）。收件人不存在、不接收或屏蔽了发件人时统一返回 404
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [to], properties: {to: {type: string}, text: {type: string, maxLength: 2000}, source: {type: string}}}}}}
+      responses: {'201': {description: created}, '404': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/messages/unread:
+    get:
+      tags: [messages]
+      summary: 未读消息数
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+  /api/v1/messages/with/{username}:
+    get:
+      tags: [messages]
+      summary: 与某个用户的消息（新的在前，分页），并把对方发来的标为已读
+      security: [{session: []}]
+      parameters: [{name: username, in: path, required: true, schema: {type: string}}, {name: cursor, in: query, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/messages/{id}/accept:
+    post:
+      tags: [messages]
+      summary: 把收到的附件加入自己的节点页（已加入时返回已有的源）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok}, '403': {$ref: '#/components/responses/Problem'}}
+  /api/v1/messages/{id}:
+    delete:
+      tags: [messages]
+      summary: 对自己隐藏一条消息（不影响对方）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {description: hidden}}
   /api/v1/templates:
     get:
       tags: [profiles]

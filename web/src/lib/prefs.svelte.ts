@@ -12,6 +12,10 @@ export interface PrefsData {
   autoCheck?: boolean;
   /** 分流规则（预设与自己的规则源）的顺序（反馈 #73） */
   rules?: string[];
+  /** 站内消息（反馈 #74）：off 不接收；autoAdd 收到的节点自动加入节点页（默认开）；blocked 屏蔽的用户 ID */
+  inbox?: "off";
+  autoAdd?: boolean;
+  blocked?: string[];
 }
 
 export type FieldClickMode = "button" | "text" | "card";

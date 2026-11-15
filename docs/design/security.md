@@ -39,6 +39,8 @@
 | 会话 | 空闲 7 天、绝对 30 天；`__Host-` 前缀、`HttpOnly`、`Secure`、`SameSite=Lax` | `internal/api/session.go` |
 | 订阅端点 | 每 IP + 令牌每分钟 30 次 | `internal/api/subscribe.go` |
 | 拉取 | 10 MiB、30 s、5 次重定向；最短间隔 30 分钟；手动拉取每人每小时 30 次 | `internal/source`、配额 |
+| 短链接 | 随机短码约 40 比特；同一 IP 一小时内猜错 30 次后限速；只能指向自己的链接 | `internal/api/subscribe.go`、[sharing](sharing.md) |
+| 站内消息 | 正文与附件加密保存；附件不含请求头；每人每小时 60 条；收件人不存在、不接收或屏蔽时统一返回 404 | `internal/service/social.go` |
 | 分流规则地址 | 普通用户只能用公共代码托管站与其 CDN 上的 https 地址（主机名精确匹配，重定向每一跳都检查），其他来源改为粘贴文本；管理员不受限 | `internal/source/hosts.go`、`CLASH_LAUNCH_RULE_HOSTS` |
 | 配额 | 50 个源、20 个方案、50 条链接、100 MiB；开放注册的用户 10 个源、5 个方案、10 条链接、最短间隔 60 分钟、20 MiB；管理员不受限 | `CLASH_LAUNCH_QUOTA_*`、`CLASH_LAUNCH_OPEN_QUOTA_*` |
 | 预览与内核检查 | 每人每分钟预览 240 次、内核检查 30 次（管理员不限）；全站同时 2 个检查，每个 10 秒、256 MiB | `internal/api/server.go`、`internal/kernel` |

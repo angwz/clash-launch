@@ -38,6 +38,7 @@
 | [development/feedback.md](development/feedback.md) | 维护者提出的每条意见及其处理结果 |
 | [development/setup.md](development/setup.md) | 工具链、内核与地理数据、只读参考资料、前端命令 |
 | [development/codemap.md](development/codemap.md) | 改什么去哪里：按任务列出文件、测试与需要同步的文档 |
+| [design/sharing.md](design/sharing.md) | 订阅分析、短链接、导入到客户端、站内消息：算法、安全与验证 |
 | [design/stats.md](design/stats.md) | 统计：记录什么、计数与去重规则、保存期限、谁能看、设置项按热度排序 |
 | [development/mihomo-upgrade.md](development/mihomo-upgrade.md) | 跟进 mihomo 新版本：版本固定的位置、字段差异提取、语义重新核验、完成标准 |
 

@@ -211,6 +211,8 @@ type Store interface {
 	Profiles() ProfileRepo
 	Templates() TemplateRepo
 	Stats() StatsRepo
+	ShortLinks() ShortLinkRepo
+	Messages() MessageRepo
 	Links() LinkRepo
 	Renders() RenderRepo
 	Audit() AuditRepo

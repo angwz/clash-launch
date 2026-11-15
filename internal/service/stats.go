@@ -156,6 +156,9 @@ func (s *Stats) Request(q store.SubRequest) {
 	}
 	s.add("sub_all", "", q.At, 1)
 	s.add("sub", q.LinkID, q.At, 1)
+	if q.ShortID != "" {
+		s.add("short", q.ShortID, q.At, 1) // 短链接的请求次数（反馈 #74）
+	}
 	if q.Status >= 400 {
 		s.add("sub_fail", "", q.At, 1)
 	}

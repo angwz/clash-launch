@@ -53,24 +53,65 @@ func (s *Server) rateLimited(w http.ResponseWriter, r *http.Request, tok string)
 // 请求记录中单独记为 export。
 func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 	sw := &statusWriter{ResponseWriter: w}
-	w = sw
 	var link *store.Link
-	download := r.URL.Query().Get("download") != ""
-	kind := "config"
-	if download {
-		kind = "export"
-	}
-	defer func() { s.recordSub(r, link, sw, kind) }()
+	kind := kindOf(r, "config")
+	defer func() { s.recordSub(r, link, sw, kind, "") }()
 	tok := r.PathValue("token")
-	if s.rateLimited(w, r, tok) {
+	if s.rateLimited(sw, r, tok) {
 		return
 	}
 	l, err := s.linkByToken(r, tok)
 	if err != nil {
-		http.NotFound(w, r)
+		http.NotFound(sw, r)
 		return
 	}
 	link = l
+	s.serveConfig(sw, r, l, tok, kind == "export")
+}
+
+// short 提供短链接（反馈 #74）：/u/<短码> 直接返回所指配置链接的内容（不重定向，不暴露原链接），
+// 请求同时计入原链接与短链接。不存在、已停用或已过期的短码返回 404；同一 IP 连续猜错会被限速。
+func (s *Server) short(w http.ResponseWriter, r *http.Request) {
+	sw := &statusWriter{ResponseWriter: w}
+	var link *store.Link
+	var shortID string
+	kind := kindOf(r, "config")
+	defer func() { s.recordSub(r, link, sw, kind, shortID) }()
+	ip := s.clientIP(r).String()
+	now := time.Now()
+	if s.missLimit.over(ip, now) {
+		sw.Header().Set("Retry-After", "600")
+		http.Error(sw, "too many requests", http.StatusTooManyRequests)
+		return
+	}
+	code := strings.ToLower(r.PathValue("code"))
+	sl, err := s.Svc.Store.ShortLinks().ByCode(r.Context(), code)
+	var l *store.Link
+	if err == nil && sl.Active(now) {
+		l, err = s.Svc.Store.Links().Get(r.Context(), sl.OwnerID, sl.LinkID)
+	}
+	if err != nil || l == nil {
+		s.missLimit.allow(ip, now) // 只记录猜错的次数
+		http.NotFound(sw, r)
+		return
+	}
+	if s.rateLimited(sw, r, "short:"+code) {
+		return
+	}
+	link, shortID = l, sl.ID
+	s.serveConfig(sw, r, l, l.Token, kind == "export")
+}
+
+// kindOf 返回请求记录中的类型：带 ?download=1 时为 export。
+func kindOf(r *http.Request, def string) string {
+	if r.URL.Query().Get("download") != "" {
+		return "export"
+	}
+	return def
+}
+
+// serveConfig 写出一条配置链接的最近一次成功渲染结果。tok 是该链接的令牌，用于替换托管节点文件地址中的占位符。
+func (s *Server) serveConfig(w http.ResponseWriter, r *http.Request, l *store.Link, tok string, download bool) {
 	_ = s.Svc.Store.Links().Accessed(r.Context(), l.ID, time.Now(), r.UserAgent())
 	rd, err := s.Svc.Store.Renders().Get(r.Context(), l.OwnerID, l.ProfileID)
 	if err != nil || len(rd.GoodYAML) == 0 {
@@ -111,7 +152,7 @@ func (s *Server) hosted(w http.ResponseWriter, r *http.Request) {
 	sw := &statusWriter{ResponseWriter: w}
 	w = sw
 	var link *store.Link
-	defer func() { s.recordSub(r, link, sw, "provider") }()
+	defer func() { s.recordSub(r, link, sw, "provider", "") }()
 	tok := r.PathValue("token")
 	if s.rateLimited(w, r, tok) {
 		return
@@ -173,8 +214,10 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 
 // recordSub 记录一次订阅请求。l 为 nil 表示令牌无效或在查找令牌前被限流，只进入来源汇总。
 // 不记录令牌本身。
-func (s *Server) recordSub(r *http.Request, l *store.Link, w *statusWriter, kind string) {
-	q := store.SubRequest{At: time.Now(), IP: s.clientIP(r).String(), UA: r.UserAgent(), Status: w.status, Bytes: w.bytes, Kind: kind}
+func (s *Server) recordSub(r *http.Request, l *store.Link, w *statusWriter, kind, shortID string) {
+	addr := s.clientIP(r)
+	g := s.Svc.Geo.Lookup(addr) // 归属地（反馈 #74）；没有地理数据时为空
+	q := store.SubRequest{At: time.Now(), IP: addr.String(), UA: r.UserAgent(), Status: w.status, Bytes: w.bytes, Kind: kind, Country: g.Country, ASN: g.ASN, Org: g.Org, ShortID: shortID}
 	if q.Status == 0 {
 		q.Status = http.StatusOK
 	}
