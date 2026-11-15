@@ -69,12 +69,14 @@
         <g class="box" class:on={lit(2)}>
           <rect x="430" y="40" width="130" height="170" rx="8" />
           <text x="495" y="64" text-anchor="middle">{t("routing.explain.box_rules")}</text>
-          <text class="sub" x="495" y="88" text-anchor="middle">{t("routing.explain.rule_1")}</text>
-          <text class="sub" x="495" y="108" text-anchor="middle">{t("routing.explain.rule_2")}</text>
-          <text class="sub" x="495" y="128" text-anchor="middle">{t("routing.explain.rule_3")}</text>
-          <text class="sub" x="495" y="146" text-anchor="middle">…</text>
-          <text class="sub" x="495" y="166" text-anchor="middle">{t("routing.explain.rule_last")}</text>
-          <text class="sub" x="495" y="196" text-anchor="middle">{t("routing.explain.box_rules_sub")}</text>
+          <text class="sub" x="495" y="90" text-anchor="middle">{t("routing.explain.rule_1")}</text>
+          <text class="sub" x="495" y="110" text-anchor="middle">{t("routing.explain.rule_2")}</text>
+          <text class="sub" x="495" y="130" text-anchor="middle">{t("routing.explain.rule_3")}</text>
+          <text class="sub" x="495" y="148" text-anchor="middle">…</text>
+          <text class="sub" x="495" y="168" text-anchor="middle">{t("routing.explain.rule_last")}</text>
+          <!-- 底部说明不是一条规则：用细线隔开、颜色更淡 -->
+          <line class="sep" x1="446" y1="182" x2="544" y2="182" />
+          <text class="cap" x="495" y="200" text-anchor="middle">{t("routing.explain.box_rules_sub")}</text>
         </g>
         <g class="box" class:on={lit(3)}>
           <rect x="650" y="40" width="96" height="50" rx="8" />
@@ -164,8 +166,21 @@
     stroke: var(--accent);
     stroke-width: 1.5;
   }
+  /* 高亮时只提亮标题，小字保持次要颜色：深色主题下小号亮字会发粗，层次也会消失 */
   .box.on text {
     fill: var(--fg);
+  }
+  .box.on .sub {
+    fill: var(--fg-muted);
+  }
+  .box .cap,
+  .box.on .cap {
+    font-size: 10.5px;
+    fill: var(--fg-subtle);
+  }
+  .box .sep {
+    stroke: var(--border-strong);
+    stroke-width: 1;
   }
   .wire {
     fill: none;
