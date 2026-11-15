@@ -11,7 +11,9 @@ import (
 // 配额与管理：数量、拉取间隔与存储配额；管理员只看到元数据；停用、重置密码、调整配额；审计；不能停用自己。
 func TestQuotaAndAdmin(t *testing.T) {
 	h := newHarness(t, nil)
-	h.svc.QuotaDefaults = service.QuotaDefaults{Sources: 2, Links: 1, MinInterval: 10 * time.Minute}
+	h.svc.QuotaDefaults = service.QuotaDefaults{Sources: 50, MinInterval: time.Minute}
+	// quinn 经开放注册加入，适用开放注册的默认配额（反馈 #71）
+	h.svc.OpenQuotaDefaults = service.QuotaDefaults{Sources: 2, Links: 1, MinInterval: 10 * time.Minute}
 	admin, _ := h.setup()
 	admin.want(200, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
 	anon := h.client()

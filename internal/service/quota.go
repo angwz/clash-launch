@@ -24,6 +24,10 @@ type QuotaDefaults struct {
 // 内置默认：个人使用绰绰有余，同时限制单个账号能占用的资源。
 var builtinQuota = QuotaDefaults{Sources: 50, Profiles: 20, Links: 50, MinInterval: 30 * time.Minute, Storage: 100 << 20}
 
+// 开放注册（未经邀请）的普通用户使用更小的内置默认（反馈 #71）：陌生人能占用的资源有限。
+// 管理员与经邀请注册的用户使用上面的默认；管理员为单个用户设置的配额优先于两者。
+var builtinOpenQuota = QuotaDefaults{Sources: 10, Profiles: 5, Links: 10, MinInterval: time.Hour, Storage: 20 << 20}
+
 // Limits 是解析后的有效配额；-1 表示不限制（管理员）。
 type Limits struct {
 	Sources     int   `json:"sources"`
@@ -33,22 +37,36 @@ type Limits struct {
 	Storage     int64 `json:"storage"`     // 字节
 }
 
-func (s *Service) defaults() QuotaDefaults {
-	d := s.QuotaDefaults
+func (s *Service) defaults() QuotaDefaults { return fillQuota(s.QuotaDefaults, builtinQuota) }
+
+func (s *Service) openDefaults() QuotaDefaults {
+	return fillQuota(s.OpenQuotaDefaults, builtinOpenQuota)
+}
+
+// defaultsFor 返回用户适用的默认配额：开放注册的用户用更小的一套。
+func (s *Service) defaultsFor(u *store.User) QuotaDefaults {
+	if u.Role != "admin" && !u.Invited {
+		return s.openDefaults()
+	}
+	return s.defaults()
+}
+
+// fillQuota 用内置值补齐 d 中的零值字段。
+func fillQuota(d, b QuotaDefaults) QuotaDefaults {
 	if d.Sources == 0 {
-		d.Sources = builtinQuota.Sources
+		d.Sources = b.Sources
 	}
 	if d.Profiles == 0 {
-		d.Profiles = builtinQuota.Profiles
+		d.Profiles = b.Profiles
 	}
 	if d.Links == 0 {
-		d.Links = builtinQuota.Links
+		d.Links = b.Links
 	}
 	if d.MinInterval == 0 {
-		d.MinInterval = builtinQuota.MinInterval
+		d.MinInterval = b.MinInterval
 	}
 	if d.Storage == 0 {
-		d.Storage = builtinQuota.Storage
+		d.Storage = b.Storage
 	}
 	return d
 }
@@ -62,7 +80,7 @@ func (s *Service) Limits(ctx context.Context, u *store.User) (Limits, error) {
 	if err != nil {
 		return Limits{}, err
 	}
-	d := s.defaults()
+	d := s.defaultsFor(u)
 	pick := func(v, def int) int {
 		if v < 0 {
 			return def

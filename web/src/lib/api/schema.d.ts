@@ -3117,6 +3117,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profiles/{id}/absorb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 把在完整 YAML（与预览一致）上的修改换算成原始编辑层，不保存 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                        yaml: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok?: boolean;
+                            raw?: string;
+                            diagnostics?: Record<string, never>[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles/{id}/render": {
         parameters: {
             query?: never;
@@ -3601,6 +3650,8 @@ export interface components {
             default: "inline" | "provider";
             /** @description 为 true 时只能使用默认写法（开放注册的普通用户），生成时覆盖文档中的写法并报告 profile.mode_locked */
             locked: boolean;
+            /** @description 为 true 时订阅只由客户端拉取，服务器不访问订阅地址（锁定且默认写法为 provider）；手动拉取返回 409 source.client_fetch */
+            clientFetch: boolean;
         };
         Registration: {
             /** @description 是否允许无邀请注册（默认关闭） */

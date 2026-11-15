@@ -692,6 +692,9 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 		s.fail(w, err)
 		return
 	}
+	if !s.renderAllowed(w, p, r.URL.Query().Get("check") == "true") {
+		return
+	}
 	var current []byte
 	if x, err := s.Svc.Store.Renders().Get(r.Context(), p.User.ID, r.PathValue("id")); err == nil {
 		current = x.GoodYAML
@@ -716,6 +719,9 @@ func (s *Server) absorb(w http.ResponseWriter, r *http.Request, p *principal) {
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
+		return
+	}
+	if !s.renderAllowed(w, p, false) {
 		return
 	}
 	if _, err := s.Svc.Store.Profiles().Get(r.Context(), p.User.ID, r.PathValue("id")); err != nil {

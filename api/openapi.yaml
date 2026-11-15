@@ -260,10 +260,11 @@ components:
         autoCheck: {type: boolean, description: 自动保存后自动执行 mihomo -t 检查；省略为开}
     NodeMode:
       type: object
-      required: [default, locked]
+      required: [default, locked, clientFetch]
       properties:
         default: {type: string, enum: [inline, provider], description: 管理员设定的默认写法；新加入配置的源使用它}
         locked: {type: boolean, description: 为 true 时只能使用默认写法（开放注册的普通用户），生成时覆盖文档中的写法并报告 profile.mode_locked}
+        clientFetch: {type: boolean, description: 为 true 时订阅只由客户端拉取，服务器不访问订阅地址（锁定且默认写法为 provider）；手动拉取返回 409 source.client_fetch}
     Registration:
       type: object
       required: [open]

@@ -38,11 +38,14 @@ type Config struct {
 
 // Server 是 HTTP 服务。
 type Server struct {
-	Svc          *service.Service
-	Cfg          Config
-	Log          *slog.Logger
-	setupMu      sync.Mutex // 串行化首次注册：两个并发请求不能都成为管理员
-	limit        *limiter
+	Svc     *service.Service
+	Cfg     Config
+	Log     *slog.Logger
+	setupMu sync.Mutex // 串行化首次注册：两个并发请求不能都成为管理员
+	limit   *limiter
+	// 按用户限制预览渲染与内核检查（反馈 #71）：渲染与 mihomo -t 都占用服务器 CPU，开放注册后需要上限
+	renderLimit  *limiter
+	checkLimit   *limiter
 	regLimit     *limiter // 注册：每个 IP 每小时 10 次
 	recoverLimit *limiter // 找回（取问题与提交）：每个 IP 每小时 30 次
 	passkeyLimit *limiter // 通行密钥登录的开始：每个 IP 每小时 120 次
@@ -63,7 +66,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 	if cfg.SubRate <= 0 {
 		cfg.SubRate = 30
 	}
-	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), mux: http.NewServeMux()}
+	s := &Server{Svc: svc, Cfg: cfg, Log: log, limit: newLimiter(cfg.SubRate, time.Minute), regLimit: newLimiter(10, time.Hour), recoverLimit: newLimiter(30, time.Hour), passkeyLimit: newLimiter(120, time.Hour), renderLimit: newLimiter(renderPerMinute, time.Minute), checkLimit: newLimiter(checksPerMinute, time.Minute), mux: http.NewServeMux()}
 	for _, r := range s.routes() {
 		s.mux.HandleFunc(r.Method+" "+r.Pattern, r.Handler)
 	}
@@ -226,6 +229,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "auth.weak_password", err.Error())
 	case errors.Is(err, errBadRequest):
 		problem(w, http.StatusBadRequest, "bad_request", strings.TrimPrefix(err.Error(), errBadRequest.Error()+": "))
+	case errors.Is(err, service.ErrClientFetch):
+		problem(w, http.StatusConflict, "source.client_fetch", "subscriptions on this account are fetched by the client, not the server")
 	case errors.Is(err, service.ErrNodeMode):
 		problem(w, http.StatusBadRequest, "node_mode.invalid", err.Error())
 	case errors.Is(err, service.ErrRegistrationClosed):
@@ -293,6 +298,32 @@ func readJSON(r *http.Request, v any) error {
 		return badRequest("request body too large")
 	}
 	return nil
+}
+
+// 每个用户每分钟的预览渲染与内核检查次数上限（管理员不限）。编辑器在输入停顿约 0.5 秒后预览、
+// 自动保存后检查，正常编辑远低于这两个值。
+const (
+	renderPerMinute = 240
+	checksPerMinute = 30
+)
+
+// renderAllowed 检查用户的预览与内核检查配额；超出时写出 429 并返回 false。
+func (s *Server) renderAllowed(w http.ResponseWriter, p *principal, check bool) bool {
+	if p.User.Role == "admin" {
+		return true
+	}
+	now := time.Now()
+	ok, wait := s.renderLimit.allow(p.User.ID, now)
+	code := "rate_limited"
+	if ok && check {
+		ok, wait = s.checkLimit.allow(p.User.ID, now)
+		code = "rate_limited.check"
+	}
+	if !ok {
+		w.Header().Set("Retry-After", strconv.Itoa(wait))
+		problem(w, http.StatusTooManyRequests, code, "too many previews or kernel checks; try again shortly")
+	}
+	return ok
 }
 
 // —— 订阅端点限流（第 13.3 节）——

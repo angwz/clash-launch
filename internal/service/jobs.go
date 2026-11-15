@@ -49,7 +49,22 @@ func (s *Service) tick(ctx context.Context) {
 		s.Log.Error("scheduler: list sources", "error", err)
 		return
 	}
+	// 订阅只由客户端拉取的账号（反馈 #71）：跳过，不记日志。策略按所有者在本轮内缓存
+	clientFetch := map[string]bool{}
 	for _, src := range subs {
+		cf, ok := clientFetch[src.OwnerID]
+		if !ok {
+			pol, err := s.nodeModeOf(ctx, src.OwnerID)
+			if err != nil {
+				s.Log.Warn("scheduler: node mode", "owner", src.OwnerID, "error", err)
+				continue
+			}
+			cf = pol.ClientFetch
+			clientFetch[src.OwnerID] = cf
+		}
+		if cf {
+			continue
+		}
 		every := interval
 		if src.Interval > 0 {
 			every = time.Duration(src.Interval) * time.Second

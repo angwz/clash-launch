@@ -8,6 +8,7 @@
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
+  import { nodeModePolicy } from "../lib/node-mode";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
 
@@ -28,6 +29,10 @@
   }
 
   let src = $state<Source | null>(null);
+  let clientFetch = $state(false); // 订阅只由客户端拉取（反馈 #71）
+  $effect(() => {
+    nodeModePolicy().then((p) => (clientFetch = p.clientFetch), () => undefined);
+  });
   let proc = $state<Processing>({});
   let name = $state("");
   let url = $state("");
@@ -165,7 +170,7 @@
   {:else}
     <PageHeader title={src.name} subtitle={t("source.kind." + src.kind) + (format ? " · " + format : "")}>
       {#snippet actions()}
-        {#if src?.kind === "subscription"}<button class="btn" type="button" onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>{/if}
+        {#if src?.kind === "subscription" && !clientFetch}<button class="btn" type="button" onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>{/if}
         <button class="btn danger" type="button" onclick={() => void remove()}><Icon name="trash" size={15} />{t("common.delete")}</button>
         <button class="btn primary" type="button" disabled={saving} onclick={() => void save()}>{t("common.save")}</button>
       {/snippet}
@@ -195,7 +200,9 @@
             <label class="label" for="sd-ua">{t("source.ua")}</label>
             <input id="sd-ua" class="input mono ltr" bind:value={ua} placeholder="clash.meta" spellcheck="false" />
           </div>
-          {#if src.snapshot}
+          {#if clientFetch}
+            <p class="hint">{t("source.client_fetch")}</p>
+          {:else if src.snapshot}
             <p class="hint">
               {#if src.snapshot.fetchedAt}{t("source.fetched", { when: i18n.date(src.snapshot.fetchedAt) })}{/if}
               {#if src.snapshot.lastError} · <span class="err-text">{src.snapshot.lastError}</span>{/if}
@@ -253,7 +260,7 @@
         {#if diags.length}<span class="muted">{t("source.skipped", { n: diags.length })}</span>{/if}
       </div>
       {#if nodes.length === 0}
-        <p class="empty muted">{src.kind === "subscription" && !src.snapshot?.fetchedAt ? t("source.not_fetched") : t("source.no_nodes")}</p>
+        <p class="empty muted">{src.kind === "subscription" && clientFetch ? t("source.client_fetch") : src.kind === "subscription" && !src.snapshot?.fetchedAt ? t("source.not_fetched") : t("source.no_nodes")}</p>
       {:else}
         <div class="panel table-wrap">
           <table class="table">

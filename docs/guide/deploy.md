@@ -68,6 +68,7 @@ docker compose pull && docker compose up -d
 | `CLASH_LAUNCH_QUOTA_SOURCES` · `_PROFILES` · `_LINKS` | `50` · `20` · `50` | 每个用户的节点源、方案、订阅链接数上限（管理员不受限制，可在管理页为单个用户调整） |
 | `CLASH_LAUNCH_QUOTA_MIN_INTERVAL` | `30` | 订阅与规则源的最短拉取间隔（分钟）；手动拉取每人每小时最多 30 次 |
 | `CLASH_LAUNCH_QUOTA_STORAGE_MB` | `100` | 每个用户保存的内容上限（源、快照、方案与版本，按加密后计） |
+| `CLASH_LAUNCH_OPEN_QUOTA_*`（同上五项） | `10` · `5` · `10` · `60` · `20` | 开放注册（未经邀请）的用户使用的默认配额，比上面更小；管理员与受邀用户使用上面的值 |
 | `CLASH_LAUNCH_AUDIT_DAYS` | `180` | 审计日志保留天数；`0` 表示不清理 |
 
 ## 注册与邀请

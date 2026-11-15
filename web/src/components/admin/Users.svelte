@@ -24,6 +24,9 @@
     mfa: boolean;
     usage: { sources: number; profiles: number; links: number; bytes: number };
     quota: Limits;
+    invited: boolean;
+    /** 这个用户适用的默认配额（开放注册的用户更小，反馈 #71） */
+    defaults: Limits;
   }
 
   let users = $state<U[]>([]);
@@ -115,7 +118,7 @@
         <tr>
           <td>
             <strong>{u.username}</strong>
-            {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{/if}
+            {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{:else if !u.invited}<span class="role open" title={t("admin.open_user_hint")}>{t("admin.open_user")}</span>{/if}
           </td>
           <td>
             {#if u.disabled}<StatusBadge tone="err" label={t("admin.disabled")} />{:else}<StatusBadge tone="ok" label={t("admin.active")} />{/if}
@@ -153,23 +156,23 @@
     <p class="hint full">{t("admin.quota_hint")}</p>
     <div>
       <label class="label" for="q-sources">{t("admin.q_sources")}</label>
-      <input id="q-sources" class="input mono ltr" inputmode="numeric" bind:value={qf.sources} placeholder={t("admin.q_default", { value: defaults?.sources ?? "" })} />
+      <input id="q-sources" class="input mono ltr" inputmode="numeric" bind:value={qf.sources} placeholder={t("admin.q_default", { value: (quotaFor?.defaults ?? defaults)?.sources ?? "" })} />
     </div>
     <div>
       <label class="label" for="q-profiles">{t("admin.q_profiles")}</label>
-      <input id="q-profiles" class="input mono ltr" inputmode="numeric" bind:value={qf.profiles} placeholder={t("admin.q_default", { value: defaults?.profiles ?? "" })} />
+      <input id="q-profiles" class="input mono ltr" inputmode="numeric" bind:value={qf.profiles} placeholder={t("admin.q_default", { value: (quotaFor?.defaults ?? defaults)?.profiles ?? "" })} />
     </div>
     <div>
       <label class="label" for="q-links">{t("admin.q_links")}</label>
-      <input id="q-links" class="input mono ltr" inputmode="numeric" bind:value={qf.links} placeholder={t("admin.q_default", { value: defaults?.links ?? "" })} />
+      <input id="q-links" class="input mono ltr" inputmode="numeric" bind:value={qf.links} placeholder={t("admin.q_default", { value: (quotaFor?.defaults ?? defaults)?.links ?? "" })} />
     </div>
     <div>
       <label class="label" for="q-minInterval">{t("admin.q_interval")}</label>
-      <input id="q-minInterval" class="input mono ltr" inputmode="numeric" bind:value={qf.minInterval} placeholder={t("admin.q_default", { value: defaults ? defaults.minInterval / 60 : "" })} />
+      <input id="q-minInterval" class="input mono ltr" inputmode="numeric" bind:value={qf.minInterval} placeholder={t("admin.q_default", { value: (quotaFor?.defaults ?? defaults) ? (quotaFor?.defaults ?? defaults)!.minInterval / 60 : "" })} />
     </div>
     <div>
       <label class="label" for="q-storage">{t("admin.q_storage")}</label>
-      <input id="q-storage" class="input mono ltr" inputmode="numeric" bind:value={qf.storage} placeholder={t("admin.q_default", { value: defaults ? defaults.storage / (1 << 20) : "" })} />
+      <input id="q-storage" class="input mono ltr" inputmode="numeric" bind:value={qf.storage} placeholder={t("admin.q_default", { value: (quotaFor?.defaults ?? defaults) ? (quotaFor?.defaults ?? defaults)!.storage / (1 << 20) : "" })} />
     </div>
   </form>
   {#snippet footer()}
@@ -191,6 +194,10 @@
     background: var(--accent-soft);
     color: var(--accent-fg);
     font-size: var(--text-xs);
+  }
+  .role.open {
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
   }
   .usage {
     font-size: var(--text-sm);

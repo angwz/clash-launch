@@ -9,10 +9,16 @@
   import { api, listAll, type Source, type SourceInput } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
+  import { nodeModePolicy } from "../lib/node-mode";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
 
   let items = $state<Source[] | null>(null);
+  // 订阅只由客户端拉取（反馈 #71）：不显示拉取状态与「立即拉取」
+  let clientFetch = $state(false);
+  $effect(() => {
+    nodeModePolicy().then((p) => (clientFetch = p.clientFetch), () => undefined);
+  });
   let error = $state("");
   let open = $state(false);
   let busy = $state(false);
@@ -33,6 +39,7 @@
 
   function status(s: Source): { tone: "ok" | "err" | "warn" | "muted"; label: string } {
     if (s.kind !== "subscription") return { tone: "muted", label: t("source.static") };
+    if (clientFetch) return { tone: "muted", label: t("source.client_fetch_short") };
     const snap = s.snapshot;
     if (!snap?.fetchedAt && !snap?.lastError) return { tone: "muted", label: t("source.never") };
     if (snap.failingSince) return { tone: "warn", label: t("source.failing", { since: i18n.relative(snap.failingSince) }) };
@@ -121,7 +128,7 @@
               <td><span class="kind"><Icon name={kindIcon(s.kind)} size={14} />{t("source.kind." + s.kind)}</span></td>
               <td><StatusBadge tone={st.tone} label={st.label} /></td>
               <td class="act">
-                {#if s.kind === "subscription"}
+                {#if s.kind === "subscription" && !clientFetch}
                   <button class="btn ghost icon sm" type="button" aria-label={t("source.refresh")} title={t("source.refresh")} onclick={() => void refresh(s)}><Icon name="refresh" size={14} /></button>
                 {/if}
                 <a class="btn ghost icon sm" href={"/sources/" + s.id} aria-label={t("common.open")}><Icon name="chevron-right" size={14} /></a>

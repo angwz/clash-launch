@@ -24,7 +24,13 @@ var ErrNodeMode = errors.New("service: 节点写法只能是 inline 或 provider
 type NodeModePolicy struct {
 	Default profile.Mode `json:"default"`
 	Locked  bool         `json:"locked"` // true：只能使用默认写法
+	// ClientFetch：订阅只由客户端拉取，服务器不访问订阅地址（反馈 #71）。
+	// 开放注册的用户被锁定为「交给客户端」时成立：配置里只写订阅地址，服务器既不需要也不应该替陌生人访问它们。
+	ClientFetch bool `json:"clientFetch"`
 }
+
+// ErrClientFetch 表示这个账号的订阅只由客户端拉取，服务器不拉取。
+var ErrClientFetch = errors.New("service: 订阅由客户端拉取，服务器不拉取")
 
 // NodeModeDefault 返回管理员设定的默认写法；未设定时为写入配置。
 func (s *Service) NodeModeDefault(ctx context.Context) (profile.Mode, error) {
@@ -60,7 +66,8 @@ func (s *Service) NodeModeFor(ctx context.Context, u *store.User) (NodeModePolic
 	if err != nil {
 		return NodeModePolicy{}, err
 	}
-	return NodeModePolicy{Default: d, Locked: u.Role != "admin" && !u.Invited}, nil
+	locked := u.Role != "admin" && !u.Invited
+	return NodeModePolicy{Default: d, Locked: locked, ClientFetch: locked && d == profile.ModeProvider}, nil
 }
 
 // nodeModeOf 按所有者查策略；用于生成与托管 provider（只有所有者 ID 的场景）。

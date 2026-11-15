@@ -207,6 +207,12 @@ export class EditorState {
         if (kernel && this.check === "running") this.check = "idle";
         return;
       }
+      // 内核检查过于频繁被限速（反馈 #71）：这次只做预览，检查状态回到未检查，下次保存时再检查
+      if (kernel && e instanceof ApiError && e.status === 429) {
+        this.check = "idle";
+        if (this.#abort === ac) void this.runPreview(false);
+        return;
+      }
       this.error = errorText(e);
       if (kernel) this.check = "error";
     } finally {

@@ -56,6 +56,8 @@ type Service struct {
 	PoWBits int
 	// QuotaDefaults 是全局默认配额；零值字段使用内置默认（见 quota.go）。
 	QuotaDefaults QuotaDefaults
+	// OpenQuotaDefaults 是开放注册用户的默认配额；零值字段使用内置默认（见 quota.go）。
+	OpenQuotaDefaults QuotaDefaults
 	// AuditRetention 是审计日志的保留期；0 表示不清理。
 	AuditRetention time.Duration
 	// Mailer 发送用户本人配置的提醒邮件；nil 时邮件提醒不可用。
@@ -101,6 +103,11 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 	}
 	if src.Kind != string(engine.KindSubscription) || src.URL == "" {
 		return nil, fmt.Errorf("service: 只有订阅需要拉取")
+	}
+	if pol, err := s.nodeModeOf(ctx, owner); err != nil {
+		return nil, err
+	} else if pol.ClientFetch {
+		return nil, ErrClientFetch
 	}
 	prev, _ := s.Store.Snapshots().Get(ctx, owner, SourceKey(id))
 	resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: src.URL, UA: src.UA, Headers: src.Headers})

@@ -5,11 +5,13 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -22,7 +24,14 @@ var ErrConflict = errors.New("store: 版本冲突")
 // ErrExists 表示违反唯一约束（如用户名已存在）。与版本冲突分开，API 分别返回 409 与 412。
 var ErrExists = errors.New("store: 已存在")
 
+var (
+	idMu   sync.Mutex
+	lastID [16]byte
+)
+
 // NewID 生成 UUIDv7（RFC 9562）：前 48 位为毫秒时间戳，其余为随机数。按时间有序，两种数据库通用。
+// 同一进程内严格递增（RFC 9562 第 6.2 节）：同一毫秒内随机数更小或时钟回拨时，在上一个 ID 上加 1，
+// 因此「时间相同按 ID 排序」就是生成顺序（订阅请求记录依赖这一点）。
 func NewID() string {
 	var b [16]byte
 	binary.BigEndian.PutUint64(b[0:8], uint64(time.Now().UnixMilli())<<16)
@@ -31,6 +40,19 @@ func NewID() string {
 	}
 	b[6] = (b[6] & 0x0f) | 0x70 // 版本 7
 	b[8] = (b[8] & 0x3f) | 0x80 // RFC 4122 变体
+	idMu.Lock()
+	if bytes.Compare(b[:], lastID[:]) <= 0 {
+		b = lastID
+		// 只在最后 7 个字节（随机部分）进位，不碰版本与变体位；56 位在同一毫秒内不会溢出
+		for i := 15; i >= 9; i-- {
+			b[i]++
+			if b[i] != 0 {
+				break
+			}
+		}
+	}
+	lastID = b
+	idMu.Unlock()
 	h := hex.EncodeToString(b[:])
 	return h[0:8] + "-" + h[8:12] + "-" + h[12:16] + "-" + h[16:20] + "-" + h[20:32]
 }

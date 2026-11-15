@@ -23,6 +23,8 @@ const known: Record<string, string> = {
   "admin.self": "error.admin_self",
   "mfa.state": "error.mfa_state",
   rate_limited: "error.rate",
+  "rate_limited.check": "error.rate",
+  "source.client_fetch": "source.client_fetch",
   conflict: "error.conflict",
   exists: "error.exists",
   not_found: "error.not_found",

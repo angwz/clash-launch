@@ -565,6 +565,38 @@ func TestNodeModePolicy(t *testing.T) {
 	if !codes["profile.mode_locked"] || !strings.Contains(pv.YAML, "proxy-providers:") {
 		t.Errorf("锁定账号应按默认值交给客户端并报告：%v\n%s", codes, pv.YAML)
 	}
+
+	// 反馈 #71：锁定为「交给客户端」的账号，订阅只由客户端拉取，服务器拒绝拉取
+	type cf struct {
+		ClientFetch bool `json:"clientFetch"`
+	}
+	if !decode[cf](t, erin.want(200, "GET", "/api/v1/node-mode", nil)).ClientFetch || decode[cf](t, alice.want(200, "GET", "/api/v1/node-mode", nil)).ClientFetch {
+		t.Error("只有锁定为交给客户端的账号 clientFetch 为 true")
+	}
+	sub := decode[sourceDTO](t, erin.want(201, "POST", "/api/v1/sources", map[string]any{"name": "订阅", "kind": "subscription", "url": "https://example.com/sub"}))
+	if b := erin.want(409, "POST", "/api/v1/sources/"+sub.ID+"/refresh", nil); !strings.Contains(string(b), "source.client_fetch") {
+		t.Errorf("应拒绝服务器拉取：%s", b)
+	}
+
+	// 反馈 #71：开放注册的用户使用更小的默认配额
+	type quota struct {
+		Limits struct {
+			Sources int `json:"sources"`
+		} `json:"limits"`
+	}
+	if e, a := decode[quota](t, erin.want(200, "GET", "/api/v1/account/quota", nil)).Limits.Sources, decode[quota](t, alice.want(200, "GET", "/api/v1/account/quota", nil)).Limits.Sources; e != 10 || a != 50 {
+		t.Errorf("默认节点源配额：开放注册 %d、受邀 %d", e, a)
+	}
+
+	// 反馈 #71：内核检查按用户限速；超出后返回 429，不影响其他用户
+	path := "/api/v1/profiles/" + p.ID + "/preview?check=true"
+	for i := 0; i < checksPerMinute; i++ {
+		erin.want(200, "POST", path, map[string]string{"doc": doc})
+	}
+	if b := erin.want(429, "POST", path, map[string]string{"doc": doc}); !strings.Contains(string(b), "rate_limited.check") {
+		t.Errorf("超出检查次数应返回 rate_limited.check：%s", b)
+	}
+	erin.want(200, "POST", "/api/v1/profiles/"+p.ID+"/preview", map[string]string{"doc": doc}) // 不带检查的预览不受影响
 }
 
 // 自动保存（反馈 #35）：连续的自动保存合并为一个版本；手动保存另起一个版本，之后的自动保存不并入它。
