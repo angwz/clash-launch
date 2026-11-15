@@ -871,6 +871,8 @@
   "sources.granted_from": "来自 {name} · {when}",
   "sources.granted_hint": "可以在配置中使用，随对方的节点更新；不能查看内容或修改。对方收回授权后，用到它的配置会自动去掉这些节点。",
   "sources.new": "添加订阅或节点",
+  "sources.privacy": "你的节点在数据库中加密保存，管理员在网站上也看不到；代码开源，可以自行审查。",
+  "sources.privacy_more": "了解详情",
   "sources.subtitle": "你的节点库：订阅与手动添加的节点。每个配置从这里选用并排序。",
   "sources.title": "节点",
   "stats.chart_aria": "{label}：近 {days} 天共 {total} 次",

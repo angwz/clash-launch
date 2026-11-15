@@ -23,7 +23,15 @@ import (
 var ErrNewerSchema = errors.New("store: 数据库版本比程序新")
 
 func (d *DB) Migrate(ctx context.Context, backupDir string) ([]int, error) {
-	return d.migrateTo(ctx, backupDir, 0)
+	done, err := d.migrateTo(ctx, backupDir, 0)
+	if err != nil {
+		return done, err
+	}
+	// 迁移 0010 之前的明文在这里加密（反馈 #77）；之后的启动没有待处理的行
+	if _, err := d.encryptLegacy(ctx); err != nil {
+		return done, fmt.Errorf("store: 加密旧数据：%w", err)
+	}
+	return done, nil
 }
 
 // migrateTo 执行到版本 upto 为止的迁移（0 表示全部）。只供测试模拟「旧版本建的数据库」。

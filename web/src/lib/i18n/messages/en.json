@@ -871,6 +871,8 @@
   "sources.granted_from": "from {name} · {when}",
   "sources.granted_hint": "Usable in your configs and kept in sync with the owner; you can’t view or edit them. If the owner revokes, configs using them drop those nodes automatically.",
   "sources.new": "Add subscription or nodes",
+  "sources.privacy": "Your nodes are encrypted in the database and hidden from administrators on this site; the code is open source for you to review.",
+  "sources.privacy_more": "Learn more",
   "sources.subtitle": "Your node library: subscriptions and manually added nodes. Each config picks and orders them.",
   "sources.title": "Nodes",
   "stats.chart_aria": "{label}: {total} in the last {days} days",

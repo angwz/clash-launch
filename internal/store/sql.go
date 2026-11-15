@@ -168,6 +168,14 @@ func (d *DB) sealStr(s, table, col, id string) ([]byte, error) {
 	return d.seal([]byte(s), table, col, id)
 }
 
+// openText 读取一个改为加密保存的文本列（反馈 #77）：有密文时解密；没有密文（迁移前写入）时返回旧的明文值。
+func (d *DB) openText(enc []byte, legacy, table, col, id string) (string, error) {
+	if len(enc) == 0 {
+		return legacy, nil
+	}
+	return d.openStr(enc, table, col, id)
+}
+
 func (d *DB) openStr(b []byte, table, col, id string) (string, error) {
 	pt, err := d.open(b, table, col, id)
 	return string(pt), err
@@ -659,13 +667,18 @@ func (r snapshots) Get(ctx context.Context, owner, key string) (*Snapshot, error
 	var s Snapshot
 	var enc []byte
 	var headers string
+	var henc []byte
 	var f, la, fs int64
-	err := r.d.row(ctx, "SELECT key, owner_id, content_enc, hash, headers, fetched_at, via, last_error, last_attempt, failing_since FROM snapshots WHERE owner_id=? AND key=?", owner, key).
-		Scan(&s.Key, &s.OwnerID, &enc, &s.Hash, &headers, &f, &s.Via, &s.LastError, &la, &fs)
+	err := r.d.row(ctx, "SELECT key, owner_id, content_enc, hash, headers, headers_enc, fetched_at, via, last_error, last_attempt, failing_since FROM snapshots WHERE owner_id=? AND key=?", owner, key).
+		Scan(&s.Key, &s.OwnerID, &enc, &s.Hash, &headers, &henc, &f, &s.Via, &s.LastError, &la, &fs)
 	if err != nil {
 		return nil, notFound(err)
 	}
 	if s.Content, err = r.d.open(enc, "snapshots", "content", key); err != nil {
+		return nil, err
+	}
+	// 响应头加密保存（反馈 #77）；迁移前写入的旧数据仍是明文，读取时兼容
+	if headers, err = r.d.openText(henc, headers, "snapshots", "headers", key); err != nil {
 		return nil, err
 	}
 	s.Headers, s.FetchedAt, s.LastAttempt, s.FailingSince = parseMap(headers), fromMS(f), fromMS(la), fromMS(fs)
@@ -677,16 +690,20 @@ func (r snapshots) Put(ctx context.Context, owner string, s *Snapshot) error {
 	if err != nil {
 		return err
 	}
-	res, err := r.d.exec(ctx, "UPDATE snapshots SET content_enc=?, hash=?, headers=?, fetched_at=?, via=?, last_error=?, last_attempt=?, failing_since=? WHERE owner_id=? AND key=?",
-		enc, s.Hash, jsonMap(s.Headers), ms(s.FetchedAt), s.Via, s.LastError, ms(s.LastAttempt), ms(s.FailingSince), owner, s.Key)
+	henc, err := r.d.sealStr(jsonMap(s.Headers), "snapshots", "headers", s.Key)
+	if err != nil {
+		return err
+	}
+	res, err := r.d.exec(ctx, "UPDATE snapshots SET content_enc=?, hash=?, headers='{}', headers_enc=?, fetched_at=?, via=?, last_error=?, last_attempt=?, failing_since=? WHERE owner_id=? AND key=?",
+		enc, s.Hash, henc, ms(s.FetchedAt), s.Via, s.LastError, ms(s.LastAttempt), ms(s.FailingSince), owner, s.Key)
 	if err != nil {
 		return err
 	}
 	if n, _ := res.RowsAffected(); n > 0 {
 		return nil
 	}
-	_, err = r.d.exec(ctx, "INSERT INTO snapshots (key, owner_id, content_enc, hash, headers, fetched_at, via, last_error, last_attempt, failing_since) VALUES (?,?,?,?,?,?,?,?,?,?)",
-		s.Key, owner, enc, s.Hash, jsonMap(s.Headers), ms(s.FetchedAt), s.Via, s.LastError, ms(s.LastAttempt), ms(s.FailingSince))
+	_, err = r.d.exec(ctx, "INSERT INTO snapshots (key, owner_id, content_enc, hash, headers, headers_enc, fetched_at, via, last_error, last_attempt, failing_since) VALUES (?,?,?,?,'{}',?,?,?,?,?,?)",
+		s.Key, owner, enc, s.Hash, henc, ms(s.FetchedAt), s.Via, s.LastError, ms(s.LastAttempt), ms(s.FailingSince))
 	return err
 }
 
@@ -979,16 +996,28 @@ type renders struct{ d *DB }
 func (r renders) Get(ctx context.Context, owner, profileID string) (*Render, error) {
 	var x Render
 	var enc []byte
-	var hdr string
+	var hdr, diags string
+	var henc, denc, eenc []byte
 	var gat, lat int64
-	err := r.d.row(ctx, "SELECT profile_id, owner_id, good_key, good_yaml_enc, good_etag, good_at, good_headers, last_key, last_status, last_error, last_diags, last_at FROM renders WHERE owner_id=? AND profile_id=?", owner, profileID).
-		Scan(&x.ProfileID, &x.OwnerID, &x.GoodKey, &enc, &x.GoodETag, &gat, &hdr, &x.LastKey, &x.LastStatus, &x.LastError, &x.LastDiags, &lat)
+	err := r.d.row(ctx, "SELECT profile_id, owner_id, good_key, good_yaml_enc, good_etag, good_at, good_headers, good_headers_enc, last_key, last_status, last_error, last_error_enc, last_diags, last_diags_enc, last_at FROM renders WHERE owner_id=? AND profile_id=?", owner, profileID).
+		Scan(&x.ProfileID, &x.OwnerID, &x.GoodKey, &enc, &x.GoodETag, &gat, &hdr, &henc, &x.LastKey, &x.LastStatus, &x.LastError, &eenc, &diags, &denc, &lat)
 	if err != nil {
 		return nil, notFound(err)
 	}
 	if x.GoodYAML, err = r.d.open(enc, "renders", "good_yaml", profileID); err != nil {
 		return nil, err
 	}
+	// 响应头、检查结果与失败原因加密保存（反馈 #77）；兼容迁移前的明文
+	if hdr, err = r.d.openText(henc, hdr, "renders", "good_headers", profileID); err != nil {
+		return nil, err
+	}
+	if x.LastError, err = r.d.openText(eenc, x.LastError, "renders", "last_error", profileID); err != nil {
+		return nil, err
+	}
+	if diags, err = r.d.openText(denc, diags, "renders", "last_diags", profileID); err != nil {
+		return nil, err
+	}
+	x.LastDiags = []byte(diags)
 	x.GoodAt, x.LastAt, x.GoodHeaders = fromMS(gat), fromMS(lat), parseMap(hdr)
 	return &x, nil
 }
@@ -1002,16 +1031,28 @@ func (r renders) Put(ctx context.Context, owner string, x *Render) error {
 	if diags == "" {
 		diags = "[]"
 	}
-	res, err := r.d.exec(ctx, "UPDATE renders SET good_key=?, good_yaml_enc=?, good_etag=?, good_at=?, good_headers=?, last_key=?, last_status=?, last_error=?, last_diags=?, last_at=? WHERE owner_id=? AND profile_id=?",
-		x.GoodKey, enc, x.GoodETag, ms(x.GoodAt), jsonMap(x.GoodHeaders), x.LastKey, x.LastStatus, x.LastError, diags, ms(x.LastAt), owner, x.ProfileID)
+	henc, err := r.d.sealStr(jsonMap(x.GoodHeaders), "renders", "good_headers", x.ProfileID)
+	if err != nil {
+		return err
+	}
+	denc, err := r.d.sealStr(diags, "renders", "last_diags", x.ProfileID)
+	if err != nil {
+		return err
+	}
+	eenc, err := r.d.sealStr(x.LastError, "renders", "last_error", x.ProfileID)
+	if err != nil {
+		return err
+	}
+	res, err := r.d.exec(ctx, "UPDATE renders SET good_key=?, good_yaml_enc=?, good_etag=?, good_at=?, good_headers='{}', good_headers_enc=?, last_key=?, last_status=?, last_error='', last_error_enc=?, last_diags='[]', last_diags_enc=?, last_at=? WHERE owner_id=? AND profile_id=?",
+		x.GoodKey, enc, x.GoodETag, ms(x.GoodAt), henc, x.LastKey, x.LastStatus, eenc, denc, ms(x.LastAt), owner, x.ProfileID)
 	if err != nil {
 		return err
 	}
 	if n, _ := res.RowsAffected(); n > 0 {
 		return nil
 	}
-	_, err = r.d.exec(ctx, "INSERT INTO renders (profile_id, owner_id, good_key, good_yaml_enc, good_etag, good_at, good_headers, last_key, last_status, last_error, last_diags, last_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-		x.ProfileID, owner, x.GoodKey, enc, x.GoodETag, ms(x.GoodAt), jsonMap(x.GoodHeaders), x.LastKey, x.LastStatus, x.LastError, diags, ms(x.LastAt))
+	_, err = r.d.exec(ctx, "INSERT INTO renders (profile_id, owner_id, good_key, good_yaml_enc, good_etag, good_at, good_headers, good_headers_enc, last_key, last_status, last_error, last_error_enc, last_diags, last_diags_enc, last_at) VALUES (?,?,?,?,?,?,'{}',?,?,?,'',?,'[]',?,?)",
+		x.ProfileID, owner, x.GoodKey, enc, x.GoodETag, ms(x.GoodAt), henc, x.LastKey, x.LastStatus, eenc, denc, ms(x.LastAt))
 	return err
 }
 

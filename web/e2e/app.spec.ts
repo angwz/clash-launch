@@ -613,3 +613,14 @@ test("节点页：显示节点概况，直接分享或授权给好友；注册�
   await admin("PUT", "/api/v1/admin/registration", { open: false });
   await ctx.close();
 });
+
+test("隐私说明：节点页提示加密保存，链接到帮助中的「隐私与安全」", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  await login(page);
+  await page.goto("/sources");
+  await expect(page.locator(".privacy")).toContainText("加密保存");
+  await page.locator(".privacy").getByRole("link", { name: "了解详情" }).click();
+  await expect(page.getByRole("heading", { name: "隐私与安全" }).first()).toBeVisible();
+  await expect(page.getByText("在技术上可以绕过网站去解密")).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-privacy.png", fullPage: true });
+});

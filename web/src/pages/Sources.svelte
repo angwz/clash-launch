@@ -128,6 +128,9 @@
     {/snippet}
   </PageHeader>
 
+  <!-- 隐私说明（反馈 #77）：如实说明加密与可见范围，细节与限制在帮助「隐私与安全」中 -->
+  <p class="privacy"><Icon name="shield" size={14} />{t("sources.privacy")} <a href="/help?topic=08-privacy">{t("sources.privacy_more")}</a></p>
+
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
 
   {#if items === null}
@@ -233,6 +236,18 @@
 </Dialog>
 
 <style>
+  .privacy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    margin-block: calc(-1 * var(--space-2)) var(--space-4);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+  }
+  .privacy :global(.icon) {
+    color: var(--ok);
+  }
   /* 别人授权给我的节点（反馈 #75） */
   .sub-h {
     display: flex;
