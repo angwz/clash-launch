@@ -83,9 +83,17 @@ test("命令面板：搜索字段并定位；命令模式进入直接编辑 YAML
   await expect(page.getByRole("option", { name: /直接编辑/ })).toHaveCount(0);
   await page.locator("dialog.palette input").fill(">直接编辑");
   await page.keyboard.press("Enter");
+  // 打开时显示与预览一致的完整配置；在文件头注释后另起一行写入新键，只有这一行被记下（反馈 #70）
   const editor = page.locator(".cm-content");
+  await expect(editor).toContainText("mixed-port");
   await editor.click();
-  await page.keyboard.type("ipv6: true\n");
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("x-e2e-test: true");
+  await page.locator(".recorded summary").click();
+  await expect(page.locator(".recorded pre")).toHaveText(/^x-e2e-test: true\s*$/);
+  await page.screenshot({ path: "test-results/shot-raw.png" });
   await expect(page.locator(".raw-flag")).toBeVisible(); // 顶栏 ⚡
   await page.getByRole("button", { name: "回到表单" }).click();
   await page.goto(`/profiles/${profile}?section=general`);

@@ -22,11 +22,12 @@ Each file can be a **URL** (follows upstream) or **pasted text**; pasted text wi
 
 ## Adding your own rules
 
-To put a few rules first (for example, direct access to an intranet), edit YAML directly:
+To put a few rules first (for example, direct access to an intranet), open **Edit YAML directly** and insert them above the first line under `rules:`:
 
 ```yaml
-rules: !prepend
+rules:
   - DOMAIN-SUFFIX,intranet.example.com,DIRECT
+  - …(existing rules)
 ```
 
-`!prepend` inserts before the generated rules; `!append` adds to the end.
+Only the line you added is recorded; it stays first after the rules update.

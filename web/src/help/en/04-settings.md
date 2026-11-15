@@ -23,6 +23,6 @@ When a section with a master switch (DNS, TUN, sniffer, NTP and so on) is off, t
 
 ## Settings the form lacks
 
-The form follows mihomo v1.19.33. For fields it does not have yet, or to override whole blocks, edit YAML directly; it merges after the form, and fields it touches carry a ⚡ mark.
+The form follows mihomo v1.19.33. For fields it does not have yet, write them straight into the full config under Edit YAML directly; fields it touches carry a ⚡ mark.
 
 To study every field, browse the **Encyclopedia** by section.

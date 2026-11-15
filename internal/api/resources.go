@@ -707,6 +707,29 @@ func (s *Server) preview(w http.ResponseWriter, r *http.Request, p *principal) {
 	writeJSON(w, http.StatusOK, previewResp{YAML: cmp.Or(string(res.Preview), string(res.YAML)), Diagnostics: diag.Sorted(res.Diagnostics), Touched: nonNil(res.Touched), Kernel: res.Kernel, Fatal: res.Fatal, Diff: Diff(string(current), string(res.YAML)), Numbering: nonNil(res.Numbering), Chains: nonNil(res.Chains), Outbounds: nonNil(res.Outbounds), Nodes: len(res.Nodes)})
 }
 
+// absorb 把在完整 YAML 上的修改换算成原始编辑层（反馈 #70）。不保存：前端把结果写回草稿，
+// 照常走预览与自动保存。完整 YAML 无效时 ok=false，诊断说明原因，原始编辑保持不变。
+func (s *Server) absorb(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Doc  string `json:"doc"`
+		YAML string `json:"yaml"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if _, err := s.Svc.Store.Profiles().Get(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+		s.fail(w, err)
+		return
+	}
+	raw, ds, err := s.Svc.Absorb(r.Context(), p.User.ID, []byte(req.Doc), []byte(req.YAML))
+	if err != nil && !errors.Is(err, engine.ErrAbsorb) && !errors.Is(err, engine.ErrFatal) {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": err == nil, "raw": raw, "diagnostics": diag.Sorted(ds)})
+}
+
 // renderStatus 返回最近一次成功的结果与最近一次尝试的诊断。
 func (s *Server) renderStatus(w http.ResponseWriter, r *http.Request, p *principal) {
 	x, err := s.Svc.Store.Renders().Get(r.Context(), p.User.ID, r.PathValue("id"))

@@ -18,7 +18,7 @@ Set its region manually in the node details, or adjust the flag options under th
 
 ## Can I change fields the form lacks
 
-Yes, edit YAML directly. It merges after the form: mappings key by key, lists replaced by default; tags such as `!prepend` and `!append` insert instead.
+Yes, edit YAML directly. It shows the full config exactly as in the preview; change it in place. Only your changes are recorded, and they keep applying after subscriptions and rules update.
 
 ## History
 

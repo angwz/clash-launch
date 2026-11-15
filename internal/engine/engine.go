@@ -59,35 +59,18 @@ func Render(in Input) (Output, error) {
 	out.Append(in.Diagnostics...)
 	res := Output{}
 	p := in.Profile
-	preset := target.Find(in.Presets, p.Target.Preset)
-	if preset == nil {
-		out.Add(diag.TargetUnknown, "target.preset", "preset", p.Target.Preset)
+	base, preset, err := prepare(in, &out)
+	if err != nil {
 		res.Diagnostics = out.Items()
-		return res, fmt.Errorf("%w：未知的目标预设 %s", ErrFatal, p.Target.Preset)
+		return res, err
 	}
 	res.Preset = preset
 
-	// 表单层 = 生成部分 + 用户设置过的目录字段。
-	base := yamlx.Map()
-	if in.Generated != nil {
-		for i := 0; i+1 < len(in.Generated.Content); i += 2 {
-			yamlx.Set(base, in.Generated.Content[i].Value, yamlx.Clone(in.Generated.Content[i+1]))
-		}
-	}
-	form := layer.ValidateForm(p.Form, in.Catalog, &out)
-	for i := 0; i+1 < len(form.Content); i += 2 {
-		yamlx.Set(base, form.Content[i].Value, form.Content[i+1])
-	}
-
 	// 原始编辑层（后备隐藏能源）。
-	var raw *yaml.Node
-	if strings.TrimSpace(p.Raw) != "" {
-		var err error
-		raw, err = yamlx.Parse([]byte(p.Raw), yamlx.DefaultLimits, "raw", &out)
-		if err != nil {
-			res.Diagnostics = out.Items()
-			return res, fmt.Errorf("%w：原始编辑无法解析", ErrFatal)
-		}
+	raw, err := parseRaw(p.Raw, &out)
+	if err != nil {
+		res.Diagnostics = out.Items()
+		return res, err
 	}
 	merged := layer.Merge(base, raw, in.Catalog, &out)
 	res.Touched = merged.Touched
@@ -122,6 +105,39 @@ func Render(in Input) (Output, error) {
 		}
 	}
 	return res, nil
+}
+
+// prepare 找到目标预设并组装表单层（生成部分 + 用户设置过的目录字段）。
+func prepare(in Input, out *diag.List) (*yaml.Node, *target.Preset, error) {
+	p := in.Profile
+	preset := target.Find(in.Presets, p.Target.Preset)
+	if preset == nil {
+		out.Add(diag.TargetUnknown, "target.preset", "preset", p.Target.Preset)
+		return nil, nil, fmt.Errorf("%w：未知的目标预设 %s", ErrFatal, p.Target.Preset)
+	}
+	base := yamlx.Map()
+	if in.Generated != nil {
+		for i := 0; i+1 < len(in.Generated.Content); i += 2 {
+			yamlx.Set(base, in.Generated.Content[i].Value, yamlx.Clone(in.Generated.Content[i+1]))
+		}
+	}
+	form := layer.ValidateForm(p.Form, in.Catalog, out)
+	for i := 0; i+1 < len(form.Content); i += 2 {
+		yamlx.Set(base, form.Content[i].Value, form.Content[i+1])
+	}
+	return base, preset, nil
+}
+
+// parseRaw 解析原始编辑层；空白文本返回 nil。
+func parseRaw(text string, out *diag.List) (*yaml.Node, error) {
+	if strings.TrimSpace(text) == "" {
+		return nil, nil
+	}
+	raw, err := yamlx.Parse([]byte(text), yamlx.DefaultLimits, "raw", out)
+	if err != nil {
+		return nil, fmt.Errorf("%w：原始编辑无法解析", ErrFatal)
+	}
+	return raw, nil
 }
 
 // header 生成文件头。时区取方案设置（默认 UTC）；时间来自输入快照，保证确定性。

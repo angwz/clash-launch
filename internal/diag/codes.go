@@ -68,6 +68,7 @@ var (
 	LayerAlias        = reg("layer.alias_expanded", Info, "YAML anchors and aliases were written out in full", "YAML 中的锚点与别名已展开为完整内容")
 	LayerDanglingRef  = reg("layer.dangling_ref", Warning, "{path} references {name}, which does not exist", "{path} 引用的 {name} 不存在")
 	LayerCanPromote   = reg("layer.can_promote", Info, "{path} can now be set in the form", "{path} 现在可以在表单里设置了")
+	LayerUnapplied    = reg("layer.unapplied", Warning, "The change at {path} does not appear in the final config", "{path} 处的修改没有出现在最终配置中")
 	FormValueType     = reg("form.value_type", Error, "{path} expects {want}, got {got}", "{path} 需要 {want}，实际为 {got}")
 	FormUnknownField  = reg("form.unknown_field", Error, "{path} is not in the form; set it by editing YAML directly", "表单里没有 {path}，请直接编辑 YAML 设置")
 	FormEnumValue     = reg("form.enum_value", Error, "{path} must be one of {values}", "{path} 只能取 {values}")

@@ -341,6 +341,23 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 	return res, nil
 }
 
+// Absorb 把用户在完整 YAML 上的修改换算成原始编辑层（反馈 #70），不写存储。
+// doc 是当前的方案文档（含原有的原始编辑）；full 是用户编辑后的完整 YAML。
+// 返回的错误为 engine.ErrAbsorb 等输入问题时，详情在诊断中。
+func (s *Service) Absorb(ctx context.Context, owner string, doc, full []byte) (string, []diag.Diagnostic, error) {
+	var ds diag.List
+	p, err := profile.Parse(doc, &ds)
+	if err != nil {
+		return "", ds.Items(), fmt.Errorf("%w：%w", engine.ErrAbsorb, err)
+	}
+	in, _, latest, _, _, err := s.assemble(ctx, owner, p, time.Time{})
+	if err != nil {
+		return "", nil, err
+	}
+	built := engine.Build(in)
+	return engine.Absorb(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Updated: latest}, full)
+}
+
 // RenderProfile 渲染并保存方案：输入未变时直接返回已有结果；成功时更新「最近一次成功」，
 // 失败时只记录失败原因，订阅端点继续提供上一次成功的结果（第 7.1 节）。
 func (s *Service) RenderProfile(ctx context.Context, owner, id string) (*store.Render, *Result, error) {

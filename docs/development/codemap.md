@@ -28,7 +28,7 @@
 | --- | --- | --- | --- |
 | 字段（新增、说明、默认值、顺序、重要程度） | `catalog/mihomo/*.yaml`；顶层顺序在 `pack.yaml` 的 `order`，界面分节在 `nav` | `internal/catalog`（锚点、顺序、分节覆盖） | [catalog](../design/catalog.md) |
 | 跟进新的 mihomo 版本、检查目录覆盖率 | `tools/catalog-extract`（scan / order / diff / coverage；有意不收录的路径登记在 `coverage.go` 的 `skipped`），`tools.lock.json` | `tools/catalog-extract` | [catalog](../design/catalog.md)、[setup](setup.md) |
-| 表单层校验、合并标签 | `internal/layer/form.go`、`merge.go` | `merge_test.go`、`FuzzMerge` | [merge](../design/merge.md) |
+| 表单层校验、合并标签、完整 YAML 换算为差异 | `internal/layer/form.go`、`merge.go`、`diff.go`；`internal/engine/absorb.go` | `merge_test.go`、`FuzzMerge`、`absorb_test.go` | [merge](../design/merge.md) |
 | 输出格式（引号、空行、文件头） | `internal/render/render.go`；自检 `selfcheck.go` | golden + `FuzzRender`（`-update` 后人工审阅） | [rendering](../design/rendering.md)；改格式先给样例 |
 | 目标客户端预设与适配 | `catalog/mihomo/presets/`、`internal/target` | `internal/engine`、`TestKernelOpenClashFlow`（`-tags kernel`） | [catalog](../design/catalog.md)、依据写进决定（如 [0006](../decisions/0006-openclash-preset.md)） |
 | 节点解析、整理、地区识别 | `internal/node`（`node.go`、`process.go`、`region.go`、`singbox.go`）；地区表 `catalog/regions/` | `node_test.go`、`testdata/regions/tricky.yaml`、`FuzzParse` | [nodes](../design/nodes.md) |

@@ -954,6 +954,14 @@ paths:
       parameters: [{$ref: '#/components/parameters/id'}, {name: check, in: query, schema: {type: boolean}, description: 是否执行内核检查}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileInput'}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Preview'}}}}}
+  /api/v1/profiles/{id}/absorb:
+    post:
+      tags: [profiles]
+      summary: 把在完整 YAML（与预览一致）上的修改换算成原始编辑层，不保存
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc, yaml], properties: {doc: {type: string}, yaml: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {ok: {type: boolean}, raw: {type: string}, diagnostics: {type: array, items: {type: object}}}}}}}}
   /api/v1/profiles/{id}/render:
     get:
       tags: [profiles]
