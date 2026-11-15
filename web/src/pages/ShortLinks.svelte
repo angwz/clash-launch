@@ -32,6 +32,7 @@
     createdAt: string;
     total: number;
     series: number[];
+    last?: string;
     version: number;
     grantee?: string;
     grantId?: string;
@@ -56,6 +57,7 @@
   let groups = $state<{ profile: string; links: Option[] }[]>([]);
   let error = $state("");
   let qrFor = $state<string | null>(null);
+  let expanded = $state<string | null>(null); // 展开详情的短链接（默认都折叠）
   let form = $state({ linkId: "", code: "", note: "", expiry: "0" });
   let busy = $state(false);
 
@@ -209,6 +211,7 @@
     <ul class="list">
       {#each items as s (s.id)}
         <li class="item panel" class:off={statusOf(s) !== "active"}>
+          <!-- 默认折叠（反馈 #78）：只显示短码、状态、指向、请求次数与上次请求时间；趋势、二维码与管理操作在「详情」里 -->
           <div class="head">
             <div class="title">
               <code class="code-big ltr">/{s.code}</code>
@@ -218,34 +221,42 @@
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(s.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
               <ImportMenu url={s.url} name={s.target.profileName} track={{ short: s.id }} ondownload={() => poll?.soon()} />
-              {#if !s.grantee}<button class="btn sm ghost" type="button" title={t("messages.grant_short_hint")} onclick={() => (shareTarget = { kind: "short", id: s.id, name: "/" + s.code })}><Icon name="shield" size={14} />{t("share.grant_friend")}</button>{/if}
-              <button class="btn sm ghost icon" type="button" aria-label={t("links.qr")} aria-expanded={qrFor === s.id} onclick={() => (qrFor = qrFor === s.id ? null : s.id)}><Icon name="qr" size={15} /></button>
+              <button class="btn sm ghost" type="button" aria-expanded={expanded === s.id} onclick={() => (expanded = expanded === s.id ? null : s.id)}>
+                {t("short.details")}<Icon name={expanded === s.id ? "chevron-up" : "chevron-down"} size={14} />
+              </button>
             </div>
           </div>
           <p class="meta">
-            <span class="muted">{t("short.points_to")}</span>
             <a href={"/profiles/" + s.target.profileId + "/links"}>{s.target.profileName || "—"} · {s.target.note || t("links.untitled")}</a>
-            {#if s.note}<span class="muted">· {s.note}</span>{/if}
-            <span class="muted">· {t("links.created", { when: i18n.date(s.createdAt) })}</span>
-            {#if s.expiresAt}<span class="muted">· {expired(s) ? t("short.expired_at", { when: i18n.date(s.expiresAt) }) : t("short.expires_at", { when: i18n.date(s.expiresAt) })}</span>{/if}
+            <span class="muted">· {t("short.n_requests", { n: i18n.number(s.total) })}</span>
+            <span class="muted">· {s.last ? t("short.last_request", { when: i18n.relative(s.last) }) : t("short.never_requested")}</span>
           </p>
-          <div class="stats">
-            <span><strong>{i18n.number(s.total)}</strong> {t("links.requests_total")}</span>
-            <a class="linkish" href={"/analytics?short=" + s.id}>{t("short.analyze")}<Icon name="chevron-right" size={13} /></a>
-          </div>
-          <DayBars {days} values={s.series} label={t("links.requests_daily")} height={56} />
-          {#if qrFor === s.id}
-            <div class="qr-box"><QRCode text={s.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
+          {#if expanded === s.id}
+            <div class="detail">
+              <p class="meta">
+                {#if s.note}<span class="muted">{s.note} ·</span>{/if}
+                <span class="muted">{t("links.created", { when: i18n.date(s.createdAt) })}</span>
+                {#if s.last}<span class="muted">· {t("short.last_request_at", { when: i18n.date(s.last) })}</span>{/if}
+                {#if s.expiresAt}<span class="muted">· {expired(s) ? t("short.expired_at", { when: i18n.date(s.expiresAt) }) : t("short.expires_at", { when: i18n.date(s.expiresAt) })}</span>{/if}
+                <a class="linkish" href={"/analytics?short=" + s.id}>{t("short.analyze")}<Icon name="chevron-right" size={13} /></a>
+              </p>
+              <DayBars {days} values={s.series} label={t("links.requests_daily")} height={56} />
+              {#if qrFor === s.id}
+                <div class="qr-box"><QRCode text={s.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
+              {/if}
+              <div class="foot">
+                <button class="btn sm ghost" type="button" aria-expanded={qrFor === s.id} onclick={() => (qrFor = qrFor === s.id ? null : s.id)}><Icon name="qr" size={14} />{t("links.qr")}</button>
+                {#if s.grantee}
+                  {#if s.granted && s.grantId}<button class="btn sm ghost" type="button" onclick={() => void revokeGrant(s.grantId!, "/" + s.code, true)}>{t("messages.revoke")}</button>{/if}
+                {:else}
+                  <button class="btn sm ghost" type="button" title={t("messages.grant_short_hint")} onclick={() => (shareTarget = { kind: "short", id: s.id, name: "/" + s.code })}><Icon name="shield" size={14} />{t("share.grant_friend")}</button>
+                  <button class="btn sm ghost" type="button" onclick={() => void patch(s, { disabled: !s.disabled })}>{s.disabled ? t("short.enable") : t("short.disable")}</button>
+                {/if}
+                {#if s.expiresAt}<button class="btn sm ghost" type="button" onclick={() => void patch(s, { clearExpiry: true })}>{t("short.never_expire")}</button>{/if}
+                <button class="btn sm ghost danger" type="button" onclick={() => void remove(s)}><Icon name="trash" size={14} />{t("common.delete")}</button>
+              </div>
+            </div>
           {/if}
-          <div class="foot">
-            {#if s.grantee}
-              {#if s.granted && s.grantId}<button class="btn sm ghost" type="button" onclick={() => void revokeGrant(s.grantId!, "/" + s.code, true)}>{t("messages.revoke")}</button>{/if}
-            {:else}
-              <button class="btn sm ghost" type="button" onclick={() => void patch(s, { disabled: !s.disabled })}>{s.disabled ? t("short.enable") : t("short.disable")}</button>
-            {/if}
-            {#if s.expiresAt}<button class="btn sm ghost" type="button" onclick={() => void patch(s, { clearExpiry: true })}>{t("short.never_expire")}</button>{/if}
-            <button class="btn sm ghost danger" type="button" onclick={() => void remove(s)}><Icon name="trash" size={14} />{t("common.delete")}</button>
-          </div>
         </li>
       {/each}
     </ul>
@@ -390,20 +401,16 @@
     gap: 0 var(--space-2);
     font-size: var(--text-sm);
   }
-  .stats {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-  }
-  .stats strong {
-    font-size: var(--text-md);
-    font-variant-numeric: tabular-nums;
-  }
   .linkish {
     display: inline-flex;
     align-items: center;
     gap: 2px;
+  }
+  .detail {
+    display: grid;
+    gap: var(--space-2);
+    padding-block-start: var(--space-2);
+    border-block-start: 1px solid var(--border);
   }
   .qr-box {
     display: grid;

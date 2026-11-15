@@ -52,7 +52,8 @@ type shortDTO struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
 	Total     int64      `json:"total"`
-	Series    []int64    `json:"series"` // 近 30 天每天的请求数（UTC）
+	Last      *time.Time `json:"last,omitempty"` // 最近一次被请求的时间
+	Series    []int64    `json:"series"`         // 近 30 天每天的请求数（UTC）
 	Version   int64      `json:"version"`
 	// 为好友生成的短链接（反馈 #75）：Grantee 是对方的用户名，Granted 表示授权仍有效
 	Grantee string `json:"grantee,omitempty"`
@@ -104,6 +105,11 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 			byDay[x.Key] = append(byDay[x.Key], x)
 		}
 	}
+	lastAt, err := s.Svc.Store.Stats().LastByShort(ctx, p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
 	given, err := s.Svc.Store.Grants().Given(ctx, p.User.ID, false)
 	if err != nil {
 		s.fail(w, err)
@@ -119,6 +125,9 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 	for _, x := range items {
 		d := s.toShort(r, &x, labels[x.LinkID])
 		d.Total, d.Series = totals[x.ID], series(byDay[x.ID], days)
+		if t, ok := lastAt[x.ID]; ok {
+			d.Last = &t
+		}
 		if x.GranteeID != "" {
 			if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
 				d.Grantee = u.Username

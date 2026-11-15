@@ -479,7 +479,9 @@ test("短链接与订阅分析：生成短链接、访问计入统计，分析�
   // 短链接直接在根路径下（反馈 #75）
   for (const ua of ["mihomo/1.19.33", "clash-verge/v2.2.3", "FlClash/0.8"]) await request.get("/" + code, { headers: { "User-Agent": ua } });
   await page.reload();
-  await expect(page.locator(".item").first()).toContainText("3");
+  await expect(page.locator(".item").first()).toContainText("3 次请求");
+  await expect(page.locator(".item").first()).toContainText("上次请求"); // 默认折叠，只显示次数与上次请求时间（反馈 #78）
+  await expect(page.locator(".item").first().locator(".detail")).toHaveCount(0);
   await page.waitForTimeout(300);
   await page.screenshot({ path: "test-results/shot-short-links.png" });
   // 导入菜单列出客户端
@@ -487,6 +489,7 @@ test("短链接与订阅分析：生成短链接、访问计入统计，分析�
   await expect(page.getByRole("menuitem", { name: /Clash Verge Rev/ })).toHaveAttribute("href", /^clash:\/\/install-config\?url=/);
   await page.keyboard.press("Escape");
 
+  await page.locator(".item").first().getByRole("button", { name: "详情" }).click();
   await page.getByRole("link", { name: "查看分析" }).first().click();
   await expect(page).toHaveURL(/\/analytics\?short=/);
   await expect(page.locator(".tile").first()).toContainText("3");

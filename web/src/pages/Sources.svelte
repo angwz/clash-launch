@@ -169,7 +169,8 @@
                 {/if}
                 <button class="btn ghost icon sm" type="button" aria-label={t("share.share_x", { name: s.name })} title={t("messages.share_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "share" })}><Icon name="send" size={14} /></button>
                 <button class="btn ghost icon sm" type="button" aria-label={t("share.grant_x", { name: s.name })} title={t("messages.grant_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "grant" })}><Icon name="shield" size={14} /></button>
-                <a class="btn ghost icon sm" href={"/sources/" + s.id} aria-label={t("common.open")}><Icon name="chevron-right" size={14} /></a>
+                <!-- 编辑：带文字的按钮，比只有箭头更容易发现和点中（反馈 #78） -->
+                <a class="btn sm" href={"/sources/" + s.id}><Icon name="edit" size={14} />{t("common.edit")}</a>
               </td>
             </tr>
           {/each}

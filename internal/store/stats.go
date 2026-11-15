@@ -79,6 +79,8 @@ type StatsRepo interface {
 	// Range 返回某个用户在 [from, to) 内的全部请求记录（时间正序），最多 limit 条；用于订阅分析（反馈 #74）。
 	// 第二个返回值表示是否因超过 limit 而截断（此时返回的是区间内最新的 limit 条）。
 	Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error)
+	// LastByShort 返回每个短链接最近一次被请求的时间（反馈 #78：短链接列表折叠时显示）。
+	LastByShort(ctx context.Context, owner string) (map[string]time.Time, error)
 }
 
 func (d *DB) Stats() StatsRepo { return stats{d} }
@@ -217,6 +219,24 @@ func scanRequests(rows *sql.Rows) ([]SubRequest, error) {
 		}
 		q.At = fromMS(at)
 		out = append(out, q)
+	}
+	return out, rows.Err()
+}
+
+func (r stats) LastByShort(ctx context.Context, owner string) (map[string]time.Time, error) {
+	rows, err := r.d.query(ctx, "SELECT short_id, MAX(at) FROM sub_requests WHERE owner_id=? AND short_id <> '' GROUP BY short_id", owner)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	out := map[string]time.Time{}
+	for rows.Next() {
+		var id string
+		var at int64
+		if err := rows.Scan(&id, &at); err != nil {
+			return nil, err
+		}
+		out[id] = fromMS(at)
 	}
 	return out, rows.Err()
 }

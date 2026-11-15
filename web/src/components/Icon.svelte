@@ -59,6 +59,8 @@
     smile: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM8.5 14s1.2 2 3.5 2 3.5-2 3.5-2M9 9.5h.1M15 9.5h.1",
     paperclip: "M19.5 11.5l-7.6 7.6a5 5 0 0 1-7.1-7.1l7.9-7.9a3.3 3.3 0 0 1 4.7 4.7l-7.9 7.9a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3",
     send: "M4 11.5 20 4l-7.5 16-2.5-6.5zM10 13.5 20 4",
+    // 反馈 #78：编辑
+    edit: "M4.5 19.5h4l10-10a2.1 2.1 0 0 0-3-3l-10 10zM13.5 8l3 3",
   } as const;
   export type IconName = keyof typeof paths;
   const mirrored = new Set<IconName>(["chevron-right", "arrow-right", "logout", "external"]);
