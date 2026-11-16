@@ -127,3 +127,4 @@
 | 93 | 邀请机制要完善：人人可邀请、邀请关系永久记录；询问节点可用性检测（本机检测与在其他机器安装的 agent）能否作为不开源的高阶功能；工作量应按代理的 token 用量而非时间估计 | 🔄 | [backlog](backlog.md) R12（已完成）、R13 与工作量说明 |
 | 94 | 仓库转为私有，镜像继续公开；以后会重新开源 | ✅ | [progress](progress.md)「远端」 |
 | 95 | 全面迁移到 PostgreSQL，并为千万级数据与日志优化效率；先加入需求清单 | 🕓 | [backlog](backlog.md) R14 |
+| 96 | 在 OpenClash、Clash Verge 之外，再支持官方客户端 Stash；写入需求清单 | 🕓 | [backlog](backlog.md) R15、R16 |
