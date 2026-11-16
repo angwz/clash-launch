@@ -176,11 +176,15 @@ export function planView(g: Graph, width: number, prefs: RoutingPrefs = {}): Vie
   return { mode, compact, columns, runs, exitMode, exits, exitRow, unused, bigGroups, particleCap, labelProb, why };
 }
 
-/** 折叠后的规则行：段或单条规则。expanded 与命中行所在的段展开。 */
-export type RuleRow = { kind: "rule"; index: number } | { kind: "seg"; run: Run };
+/**
+ * 折叠后的规则行：段（智能折叠，只是显示）、合集（相邻且 bundle 相同的规则集，决定 0007 第 9 条，始终占一行）
+ * 或单条规则。expanded 与命中行所在的段展开；合集不展开，命中其中一条时整行高亮。
+ */
+export type RuleRow = { kind: "rule"; index: number } | { kind: "seg"; run: Run } | { kind: "bundle"; from: number; to: number; name: string };
 
 export function ruleRows(g: Graph, plan: ViewPlan, expanded: ReadonlySet<string>, hit: readonly number[] = []): RuleRow[] {
   const out: RuleRow[] = [];
+  const bundleOf = (i: number) => g.rules[i]?.set?.bundle;
   for (let i = 0; i < g.rules.length; i++) {
     const run = plan.runs.find((r) => r.from === i);
     if (run && !expanded.has(run.id) && !hit.some((h) => h >= run.from && h <= run.to)) {
@@ -188,17 +192,33 @@ export function ruleRows(g: Graph, plan: ViewPlan, expanded: ReadonlySet<string>
       i = run.to;
       continue;
     }
+    const b = bundleOf(i);
+    if (b) {
+      let j = i;
+      while (j + 1 < g.rules.length && bundleOf(j + 1) === b && g.rules[j + 1]!.target === g.rules[i]!.target) j++;
+      if (j > i) {
+        out.push({ kind: "bundle", from: i, to: j, name: b });
+        i = j;
+        continue;
+      }
+    }
     out.push({ kind: "rule", index: i });
   }
   return out;
 }
 
-/** 规则序号 → 方框键：折叠段内的规则共用段的方框。 */
+/** 方框键：rule:<序号> | bundle:<首条序号> | seg:<段 ID>。 */
+export function rowKey(r: RuleRow): string {
+  return r.kind === "rule" ? "rule:" + r.index : r.kind === "bundle" ? "bundle:" + r.from : "seg:" + r.run.id;
+}
+
+/** 规则序号 → 方框键：折叠段与合集内的规则共用一行。 */
 export function ruleBoxOf(rows: readonly RuleRow[]): (index: number) => string {
   const m = new Map<number, string>();
   for (const r of rows) {
-    if (r.kind === "rule") m.set(r.index, "rule:" + r.index);
-    else for (let i = r.run.from; i <= r.run.to; i++) m.set(i, "seg:" + r.run.id);
+    if (r.kind === "rule") m.set(r.index, rowKey(r));
+    else if (r.kind === "bundle") for (let i = r.from; i <= r.to; i++) m.set(i, rowKey(r));
+    else for (let i = r.run.from; i <= r.run.to; i++) m.set(i, rowKey(r));
   }
   return (i) => m.get(i) ?? "rule:" + i;
 }

@@ -159,3 +159,25 @@ describe("新建配置上设置嵌套字段", () => {
     expect(new ProfileDoc(d.toString()).getForm(["dns", "enable"])).toBe(true);
   });
 });
+
+describe("routing 段", () => {
+  it("写入后规则集每条一行、组的 rule 一行；读回相同；删除后回到跟随上游", () => {
+    const d = new ProfileDoc("clash-launch/profile: v1\nname: x\nrules: { ref: rs1 }\n");
+    expect(d.routing).toBeNull();
+    const r = {
+      from: { rules: "rs1", digest: "sha256:00", at: "2026-11-15T00:00:00Z" },
+      groups: [{ name: "🚀 P", type: "select", rule: ["[]DIRECT", ".*"] }],
+      rulesets: [
+        { group: "🚀 P", ruleset: "https://raw.githubusercontent.com/x/y/release/clash-domain/A.yaml", type: "clash-domain", interval: 86400, bundle: "A" },
+        { group: "DIRECT", ruleset: "[]MATCH" },
+      ],
+    };
+    d.routing = r;
+    const text = d.toString();
+    expect(text).toContain(`rule: [ "[]DIRECT", .* ]`);
+    expect(text).toContain(`- { group: DIRECT, ruleset: "[]MATCH" }`);
+    expect(new ProfileDoc(text).routing).toEqual(r);
+    d.routing = null;
+    expect(d.toString()).not.toContain("routing");
+  });
+});

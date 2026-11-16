@@ -1,6 +1,6 @@
 # 分流视图、追踪与 routing 段
 
-> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）、第 1 步（讲解图层、规则集说明目录）、第 2 步（只读地图、追踪、粒子、体检）已完成，第 3–4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
+> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）、第 1 步（讲解图层、规则集说明目录）、第 2 步（只读地图、追踪、粒子、体检）、第 3 步（编辑与 routing 段）已完成，第 4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
 > 取舍与理由见 [0007](../decisions/0007-routing-visualization.md)，本文只写「做什么、怎么做、怎么验收」。
 > 交互原型 [routing-prototype.html](routing-prototype.html) 是布局、粒子与追踪动画的参考实现（用浏览器直接打开）。它用了内联样式与示例数据，**不能照搬进站内**：站内 CSP 不允许 `style` 属性，数据来自接口。
 
@@ -450,6 +450,7 @@ col(g)       = entry(g) ? 1 : C − steps(g) + 1
 - 前端：拖动、草稿、`draft.ts`、`DetailPanel` 的编辑、`DraftBar`、合集合并与拆出、组类型与参数、提醒、循环检查。
 - 测试：`ToRouting`/`FromRouting` 往返；带 routing 的 golden（domainrouter 开始管理后输出与跟随上游时**逐字节相同**）；`draft.test.ts`（每个操作与 `changes` 文案）；e2e：拖动改走向 → 应用 → 预览中 rules 变化 → 撤销；合并与拆出；改组类型后预览的 proxy-groups 变化；循环被拒绝。
 - 验收：以上通过；`go test -tags kernel` 对带 routing 的 golden 通过。
+- 完成情况（2026-11-15）：`Profile.Marshal` 已删除。routing 段的文本由服务端用项目自己的渲染器输出（Go 的 YAML 库会把 emoji 转义成 `U0001F320`）。domainrouter 开始自己管理后的输出与跟随上游逐字节相同，文件头的名称与更新时间除外：自己管理后规则在方案文档里，没有规则源的拉取时间。合集在地图上始终占一行，拖动其中任何一条都作用于整个合集；按地区或来源归并的出口行代表多个节点，不能整体拖进组（第 11.2 节的 `select.region` 写法未实现，在规则源里写选择器）。e2e 中的规则地址指向本机关闭的端口，由 SSRF 防护直接拒绝，不联网。
 
 ### 第 4 步 · 上游同步、期望、文档
 

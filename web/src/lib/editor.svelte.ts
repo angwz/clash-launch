@@ -5,6 +5,7 @@ import { api, ApiError, listAll, type Preview, type Profile, type RuleSource, ty
 import { errorText } from "./errors";
 import { t } from "./i18n/i18n.svelte";
 import { ProfileDoc, type ChainRule, type EmptyGroups, type SourceRef } from "./profile-doc";
+import type { Routing } from "./routing/draft";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 import { prefs } from "./prefs.svelte";
@@ -114,6 +115,19 @@ export class EditorState {
   setChains(list: ChainRule[]): void {
     if (!this.doc) return;
     this.doc.chains = list;
+    this.#changed();
+  }
+
+  /** 自己管理的分流（routing 段）；跟随上游时为 null。 */
+  get routing(): Routing | null {
+    void this.rev;
+    return this.doc?.routing ?? null;
+  }
+
+  /** 应用分流草稿：写入 routing 段，之后照常自动保存、预览与内核检查（routing 第 11.2 节）。 */
+  setRouting(r: Routing | null): void {
+    if (!this.doc) return;
+    this.doc.routing = r;
     this.#changed();
   }
 

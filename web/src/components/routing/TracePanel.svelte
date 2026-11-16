@@ -12,9 +12,10 @@
     graph,
     profileId,
     doc,
+    draft = () => undefined,
     trace = $bindable(null),
     host = $bindable(""),
-  }: { graph: Graph; profileId: string; doc: () => string; trace?: Trace | null; host?: string } = $props();
+  }: { graph: Graph; profileId: string; doc: () => string; draft?: () => string | undefined; trace?: Trace | null; host?: string } = $props();
 
   let input = $state(host);
   let process = $state("");
@@ -23,6 +24,7 @@
   let error = $state("");
   let inputEl: HTMLInputElement | undefined = $state();
   let seq = 0; // 只采用最后一次请求的结果：先发出的请求可能后返回
+  let before = $state.raw<Trace | null>(null); // 有草稿时：应用前的追踪结果
 
   // 示例：取几个规则集的样例（服务器从规则内容中取出），不同目标各取一个
   const examples = $derived.by(() => {
@@ -46,9 +48,11 @@
     busy = true;
     error = "";
     try {
-      const res = await api.post<{ current: Trace }>(`/api/v1/profiles/${profileId}/routing/trace`, { doc: doc(), host: q, process: process.trim() || undefined, network: udp ? "udp" : "tcp" });
+      const res = await api.post<{ current: Trace; draft?: Trace }>(`/api/v1/profiles/${profileId}/routing/trace`, { doc: doc(), draft: draft(), host: q, process: process.trim() || undefined, network: udp ? "udp" : "tcp" });
       if (my !== seq) return;
-      trace = res.current;
+      // 有草稿时地图画的是草稿，所以逐步卡片也按草稿；应用前的结果用于对比
+      trace = res.draft ?? res.current;
+      before = res.draft ? res.current : null;
       host = q;
     } catch (e) {
       if (my !== seq) return;
@@ -63,6 +67,7 @@
     input = "";
     host = "";
     trace = null;
+    before = null;
     error = "";
     inputEl?.focus();
   }
@@ -202,6 +207,9 @@
         </div>
       </li>
     </ol>
+    {#if before && (before.hit !== trace.hit || before.exit.name !== trace.exit.name)}
+      <p class="note warn">{t("routing.trace.draft_changed", { rule: before.hit >= 0 ? before.hit + 1 : "—", exit: before.exit.kind === "builtin" ? builtinLabel(before.exit.name) : before.exit.name })}</p>
+    {/if}
     {#if trace.stale}<p class="note warn">{t("routing.trace.stale")}</p>{/if}
   {/if}
 </section>

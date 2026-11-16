@@ -1,3 +1,12 @@
+<script lang="ts" module>
+  /** 拖动：判断能否放下（返回提示文字，null 表示不能）与执行。zone 只对规则行有意义：before、after 为移动，mid 为合并。 */
+  export interface DragOps {
+    can: (src: string, dst: string, zone: "before" | "mid" | "after") => { ok: boolean; label: string } | null;
+    drop: (src: string, dst: string, zone: "before" | "mid" | "after") => void;
+    draggable: (key: string) => boolean;
+  }
+</script>
+
 <script lang="ts">
   // 分流地图（routing 第 8、10 节）：请求 → 规则 → 策略组（按默认路径分列）→ 出口 → 目的地。
   // 布局与连线由 lib/routing 的纯函数计算；这里只负责把方框放进 DOM、量出位置、画 SVG 轨道与粒子。
@@ -6,7 +15,7 @@
   import { catalog } from "../../lib/catalog.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
   import { defaultPath, links, type Box, type Graph, type Rule, type Trace } from "../../lib/routing/layout";
-  import { ruleBoxOf, type RuleRow, type ViewPlan } from "../../lib/routing/plan";
+  import { ruleBoxOf, rowKey, type RuleRow, type ViewPlan } from "../../lib/routing/plan";
   import { ParticleField, type ParticleMode } from "../../lib/routing/particles";
   import { exitLabel, fmtCount, ruleName, setBases, targetLabel, typeChar, typeLabel } from "../../lib/routing/labels";
 
@@ -18,6 +27,9 @@
     particles,
     candidates,
     onExpand,
+    selected = null,
+    onSelect = () => {},
+    drag = undefined,
   }: {
     graph: Graph;
     plan: ViewPlan;
@@ -26,6 +38,9 @@
     particles: ParticleMode;
     candidates: boolean;
     onExpand: (id: string) => void;
+    selected?: string | null;
+    onSelect?: (key: string) => void;
+    drag?: DragOps;
   } = $props();
 
   let mapEl: HTMLDivElement | undefined = $state();
@@ -55,18 +70,19 @@
       const s = new Set([ruleBox(trace.hit), ...pathBoxes(graph.rules[trace.hit]!.target)]);
       return s;
     }
-    if (!hover) return null;
-    const s = new Set([hover]);
-    if (hover.startsWith("rule:") || hover.startsWith("seg:")) {
-      for (const r of graph.rules) if (ruleBox(r.index) === hover) for (const b of pathBoxes(r.target)) s.add(b);
-    } else if (hover.startsWith("group:")) {
-      const name = hover.slice(6);
+    const cur = hover ?? selected;
+    if (!cur) return null;
+    const s = new Set([cur]);
+    if (/^(rule|seg|bundle):/.test(cur)) {
+      for (const r of graph.rules) if (ruleBox(r.index) === cur) for (const b of pathBoxes(r.target)) s.add(b);
+    } else if (cur.startsWith("group:")) {
+      const name = cur.slice(6);
       const g = graph.groups.find((x) => x.name === name);
       for (const m of g?.members ?? []) s.add(m.kind === "group" ? "group:" + m.name : "exit:" + exitRow(m.name));
       for (const r of graph.rules) if (r.target === name) s.add(ruleBox(r.index));
       for (const p of graph.groups) if (p.members.some((m) => m.name === name)) s.add("group:" + p.name);
-    } else if (hover.startsWith("exit:")) {
-      const row = plan.exits.find((e) => "exit:" + e.id === hover);
+    } else if (cur.startsWith("exit:")) {
+      const row = plan.exits.find((e) => "exit:" + e.id === cur);
       for (const n of row?.members ?? []) {
         for (const r of graph.rules) if (r.target === n) s.add(ruleBox(r.index));
         for (const p of graph.groups) if (p.members.some((m) => m.name === n)) s.add("group:" + p.name);
@@ -75,7 +91,10 @@
     return s;
   });
 
-  const focusedGroup = $derived(hover?.startsWith("group:") ? hover.slice(6) : null);
+  const focusedGroup = $derived.by(() => {
+    const cur = hover ?? selected;
+    return cur?.startsWith("group:") ? cur.slice(6) : null;
+  });
   const paths = $derived(
     links({ graph, boxes, ruleBox, exitRow, bigGroups: plan.bigGroups, showCandidates: (g) => candidates || g === focusedGroup }).map((l) => {
       const [from, to] = l.key.split(">") as [string, string];
@@ -122,7 +141,7 @@
   // 宽度抖动（滚动条出现又消失）会让智能视图重算出一个内容相同的新对象，不能因此重建；
   // 所以这里依赖的是内容键（字符串），图与计划只在闭包里读取。
   const sceneSamples = $derived(graph.rules.flatMap((r) => (r.set?.samples ?? []).map((s) => ({ host: s.host, hit: s.hit, weight: Math.log10((r.set?.count ?? 0) + 10) / Math.max(1, r.set!.samples!.length) }))));
-  const sceneKey = $derived(JSON.stringify([sceneSamples, plan.particleCap, plan.labelProb, rows.map((r) => (r.kind === "seg" ? r.run.id : r.index))]));
+  const sceneKey = $derived(JSON.stringify([sceneSamples, plan.particleCap, plan.labelProb, rows.map(rowKey)]));
   $effect(() => {
     void sceneKey;
     const b = boxes;
@@ -176,13 +195,77 @@
     };
   });
 
+
+  // —— 选中与拖动（第 3 步）——
+  type Zone = "before" | "mid" | "after";
+  let press: { key: string; x: number; y: number; el: HTMLElement; id: number } | null = null;
+  let dragging = $state<string | null>(null);
+  let over = $state<{ key: string; zone: Zone; ok: boolean; label: string } | null>(null);
+  let ghost: HTMLDivElement | undefined = $state();
+
+  function zoneOf(el: HTMLElement, y: number): Zone {
+    if (!/^(rule|bundle):/.test(el.dataset.box ?? "")) return "mid";
+    const r = el.getBoundingClientRect();
+    const f = (y - r.top) / r.height;
+    return f < 0.28 ? "before" : f > 0.72 ? "after" : "mid";
+  }
+
+  function onDown(e: PointerEvent, key: string) {
+    if (e.button !== 0) return;
+    press = { key, x: e.clientX, y: e.clientY, el: e.currentTarget as HTMLElement, id: e.pointerId };
+  }
+
+  function onMove(e: PointerEvent) {
+    if (!press || e.pointerId !== press.id) return;
+    if (!dragging) {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 6 || !drag?.draggable(press.key)) return;
+      dragging = press.key;
+      press.el.setPointerCapture(e.pointerId);
+    }
+    // 悬停目标：指针下最上层的方框（跳过自己）
+    const el = document.elementsFromPoint(e.clientX, e.clientY).map((x) => (x as HTMLElement).closest<HTMLElement>("[data-box]")).find((x) => x && x.dataset.box !== dragging);
+    if (el?.dataset.box) {
+      const zone = zoneOf(el, e.clientY);
+      const res = drag!.can(dragging, el.dataset.box, zone);
+      over = { key: el.dataset.box, zone, ok: !!res?.ok, label: res?.label ?? "" };
+    } else over = null;
+    // 跟随指针的提示：固定定位，用 translate 设置位置（CSP 不允许 style 属性，CSSOM 可以）
+    ghost?.style.setProperty("translate", `${e.clientX + 12}px ${e.clientY + 14}px`);
+  }
+
+  function onUp(e: PointerEvent) {
+    if (!press || e.pointerId !== press.id) return;
+    const key = press.key;
+    if (dragging) {
+      if (over?.ok) drag!.drop(dragging, over.key, over.zone);
+    } else onSelect(key);
+    press = null;
+    dragging = null;
+    over = null;
+  }
+
+  function onCancel() {
+    press = null;
+    dragging = null;
+    over = null;
+  }
+
+  const dropCls = (key: string) => (over?.key !== key ? "" : !over.ok ? "nodrop" : over.zone === "before" ? "ins-before" : over.zone === "after" ? "ins-after" : "drop");
+  const onKey = (e: KeyboardEvent, key: string) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect(key);
+    }
+  };
+
   const mark = (key: string) => (focus ? (focus.has(key) ? "hot" : "dim") : "");
   const traced = (r: Rule) => !!trace && trace.hit === r.index;
 </script>
 
 <div class="map-scroll">
+  <!-- 方框的指针事件只用于悬停高亮、选中与拖动；键盘用户用 Tab 选中后在详情里编辑 -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="map" bind:this={mapEl} onpointerleave={() => (hover = null)}>
+  <div class="map" class:dragging={!!dragging} bind:this={mapEl} onpointerleave={() => (hover = null)} onpointermove={onMove} onpointerup={onUp} onpointercancel={onCancel}>
     <svg class="links" class:focus={!!focus} aria-hidden="true">
       {#each paths as p (p.key)}<path class={p.kind} class:hot={p.hot} d={p.d} />{/each}
     </svg>
@@ -191,11 +274,12 @@
       <div class="col lane"><div class="col-h"><span class="eyebrow">{t("routing.col.requests")}</span></div></div>
 
       <div class="col rules">
-        <div class="col-h"><span class="eyebrow">{t("routing.col.rules")}</span></div>
-        {#each rows as row (row.kind === "seg" ? row.run.id : row.index)}
+        <div class="col-h"><span class="eyebrow">{t("routing.col.rules")}</span>{#if drag}<span class="hint">{t("routing.drag_hint")}</span>{/if}</div>
+        {#each rows as row (rowKey(row))}
+          {@const key = rowKey(row)}
           {#if row.kind === "seg"}
             {@const rs = graph.rules.slice(row.run.from, row.run.to + 1)}
-            <button class="row seg {mark('seg:' + row.run.id)}" type="button" data-box={"seg:" + row.run.id} title={t("routing.seg_expand")} onpointerenter={() => (hover = "seg:" + row.run.id)} onfocus={() => (hover = "seg:" + row.run.id)} onclick={() => onExpand(row.run.id)}>
+            <button class="row seg {mark(key)}" type="button" data-box={key} title={t("routing.seg_expand")} onpointerenter={() => (hover = key)} onfocus={() => (hover = key)} onclick={() => onExpand(row.run.id)}>
               <span class="pri">{row.run.from + 1}–{row.run.to + 1}</span>
               <span class="rmain">
                 <span class="rtop"><span class="nm">{t("routing.seg_" + row.run.kind, { n: rs.length, target: targetLabel(row.run.target) })}</span><span class="meta">{fmtCount(rs.reduce((s, r) => s + (r.set?.count ?? 0), 0))}</span></span>
@@ -203,16 +287,35 @@
               </span>
             </button>
           {:else}
-            {@const r = graph.rules[row.index]!}
-            <div class="row {mark('rule:' + r.index)}" class:traced={traced(r)} class:raw={r.origin === "raw"} data-box={"rule:" + r.index} title={catalog.label(r.set?.description?.text) || r.raw} onpointerenter={() => (hover = "rule:" + r.index)} onfocus={() => (hover = "rule:" + r.index)}>
-              <span class="pri">{r.index + 1}</span>
+            {@const rs = row.kind === "bundle" ? graph.rules.slice(row.from, row.to + 1) : [graph.rules[row.index]!]}
+            {@const r = rs[0]!}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div
+              class="row {mark(key)} {dropCls(key)}"
+              class:sel={selected === key}
+              class:traced={rs.some(traced)}
+              class:raw={r.origin === "raw"}
+              class:grab={!!drag?.draggable(key)}
+              data-box={key}
+              tabindex="0"
+              title={catalog.label(r.set?.description?.text) || r.raw}
+              onpointerenter={() => (hover = key)}
+              onfocus={() => (hover = key)}
+              onpointerdown={(e) => onDown(e, key)}
+              onkeydown={(e) => onKey(e, key)}
+            >
+              <span class="pri">{row.kind === "bundle" ? `${row.from + 1}–${row.to + 1}` : r.index + 1}</span>
               <span class="rmain">
-                <span class="rtop"><span class="nm">{ruleName(r)}</span><span class="meta">{r.set?.count !== undefined ? fmtCount(r.set.count) : ""}</span></span>
+                <span class="rtop">
+                  <span class="nm">{row.kind === "bundle" ? row.name : ruleName(r)}</span>
+                  {#if row.kind === "bundle"}<span class="btag">{t("routing.bundle")}</span>{/if}
+                  <span class="meta">{fmtCount(rs.reduce((s, x) => s + (x.set?.count ?? 0), 0))}</span>
+                </span>
                 {#if r.set || r.origin === "raw"}
                   <span class="mtags">
-                    {#if r.set}<span class="mtag">{r.set.behavior}</span>{/if}
+                    {#each rs as x (x.index)}{#if x.set}<span class="mtag">{x.set.behavior}</span>{/if}{/each}
                     {#if r.origin === "raw"}<span class="mtag raw">{t("routing.raw")}</span>{/if}
-                    {#if r.set?.stale}<span class="mtag warn">{t("routing.stale")}</span>{/if}
+                    {#if rs.some((x) => x.set?.stale)}<span class="mtag warn">{t("routing.stale")}</span>{/if}
                   </span>
                 {/if}
               </span>
@@ -224,27 +327,50 @@
       {#each groupCols as col, ci (ci)}
         <div class="col groups">
           <div class="col-h"><span class="eyebrow">{ci === 0 ? t("routing.col.groups") : t("routing.col.layer", { n: ci + 1 })}</span></div>
-          {#each col as g (g.name)}
-            <div class="row {mark('group:' + g.name)}" class:raw={g.origin === "raw"} data-box={"group:" + g.name} title={g.name + " · " + typeLabel(g.type)} onpointerenter={() => (hover = "group:" + g.name)} onfocus={() => (hover = "group:" + g.name)}>
+          {#each [...col, ...(ci === 0 ? unused : [])] as g (g.name)}
+            {@const key = "group:" + g.name}
+            {#if ci === 0 && g === unused[0]}<span class="unused-h">{t("routing.unused")}</span>{/if}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div
+              class="row {mark(key)} {dropCls(key)}"
+              class:sel={selected === key}
+              class:raw={g.origin === "raw"}
+              class:dimmed={unused.includes(g)}
+              class:grab={!!drag?.draggable(key)}
+              data-box={key}
+              tabindex="0"
+              title={g.name + " · " + typeLabel(g.type)}
+              onpointerenter={() => (hover = key)}
+              onfocus={() => (hover = key)}
+              onpointerdown={(e) => onDown(e, key)}
+              onkeydown={(e) => onKey(e, key)}
+            >
               <span class="nm">{g.name}</span>
+              {#if g.lints.some((l) => l !== "group.latency_only" && l !== "group.unused")}<span class="lint-dot" title={t("routing.detail.has_lints")}></span>{/if}
               {#if plan.compact}<span class="tch">{typeChar(g.type)}</span>{:else}<span class="gtype">{typeLabel(g.type)}</span>{/if}
             </div>
           {/each}
-          {#if ci === 0 && unused.length}
-            <span class="unused-h">{t("routing.unused")}</span>
-            {#each unused as g (g.name)}
-              <div class="row dimmed {mark('group:' + g.name)}" data-box={"group:" + g.name} title={g.name} onpointerenter={() => (hover = "group:" + g.name)} onfocus={() => (hover = "group:" + g.name)}>
-                <span class="nm">{g.name}</span><span class="tch">{typeChar(g.type)}</span>
-              </div>
-            {/each}
-          {/if}
         </div>
       {/each}
 
       <div class="col exits">
         <div class="col-h"><span class="eyebrow">{t("routing.col.exits")}</span></div>
         {#each plan.exits as e (e.id)}
-          <div class="row {mark('exit:' + e.id)}" class:builtin={e.kind === "builtin"} data-box={"exit:" + e.id} title={e.filter ? e.label + " · " + e.filter : e.label} onpointerenter={() => (hover = "exit:" + e.id)} onfocus={() => (hover = "exit:" + e.id)}>
+          {@const key = "exit:" + e.id}
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div
+            class="row {mark(key)} {dropCls(key)}"
+            class:sel={selected === key}
+            class:builtin={e.kind === "builtin"}
+            class:grab={!!drag?.draggable(key)}
+            data-box={key}
+            tabindex="0"
+            title={e.filter ? e.label + " · " + e.filter : e.label}
+            onpointerenter={() => (hover = key)}
+            onfocus={() => (hover = key)}
+            onpointerdown={(ev) => onDown(ev, key)}
+            onkeydown={(ev) => onKey(ev, key)}
+          >
             <span class="nm">{exitLabel(e)}</span>
             <span class="meta">
               {#if e.kind === "region" || e.kind === "source"}{t("routing.nodes_n", { n: e.members.length })}{:else if e.kind === "provider"}{t("routing.client_fetch")}{:else if e.via}{t("routing.via", { via: e.via })}{/if}
@@ -256,6 +382,9 @@
     </div>
   </div>
 </div>
+{#if dragging}
+  <div class="drag-ghost" class:bad={!!over && !over.ok} bind:this={ghost} aria-hidden="true">{over?.label || t("routing.drag_none")}</div>
+{/if}
 
 <style>
   .map-scroll {
@@ -336,6 +465,73 @@
   }
   .row.dim {
     opacity: 0.4;
+  }
+  .row.sel {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .row.grab {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  .map.dragging .row {
+    cursor: grabbing;
+  }
+  .row.drop {
+    border-style: dashed;
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .row.nodrop {
+    border-style: dashed;
+    border-color: var(--err);
+    background: var(--err-soft);
+  }
+  .row.ins-before {
+    box-shadow: 0 -3px 0 0 var(--accent);
+  }
+  .row.ins-after {
+    box-shadow: 0 3px 0 0 var(--accent);
+  }
+  .btag {
+    font-size: 0.66rem;
+    line-height: 1.5;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+    white-space: nowrap;
+  }
+  .lint-dot {
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: 50%;
+    background: var(--warn);
+    flex: none;
+  }
+  .col-h .hint {
+    font-size: 0.66rem;
+    color: var(--fg-subtle);
+    text-align: end;
+  }
+  /* 跟随指针的提示：指针坐标是物理坐标，所以这里用物理定位（由 translate 设置位置） */
+  .drag-ghost {
+    position: fixed;
+    inset: 0 auto auto 0;
+    z-index: 50;
+    pointer-events: none;
+    padding: 5px 10px;
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--fg-on-accent);
+    font-size: var(--text-xs);
+    box-shadow: var(--shadow-lg);
+    white-space: nowrap;
+  }
+  .drag-ghost.bad {
+    background: var(--err);
   }
   .row.traced {
     box-shadow: 0 0 0 1px var(--accent);

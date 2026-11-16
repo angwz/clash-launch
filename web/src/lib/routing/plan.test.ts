@@ -93,7 +93,9 @@ describe("ruleRows", () => {
     const rows = ruleRows(g, p, new Set());
     expect(rows.length).toBe(66 - 59 + 21);
     expect(ruleBoxOf(rows)(1)).toBe("seg:seg-0");
-    expect(ruleRows(g, p, new Set(["seg-0"]))[0]).toEqual({ kind: "rule", index: 0 });
-    expect(ruleRows(g, p, new Set(), [4])[1]).toEqual({ kind: "rule", index: 3 });
+    // 展开后 domainrouter 的三件套是一个合集行
+    expect(ruleRows(g, p, new Set(["seg-0"]))[0]).toEqual({ kind: "bundle", from: 0, to: 2, name: "Direct" });
+    expect(ruleBoxOf(ruleRows(g, p, new Set(["seg-0"])))(2)).toBe("bundle:0");
+    expect(ruleRows(g, p, new Set(), [4])[1]).toEqual({ kind: "bundle", from: 3, to: 4, name: "NS" });
   });
 });

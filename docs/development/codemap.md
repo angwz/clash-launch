@@ -36,6 +36,7 @@
 | 规则源、GROUPID、选择器、ini | `internal/ruleset`；有序源与编号在 `internal/engine/build.go` | `ruleset_test.go`、工作区 golden | [rules](../design/rules.md)、[parity](../design/subconverter-parity.md) |
 | 诊断代码与中英文消息 | `internal/diag/codes.go`（唯一登记处） | 引用处的测试 | 前端按代码显示，无需改前端 |
 | 内核检查 | `internal/kernel/check.go` | `-tags kernel` | [architecture](../design/architecture.md) |
+| 自己管理的分流（routing 段） | `internal/profile/routing.go`；`internal/ruleset/routing.go`（FromRouting、ToRouting、Fork、DetectBundles、ParseNodeOps）；引擎在 `internal/engine/build.go` 中用它代替规则源 | `internal/ruleset/routing_test.go`、`TestRoutingForkGolden`（`testdata/workspace/domainrouter-routing.*`，`-tags kernel`）、`TestRoutingForkOwnDraft` | [routing](../design/routing.md) 第 4 节 |
 | 分流地图、追踪与体检的服务端 | `internal/service/routing.go`（图数据、追踪、体检）、`routing_cache.go`（规则内容的内存缓存）；接口 `internal/api/routing.go`；体检网站 `catalog/routing/health.yaml`；规则集说明 `catalog/rulesets/descriptions.yaml` | `TestRoutingGraphTraceHealth`、`TestRoutingTraceHostsAndQuota`、`TestRoutingFixtures`、`TestLoadSetStaleAndSingleFlight` | [routing](../design/routing.md) 第 6–7 节、[deploy](../guide/deploy.md) |
 | 分流追踪的匹配（规则集编译、逐行判断、地理数据） | `internal/match`（`set.go` 编译与移植的 `rulesParse`/MRS 头，`rule.go` 解析与无法判断的成分，`geo.go` 地理规则，`trace.go` 追踪与依据定位） | `match_test.go`、`TestGeoMatchesKernel`（与内核规则对象对照，需要地理数据）、`bench_test.go` | [routing](../design/routing.md) 第 5 节、[0007](../decisions/0007-routing-visualization.md)、[mihomo-upgrade](mihomo-upgrade.md) 第 5 步 |
 
@@ -81,7 +82,7 @@
 | --- | --- | --- |
 | 颜色、间距、字号、主题 | `src/styles/tokens.css`（深色定义两处，`styles.test.ts` 检查一致） | `styles.test.ts` |
 | 通用控件样式（按钮、输入框、表格） | `src/styles/base.css` | — |
-| 分流分节（地图、追踪、体检、讲解图层；按需加载） | `src/components/routing/`（`RoutingView` 取图与工具栏，`RoutingMap` 方框、SVG 连线与粒子画布，`RoutingList` 窄屏列表，`TracePanel`、`HealthDialog`、`ExplainLayer`）；纯函数 `src/lib/routing/`（`layout.ts` 分列与连线，`plan.ts` 智能视图，`particles.ts` 粒子，`labels.ts` 显示文字）；夹具 `src/lib/routing/fixtures/`（由 `TestRoutingFixtures` 生成）；流向色 `--flow-*` 在 `tokens.css`；偏好 `routingView` | `layout.test.ts`、`plan.test.ts`、e2e「分流」「讲解图层」 |
+| 分流分节（地图、追踪、体检、讲解图层；按需加载） | `src/components/routing/`（`RoutingView` 取图与工具栏，`RoutingMap` 方框、SVG 连线与粒子画布，`RoutingList` 窄屏列表，`TracePanel`、`HealthDialog`、`ExplainLayer`、`DetailPanel` 详情与无鼠标编辑、`DraftBar` 草稿栏）；纯函数 `src/lib/routing/`（`layout.ts` 分列与连线，`plan.ts` 智能视图，`particles.ts` 粒子，`labels.ts` 显示文字，`draft.ts` 草稿操作与改动列表）；方案文档的 routing 段读写在 `lib/profile-doc.ts`；夹具 `src/lib/routing/fixtures/`（由 `TestRoutingFixtures` 生成）；流向色 `--flow-*` 在 `tokens.css`；偏好 `routingView` | `layout.test.ts`、`plan.test.ts`、`draft.test.ts`、e2e「分流」「分流编辑」「讲解图层」 |
 | 界面文字 | `src/lib/i18n/messages/{zh-CN,en}.json`；动态前缀登记在 `i18n.test.ts` 的 `dynamic` | `i18n.test.ts`（缺失、多余、ICU 语法） |
 | 字段说明文字 | 不在前端：来自目录（`catalog/`） | — |
 | 页面与路由 | `src/lib/router.svelte.ts`（路由表）+ `src/App.svelte`（懒加载表）+ `src/pages/*` | `e2e/app.spec.ts` |

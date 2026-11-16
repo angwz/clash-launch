@@ -4,6 +4,7 @@
 // 合并、校验与渲染全部由后端的预览接口完成（第 16.6 节）。
 // 使用 yaml 的 Document API：未改动的部分（包括注释与 raw 块）保持原样，避免「打开再保存」产生无关差异。
 import { Document, isMap, isScalar, isSeq, parseDocument, Scalar, YAMLMap, YAMLSeq } from "yaml";
+import type { Routing } from "./routing/draft";
 
 export type Mode = "inline" | "provider";
 
@@ -256,6 +257,45 @@ export class ProfileDoc {
 
   get hasRaw(): boolean {
     return this.raw.trim() !== "";
+  }
+
+  // —— 自己管理的分流（routing 段，docs/design/routing.md 第 4.1 节）——
+
+  /** 读取 routing 段；跟随上游（没有 routing）时返回 null。 */
+  get routing(): Routing | null {
+    const r = this.doc.get("routing", true);
+    return isMap(r) ? (r.toJSON() as Routing) : null;
+  }
+
+  /** 写入或删除 routing 段。规则集每条一行、组的 rule 列表写成一行，便于阅读与比较。 */
+  set routing(r: Routing | null) {
+    this.#dirty = true;
+    if (!r) {
+      this.doc.delete("routing");
+      return;
+    }
+    const node = this.doc.createNode(r) as YAMLMap;
+    const flowItems = (seq: unknown, mapFlow: boolean) => {
+      if (!isSeq(seq)) return;
+      for (const it of seq.items) {
+        if (!isMap(it)) continue;
+        if (mapFlow) it.flow = true;
+        for (const k of ["rule", "use"]) {
+          const v = it.get(k, true);
+          if (isSeq(v)) v.flow = true;
+        }
+        const sel = it.get("select", true);
+        if (isMap(sel)) sel.flow = true;
+      }
+    };
+    flowItems(node.get("groups", true), false);
+    flowItems(node.get("rulesets", true), true);
+    const b = node.get("base", true);
+    if (isMap(b)) {
+      flowItems(b.get("groups", true), false);
+      flowItems(b.get("rulesets", true), true);
+    }
+    this.doc.set("routing", node);
   }
 }
 

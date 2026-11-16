@@ -2,7 +2,7 @@
   // 窄屏的列表模式（routing 第 9 节 #12）：没有连线与粒子，每条规则一行，写明交给谁、默认从哪里出去。
   import { t } from "../../lib/i18n/i18n.svelte";
   import { defaultPath, type Graph, type Trace } from "../../lib/routing/layout";
-  import type { RuleRow, ViewPlan } from "../../lib/routing/plan";
+  import { rowKey, type RuleRow, type ViewPlan } from "../../lib/routing/plan";
   import { builtinLabel, fmtCount, ruleName, targetLabel } from "../../lib/routing/labels";
 
   let { graph, plan, rows, trace, onExpand }: { graph: Graph; plan: ViewPlan; rows: RuleRow[]; trace: Trace | null; onExpand: (id: string) => void } = $props();
@@ -16,7 +16,7 @@
 </script>
 
 <ol class="list" aria-label={t("routing.col.rules")}>
-  {#each rows as row (row.kind === "seg" ? row.run.id : row.index)}
+  {#each rows as row (rowKey(row))}
     {#if row.kind === "seg"}
       {@const rs = graph.rules.slice(row.run.from, row.run.to + 1)}
       <li>
@@ -29,11 +29,13 @@
         </button>
       </li>
     {:else}
-      {@const r = graph.rules[row.index]!}
-      <li class="item" class:traced={trace?.hit === r.index}>
-        <span class="pri">{r.index + 1}</span>
+      {@const rs = row.kind === "bundle" ? graph.rules.slice(row.from, row.to + 1) : [graph.rules[row.index]!]}
+      {@const r = rs[0]!}
+      {@const n = rs.reduce((s, x) => s + (x.set?.count ?? 0), 0)}
+      <li class="item" class:traced={rs.some((x) => trace?.hit === x.index)}>
+        <span class="pri">{row.kind === "bundle" ? `${row.from + 1}–${row.to + 1}` : r.index + 1}</span>
         <span class="main">
-          <span class="nm">{ruleName(r)}{#if r.set?.count} <span class="meta">{fmtCount(r.set.count)}</span>{/if}</span>
+          <span class="nm">{row.kind === "bundle" ? row.name : ruleName(r)}{#if n}<span class="meta">{fmtCount(n)}</span>{/if}</span>
           <span class="to">{via(r.target)}</span>
         </span>
       </li>

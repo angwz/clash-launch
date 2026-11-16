@@ -750,3 +750,76 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
   await expect(page.locator(".hops")).toHaveCount(0);
   expect(problems).toEqual([]);
 });
+
+test("分流编辑：拖动改走向、合并与拆出、改组类型、拒绝循环；应用后写入配置，可撤销", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "拖动编辑只在桌面（手机用列表模式）");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const src = await call<{ id: string }>("POST", "/api/v1/sources", { name: "编辑 e2e 节点", kind: "batch", content: "- {name: 香港 01, type: ss, server: 192.0.2.71, port: 8388, cipher: aes-128-gcm, password: example-pw}\n" });
+  // 规则地址指向本机的关闭端口：服务器的 SSRF 防护直接拒绝，不联网
+  const u = (kind: string, f: string) => `http://127.0.0.1:9/${kind}/${f}`;
+  const groups = ['[[custom_groups]]\nname = "PROXY"\ntype = "select"\nrule = [".*", "[]DIRECT"]', '[[custom_groups]]\nname = "AUTO"\ntype = "url-test"\nurl = "https://www.gstatic.com/generate_204"\ninterval = 300\nrule = [".*"]', '[[custom_groups]]\nname = "ALT"\ntype = "select"\nrule = ["[]PROXY"]'].join("\n\n");
+  const rulesets = [
+    ["PROXY", u("clash-domain", "A.yaml"), "clash-domain"],
+    ["PROXY", u("clash-classic", "A-classic.yaml"), "clash-classic"],
+    ["AUTO", u("clash-domain", "B.yaml"), "clash-domain"],
+  ].map(([g, r, ty]) => `[[rulesets]]\ngroup = "${g}"\nruleset = "${r}"\ntype = "${ty}"`).join("\n") + '\n[[rulesets]]\ngroup = "PROXY"\nruleset = "[]DOMAIN-SUFFIX,example.com"\n[[rulesets]]\ngroup = "DIRECT"\nruleset = "[]MATCH"\n';
+  const rs = await call<{ id: string }>("POST", "/api/v1/rule-sources", { name: "编辑 e2e 规则", kind: "toml", groupsText: groups, rulesetsText: rulesets });
+  const doc = ["clash-launch/profile: v1", "name: 分流编辑 e2e", 'target: { pack: mihomo, preset: mihomo, core: "1.19.33" }', "sources:", `  - ref: ${src.id}`, `rules: { ref: ${rs.id} }`, "output: { empty-groups: keep }", ""].join("\n");
+  const p = await call<{ id: string }>("POST", "/api/v1/profiles", { doc, note: "" });
+  await login(page);
+  await page.goto(`/profiles/${p.id}?section=routing`);
+  const box = (k: string) => page.locator(`.map [data-box='${k}']`);
+  // A 与 A-classic 是 domainrouter_v2 约定的三件套，自动识别为合集
+  await expect(box("bundle:0")).toContainText("合集");
+
+  async function dragTo(from: string, to: string, where: "mid" | "top" | "bottom" = "mid") {
+    const a = (await box(from).boundingBox())!;
+    const b = (await box(to).boundingBox())!;
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2 + 12, { steps: 3 });
+    const y = where === "top" ? b.y + b.height * 0.1 : where === "bottom" ? b.y + b.height * 0.9 : b.y + b.height / 2;
+    await page.mouse.move(b.x + b.width / 2, y, { steps: 10 });
+    await page.mouse.up();
+  }
+  const bar = page.getByRole("region", { name: "未应用的改动" });
+
+  // 合并：B 拖到合集中间 → 并入合集；取消
+  await dragTo("rule:2", "bundle:0");
+  await expect(bar).toContainText("B：并入合集 A");
+  await page.getByRole("button", { name: "取消" }).click();
+  await expect(bar).toHaveCount(0);
+  // 拆出：选中合集，在详情里拆出 A-classic
+  await box("bundle:0").click();
+  await page.getByRole("button", { name: "拆出" }).last().click();
+  await expect(bar).toContainText("A-classic：离开合集 A");
+  await page.getByRole("button", { name: "取消" }).click();
+
+  // 循环：ALT 引用 PROXY，把 ALT 加入 PROXY 会成环，被拒绝
+  await dragTo("group:ALT", "group:PROXY");
+  await expect(page.locator(".edit-err")).toContainText("循环");
+  await expect(bar).toHaveCount(0);
+
+  // 改走向：内联规则拖到「直连」；改组类型：AUTO 改为故障转移
+  await dragTo("rule:3", "exit:builtin:DIRECT");
+  await expect(bar).toContainText("DOMAIN-SUFFIX,example.com：PROXY → DIRECT");
+  await box("group:AUTO").click();
+  await page.getByRole("radio", { name: "故障转移" }).click();
+  await expect(bar).toContainText("AUTO：url-test → fallback");
+  await expect(bar).toContainText("应用后这个配置会自己管理分流");
+  await page.screenshot({ path: "test-results/shot-routing-edit.png", fullPage: true });
+  await page.getByRole("button", { name: "应用" }).click();
+  await expect(bar).toHaveCount(0);
+  await expect(page.getByText("已自动保存")).toBeVisible();
+  const saved = await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`);
+  expect(saved.doc).toContain("routing:");
+  const pv = await call<{ yaml: string }>("POST", `/api/v1/profiles/${p.id}/preview`, { doc: saved.doc });
+  expect(pv.yaml).toContain("DOMAIN-SUFFIX,example.com,DIRECT");
+  expect(pv.yaml).toMatch(/name: AUTO\n\s+type: fallback/);
+  // 撤销：回到跟随上游
+  await page.getByRole("button", { name: "撤销" }).click();
+  await expect(page.getByText("已撤销到这次编辑之前")).toBeVisible();
+  await expect.poll(async () => (await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`)).doc).not.toContain("routing:");
+  expect(problems).toEqual([]);
+});

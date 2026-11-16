@@ -59,6 +59,12 @@ const dynamic: Record<string, string[]> = {
   "routing.why.": ["list", "rules", "folded", "columns", "columns_compact", "unused", "big_groups", "exits_node", "exits_region", "exits_source", "providers", "raw_override", "raw_rows"],
   "routing.exit.": ["direct", "reject", "reject_drop", "pass", "compatible"],
   "routing.seg_": ["sets", "manual"],
+  // 分流编辑（components/routing/DetailPanel.svelte、DraftBar.svelte）
+  "routing.change.": ["target", "move", "bundle", "unbundle", "added", "removed", "type", "param", "members", "group_added", "group_removed"],
+  "routing.lint.": ["single_member", "tolerance_zero", "lazy_stale", "latency_only", "round_robin", "http_probe"],
+  "routing.param.": ["url", "interval", "tolerance", "lazy", "strategy"],
+  "routing.strategy.": ["consistent-hashing", "round-robin", "sticky-sessions"],
+  "routing.type_info.": ["select", "url-test", "fallback", "load-balance"].flatMap((x) => [x + "_tip", x + "_fit", x + "_avoid"]),
   "routing.pref.rules_": ["auto", "all"],
   "routing.pref.particles_": ["all", "focus", "off"],
   "routing.type.": ["select", "url-test", "fallback", "load-balance"],
