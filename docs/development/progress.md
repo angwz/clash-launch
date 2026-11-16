@@ -35,7 +35,7 @@
 - **需求清单（2026-11-16）**：生产部署后提出的需求逐项核实现状、评估工作量，连同此前的可选方向整理进 [backlog](backlog.md)（反馈 #90、#91）；R7 与 R11 附方案草案。维护者下达指令前只登记、不编码。
 - **下一步**：按 [backlog](backlog.md) 的优先级进行，先做 P1（R1 配置删除入口、R2 授权对象删除后的处理）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
-- **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
+- **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求转为私有，镜像仍公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 
 ## 里程碑
 
