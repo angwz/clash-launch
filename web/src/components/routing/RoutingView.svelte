@@ -15,6 +15,7 @@
   import RoutingMap, { type DragOps } from "./RoutingMap.svelte";
   import TracePanel from "./TracePanel.svelte";
   import UpstreamDialog from "./UpstreamDialog.svelte";
+  import ApplyDialog from "./ApplyDialog.svelte";
   import { api } from "../../lib/api/client";
   import type { EditorState } from "../../lib/editor.svelte";
   import { errorText } from "../../lib/errors";
@@ -85,7 +86,7 @@
       // 文档或草稿变了且正在追踪：重新追踪同一个目标（后台轮询不重复追踪，避免占用追踪配额）
       if (traceHost && panel && tracedDoc !== docNow) {
         tracedDoc = docNow;
-        void panel.run(traceHost);
+        void panel.run(traceHost, false);
       }
     } catch (e) {
       if (my === seq) error = errorText(e);
@@ -137,6 +138,18 @@
     });
   }
 
+  /** 重置视图：回到没有选中、没有展开、没有追踪的样子（不影响草稿）。 */
+  function resetView() {
+    selected = null;
+    expanded = new Set();
+    panel?.clear();
+  }
+
+  /** 追踪后把地图滚到可见：粒子沿规则逐条比对的动画在地图上。 */
+  function reveal() {
+    mapCard?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+
   function cancel() {
     draft = null;
     baseline = null;
@@ -144,7 +157,15 @@
     editError = "";
   }
 
+  let applyOpen = $state(false);
+  let mapCard: HTMLDivElement | undefined = $state();
+
+  /** 「应用」先打开对比与检查（反馈 #88）；确认后才写入。 */
   function apply() {
+    if (draft) applyOpen = true;
+  }
+
+  function commit() {
     if (!draft) return;
     editor.setRouting(draft); // 之后照常自动保存、预览与内核检查；编辑器的撤销提示照常可用
     draft = null;
@@ -260,7 +281,7 @@
     untrack(() => {
       if (p && traceHost && tracedDoc !== graphDoc) {
         tracedDoc = graphDoc;
-        void p.run(traceHost);
+        void p.run(traceHost, false);
       }
     });
   });
@@ -297,7 +318,7 @@
       <p class="note raw">{t("routing.raw_override")}</p>
     {/if}
 
-    <div class="card">
+    <div class="card" bind:this={mapCard}>
       <div class="toolbar">
         {#if plan.mode === "map"}
           <div class="seg" role="radiogroup" aria-label={t("routing.pref.rules")}>
@@ -312,6 +333,7 @@
           </div>
           <button class="btn ghost sm" type="button" aria-pressed={!!rv.candidates} onclick={() => void savePref({ candidates: !rv.candidates })}>{t("routing.pref.candidates")}</button>
         {/if}
+        <button class="btn ghost sm" type="button" onclick={resetView}>{t("routing.reset")}</button>
         <span class="grow"></span>
         <span class="legend" aria-hidden="true">
           <span><i class="d lp"></i>{t("routing.legend.proxy")}</span>
@@ -347,7 +369,7 @@
     <div class="panes" class:two={!!selected}>
       {#if graph.traceEnabled}
         <div class="card pad">
-          <TracePanel bind:this={panel} {graph} profileId={editor.profile!.id} {doc} draft={draftText} bind:trace bind:host={traceHost} onPin={graph.editable ? (h, via) => void edit((r) => addCheck(r, h, via)) : undefined} />
+          <TracePanel bind:this={panel} {graph} profileId={editor.profile!.id} {doc} draft={draftText} bind:trace bind:host={traceHost} onReveal={reveal} onPin={graph.editable ? (h, via) => void edit((r) => addCheck(r, h, via)) : undefined} />
           {#if graph.checks.length}
             <div class="checks">
               <h4>{t("routing.checks.title")}</h4>
@@ -377,6 +399,9 @@
 
 <ExplainLayer bind:open={explainOpen} />
 {#if editor.profile}
+  <ApplyDialog bind:open={applyOpen} profileId={editor.profile.id} before={() => editor.text} after={() => graphDoc} onConfirm={commit} />
+{/if}
+{#if editor.profile}
   <UpstreamDialog bind:open={upstreamOpen} profileId={editor.profile.id} doc={() => graphDoc} onAccept={(up, accepted) => void edit((r) => applyUpstream(r, up, accepted, new Date().toISOString()))} />
 {/if}
 {#if editor.profile}
@@ -385,6 +410,7 @@
 
 <style>
   .routing {
+    container-type: inline-size; /* 下方两栏按本区域宽度决定是否上下排列 */
     display: grid;
     gap: var(--space-4);
     min-inline-size: 0;
@@ -530,13 +556,23 @@
     background: var(--info-soft);
     color: var(--info);
   }
+  /* 追踪与详情两栏：每栏最小宽度为 0，内容再长也只在栏内换行或省略，不会撑宽而压到另一栏；
+     区域本身较窄时（容器查询）改为上下排列 */
   .panes {
     display: grid;
     gap: var(--space-4);
     align-items: start;
   }
+  .panes > * {
+    min-inline-size: 0;
+  }
   .panes.two {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @container (max-width: 760px) {
+    .panes.two {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   .edit-err {
     padding: var(--space-2) var(--space-3);

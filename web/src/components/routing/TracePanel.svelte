@@ -14,9 +14,10 @@
     doc,
     draft = () => undefined,
     onPin = undefined,
+    onReveal = undefined,
     trace = $bindable(null),
     host = $bindable(""),
-  }: { graph: Graph; profileId: string; doc: () => string; draft?: () => string | undefined; trace?: Trace | null; host?: string; onPin?: (host: string, via: string) => void } = $props();
+  }: { graph: Graph; profileId: string; doc: () => string; draft?: () => string | undefined; trace?: Trace | null; host?: string; onPin?: (host: string, via: string) => void; onReveal?: () => void } = $props();
 
   let input = $state(host);
   let process = $state("");
@@ -41,7 +42,8 @@
     return out;
   });
 
-  export async function run(h = input) {
+  /** reveal：用户发起的追踪完成后把地图滚到可见；文档变化后的自动重新追踪不滚动。 */
+  export async function run(h = input, reveal = true) {
     const q = h.trim();
     if (!q) return clear();
     input = q;
@@ -53,6 +55,7 @@
       if (my !== seq) return;
       // 有草稿时地图画的是草稿，所以逐步卡片也按草稿；应用前的结果用于对比
       trace = res.draft ?? res.current;
+      if (reveal) onReveal?.();
       before = res.draft ? res.current : null;
       host = q;
     } catch (e) {
@@ -64,13 +67,14 @@
     }
   }
 
-  function clear() {
+  /** 清空并结束追踪；focus 为 false 时不把焦点移到输入框（重置视图时不应滚动页面）。 */
+  export function clear(focus = true) {
     input = "";
     host = "";
     trace = null;
     before = null;
     error = "";
-    inputEl?.focus();
+    if (focus) inputEl?.focus();
   }
 
   // 地图上的规则名、组类型等
@@ -119,7 +123,7 @@
         }}
       />
       {#if input}
-        <button class="clear" type="button" aria-label={t("routing.trace.clear")} title={t("routing.trace.clear")} onclick={clear}><Icon name="x" size={14} /></button>
+        <button class="clear" type="button" aria-label={t("routing.trace.clear")} title={t("routing.trace.clear")} onclick={() => clear()}><Icon name="x" size={14} /></button>
       {/if}
     </div>
     <button class="btn primary" type="submit" disabled={busy || !input.trim()}>{t("routing.trace.run")}</button>
@@ -249,6 +253,7 @@
     pointer-events: none;
   }
   .field .input {
+    min-inline-size: 0;
     flex: 1;
     padding-inline: 32px 30px;
     font-family: var(--font-mono);
@@ -305,6 +310,10 @@
     gap: 6px;
   }
   .chip {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font: inherit;
     font-family: var(--font-mono);
     font-size: var(--text-xs);

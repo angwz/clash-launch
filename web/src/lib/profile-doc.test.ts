@@ -181,3 +181,15 @@ describe("routing 段", () => {
     expect(d.toString()).not.toContain("routing");
   });
 });
+
+describe("流式集合中的指示符", () => {
+  it("含 ? 等字符的正则在流式列表与映射中加引号（后端的 go-yaml 不接受未加引号的写法）", () => {
+    const d = new ProfileDoc("clash-launch/profile: v1\nname: x\n");
+    d.routing = { groups: [{ name: "日本", type: "select", rule: ["(^(?=.*(日|JP))(?!.*尼日利亚).*$)", "(港|HK)", "[]DIRECT"] }], rulesets: [] };
+    d.chains = [{ via: "前置", select: { name: "(?i)hk|港" } }];
+    const text = d.toString();
+    expect(text).toContain(`rule: [ "(^(?=.*(日|JP))(?!.*尼日利亚).*$)", (港|HK), "[]DIRECT" ]`);
+    expect(text).toContain(`name: "(?i)hk|港"`);
+    expect(new ProfileDoc(text).routing!.groups[0]!.rule![0]).toBe("(^(?=.*(日|JP))(?!.*尼日利亚).*$)");
+  });
+});

@@ -359,6 +359,9 @@
     font-size: var(--text-sm);
     color: var(--fg-subtle);
   }
+  .grow .tag {
+    justify-self: start; /* 在网格里不要被拉成整行 */
+  }
   .tag,
   .btag,
   .gtype {

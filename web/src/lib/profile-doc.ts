@@ -3,7 +3,7 @@
 // 前端只做结构操作：读取、设置、删除 form 中的一个路径，调整 sources 的顺序与写法，替换 raw 原文。
 // 合并、校验与渲染全部由后端的预览接口完成（第 16.6 节）。
 // 使用 yaml 的 Document API：未改动的部分（包括注释与 raw 块）保持原样，避免「打开再保存」产生无关差异。
-import { Document, isMap, isScalar, isSeq, parseDocument, Scalar, YAMLMap, YAMLSeq } from "yaml";
+import { Document, isMap, isPair, isScalar, isSeq, parseDocument, Scalar, YAMLMap, YAMLSeq } from "yaml";
 import type { Routing } from "./routing/draft";
 
 export type Mode = "inline" | "provider";
@@ -176,6 +176,7 @@ export class ProfileDoc {
       if (sm instanceof YAMLMap) sm.flow = true;
       seq.items.push(m);
     }
+    quoteRiskyInFlow(seq);
     this.doc.set("chains", seq);
   }
 
@@ -295,6 +296,7 @@ export class ProfileDoc {
       flowItems(b.get("groups", true), false);
       flowItems(b.get("rulesets", true), true);
     }
+    quoteRiskyInFlow(node);
     this.doc.set("routing", node);
   }
 }
@@ -303,4 +305,24 @@ function clean<T extends Record<string, unknown>>(o: T): Partial<T> {
   const out: Partial<T> = {};
   for (const [k, v] of Object.entries(o)) if (v !== undefined) (out as Record<string, unknown>)[k] = v;
   return out;
+}
+
+// 后端的 YAML 解析器（go-yaml v3）不接受流式集合 [ ] { } 中未加引号、含 ? 等指示符的普通标量，
+// 例如 rule: [ (?=.*港).*$ ] 会报 did not find expected ',' or ']'；JS 的 yaml 库认为这样写合法、不会加引号。
+// 所以写入方案文档时，流式集合里含这些字符的字符串一律加双引号（语义不变，两边都能解析）。
+// 开头是指示符，或任何位置出现 ?、流式分隔符、注释或「冒号 + 空白」，或首尾有空白
+const RISKY = /^[-?:,[\]{}#&*!|>'"%@`\s]|[?,[\]{}]|\s#|:\s|\s$/;
+
+function quoteRiskyInFlow(n: unknown, inFlow = false): void {
+  if (isMap(n) || isSeq(n)) {
+    const flow = inFlow || !!n.flow;
+    for (const it of n.items as unknown[]) {
+      if (isPair(it)) {
+        quoteRiskyInFlow(it.value, flow);
+        if (flow && isScalar(it.key) && typeof it.key.value === "string" && RISKY.test(it.key.value)) it.key.type = Scalar.QUOTE_DOUBLE;
+      } else quoteRiskyInFlow(it, flow);
+    }
+    return;
+  }
+  if (inFlow && isScalar(n) && typeof n.value === "string" && RISKY.test(n.value)) n.type = Scalar.QUOTE_DOUBLE;
 }

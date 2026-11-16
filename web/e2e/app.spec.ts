@@ -741,6 +741,19 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
   await expect(page.locator(".hops")).toContainText("第 2 条「DOMAIN-SUFFIX,example.com」命中");
   await expect(page.locator(".hops")).toContainText("交给 PROXY");
   await expect(page.locator(".hops")).toContainText("命中：DOMAIN-SUFFIX,example.com");
+  // 追踪后地图滚到可见（粒子动画在地图上，反馈 #88）
+  await expect(page.locator(".routing .card").first()).toBeInViewport();
+  if (!mobile) {
+    // 重置视图：取消选中、清空追踪
+    await page.locator(".map [data-box='group:PROXY']").click();
+    await expect(page.locator(".detail")).toBeVisible();
+    await page.getByRole("button", { name: "重置视图" }).click();
+    await expect(page.locator(".detail")).toHaveCount(0);
+    await expect(page.locator(".hops")).toHaveCount(0);
+    await page.getByLabel("输入域名或 IP，例如 www.example.com").fill("www.example.com");
+    await page.getByRole("button", { name: "追踪", exact: true }).click();
+    await expect(page.locator(".hops")).toBeVisible();
+  }
   await page.screenshot({ path: `test-results/shot-routing-${test.info().project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   // × 清空并结束追踪
@@ -758,7 +771,7 @@ test("分流编辑：拖动改走向、合并与拆出、改组类型、拒绝�
   const src = await call<{ id: string }>("POST", "/api/v1/sources", { name: "编辑 e2e 节点", kind: "batch", content: "- {name: 香港 01, type: ss, server: 192.0.2.71, port: 8388, cipher: aes-128-gcm, password: example-pw}\n" });
   // 规则地址指向本机的关闭端口：服务器的 SSRF 防护直接拒绝，不联网
   const u = (kind: string, f: string) => `http://127.0.0.1:9/${kind}/${f}`;
-  const groups = ['[[custom_groups]]\nname = "PROXY"\ntype = "select"\nrule = [".*", "[]DIRECT"]', '[[custom_groups]]\nname = "AUTO"\ntype = "url-test"\nurl = "https://www.gstatic.com/generate_204"\ninterval = 300\nrule = [".*"]', '[[custom_groups]]\nname = "ALT"\ntype = "select"\nrule = ["[]PROXY"]'].join("\n\n");
+  const groups = ['[[custom_groups]]\nname = "PROXY"\ntype = "select"\nrule = [".*", "[]DIRECT"]', '[[custom_groups]]\nname = "AUTO"\ntype = "url-test"\nurl = "https://www.gstatic.com/generate_204"\ninterval = 300\nrule = ["(?i)^(?!.*example).*$"]', '[[custom_groups]]\nname = "ALT"\ntype = "select"\nrule = ["[]PROXY"]'].join("\n\n");
   const rulesets = [
     ["PROXY", u("clash-domain", "A.yaml"), "clash-domain"],
     ["PROXY", u("clash-classic", "A-classic.yaml"), "clash-classic"],
@@ -809,7 +822,13 @@ test("分流编辑：拖动改走向、合并与拆出、改组类型、拒绝�
   await expect(bar).toContainText("AUTO：url-test → fallback");
   await expect(bar).toContainText("应用后这个配置会自己管理分流");
   await page.screenshot({ path: "test-results/shot-routing-edit.png", fullPage: true });
-  await page.getByRole("button", { name: "应用" }).click();
+  // 应用前对比与检查（反馈 #88）：e2e 服务器没有 mihomo，检查说明无法预先检查，仍可应用
+  await page.getByRole("button", { name: "应用", exact: true }).click();
+  const review = page.getByRole("dialog", { name: "应用前对比与检查" });
+  await expect(review).toContainText("行变化");
+  await expect(review).toContainText("无法预先检查");
+  await page.screenshot({ path: "test-results/shot-routing-apply.png" });
+  await review.getByRole("button", { name: "确认应用" }).click();
   await expect(bar).toHaveCount(0);
   await expect(page.getByText("已自动保存")).toBeVisible();
   const saved = await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`);
@@ -857,7 +876,12 @@ test("分流：规则源更新后提示并能采纳；从追踪固定期望", as
   await page.getByRole("button", { name: "追踪", exact: true }).click();
   await page.getByRole("button", { name: "固定为期望：始终经过 PROXY" }).click();
   await expect(bar).toContainText("期望：www.example.com 经过 PROXY");
-  await page.getByRole("button", { name: "应用" }).click();
+  // 应用前对比与检查（反馈 #88）：e2e 服务器没有 mihomo，检查说明无法预先检查，仍可应用
+  await page.getByRole("button", { name: "应用", exact: true }).click();
+  const review = page.getByRole("dialog", { name: "应用前对比与检查" });
+  await expect(review).toContainText("行变化");
+  await expect(review).toContainText("无法预先检查");
+  await review.getByRole("button", { name: "确认应用" }).click();
   await expect(bar).toHaveCount(0);
   await expect(page.getByText("规则源有 1 处更新还没有处理。")).toHaveCount(0);
   await expect(page.locator(".checks")).toContainText("✓");
