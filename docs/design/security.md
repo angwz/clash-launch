@@ -36,7 +36,8 @@
 | 工作量证明 | 20 位（约 1 秒） | `CLASH_LAUNCH_POW_BITS` |
 | 登录退避 | 按账号 3 次后 1 s 起翻倍，最长 15 分钟；按 IP 10 次后 | `internal/service/account.go` |
 | 找回锁定 | 按账号 5 次、按 IP 10 次后锁定 15 分钟 | 同上 |
-| 会话 | 空闲 7 天、绝对 30 天；`__Host-` 前缀、`HttpOnly`、`Secure`、`SameSite=Lax` | `internal/api/session.go` |
+| 会话 | 空闲 7 天、绝对 30 天；可定时提前退出（`logout_at`，只能早于到期，生效时取较早者）；`__Host-` 前缀、`HttpOnly`、`Secure`、`SameSite=Lax`（多个对外地址时按请求的域名决定） | `internal/api/session.go`、`publicurl.go` |
+| 登录地点 | 只保存 IP 的 /24（IPv6 /48）与登录时用本地库查出的国家、省市与运营商（`internal/geo` 的 `Place`）；完整地址不保存，不调用外部服务 | `internal/api/account.go` |
 | 订阅端点 | 每 IP + 令牌每分钟 30 次 | `internal/api/subscribe.go` |
 | 拉取 | 10 MiB、30 s、5 次重定向；最短间隔 30 分钟；手动拉取每人每小时 30 次 | `internal/source`、配额 |
 | 短链接 | 随机短码 5 位起（约 2,800 万种，撞码时加长）；同一 IP 一小时内猜错 30 次后限速；只能指向自己的链接；不能占用保留路径 | `internal/api/subscribe.go`、[sharing](sharing.md) |
@@ -72,6 +73,8 @@
 | A14 | 修改密码、安全问题、关闭两步验证需要当前密码；可注销其他设备 | `TestAccountSecurity`、`TestTOTPFlow` | API |
 | A15 | 会话列表只含本人的会话；注销后立即失效 | `TestAccountSecurity` | API |
 | A16 | 安全事件产生提醒（密码、安全问题等）；提醒文字中英齐全 | `TestSMTPSettingsAndAlerts`、`TestAlertTexts` | 单元 / API |
+| A17 | 定时退出只能早于自然到期，可取消，到点后会话失效；「其他设备」不影响当前设备 | `TestScheduleLogout`、e2e 定时退出 | API / e2e |
+| A18 | 多个对外地址：按 Host 选用；未列出的域名链接指向主地址，写请求的 Origin 校验不通过 | `TestPublicURLPerHost`、`TestParsePublicURLs` | 单元 |
 
 ### 授权与隔离
 

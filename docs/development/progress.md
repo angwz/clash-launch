@@ -34,7 +34,8 @@
 - **推送与 CI（2026-11-16）**：本地积压的 35 个提交（反馈 #65–#89 与分流可视化）推送到 GitHub。CI 的 `postgres` 任务发现 `TestEncryptLegacy` 在测试里直接写了 SQLite 的 `?` 占位符，改用按数据库换算的 `d.exec` 后再次推送：ci 的 go、web、container、postgres 四项全部通过（存储与 API 测试在 PostgreSQL 17 上运行，覆盖迁移 0001–0010），image 发布 amd64、arm64 镜像。
 - **需求清单（2026-11-16）**：生产部署后提出的需求逐项核实现状、评估工作量，连同此前的可选方向整理进 [backlog](backlog.md)（反馈 #90、#91）；R7 与 R11 附方案草案。维护者下达指令前只登记、不编码。
 - **需求第 1 批（2026-11-16）**：R1 配置可以删除（列表卡片、编辑器「更多」与命令面板，对话框列出会一起删除的内容）；R2 删除节点源、配置、配置链接或短链接时先收回授权、重新生成对方的配置，并在对话中给对方发系统通知（`kind = notice`）；R6 账号记录每页 10 条。验证：`go test ./...`（新增 `TestDeleteRevokesGrantsAndNotifies`）、`go vet`、`staticcheck`、`golangci-lint`（service 与 api 0 issues）；前端 check / 139 项单元 / build / 首屏 71.6 KiB / e2e 38 通过 20 跳过（新增「删除配置」桌面与手机）。系统通知的样式未截图检查。
-- **下一步**：按 [backlog](backlog.md) 的建议顺序，第 2 批 R9 多域名、R7 登录地点、R8 定时退出。
+- **需求第 2 批（2026-11-16）**：R9 对外地址可写多个域名，按请求的 Host 选用并兼作白名单（链接、Cookie 的 Secure、HSTS、Origin 校验随之按域名决定；通行密钥只在主地址）；R8 登录设备定时退出（迁移 0011 新增 `sessions.logout_at`，只能早于自然到期，可取消，到点即失效并记审计；被定时的设备每页顶部提示）；R7 登录地点（同一迁移新增 `sessions.location`；ip2region IPv4 库进入 `tools.lock.json` 与镜像，约 11 MB；国家库与 ASN 库补充，IPv6 只有国家与运营商）。新增依赖 `lionsoul2014/ip2region/binding/golang`，未抬高 golang.org/x。验证：`go test ./...`（新增 `TestParsePublicURLs`、`TestPublicURLPerHost`、`TestScheduleLogout`、`TestPlaceRoundTrip`、`TestPlace`；本机数据上 114.114.114.114 → 中国 · 江苏省 · 南京市）、`go vet`、`staticcheck`；golangci-lint 在改动的包中只剩存储层 5 个旧的 nolintlint；前端 check / 140 项单元 / build / 首屏 72.0 KiB / e2e 39 通过 21 跳过（新增「定时退出」）。登录地点在本机只能以回环地址登录，界面上的显示未用真实公网地址验证。
+- **下一步**：按 [backlog](backlog.md) 的建议顺序，第 3 批 R4 改用户名、R5 昵称、R12 邀请。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求转为私有，镜像仍公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/angwz/clash-launch/internal/geo"
 )
 
 // 需求 R8：登录设备可以定时退出，只能早于自然到期；可以取消；到点后会话失效；「其他设备」一次设定。
@@ -91,4 +93,15 @@ func mustUserID(t *testing.T, h *harness) string {
 		t.Fatal(err)
 	}
 	return u.ID
+}
+
+// 需求 R7：登录地点编码后存入会话，读取时还原；空结果与旧会话（空串、无法解析）不显示。
+func TestPlaceRoundTrip(t *testing.T) {
+	p := geo.Place{Country: "CN", Province: "上海市", ISP: "中国移动"}
+	if got := parsePlace(placeJSON(p)); got == nil || *got != p {
+		t.Fatalf("往返：%+v", got)
+	}
+	if placeJSON(geo.Place{}) != "" || parsePlace("") != nil || parsePlace("{bad") != nil || parsePlace("{}") != nil {
+		t.Error("空结果与无法解析的内容应为空")
+	}
 }

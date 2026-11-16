@@ -160,7 +160,8 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 	}
 	tok := auth.NewToken(32)
 	now := time.Now()
-	sess := &store.Session{IDHash: auth.HashToken(tok), UserID: u.ID, CSRF: auth.NewToken(24), CreatedAt: now, LastSeen: now, ExpiresAt: now.Add(s.Cfg.SessionMax), UA: truncate(r.UserAgent(), 200), IPPrefix: ipPrefix(s.clientIP(r))}
+	addr := s.clientIP(r)
+	sess := &store.Session{IDHash: auth.HashToken(tok), UserID: u.ID, CSRF: auth.NewToken(24), CreatedAt: now, LastSeen: now, ExpiresAt: now.Add(s.Cfg.SessionMax), UA: truncate(r.UserAgent(), 200), IPPrefix: ipPrefix(addr), Location: placeJSON(s.Svc.Geo.Place(addr))}
 	if err := s.Svc.Store.Sessions().Create(ctx, sess); err != nil {
 		s.fail(w, err)
 		return

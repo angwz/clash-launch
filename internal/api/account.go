@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/angwz/clash-launch/internal/auth"
+	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/store"
 )
@@ -152,13 +154,13 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, p *princ
 // sessionDTO 是一个登录设备。ID 是会话哈希的前 16 位：足以在本人的会话中定位，
 // 不能用来冒充会话（会话令牌原文不可从哈希反推）。
 type sessionDTO struct {
-	ID        string    `json:"id"`
-	Device    string    `json:"device"`
-	UA        string    `json:"ua"`
-	IP        string    `json:"ip"`
-	Location  string    `json:"location,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
-	LastSeen  time.Time `json:"lastSeen"`
+	ID        string     `json:"id"`
+	Device    string     `json:"device"`
+	UA        string     `json:"ua"`
+	IP        string     `json:"ip"`
+	Location  *geo.Place `json:"location,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+	LastSeen  time.Time  `json:"lastSeen"`
 	// ExpiresAt 是自然到期时间（登录满 SessionMax）；闲置满 SessionIdle 也会失效，见 IdleUntil
 	ExpiresAt time.Time  `json:"expiresAt"`
 	IdleUntil time.Time  `json:"idleUntil"`
@@ -167,7 +169,7 @@ type sessionDTO struct {
 }
 
 func (s *Server) toSession(x *store.Session, current string) sessionDTO {
-	return sessionDTO{ID: x.IDHash[:16], Device: auth.DeviceName(x.UA), UA: x.UA, IP: x.IPPrefix, Location: x.Location, CreatedAt: x.CreatedAt, LastSeen: x.LastSeen,
+	return sessionDTO{ID: x.IDHash[:16], Device: auth.DeviceName(x.UA), UA: x.UA, IP: x.IPPrefix, Location: parsePlace(x.Location), CreatedAt: x.CreatedAt, LastSeen: x.LastSeen,
 		ExpiresAt: x.ExpiresAt, IdleUntil: x.LastSeen.Add(s.Cfg.SessionIdle), LogoutAt: tp(x.LogoutAt), Current: x.IDHash == current}
 }
 
@@ -269,4 +271,28 @@ func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request, p *princi
 		}
 	}
 	problem(w, http.StatusNotFound, "not_found", "resource not found")
+}
+
+// placeJSON 把登录地点编码后存入会话（需求 R7）：只在登录时用完整地址查询一次，地址本身不保存。
+func placeJSON(p geo.Place) string {
+	if p.Empty() {
+		return ""
+	}
+	b, err := json.Marshal(p)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+// parsePlace 是 placeJSON 的逆操作；旧会话或无法解析的内容返回 nil。
+func parsePlace(s string) *geo.Place {
+	if s == "" {
+		return nil
+	}
+	var p geo.Place
+	if json.Unmarshal([]byte(s), &p) != nil || p.Empty() {
+		return nil
+	}
+	return &p
 }

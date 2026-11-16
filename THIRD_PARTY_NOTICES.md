@@ -13,6 +13,8 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | `golang.org/x/crypto` | v0.33.0 | BSD-3-Clause | argon2id 口令哈希 |
 | `modernc.org/sqlite` | v1.36.1 | BSD-3-Clause | SQLite 驱动（纯 Go） |
 | `github.com/jackc/pgx/v5` | v5.7.2 | MIT | PostgreSQL 驱动 |
+| `github.com/oschwald/maxminddb-golang` | v1.12.0 | ISC | 读取国家库与 ASN 库（`internal/geo`） |
+| `github.com/lionsoul2014/ip2region/binding/golang` | v0.0.0-20261109070657-f8410adb250b | Apache-2.0 或 MIT | 读取 ip2region 库：登录设备的省市与运营商（`internal/geo`） |
 
 间接依赖由 mihomo 引入，版本以 `go.sum` 为准。
 
@@ -43,3 +45,4 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | --- | --- | --- | --- |
 | mihomo 可执行文件 | v1.19.33 | GPL-3.0 | 内核检查（`mihomo -t`），SHA-256 见 `tools.lock.json` |
 | 地理数据 | MetaCubeX/meta-rules-dat@d5574ea0ab33 | GPL-3.0；ASN 数据为 MaxMind GeoLite2，CC BY-SA 4.0 | 内核检查时预置，避免联网下载 |
+| IP 归属地库 `ip2region_v4.xdb` | lionsoul2014/ip2region@f8410adb | Apache-2.0 或 MIT | 登录设备显示省市与运营商（只用 IPv4 库） |

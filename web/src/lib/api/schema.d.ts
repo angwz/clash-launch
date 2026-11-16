@@ -4963,8 +4963,14 @@ export interface components {
             ua: string;
             /** @description IP 前缀（IPv4 /24、IPv6 /48） */
             ip: string;
-            /** @description 登录时由本地地理库得出的所在地（需求 R7） */
-            location?: string;
+            /** @description 登录时由本地地理库得出的所在地（需求 R7）；省市与运营商按数据库原文 */
+            location?: {
+                /** @description ISO 3166-1 国家代码 */
+                cc?: string;
+                region?: string;
+                city?: string;
+                isp?: string;
+            };
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

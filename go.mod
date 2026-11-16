@@ -11,11 +11,13 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/klauspost/compress v1.17.9
+	github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261109070657-f8410adb250b
 	github.com/metacubex/mihomo v1.19.33
 	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/pelletier/go-toml/v2 v2.4.3
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.33.0
+	golang.org/x/sync v0.11.0
 	golang.org/x/text v0.22.0
 	modernc.org/sqlite v1.36.1
 )
@@ -134,7 +136,6 @@ require (
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/time v0.10.0 // indirect

@@ -60,7 +60,7 @@
 | 配置模板与新建配置 | `internal/store/sql.go`（`templates`）、`internal/api/templates.go`、`web/src/lib/profiles.ts`、`web/src/pages/Profiles.svelte`、`web/src/components/editor/SaveTemplateDialog.svelte` | `TestTemplates`、`TestOwnerIsolationAllRoutes`、`profiles.test.ts`、e2e「存为模板」 | [feedback](feedback.md) #51、#52 |
 | 设置页（个人偏好） | `web/src/pages/Settings.svelte`、`web/src/lib/nav.ts`、`web/src/lib/prefs.svelte.ts`、`internal/api/prefs.go` | `TestPrefsFieldClick`、e2e「点击范围」「调整菜单顺序」 | [feedback](feedback.md) #57 |
 | 统计与请求记录 | `internal/store/stats.go`、`internal/service/stats.go`、`internal/api/stats.go`、`web/src/lib/stats.svelte.ts`、`web/src/components/stats/`、`web/src/components/links/LinkStats.svelte`、`web/src/components/admin/StatsPanel.svelte` | `TestStats`、`TestStatsFlow`、`field-order.test.ts`、e2e「统计」 | [stats](../design/stats.md) |
-| 订阅分析、短链接、导入客户端、站内消息、授权与回收站 | `internal/geo`、`internal/store/{social,contacts}.go`、`internal/service/{analytics,social,grants,deletion,reserved}.go`、`internal/api/{social,subscribe}.go`、`web/src/pages/{Analytics,ShortLinks,Messages}.svelte`、`web/src/lib/{clients,inbox.svelte,regions}.ts`、`web/src/components/links/ImportMenu.svelte`、`web/src/components/stats/HeatGrid.svelte` | `TestAnalyze`、`TestSocialRepos`、`TestShortLinksAnalyticsMessages`、`TestGrantsContactsRootShort`、`TestDeleteRevokesGrantsAndNotifies`、`TestReservedCoversFrontendRoutes`、`TestLookup`、e2e「短链接与订阅分析」「站内消息」 | [sharing](../design/sharing.md) |
+| 订阅分析、短链接、导入客户端、站内消息、授权与回收站 | `internal/geo`（含 `place.go`：登录地点）、`internal/store/{social,contacts}.go`、`internal/service/{analytics,social,grants,deletion,reserved}.go`、`internal/api/{social,subscribe}.go`、`web/src/pages/{Analytics,ShortLinks,Messages}.svelte`、`web/src/lib/{clients,inbox.svelte,regions}.ts`、`web/src/components/links/ImportMenu.svelte`、`web/src/components/stats/HeatGrid.svelte` | `TestAnalyze`、`TestSocialRepos`、`TestShortLinksAnalyticsMessages`、`TestGrantsContactsRootShort`、`TestDeleteRevokesGrantsAndNotifies`、`TestReservedCoversFrontendRoutes`、`TestLookup`、e2e「短链接与订阅分析」「站内消息」 | [sharing](../design/sharing.md) |
 | 密码、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改密码与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
@@ -72,7 +72,7 @@
 | 常见密码表 | `internal/auth/common_passwords.txt`（`go run ./tools/commonpw` 生成，不手改） | `TestCheckPassword` | — |
 | 数据隔离 | 仓储方法以所有者为参数；新增带路径参数的路由时在 `TestOwnerIsolationAllRoutes` 的 `ids` 中补上资源 | `TestOwnerIsolationAllRoutes` | [security](../design/security.md) |
 | 账号安全的表 | `migrations/*/0003_security.sql`、`internal/store/security.go` | `TestSecurityRepos` | — |
-| 会话、登录、CSRF | `internal/api/session.go` | `api_test.go` | [0002](../decisions/0002-storage-and-service.md) |
+| 会话、登录、CSRF；对外地址（多域名）；登录设备的定时退出与所在地 | `internal/api/session.go`、`publicurl.go`、`account.go`；`internal/geo/place.go`；`web/src/pages/Account.svelte`、`web/src/components/account/ScheduleLogoutDialog.svelte` | `api_test.go`、`TestPublicURLPerHost`、`TestScheduleLogout`、`TestPlace`、e2e「定时退出」 | [0002](../decisions/0002-storage-and-service.md)、[security](../design/security.md) |
 | 配置项（环境变量） | `cmd/clash-launch/serve.go` | — | [deploy](../guide/deploy.md) |
 | 静态前端的缓存与回退 | `internal/api/server.go` 的 `staticHandler` | `TestStaticHandler` | [0004](../decisions/0004-web-frontend.md) |
 

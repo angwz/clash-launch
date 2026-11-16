@@ -427,7 +427,10 @@ components:
         device: {type: string, description: 浏览器与系统的粗略归类}
         ua: {type: string}
         ip: {type: string, description: IP 前缀（IPv4 /24、IPv6 /48）}
-        location: {type: string, description: 登录时由本地地理库得出的所在地（需求 R7）}
+        location:
+          type: object
+          description: 登录时由本地地理库得出的所在地（需求 R7）；省市与运营商按数据库原文
+          properties: {cc: {type: string, description: ISO 3166-1 国家代码}, region: {type: string}, city: {type: string}, isp: {type: string}}
         createdAt: {type: string, format: date-time}
         lastSeen: {type: string, format: date-time}
         expiresAt: {type: string, format: date-time, description: 自然到期时间（登录满 30 天）}

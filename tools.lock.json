@@ -30,8 +30,8 @@
     },
     "geodata": {
       "version": "meta-rules-dat@d5574ea0ab33",
-      "purpose": "内核检查时预置的地理数据，使 GEOIP、GEOSITE、IP-ASN 规则无需联网下载",
-      "license": "MetaCubeX/meta-rules-dat（数据来源各自许可）；ASN 为 MaxMind GeoLite2，CC BY-SA 4.0",
+      "purpose": "内核检查时预置的地理数据，使 GEOIP、GEOSITE、IP-ASN 规则无需联网下载；ip2region 用于登录设备的省市与运营商（需求 R7）",
+      "license": "MetaCubeX/meta-rules-dat（数据来源各自许可）；ASN 为 MaxMind GeoLite2，CC BY-SA 4.0；ip2region_v4.xdb 为 lionsoul2014/ip2region，Apache-2.0 或 MIT",
       "files": {
         "geoip.metadb": {
           "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/d5574ea0ab3358ebaae2991d28d09a0f8178b0ed/geoip.metadb",
@@ -48,6 +48,10 @@
         "ASN.mmdb": {
           "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/d5574ea0ab3358ebaae2991d28d09a0f8178b0ed/GeoLite2-ASN.mmdb",
           "sha256": "3f729dfdbca46d6bc83fe084e15e335cef702b46f9d9afb8feaede36180959f4"
+        },
+        "ip2region_v4.xdb": {
+          "url": "https://raw.githubusercontent.com/lionsoul2014/ip2region/f8410adb250b075c20f4c6f463c4b52b821a7970/data/ip2region_v4.xdb",
+          "sha256": "a12ad5aca1277d67e525efcda531a20cc0d654ff4f087150d45bc17fca4bc260"
         }
       }
     }

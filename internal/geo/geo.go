@@ -16,7 +16,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
+	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -25,6 +27,9 @@ type DB struct {
 	country *maxminddb.Reader
 	kind    string
 	asn     *maxminddb.Reader
+	// region 是 ip2region 的 IPv4 库（需求 R7），整个读入内存；它的 Searcher 不是并发安全的，查询时加锁
+	region   *xdb.Searcher
+	regionMu sync.Mutex
 }
 
 // Info 是一次查询的结果。字段为空表示数据库中没有该地址（如内网、保留地址）。
@@ -34,7 +39,7 @@ type Info struct {
 	Org     string // 运营商或组织名
 }
 
-// Open 打开目录中的 geoip.metadb 与 ASN.mmdb。两个都不存在时返回 (nil, nil)。
+// Open 打开目录中的 geoip.metadb、ASN.mmdb 与 ip2region_v4.xdb。都不存在时返回 (nil, nil)。
 func Open(dir string) (*DB, error) {
 	if dir == "" {
 		return nil, nil
@@ -50,7 +55,16 @@ func Open(dir string) (*DB, error) {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("geo: 打开 ASN.mmdb：%w", err)
 	}
-	if d.country == nil && d.asn == nil {
+	if b, err := os.ReadFile(filepath.Join(dir, regionFile)); err == nil {
+		s, err := xdb.NewWithBuffer(xdb.IPv4, b)
+		if err != nil {
+			return nil, fmt.Errorf("geo: 打开 %s：%w", regionFile, err)
+		}
+		d.region = s
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("geo: 读取 %s：%w", regionFile, err)
+	}
+	if d.country == nil && d.asn == nil && d.region == nil {
 		return nil, nil
 	}
 	return d, nil

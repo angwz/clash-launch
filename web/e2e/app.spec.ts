@@ -931,28 +931,29 @@ test("分流：规则源更新后提示并能采纳；从追踪固定期望", as
   expect(problems).toEqual([]);
 });
 
-test("定时退出：在一台设备上给另一台定时，对方页面顶部提示；可以取消", async ({ browser, page, request, baseURL }) => {
+test("定时退出：其他设备一起定时，对方页面顶部提示；可以逐台取消", async ({ browser, page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "与桌面相同");
-  const user = { username: await createUser(request, baseURL!, "sched"), password: "a long enough password" };
+  // 不新建账号（注册有每 IP 每小时的次数限制，整套 e2e 已接近上限）：管理员在两个浏览器中登录
   const ctx2 = await browser.newContext();
   const other = await ctx2.newPage();
-  await login(other, user);
-  await login(page, user);
+  await login(other);
+  await login(page);
 
   await page.goto("/account");
-  const others = page.locator(".sessions li").filter({ hasNot: page.getByText("当前设备") });
-  await others.getByRole("button", { name: "定时退出" }).click();
-  const dialog = page.getByRole("dialog", { name: /定时退出/ });
+  await page.getByRole("button", { name: "其他设备定时退出" }).click();
+  const dialog = page.getByRole("dialog", { name: "其他设备定时退出" });
   await expect(dialog.getByRole("radio", { name: /1 小时后/ })).toBeChecked();
   await dialog.getByRole("button", { name: "定时退出" }).click();
-  await expect(others).toContainText("将于");
+  const current = page.locator(".sessions li").filter({ hasText: "当前设备" });
+  await expect(current).not.toContainText("将于");
+  await expect(page.locator(".sessions li").filter({ hasText: "将于" }).first()).toBeVisible();
 
   await other.goto("/account");
   await expect(other.getByRole("status").filter({ hasText: "此设备将于" })).toBeVisible();
-
-  await others.getByRole("button", { name: "取消定时" }).click();
-  await expect(others).not.toContainText("将于");
-  await other.reload();
+  // 在被定时的设备上取消自己的定时
+  await other.locator(".sessions li").filter({ hasText: "当前设备" }).getByRole("button", { name: "取消定时" }).click();
   await expect(other.getByText("此设备将于")).toHaveCount(0);
   await ctx2.close();
+  // 清理：取消其余设备的定时（之前的测试留下的管理员会话）
+  await (await apiAs(request, baseURL!))("PUT", "/api/v1/account/sessions/others/logout-at", { at: null });
 });
