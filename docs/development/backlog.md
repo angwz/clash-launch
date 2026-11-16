@@ -22,6 +22,7 @@
 | R15 | 客户端预设：Clash Verge Rev | 目前只有 `mihomo` 与 `openclash` 两个预设（`catalog/mihomo/presets/`）。Verge Rev 内置 mihomo 内核，字段与检查都能复用；要核对的是它对订阅的处理方式（订阅头、更新间隔、覆写与脚本不在生成范围内）与默认端口、TUN、外部控制等差异，按其仓库源码逐项确认 | S | P2 | 🕓 |
 | R16 | 客户端预设：Stash（iOS、macOS） | Stash 使用自己的内核，与 mihomo 大体兼容但不完全相同；`internal/target` 已预留 `core: stash`，没有实现。Stash 不开源，只能按官方文档 stash.wiki 核对：支持的节点协议与参数、规则类型、策略组选项、DNS 与 Stash 专有字段；不支持的字段进入诊断，不静默丢弃。本机没有 Stash 内核可做 `-t` 检查，验证只能到「按文档核对」与真机导入两级，需维护者在设备上实测 | L | P2 | 🕓 |
 | R17 | 配置导入导出：导出可选是否含节点、是否含规则集，适配各客户端；导入可直接粘贴网上复制的 YAML，反向解析，提示无用内容并丢弃 | 已有 `GET /profiles/{id}/export`，导出的是方案文档（节点以引用代替），不是客户端可直接用的配置；生成的配置只经订阅链接下发。没有导入。方案见[下文](#r17-配置导入导出) | L | P2 | 🕓 |
+| R18 | 最简 docker compose：启动所需配置最少，各类用户与系统都能直接用 | 现有 `compose.yaml` 约 40 行：以 root 启动后降权、只读根文件系统、去掉 Linux 能力、tmpfs、健康检查与注释说明都写在里面。镜像本身已带 `HEALTHCHECK`、`EXPOSE`、`VOLUME` 与默认的 `serve`，但默认用户是 65532，挂载宿主机目录时会遇到权限问题，这是 compose 里写 `user: "0:0"` 的原因。方案见[下文](#r18-最简-docker-compose) | S | P2 | 🕓 |
 
 ## 方案草案
 
@@ -116,7 +117,7 @@
 
 | 批 | 内容 | 用量 |
 | --- | --- | :---: |
-| R14a 部署 | compose 默认带 PostgreSQL 服务，部署与搬迁文档改为以它为主；连接池上限、语句超时、空闲连接可配置；备份改为 `pg_dump` 说明（应用内的备份命令保留） | S |
+| R14a 部署 | 提供 PostgreSQL 版的 compose（在 R18 的最简文件之上叠加，`docker compose -f compose.yaml -f compose.postgres.yaml up -d`），部署与搬迁文档改为以它为主；连接池上限、语句超时、空闲连接可配置；备份改为 `pg_dump` 说明（应用内的备份命令保留） | S |
 | R14b 基准 | 造千万行的测试数据（只用文档地址与虚构账号），对每条热点查询记录 `EXPLAIN ANALYZE` 与耗时；之后每项优化都以实测数字为准 | M |
 | R14c 订阅明细 | 分析改为在数据库里按天、国家、客户端、小时聚合，不再把明细读进内存（去掉 5 万行截断）；明细设保留期（如 90 天），更早的只留按天汇总；PostgreSQL 上按月分区，清理旧数据直接删分区，不做大批量 `DELETE`；写入改为多行批量插入 | L |
 | R14d 分页与日志 | 审计、用户列表、消息改为键集分页（按「时间 + ID」翻页，不再 `OFFSET`）；总数改为估算或只在第一页计算；审计按月分区；为未读数、会话列表补齐复合索引 | M |
@@ -140,6 +141,29 @@
 - 只接受 YAML；订阅链接、Base64 节点列表与 subconverter 的 ini 已有入口（节点源、外部配置），在导入页给出指引。
 
 **风险**：网上的配置常含失效字段与过时写法，反向解析的覆盖面决定体验，需用一批真实样本（只取公开发布的配置，不入库原文中的凭据）做回归。
+
+### R18 最简 docker compose
+
+**目标**：默认的 `compose.yaml` 只留启动必需的三样，复制即可运行：
+
+```yaml
+services:
+  clash-launch:
+    image: ghcr.io/angwz/clash-launch:latest
+    ports: ["20230:20230"]
+    volumes: ["./data:/data"]
+```
+
+另给一行 `docker run` 的等价写法，供不用 compose 的人。
+
+**为此要改镜像，而不是让用户在 compose 里补参数**：
+- **数据目录权限**：镜像默认以 root 启动，由程序把 `/data` 交给运行用户后立即降权（现在靠 compose 的 `user: "0:0"` 实现）。这样数据卷、宿主机目录、NAS 共享目录都不用手动改权限。另支持 `PUID`、`PGID` 环境变量，供群晖、威联通、Unraid 等需要指定宿主机用户的系统使用。
+- **重启策略**：compose 无法由镜像决定，最简文件里保留 `restart: unless-stopped` 一行（不写的话机器重启后服务不会自动起来），这是三样之外唯一建议保留的。
+- **加固项**（只读根文件系统、去掉 Linux 能力、禁止提权）移到 `compose.hardened.yaml`，用 `-f` 叠加；文档说明它们的作用与为什么默认不开（部分 NAS 与 rootless 环境不支持）。
+
+**要实测的环境**：Linux（Docker 与 Podman，含 rootless）、Windows 与 macOS 的 Docker Desktop、群晖 Container Manager、Unraid；amd64 与 arm64（树莓派 4/5）。armv7 目前没有镜像，是否补上看需求。
+
+**与其他需求的关系**：PostgreSQL 版（R14a）与加固项都以叠加文件提供，不让默认文件变长；对外地址与反代网段这类按需配置只写在部署文档里。
 
 ## 可进一步优化
 
