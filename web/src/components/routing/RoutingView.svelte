@@ -14,13 +14,14 @@
   import RoutingList from "./RoutingList.svelte";
   import RoutingMap, { type DragOps } from "./RoutingMap.svelte";
   import TracePanel from "./TracePanel.svelte";
+  import UpstreamDialog from "./UpstreamDialog.svelte";
   import { api } from "../../lib/api/client";
   import type { EditorState } from "../../lib/editor.svelte";
   import { errorText } from "../../lib/errors";
   import { t } from "../../lib/i18n/i18n.svelte";
   import { prefs } from "../../lib/prefs.svelte";
   import { ProfileDoc } from "../../lib/profile-doc";
-  import { addMember, changes, merge, move, setTarget, setType, type GroupType, type Routing } from "../../lib/routing/draft";
+  import { addCheck, addMember, applyUpstream, changes, merge, metaChanges, move, removeCheck, setTarget, setType, type GroupType, type Routing } from "../../lib/routing/draft";
   import { builtinLabel } from "../../lib/routing/labels";
   import type { Graph, Trace } from "../../lib/routing/layout";
   import { planView, ruleRows, type RoutingPrefs } from "../../lib/routing/plan";
@@ -46,7 +47,8 @@
   let editError = $state("");
 
   const applied = $derived(editor.routing);
-  const changeList = $derived(draft && baseline ? changes(baseline, draft) : []);
+  const changeList = $derived(draft && baseline ? [...changes(baseline, draft), ...metaChanges(baseline, draft)] : []);
+  let upstreamOpen = $state(false);
   const pending = $derived(changeList.length > 0);
   // 地图与追踪用的文档：有改动时把草稿写进 routing 段
   const graphDoc = $derived.by(() => {
@@ -328,6 +330,12 @@
       {:else}
         <RoutingList {graph} {plan} {rows} {trace} onExpand={(id) => (expanded = new Set([...expanded, id]))} />
       {/if}
+      {#if graph.upstreamChanges && !pending}
+        <div class="upstream" role="status">
+          <span>{t("routing.upstream.banner", { n: graph.upstreamChanges })}</span>
+          <button class="btn sm" type="button" onclick={() => (upstreamOpen = true)}>{t("routing.upstream.review")}</button>
+        </div>
+      {/if}
       {#if pending}
         <DraftBar changes={changeList} own={!!applied} error={editError} onCancel={cancel} onApply={apply} />
       {:else if editError}
@@ -339,7 +347,21 @@
     <div class="panes" class:two={!!selected}>
       {#if graph.traceEnabled}
         <div class="card pad">
-          <TracePanel bind:this={panel} {graph} profileId={editor.profile!.id} {doc} draft={draftText} bind:trace bind:host={traceHost} />
+          <TracePanel bind:this={panel} {graph} profileId={editor.profile!.id} {doc} draft={draftText} bind:trace bind:host={traceHost} onPin={graph.editable ? (h, via) => void edit((r) => addCheck(r, h, via)) : undefined} />
+          {#if graph.checks.length}
+            <div class="checks">
+              <h4>{t("routing.checks.title")}</h4>
+              <ul>
+                {#each graph.checks as c (c.host)}
+                  <li class={c.ok === undefined ? "unk" : c.ok ? "ok" : "bad"}>
+                    <span class="st">{c.ok === undefined ? "?" : c.ok ? "✓" : "✗"}</span>
+                    <span class="grow"><code>{c.host}</code> → {builtinLabel(c.via)}{#if c.ok === false && c.path.length} <span class="got">{t("routing.checks.got", { got: builtinLabel(c.path[0]!) })}</span>{/if}</span>
+                    {#if graph.editable}<button class="btn ghost sm" type="button" onclick={() => void edit((r) => removeCheck(r, c.host))}>{t("common.remove")}</button>{/if}
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
         </div>
       {:else}
         <p class="note">{t("routing.trace_off")}</p>
@@ -354,6 +376,9 @@
 </section>
 
 <ExplainLayer bind:open={explainOpen} />
+{#if editor.profile}
+  <UpstreamDialog bind:open={upstreamOpen} profileId={editor.profile.id} doc={() => graphDoc} onAccept={(up, accepted) => void edit((r) => applyUpstream(r, up, accepted, new Date().toISOString()))} />
+{/if}
 {#if editor.profile}
   <HealthDialog bind:open={healthOpen} profileId={editor.profile.id} {doc} onTrace={(h) => void panel?.run(h)} />
 {/if}
@@ -518,6 +543,62 @@
     font-size: var(--text-sm);
     color: var(--err);
     border-block-start: 1px solid var(--border);
+  }
+  .upstream {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    border-block-start: 1px solid var(--border);
+    background: var(--info-soft);
+    color: var(--info);
+    font-size: var(--text-sm);
+  }
+  .checks {
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--border);
+    display: grid;
+    gap: var(--space-2);
+  }
+  .checks h4 {
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .checks ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  .checks li {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: var(--text-sm);
+  }
+  .checks .st {
+    inline-size: 1.2em;
+    text-align: center;
+    font-weight: 700;
+  }
+  .checks li.ok .st {
+    color: var(--ok);
+  }
+  .checks li.bad .st,
+  .checks .got {
+    color: var(--err);
+  }
+  .checks li.unk .st {
+    color: var(--fg-subtle);
+  }
+  .checks .grow {
+    flex: 1;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
   }
   .caption {
     padding: var(--space-2) var(--space-3) var(--space-3);

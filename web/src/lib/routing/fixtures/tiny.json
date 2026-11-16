@@ -140,5 +140,6 @@
   ],
   "pending": 0,
   "traceEnabled": true,
+  "checks": [],
   "diagnostics": []
 }

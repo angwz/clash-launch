@@ -4127,6 +4127,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profiles/{id}/routing/upstream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 自己管理分流后，规则源相对开始管理时（base）的变化：三方比对，逐条给出与用户改动的关系；只读 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingUpstream"];
+                    };
+                };
+                400: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles/{id}/routing/health": {
         parameters: {
             query?: never;
@@ -4448,7 +4493,43 @@ export interface components {
             /** @description 正在后台拉取的规则集个数 */
             pending: number;
             traceEnabled: boolean;
+            /** @description 期望的结果（自己管理时） */
+            checks: components["schemas"]["RoutingCheck"][];
+            /** @description 自己管理后规则源的变化数 */
+            upstreamChanges?: number;
             diagnostics: components["schemas"]["Diagnostic"][];
+        };
+        RoutingUpstream: {
+            changes: components["schemas"]["RoutingUpstreamChange"][];
+            /** @description 上游当前内容的摘要；采纳或忽略后写入 routing.from.digest */
+            digest: string;
+            groups: {
+                [key: string]: unknown;
+            }[];
+            rulesets: {
+                [key: string]: unknown;
+            }[];
+        };
+        RoutingUpstreamChange: {
+            id: string;
+            /** @enum {string} */
+            kind: "group" | "ruleset";
+            /** @enum {string} */
+            op: "add" | "remove" | "modify" | "move";
+            key: string;
+            field?: string;
+            base?: unknown;
+            upstream?: unknown;
+            mine?: unknown;
+            /** @description 用户也改过同一处，默认保留自己的 */
+            conflict: boolean;
+        };
+        RoutingCheck: {
+            host: string;
+            via: string;
+            /** @description 省略表示无法判断 */
+            ok?: boolean;
+            path: string[];
         };
         RoutingRule: {
             index: number;

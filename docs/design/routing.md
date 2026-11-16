@@ -1,6 +1,6 @@
 # 分流视图、追踪与 routing 段
 
-> 状态：设计定稿（2026-11-15），实施中：第 0 步（`internal/match`）、第 1 步（讲解图层、规则集说明目录）、第 2 步（只读地图、追踪、粒子、体检）、第 3 步（编辑与 routing 段）已完成，第 4 步未开始。按第 13 节的步骤逐步实施，每一步单独提交并更新 [progress](../development/progress.md) 与 [codemap](../development/codemap.md)。
+> 状态：已实施（2026-11-15），第 0–4 步全部完成；各步的完成情况与和本文的差别写在第 13 节对应步骤下。
 > 取舍与理由见 [0007](../decisions/0007-routing-visualization.md)，本文只写「做什么、怎么做、怎么验收」。
 > 交互原型 [routing-prototype.html](routing-prototype.html) 是布局、粒子与追踪动画的参考实现（用浏览器直接打开）。它用了内联样式与示例数据，**不能照搬进站内**：站内 CSP 不允许 `style` 属性，数据来自接口。
 
@@ -457,6 +457,7 @@ col(g)       = entry(g) ? 1 : C − steps(g) + 1
 - `/routing/upstream`、`UpstreamDialog`、`checks` 与「固定为期望」、`routing.check_failed`、`routing.upstream_changed`。
 - 帮助教程一篇（两种语言）；[rules](rules.md) 增加「routing 段」一节并链接本文；[guide/deploy](../guide/deploy.md) 补环境变量。
 - 验收：三方比对的单元测试覆盖「可直接采纳、冲突、忽略、移动」；e2e：修改上游规则源快照后出现提示并能采纳。
+- 完成情况（2026-11-15）：三方比对在服务端（`internal/service/routing_sync.go`）按组名与规则集地址对应、逐字段比较，移动用最长递增子序列判断；对话框里勾选的采纳、未勾选的忽略，确认后 `base` 与 `from.digest` 一律更新为上游当前内容（`applyUpstream`）。期望在地图数据中用已缓存的规则内容判断（不为此等待拉取），结果显示在分流页的期望列表，诊断 `routing.check_failed`、`routing.check_unknown`；不进入内核检查的结果。修正了一个已有缺陷：通用对话框的标题 id 写死，同一页面有多个对话框时都以第一个的标题命名。
 
 ## 14. 风险与对策
 

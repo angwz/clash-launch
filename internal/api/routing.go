@@ -102,3 +102,17 @@ func (s *Server) routingFork(w http.ResponseWriter, r *http.Request, p *principa
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"routing": text, "diagnostics": diag.Sorted(ds)})
 }
+
+// routingUpstream 返回规则源相对开始管理时的变化（三方比对）与上游当前的规范化内容；只读，采纳在前端草稿里完成。
+func (s *Server) routingUpstream(w http.ResponseWriter, r *http.Request, p *principal) {
+	req, ok := s.routingBegin(w, r, p)
+	if !ok || !s.renderAllowed(w, p, false) {
+		return
+	}
+	up, err := s.Svc.RoutingUpstream(r.Context(), p.User, []byte(req.Doc))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, up)
+}

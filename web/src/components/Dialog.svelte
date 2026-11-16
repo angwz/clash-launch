@@ -14,6 +14,8 @@
   }: { open?: boolean; title: string; wide?: boolean; xl?: boolean; children: Snippet; footer?: Snippet } = $props();
 
   let el: HTMLDialogElement | undefined = $state();
+  // 标题的 id 每个对话框唯一：同一页面上可能同时有多个对话框，固定 id 会让它们都以第一个的标题命名
+  const titleId = $props.id();
   let opener: Element | null = null;
 
   $effect(() => {
@@ -32,9 +34,9 @@
   }
 </script>
 
-<dialog bind:this={el} class:wide class:xl onclose={onClose} aria-labelledby="dlg-title">
+<dialog bind:this={el} class:wide class:xl onclose={onClose} aria-labelledby={titleId}>
   <header>
-    <h2 id="dlg-title">{title}</h2>
+    <h2 id={titleId}>{title}</h2>
     <button class="btn ghost icon sm" type="button" aria-label={t("common.close")} onclick={() => (open = false)}>
       <Icon name="x" size={15} />
     </button>

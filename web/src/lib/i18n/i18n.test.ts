@@ -60,7 +60,9 @@ const dynamic: Record<string, string[]> = {
   "routing.exit.": ["direct", "reject", "reject_drop", "pass", "compatible"],
   "routing.seg_": ["sets", "manual"],
   // 分流编辑（components/routing/DetailPanel.svelte、DraftBar.svelte）
-  "routing.change.": ["target", "move", "bundle", "unbundle", "added", "removed", "type", "param", "members", "group_added", "group_removed"],
+  "routing.change.": ["target", "move", "bundle", "unbundle", "added", "removed", "type", "param", "members", "group_added", "group_removed", "check_added", "check_removed", "upstream"],
+  // 上游同步（components/routing/UpstreamDialog.svelte）：种类 × 操作
+  "routing.upstream.": ["group", "ruleset"].flatMap((k) => ["add", "remove", "modify", "move"].map((o) => k + "_" + o)),
   "routing.lint.": ["single_member", "tolerance_zero", "lazy_stale", "latency_only", "round_robin", "http_probe"],
   "routing.param.": ["url", "interval", "tolerance", "lazy", "strategy"],
   "routing.strategy.": ["consistent-hashing", "round-robin", "sticky-sessions"],

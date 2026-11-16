@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,15 +42,17 @@ var builtins = []string{"DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"}
 // —— 响应结构（与 api/openapi.yaml 的 Routing* 一致）——
 
 type GraphDTO struct {
-	State          string            `json:"state"` // follow：跟随上游；own：自己管理（第 3 步）
-	Editable       bool              `json:"editable"`
-	ReadonlyReason string            `json:"readonlyReason,omitempty"` // raw_override | no_rules
-	Rules          []RuleDTO         `json:"rules"`
-	Groups         []GroupDTO        `json:"groups"`
-	Exits          []ExitDTO         `json:"exits"`
-	Pending        int               `json:"pending"` // 正在后台拉取的规则集个数：大于 0 时前端稍后再取
-	TraceEnabled   bool              `json:"traceEnabled"`
-	Diagnostics    []diag.Diagnostic `json:"diagnostics"`
+	State           string            `json:"state"` // follow：跟随上游；own：自己管理（第 3 步）
+	Editable        bool              `json:"editable"`
+	ReadonlyReason  string            `json:"readonlyReason,omitempty"` // raw_override | no_rules
+	Rules           []RuleDTO         `json:"rules"`
+	Groups          []GroupDTO        `json:"groups"`
+	Exits           []ExitDTO         `json:"exits"`
+	Pending         int               `json:"pending"` // 正在后台拉取的规则集个数：大于 0 时前端稍后再取
+	TraceEnabled    bool              `json:"traceEnabled"`
+	Checks          []CheckDTO        `json:"checks"`                    // 期望的结果（自己管理时）
+	UpstreamChanges int               `json:"upstreamChanges,omitempty"` // 自己管理后规则源的变化数
+	Diagnostics     []diag.Diagnostic `json:"diagnostics"`
 }
 
 type RuleDTO struct {
@@ -298,7 +301,7 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 	if err != nil {
 		return nil, err
 	}
-	g := &GraphDTO{State: "follow", Rules: []RuleDTO{}, Groups: []GroupDTO{}, Exits: []ExitDTO{}, TraceEnabled: !s.Trace.Disabled, Diagnostics: append([]diag.Diagnostic{}, diag.Sorted(in.res.Diagnostics)...)}
+	g := &GraphDTO{State: "follow", Rules: []RuleDTO{}, Groups: []GroupDTO{}, Exits: []ExitDTO{}, Checks: []CheckDTO{}, TraceEnabled: !s.Trace.Disabled, Diagnostics: append([]diag.Diagnostic{}, diag.Sorted(in.res.Diagnostics)...)}
 	if in.res.Fatal != "" {
 		g.ReadonlyReason = "no_rules"
 		return g, nil
@@ -380,6 +383,20 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 		}
 		g.Rules = append(g.Rules, r)
 	}
+
+	// 期望与上游变化（自己管理时，第 4 步）：期望只用已缓存的规则内容判断，不为此等待拉取
+	var cl diag.List
+	g.Checks = s.routingChecks(in, sets, stale, &cl)
+	if g.Checks == nil {
+		g.Checks = []CheckDTO{}
+	}
+	if g.State == "own" && in.prof.Rules != nil {
+		if up, err := s.RoutingUpstream(ctx, user, doc); err == nil && len(up.Changes) > 0 {
+			g.UpstreamChanges = len(up.Changes)
+			cl.Add(diag.RoutingUpstreamChanged, "routing.from", "n", strconv.Itoa(len(up.Changes)))
+		}
+	}
+	g.Diagnostics = append(g.Diagnostics, cl.Items()...)
 
 	// 策略组
 	referenced := map[string]bool{}

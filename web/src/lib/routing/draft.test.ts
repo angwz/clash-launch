@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMember, changes, lisKeep, merge, move, reaches, removeMember, setFirst, setParam, setTarget, setType, splitOut, unitOf, type Routing } from "./draft";
+import { addCheck, addMember, applyUpstream, changes, lisKeep, merge, metaChanges, move, reaches, removeCheck, removeMember, setFirst, setParam, setTarget, setType, splitOut, unitOf, type Routing } from "./draft";
 
 const U = (kind: string, f: string) => `https://raw.githubusercontent.com/angwz/domainrouter_v2/release/${kind}/${f}`;
 
@@ -85,5 +85,35 @@ describe("draft", () => {
     expect(changes(r, t).map((c) => c.key + ":" + Object.values(c.params).join("/"))).toEqual(["move:AI", "target:GEOIP,CN/B/DIRECT", "type:A/url-test/fallback"]);
     expect(changes(r, r)).toEqual([]);
     expect(changes(r, splitOut(r, 0)!).map((c) => c.key)).toEqual(["move", "unbundle", "unbundle"]);
+  });
+});
+
+describe("上游同步与期望", () => {
+  it("采纳的写入，没采纳的忽略；base 与摘要一律更新为上游", () => {
+    const r = { ...base(), from: { rules: "rs", digest: "sha256:old", at: "2026-11-01T00:00:00Z" } };
+    const up = {
+      digest: "sha256:new",
+      groups: [...r.groups.map((g) => (g.name === "A" ? { ...g, tolerance: 80 } : g)), { name: "N", type: "select", rule: ["[]DIRECT"] }],
+      rulesets: [r.rulesets[0]!, r.rulesets[1]!, { group: "P", ruleset: "[]DOMAIN,new.example.com" }, ...r.rulesets.slice(2)],
+    };
+    const changesUp = [
+      { id: "1", kind: "ruleset" as const, op: "add" as const, key: "[]DOMAIN,new.example.com", conflict: false },
+      { id: "2", kind: "group" as const, op: "modify" as const, key: "A", field: "tolerance", upstream: 80, conflict: false },
+      { id: "3", kind: "group" as const, op: "add" as const, key: "N", conflict: false },
+    ];
+    const d = applyUpstream(r, up as never, [changesUp[0]!, changesUp[1]!], "2026-11-15T00:00:00Z");
+    expect(names(d)[2]).toBe("[]DOMAIN,new.example.com");
+    expect(d.groups.find((g) => g.name === "A")!.tolerance).toBe(80);
+    expect(d.groups.some((g) => g.name === "N")).toBe(false); // 没有采纳：忽略
+    expect(d.base!.groups.some((g) => g.name === "N")).toBe(true);
+    expect(d.from).toEqual({ rules: "rs", digest: "sha256:new", at: "2026-11-15T00:00:00Z" });
+    expect(metaChanges(r, d)).toEqual([{ key: "upstream", params: {} }]);
+  });
+
+  it("期望：固定、替换同一 host、移除", () => {
+    const r = addCheck(addCheck(base(), "chatgpt.example.com", "P"), "chatgpt.example.com", "A");
+    expect(r.checks).toEqual([{ host: "chatgpt.example.com", via: "A" }]);
+    expect(metaChanges(base(), r)).toEqual([{ key: "check_added", params: { host: "chatgpt.example.com", via: "A" } }]);
+    expect(removeCheck(r, "chatgpt.example.com").checks).toBeUndefined();
   });
 });

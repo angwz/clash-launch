@@ -302,3 +302,79 @@ func dropUpdated(y string) string {
 	}
 	return strings.Join(out, "\n")
 }
+
+// 上游同步与期望（routing 第 13 节第 4 步）。
+func TestRoutingUpstreamChecks(t *testing.T) {
+	h := newHarness(t, nil)
+	c, _ := h.setup()
+	rsrv, _ := ruleServer(t)
+	pid, doc := routingProfile(t, h, c, rsrv.URL)
+	path := "/api/v1/profiles/" + pid + "/routing/"
+	fk := decode[struct{ Routing string }](t, c.want(200, "POST", path+"fork", map[string]string{"doc": doc}))
+	ipcidr := rsrv.URL + "/clash-ipcidr/Proxy-ipcidr.list"
+	// 用户自己的改动：ipcidr 规则集改为直连
+	mine := strings.Replace(fk.Routing, "group: PROXY\n    ruleset: "+ipcidr, "group: DIRECT\n    ruleset: "+ipcidr, 1)
+	if mine == fk.Routing {
+		t.Fatal("没有改到 ipcidr 规则集")
+	}
+	own := doc + "routing:\n" + indent(mine)
+	up := decode[service.UpstreamDTO](t, c.want(200, "POST", path+"upstream", map[string]string{"doc": own}))
+	if len(up.Changes) != 0 {
+		t.Fatalf("上游没变时不应有变化：%+v", up.Changes)
+	}
+
+	// 上游更新：domain 规则集改走 AUTO（可直接采纳）；ipcidr 规则集改走 SPARE（与用户的改动冲突）；新增一条内联规则
+	var rs ruleSourceDTO
+	for _, x := range decode[list[ruleSourceDTO]](t, c.want(200, "GET", "/api/v1/rule-sources", nil)).Items {
+		if x.Name == "local" {
+			rs = x
+		}
+	}
+	full := decode[map[string]any](t, c.want(200, "GET", "/api/v1/rule-sources/"+rs.ID, nil))
+	text := full["rulesetsText"].(string)
+	text = strings.Replace(text, "group = \"PROXY\"\nruleset = \""+rsrv.URL+"/clash-domain/Proxy.list\"", "group = \"AUTO\"\nruleset = \""+rsrv.URL+"/clash-domain/Proxy.list\"", 1)
+	text = strings.Replace(text, "group = \"PROXY\"\nruleset = \""+ipcidr+"\"", "group = \"SPARE\"\nruleset = \""+ipcidr+"\"", 1)
+	text = "[[rulesets]]\ngroup = \"PROXY\"\nruleset = \"[]DOMAIN,new.example.com\"\n" + text
+	body := map[string]any{"name": full["name"], "kind": full["kind"], "groupsText": full["groupsText"], "rulesetsText": text}
+	c.want(200, "PUT", "/api/v1/rule-sources/"+rs.ID, body, "If-Match", `"v`+itoa(int(full["version"].(float64)))+`"`)
+
+	up = decode[service.UpstreamDTO](t, c.want(200, "POST", path+"upstream", map[string]string{"doc": own}))
+	got := map[string]bool{}
+	for _, ch := range up.Changes {
+		got[ch.Op+" "+ch.Key+" "+ch.Field] = ch.Conflict
+	}
+	want := map[string]bool{
+		"add []DOMAIN,new.example.com ":                         false,
+		"modify " + rsrv.URL + "/clash-domain/Proxy.list group": false,
+		"modify " + ipcidr + " group":                           true,
+	}
+	for k, v := range want {
+		if c, ok := got[k]; !ok || c != v {
+			t.Errorf("缺少或冲突标记不对：%q（得到 %v）", k, got)
+		}
+	}
+	if len(up.Rulesets) != 6 || !strings.HasPrefix(up.Digest, "sha256:") {
+		t.Errorf("上游内容：%d 条，摘要 %s", len(up.Rulesets), up.Digest)
+	}
+	g := decode[service.GraphDTO](t, c.want(200, "POST", path+"graph", map[string]string{"doc": own}))
+	if g.UpstreamChanges != len(up.Changes) {
+		t.Errorf("地图上的上游变化数：%d", g.UpstreamChanges)
+	}
+
+	// 期望：先追踪一次让规则内容进入缓存（地图里的期望只用已缓存的内容判断）
+	c.want(200, "POST", path+"trace", map[string]string{"doc": own, "host": "www.example.com"})
+	checks := own + "  checks:\n    - {host: www.example.com, via: AUTO}\n    - {host: www.example.com, via: DIRECT}\n    - {host: www.example.com, via: NOPE}\n"
+	g = decode[service.GraphDTO](t, c.want(200, "POST", path+"graph", map[string]string{"doc": checks}))
+	if len(g.Checks) != 3 || g.Checks[0].OK == nil || !*g.Checks[0].OK || g.Checks[1].OK == nil || *g.Checks[1].OK || g.Checks[2].OK != nil {
+		t.Fatalf("期望：%+v", g.Checks)
+	}
+	codes := map[string]bool{}
+	for _, d := range g.Diagnostics {
+		codes[string(d.Code)] = true
+	}
+	if !codes["routing.check_failed"] || !codes["routing.check_unknown"] || !codes["routing.upstream_changed"] {
+		t.Errorf("诊断：%v", codes)
+	}
+	// 跟随上游时没有可比对的基线
+	c.want(400, "POST", path+"upstream", map[string]string{"doc": doc})
+}

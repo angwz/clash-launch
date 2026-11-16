@@ -1,6 +1,6 @@
 # 0007 · 分流视图、追踪与 routing 段
 
-- 状态：已采纳（2026-11-15），实施中（第 0 步 `internal/match` 已完成）
+- 状态：已采纳并实施（2026-11-15）
 - 范围：配置编辑器的「分流」视图（讲解图层、分流地图、流向追踪、常用网站体检、期望）与方案文档的 `routing` 段
 - 实施规范：[design/routing.md](../design/routing.md)；交互原型：[design/routing-prototype.html](../design/routing-prototype.html)
 - 依据：mihomo v1.19.33 源码（只读参考 `.cache/ref/mihomo`）、domainrouter_v2@2c812f9 的 `groups.toml` 与 `docs/guide/subconverter.md`；维护者意见见 [feedback](../development/feedback.md) #81–#84

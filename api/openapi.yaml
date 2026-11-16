@@ -58,7 +58,7 @@ components:
         args: {type: object, additionalProperties: {type: string}}
     RoutingGraph:
       type: object
-      required: [state, editable, rules, groups, exits, pending, traceEnabled, diagnostics]
+      required: [state, editable, rules, groups, exits, pending, traceEnabled, checks, diagnostics]
       properties:
         state: {type: string, enum: [follow, own]}
         editable: {type: boolean}
@@ -68,7 +68,38 @@ components:
         exits: {type: array, items: {$ref: '#/components/schemas/RoutingExit'}}
         pending: {type: integer, description: 正在后台拉取的规则集个数}
         traceEnabled: {type: boolean}
+        checks: {type: array, items: {$ref: '#/components/schemas/RoutingCheck'}, description: 期望的结果（自己管理时）}
+        upstreamChanges: {type: integer, description: 自己管理后规则源的变化数}
         diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+    RoutingUpstream:
+      type: object
+      required: [changes, digest, groups, rulesets]
+      properties:
+        changes: {type: array, items: {$ref: '#/components/schemas/RoutingUpstreamChange'}}
+        digest: {type: string, description: 上游当前内容的摘要；采纳或忽略后写入 routing.from.digest}
+        groups: {type: array, items: {type: object, additionalProperties: true}}
+        rulesets: {type: array, items: {type: object, additionalProperties: true}}
+    RoutingUpstreamChange:
+      type: object
+      required: [id, kind, op, key, conflict]
+      properties:
+        id: {type: string}
+        kind: {type: string, enum: [group, ruleset]}
+        op: {type: string, enum: [add, remove, modify, move]}
+        key: {type: string}
+        field: {type: string}
+        base: {}
+        upstream: {}
+        mine: {}
+        conflict: {type: boolean, description: 用户也改过同一处，默认保留自己的}
+    RoutingCheck:
+      type: object
+      required: [host, via, path]
+      properties:
+        host: {type: string}
+        via: {type: string}
+        ok: {type: boolean, description: 省略表示无法判断}
+        path: {type: array, items: {type: string}}
     RoutingRule:
       type: object
       required: [index, raw, type, target, origin, flags]
@@ -1234,6 +1265,14 @@ paths:
       parameters: [{$ref: '#/components/parameters/id'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc], properties: {doc: {type: string}}}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [routing, diagnostics], properties: {routing: {type: string}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/routing/upstream:
+    post:
+      tags: [routing]
+      summary: 自己管理分流后，规则源相对开始管理时（base）的变化：三方比对，逐条给出与用户改动的关系；只读
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc], properties: {doc: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RoutingUpstream'}}}}, '400': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles/{id}/routing/health:
     post:
       tags: [routing]

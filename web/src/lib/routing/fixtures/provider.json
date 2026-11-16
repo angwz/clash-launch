@@ -57,5 +57,6 @@
   ],
   "pending": 0,
   "traceEnabled": false,
+  "checks": [],
   "diagnostics": []
 }

@@ -823,3 +823,47 @@ test("分流编辑：拖动改走向、合并与拆出、改组类型、拒绝�
   await expect.poll(async () => (await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`)).doc).not.toContain("routing:");
   expect(problems).toEqual([]);
 });
+
+test("分流：规则源更新后提示并能采纳；从追踪固定期望", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "桌面覆盖即可");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const src = await call<{ id: string }>("POST", "/api/v1/sources", { name: "同步 e2e 节点", kind: "batch", content: "- {name: 香港 01, type: ss, server: 192.0.2.81, port: 8388, cipher: aes-128-gcm, password: example-pw}\n" });
+  const groups = '[[custom_groups]]\nname = "PROXY"\ntype = "select"\nrule = [".*", "[]DIRECT"]\n';
+  const rulesets = '[[rulesets]]\ngroup = "PROXY"\nruleset = "[]DOMAIN-SUFFIX,example.com"\n[[rulesets]]\ngroup = "DIRECT"\nruleset = "[]MATCH"\n';
+  const rs = await call<{ id: string; version: number }>("POST", "/api/v1/rule-sources", { name: "同步 e2e 规则", kind: "toml", groupsText: groups, rulesetsText: rulesets });
+  const doc = ["clash-launch/profile: v1", "name: 分流同步 e2e", 'target: { pack: mihomo, preset: mihomo, core: "1.19.33" }', "sources:", `  - ref: ${src.id}`, `rules: { ref: ${rs.id} }`, ""].join("\n");
+  const p = await call<{ id: string; version: number }>("POST", "/api/v1/profiles", { doc, note: "" });
+  // 开始自己管理：fork 得到的 routing 段写入文档
+  const fk = await call<{ routing: string }>("POST", `/api/v1/profiles/${p.id}/routing/fork`, { doc });
+  const own = doc + "routing:\n" + fk.routing.trimEnd().split("\n").map((l) => (l ? "  " + l : l)).join("\n") + "\n";
+  await call("PUT", `/api/v1/profiles/${p.id}`, { doc: own }, p.version);
+  // 规则源更新：新增一条规则
+  await call("PUT", `/api/v1/rule-sources/${rs.id}`, { name: "同步 e2e 规则", kind: "toml", groupsText: groups, rulesetsText: '[[rulesets]]\ngroup = "PROXY"\nruleset = "[]DOMAIN,new.example.org"\n' + rulesets }, rs.version);
+
+  await login(page);
+  await page.goto(`/profiles/${p.id}?section=routing`);
+  await expect(page.getByText("规则源有 1 处更新还没有处理。")).toBeVisible();
+  await page.getByRole("button", { name: "查看" }).click();
+  const dlg = page.getByRole("dialog", { name: "规则源的更新" });
+  await expect(dlg).toContainText("新增规则 DOMAIN,new.example.org");
+  await dlg.getByRole("button", { name: "采纳勾选的 1 处，其余忽略" }).click();
+  const bar = page.getByRole("region", { name: "未应用的改动" });
+  await expect(bar).toContainText("新增 DOMAIN,new.example.org → PROXY");
+  await expect(bar).toContainText("处理了规则源的更新");
+
+  // 固定期望：追踪 www.example.com，命中交给 PROXY
+  await page.getByLabel("输入域名或 IP，例如 www.example.com").fill("www.example.com");
+  await page.getByRole("button", { name: "追踪", exact: true }).click();
+  await page.getByRole("button", { name: "固定为期望：始终经过 PROXY" }).click();
+  await expect(bar).toContainText("期望：www.example.com 经过 PROXY");
+  await page.getByRole("button", { name: "应用" }).click();
+  await expect(bar).toHaveCount(0);
+  await expect(page.getByText("规则源有 1 处更新还没有处理。")).toHaveCount(0);
+  await expect(page.locator(".checks")).toContainText("✓");
+  await expect(page.getByText("已自动保存")).toBeVisible();
+  const saved = await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`);
+  expect(saved.doc).toContain("new.example.org");
+  expect(saved.doc).toContain("host: www.example.com");
+  expect(problems).toEqual([]);
+});

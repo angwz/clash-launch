@@ -154,7 +154,10 @@ var (
 
 // —— 自己管理的分流（docs/design/routing.md 第 4.3 节）——
 var (
-	RoutingBundleSplit = reg("routing.bundle_split", Warning, "Bundle {bundle}: its rule sets must be adjacent and go to the same group ({where}); kept in their original order", "合集 {bundle}：其中的规则集必须相邻且走向相同（{where}），已按原顺序输出")
+	RoutingCheckUnknown    = reg("routing.check_unknown", Warning, "Expectation for {host}: {via} is neither a group nor an exit", "期望 {host}：{via} 不是策略组也不是出口")
+	RoutingCheckFailed     = reg("routing.check_failed", Warning, "Expectation not met: {host} should pass through {via} but goes to {got}", "期望没有满足：{host} 应经过 {via}，实际交给 {got}")
+	RoutingUpstreamChanged = reg("routing.upstream_changed", Info, "The rule source has {n} changes since this config started managing its own routing", "开始自己管理分流之后，规则源有 {n} 处变化")
+	RoutingBundleSplit     = reg("routing.bundle_split", Warning, "Bundle {bundle}: its rule sets must be adjacent and go to the same group ({where}); kept in their original order", "合集 {bundle}：其中的规则集必须相邻且走向相同（{where}），已按原顺序输出")
 )
 
 // —— 拉取与网络（第 5.4、14.5、14.6 节）——

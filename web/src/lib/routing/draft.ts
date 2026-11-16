@@ -236,7 +236,7 @@ export function removeMember(r: Routing, group: string, idx: number): Routing {
 
 export interface Change {
   /** 文案键 routing.change.<key> */
-  key: "target" | "move" | "bundle" | "unbundle" | "added" | "removed" | "type" | "param" | "members" | "group_added" | "group_removed";
+  key: "target" | "move" | "bundle" | "unbundle" | "added" | "removed" | "type" | "param" | "members" | "group_added" | "group_removed" | "check_added" | "check_removed" | "upstream";
   params: Record<string, string>;
 }
 
@@ -305,5 +305,96 @@ export function changes(applied: Routing, draft: Routing): Change[] {
     if (JSON.stringify(b.rule ?? []) !== JSON.stringify(g.rule ?? [])) out.push({ key: "members", params: { name: g.name } });
   }
   for (const g of applied.groups) if (!ga.has(g.name)) out.push({ key: "group_removed", params: { name: g.name } });
+  return out;
+}
+
+// —— 上游同步与期望（第 12 节）——
+
+export interface UpstreamChange {
+  id: string;
+  kind: "group" | "ruleset";
+  op: "add" | "remove" | "modify" | "move";
+  key: string;
+  field?: string;
+  upstream?: unknown;
+  conflict: boolean;
+}
+
+export interface Upstream {
+  digest: string;
+  groups: Record<string, unknown>[];
+  rulesets: Record<string, unknown>[];
+}
+
+/**
+ * 采纳上游的变化：accepted 中的每一处写入 routing；之后 base 一律更新为上游的当前内容、摘要随之更新——
+ * 没有采纳的就是忽略（第 12 节）。at 由调用方给出（纯函数不读当前时间）。
+ */
+export function applyUpstream(r: Routing, up: Upstream, accepted: UpstreamChange[], at: string): Routing {
+  const d = clone(r);
+  const upGroups = up.groups as unknown as RoutingGroup[];
+  const upSets = up.rulesets as unknown as RoutingRuleset[];
+  // 上游里排在 key 前面、且在 list 中存在的最近一项之后的位置；没有时放在最前
+  const after = <T>(list: T[], upList: T[], keyOf: (x: T) => string, key: string): number => {
+    const i = upList.findIndex((x) => keyOf(x) === key);
+    for (let j = i - 1; j >= 0; j--) {
+      const at = list.findIndex((x) => keyOf(x) === keyOf(upList[j]!));
+      if (at >= 0) return at + 1;
+    }
+    return 0;
+  };
+  for (const c of accepted) {
+    if (c.kind === "ruleset") {
+      const idx = d.rulesets.findIndex((x) => x.ruleset === c.key);
+      const fromUp = upSets.find((x) => x.ruleset === c.key);
+      if (c.op === "remove" && idx >= 0) d.rulesets.splice(idx, 1);
+      else if ((c.op === "add" || c.op === "move") && fromUp) {
+        const item = idx >= 0 ? d.rulesets.splice(idx, 1)[0]! : clone(fromUp);
+        let pos = after(d.rulesets, upSets, (x) => x.ruleset, c.key);
+        // 兜底规则之后不能插入
+        const fin = d.rulesets.findIndex(isFinal);
+        if (fin >= 0 && pos > fin && !isFinal(item)) pos = fin;
+        d.rulesets.splice(pos, 0, item);
+      } else if (c.op === "modify" && idx >= 0 && c.field) setField(d.rulesets[idx] as unknown as Record<string, unknown>, c.field, c.upstream);
+    } else {
+      const idx = d.groups.findIndex((x) => x.name === c.key);
+      const fromUp = upGroups.find((x) => x.name === c.key);
+      if (c.op === "remove" && idx >= 0) d.groups.splice(idx, 1);
+      else if (c.op === "add" && fromUp && idx < 0) d.groups.splice(after(d.groups, upGroups, (x) => x.name, c.key), 0, clone(fromUp));
+      else if (c.op === "modify" && idx >= 0 && c.field) setField(d.groups[idx]!, c.field, c.upstream);
+    }
+  }
+  d.base = { groups: clone(upGroups), rulesets: clone(upSets) };
+  d.from = { ...d.from, digest: up.digest, at };
+  return d;
+}
+
+function setField(o: Record<string, unknown>, field: string, value: unknown) {
+  if (value === undefined || value === null) delete o[field];
+  else o[field] = clone(value);
+}
+
+/** 固定为期望：追踪 host 时路径上必须出现 via。已有同一 host 的期望时替换。 */
+export function addCheck(r: Routing, host: string, via: string): Routing {
+  const d = clone(r);
+  d.checks = [...(d.checks ?? []).filter((c) => c.host !== host), { host, via }];
+  return d;
+}
+
+export function removeCheck(r: Routing, host: string): Routing {
+  const d = clone(r);
+  d.checks = (d.checks ?? []).filter((c) => c.host !== host);
+  if (!d.checks.length) delete d.checks;
+  return d;
+}
+
+/** 期望与上游摘要的改动（changes 只比较组与规则集）。 */
+export function metaChanges(applied: Routing, draft: Routing): Change[] {
+  const out: Change[] = [];
+  const before = new Map((applied.checks ?? []).map((c) => [c.host, c.via]));
+  const after = new Map((draft.checks ?? []).map((c) => [c.host, c.via]));
+  for (const [h, v] of after) if (before.get(h) !== v) out.push({ key: "check_added", params: { host: h, via: v } });
+  for (const [h] of before) if (!after.has(h)) out.push({ key: "check_removed", params: { host: h } });
+  if ((applied.from?.digest ?? "") !== (draft.from?.digest ?? "")) out.push({ key: "upstream", params: {} });
   return out;
 }

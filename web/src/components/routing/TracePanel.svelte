@@ -13,9 +13,10 @@
     profileId,
     doc,
     draft = () => undefined,
+    onPin = undefined,
     trace = $bindable(null),
     host = $bindable(""),
-  }: { graph: Graph; profileId: string; doc: () => string; draft?: () => string | undefined; trace?: Trace | null; host?: string } = $props();
+  }: { graph: Graph; profileId: string; doc: () => string; draft?: () => string | undefined; trace?: Trace | null; host?: string; onPin?: (host: string, via: string) => void } = $props();
 
   let input = $state(host);
   let process = $state("");
@@ -211,6 +212,12 @@
       <p class="note warn">{t("routing.trace.draft_changed", { rule: before.hit >= 0 ? before.hit + 1 : "—", exit: before.exit.kind === "builtin" ? builtinLabel(before.exit.name) : before.exit.name })}</p>
     {/if}
     {#if trace.stale}<p class="note warn">{t("routing.trace.stale")}</p>{/if}
+    {#if onPin && hitRule}
+      <div class="pin">
+        <button class="btn sm" type="button" onclick={() => onPin(trace!.ip || trace!.host, hitRule!.target)}>{t("routing.checks.pin", { via: builtinLabel(hitRule.target) })}</button>
+        <span class="muted">{t("routing.checks.pin_hint")}</span>
+      </div>
+    {/if}
   {/if}
 </section>
 
@@ -412,6 +419,13 @@
   }
   .miss li.unk {
     color: var(--warn);
+  }
+  .pin {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    font-size: var(--text-xs);
   }
   .note {
     font-size: var(--text-sm);

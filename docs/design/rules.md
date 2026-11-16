@@ -71,6 +71,20 @@ provider 名取文件名（去掉扩展名），不区分大小写地全局唯�
 
 `[custom]` 节中：`ruleset=组,来源[,间隔]`（来源可带 `clash-domain:` 等前缀）；``custom_proxy_group=名称`类型`成员…[`测速地址`间隔,超时,容差]``，成员中的 `!!PROVIDER=a,b` 写入 `use`；`rename`、`emoji`（国旗）、`include_remarks`、`exclude_remarks`、`add_emoji`、`remove_old_emoji` 映射到节点整理；`enable_rule_generator=false` 时不生成规则；其余键逐个说明不支持。
 
+## routing 段（自己管理的分流）
+
+方案文档可以带一段 `routing`：键与 groups.toml 的 `[[custom_groups]]`、rulesets.toml 的 `[[rulesets]]` 相同，另有扩展键 `bundle`。它存在时引擎用它代替规则源的 groups、rulesets 与 ini（`rules.ref` 只用于上游同步），之后的展开、规则生成与空组处理不变（[0007](../decisions/0007-routing-visualization.md) 第 6 条）。
+
+| 键 | 说明 |
+| --- | --- |
+| `from` | 开始管理时的上游：`rules`（规则源 ref）、`digest`（上游 groups 与 rulesets 规范化 JSON 的 sha256）、`at` |
+| `ini-node-ops` | 上游为 ini 时影响节点的行（`rename`、`emoji`、`include_remarks` 等），原样保留 |
+| `groups` · `rulesets` | 分流本身。YAML 的整数与 TOML 一样处理；`bundle` 相同的规则集必须相邻且走向相同，否则提示 `routing.bundle_split` 并按原顺序输出 |
+| `base` | 开始管理时上游的副本，上游同步的三方比对基准；不手改 |
+| `checks` | 期望：`{host, via}`，追踪 host 时路径上必须出现 via |
+
+开始管理（`/routing/fork`）由规则源的当前内容生成这一段：domainrouter_v2 的 X、X-ipcidr、X-classic 三件套自动识别为合集。开始管理前后生成的配置逐字节相同，文件头的名称与更新时间除外（`TestRoutingForkGolden`）。界面、上游同步与期望见 [routing](routing.md)。
+
 ## 预设
 
 [`catalog/rulesources/`](../../catalog/rulesources/) 中每个预设注明官方仓库、许可、核对日期；本项目只引用地址，不复制、不再分发规则内容。
