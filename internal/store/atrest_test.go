@@ -104,11 +104,11 @@ func TestEncryptLegacy(t *testing.T) {
 	if err := d.Profiles().Create(ctx, u.ID, p, ""); err != nil {
 		t.Fatal(err)
 	}
-	// 模拟旧版本写入的明文
-	if _, err := d.root.ExecContext(ctx, "INSERT INTO snapshots (key, owner_id, headers) VALUES ('k1', ?, ?)", u.ID, `{"subscription-userinfo":"LEGACYinfo"}`); err != nil {
+	// 模拟旧版本写入的明文（经 d.exec：占位符按数据库换算，PostgreSQL 用 $1）
+	if _, err := d.exec(ctx, "INSERT INTO snapshots (key, owner_id, headers) VALUES ('k1', ?, ?)", u.ID, `{"subscription-userinfo":"LEGACYinfo"}`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.root.ExecContext(ctx, "INSERT INTO renders (profile_id, owner_id, good_headers, last_error, last_diags) VALUES (?, ?, ?, ?, ?)", p.ID, u.ID, `{"x":"LEGACYhdr"}`, "LEGACYerr", `[{"m":"LEGACYdiag"}]`); err != nil {
+	if _, err := d.exec(ctx, "INSERT INTO renders (profile_id, owner_id, good_headers, last_error, last_diags) VALUES (?, ?, ?, ?, ?)", p.ID, u.ID, `{"x":"LEGACYhdr"}`, "LEGACYerr", `[{"m":"LEGACYdiag"}]`); err != nil {
 		t.Fatal(err)
 	}
 	n, err := d.encryptLegacy(ctx)
