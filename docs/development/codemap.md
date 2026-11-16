@@ -64,6 +64,7 @@
 | 密码、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
 | 工作量证明、安全问题规范化、退避、设备识别 | `internal/auth/pow.go`、`questions.go`、`backoff.go`、`device.go`（纯函数与进程内状态） | `internal/auth/auth_test.go` | [security](../design/security.md) |
 | 登录、找回、修改密码与安全问题 | `internal/service/account.go`（规则）、`internal/api/account.go`（HTTP） | `TestAccountSecurity` | [security](../design/security.md) |
+| 改用户名、昵称；邀请（名额、可用多次、邀请关系与通知） | `internal/service/{names,invites,register}.go`、`internal/api/invites.go`、`internal/store/sql.go`（users、invites）、迁移 0012；`web/src/components/account/Identity.svelte`、`web/src/components/InvitesPanel.svelte`、`web/src/pages/Register.svelte` | `TestNicknameAndRename`、`TestInvitesForEveryone`、e2e「昵称与邀请」 | [0003](../decisions/0003-direct-fetch-and-invites.md)、[security](../design/security.md) |
 | 安全提醒的触发点 | `internal/service/alerts.go`（种类与 `notify`）；发送实现见 SMTP | — | [security](../design/security.md) |
 | 两步验证、第二步凭证 | `internal/auth/totp.go`、`ticket.go`；`internal/service/mfa.go`；`internal/api/mfa.go` | `TestTOTPVectors`、`TestTOTPFlow` | [0005](../decisions/0005-account-security.md) |
 | 通行密钥 | 验证 `internal/auth/webauthn.go`（规范步骤见注释）；流程 `internal/service/passkey.go`；HTTP `internal/api/passkey.go`；浏览器 `web/src/lib/webauthn.ts` | `TestWebAuthn`、`TestPasskeys`、e2e 虚拟认证器 | [0005](../decisions/0005-account-security.md) |

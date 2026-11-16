@@ -30,6 +30,17 @@
 
   const allowed = $derived(open === true || invite !== "");
 
+  // 由谁邀请（需求 R12）：令牌放在请求体里查询；无效时不显示
+  let inviter = $state<{ username: string; nickname?: string } | null>(null);
+  $effect(() => {
+    inviter = null;
+    if (!invite) return;
+    api
+      .post<{ username: string; nickname?: string }>("/api/v1/register/inviter", { token: invite })
+      .then((r) => (inviter = r))
+      .catch(() => (inviter = null));
+  });
+
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     busy = true;
@@ -38,7 +49,8 @@
       progress = 0;
       const pow = await proofOfWork("register", (p) => (progress = p));
       progress = null;
-      await api.post("/api/v1/register", { username, password, invite: open ? undefined : invite, ...toPayload(questions), pow });
+      // 注册开放时也带上邀请令牌：用于记下邀请关系（需求 R12）；无效的令牌在开放时不挡住注册
+      await api.post("/api/v1/register", { username, password, invite: invite || undefined, ...toPayload(questions), pow });
       await session.login(username, password);
       history.replaceState(null, "", "/register");
       router.go("/welcome", true);
@@ -58,6 +70,7 @@
     <p class="closed">{t("register.closed")}</p>
     <p class="alt"><a href="/login">{t("register.back_login")}</a></p>
   {:else}
+    {#if inviter}<p class="inviter" role="note">{inviter.nickname ? t("register.invited_by_nick", { nick: inviter.nickname, name: inviter.username }) : t("register.invited_by", { name: inviter.username })}</p>{/if}
     <form onsubmit={submit} novalidate>
       <PasswordFields bind:username bind:password bind:valid />
       <QuestionFields bind:questions />
@@ -71,6 +84,14 @@
 </AuthLayout>
 
 <style>
+  .inviter {
+    margin: 0 0 var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--info-soft);
+    color: var(--info);
+    font-size: var(--text-sm);
+  }
   .closed {
     margin-block-start: var(--space-6);
     padding: var(--space-4);

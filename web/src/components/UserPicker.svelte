@@ -7,6 +7,7 @@
 
   interface Hit {
     username: string;
+    nickname?: string;
     accepts: boolean;
   }
 
@@ -88,7 +89,7 @@
         <li role="option" aria-selected={i === at} class:on={i === at}>
           <button type="button" onpointerdown={(e) => { e.preventDefault(); pick(h.username); }}>
             <span class="avatar" aria-hidden="true">{h.username.slice(0, 1).toUpperCase()}</span>
-            <span class="name">{h.username}</span>
+            <span class="name">{#if h.nickname}{h.nickname} <span class="muted">@{h.username}</span>{:else}{h.username}{/if}</span>
             <span class="state" class:no={!h.accepts}>{h.accepts ? t("messages.hit_ok") : t("messages.hit_off")}</span>
           </button>
         </li>

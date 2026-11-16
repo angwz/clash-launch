@@ -75,6 +75,8 @@
 | A16 | 安全事件产生提醒（密码、安全问题等）；提醒文字中英齐全 | `TestSMTPSettingsAndAlerts`、`TestAlertTexts` | 单元 / API |
 | A17 | 定时退出只能早于自然到期，可取消，到点后会话失效；「其他设备」不影响当前设备 | `TestScheduleLogout`、e2e 定时退出 | API / e2e |
 | A18 | 多个对外地址：按 Host 选用；未列出的域名链接指向主地址，写请求的 Origin 校验不通过 | `TestPublicURLPerHost`、`TestParsePublicURLs` | 单元 |
+| A19 | 改用户名需要当前密码、180 天一次；旧名保留 180 天，期间别人不能注册或改用 | `TestNicknameAndRename` | API |
+| A20 | 普通用户的邀请受名额、注册时长与邀请权约束，不赋予受邀权限；注册页查询邀请人时无效令牌计入失败限速 | `TestInvitesForEveryone` | API |
 
 ### 授权与隔离
 

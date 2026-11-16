@@ -2182,6 +2182,340 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/invite-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 邀请规则：普通用户最近 30 天可发出的邀请数与注册满几天后才能邀请（需求 R12） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitePolicy"];
+                    };
+                };
+            };
+        };
+        /** 修改邀请规则 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InvitePolicy"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitePolicy"];
+                    };
+                };
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/invite-ban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 收回或恢复某人的邀请权；收回时其未用完的邀请随之作废 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        banned: boolean;
+                    };
+                };
+            };
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的邀请名额、发出的邀请与邀请来的人（需求 R12） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            quota: components["schemas"]["InviteQuota"];
+                            items: components["schemas"]["Invite"][];
+                            invitees: components["schemas"]["Invitee"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 发出邀请。hours 为有效期（0 不过期，最长 2160），maxUses 为可用次数（默认 1，最多 100）。管理员不受名额限制；只有管理员的邀请赋予「受邀用户」权限 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        hours?: number;
+                        note?: string;
+                        maxUses?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Invite"];
+                    };
+                };
+                403: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 作废自己发出的邀请 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/register/inviter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 凭邀请令牌查询邀请人（注册页显示「由谁邀请」）；令牌在请求体中，不进访问日志；无效时 404 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        token: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            username: string;
+                            nickname?: string;
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/username": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 改用户名（需要当前密码）。180 天一次；旧名保留 180 天，期间别人不能使用（需求 R4） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        username: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                403: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/nickname": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 设置昵称（空串清除）；可含空格，最多 32 个字符（需求 R5） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        nickname: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/{pack}": {
         parameters: {
             query?: never;
@@ -4698,6 +5032,15 @@ export interface components {
             role: "admin" | "user";
             lang?: string;
             timezone?: string;
+            /** @description 昵称，可含空格、不唯一（需求 R5） */
+            nickname?: string;
+            /**
+             * Format: date-time
+             * @description 下次可以改用户名的时间；为空表示现在就可以（需求 R4）
+             */
+            nextRenameAt?: string;
+            /** @description 邀请人的用户名（需求 R12） */
+            invitedBy?: string;
         };
         Session: {
             user: components["schemas"]["User"];
@@ -4895,8 +5238,36 @@ export interface components {
             expiresAt?: string;
             /** Format: date-time */
             usedAt?: string;
+            /** @description 可用次数上限 */
+            maxUses: number;
+            uses: number;
             /** @enum {string} */
-            status: "active" | "used" | "expired";
+            status: "active" | "used" | "expired" | "revoked";
+            /** @description 管理员视图：发出者的用户名 */
+            createdBy?: string;
+            /** @description 用这个邀请注册的人（用户名） */
+            usedBy?: string[];
+        };
+        InvitePolicy: {
+            /** @description 普通用户最近 30 天可发出的邀请数；0 表示普通用户不能邀请 */
+            perMonth: number;
+            minAgeDays: number;
+        };
+        InviteQuota: {
+            unlimited: boolean;
+            limit: number;
+            used: number;
+            allowed: boolean;
+            /** @enum {string} */
+            reason?: "banned" | "too_new" | "quota" | "disabled";
+            /** Format: date-time */
+            availableAt?: string;
+        };
+        Invitee: {
+            username: string;
+            nickname?: string;
+            /** Format: date-time */
+            joinedAt: string;
         };
         Prefs: {
             /** @description 主菜单顺序（路由 ID）；未列出的项按默认顺序排在后面 */

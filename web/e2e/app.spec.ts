@@ -957,3 +957,32 @@ test("定时退出：其他设备一起定时，对方页面顶部提示；可�
   // 清理：取消其余设备的定时（之前的测试留下的管理员会话）
   await (await apiAs(request, baseURL!))("PUT", "/api/v1/account/sessions/others/logout-at", { at: null });
 });
+
+test("昵称与邀请：设置昵称；账户页生成可用多次的邀请，注册页显示邀请人", async ({ browser, page }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  await login(page);
+  await page.goto("/account");
+  await page.getByLabel("昵称", { exact: true }).fill("Ad Min");
+  await page.locator("section").filter({ hasText: "昵称与用户名" }).getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText("昵称已保存")).toBeVisible();
+
+  const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "邀请朋友" }) });
+  await panel.getByLabel("可用次数").selectOption({ label: "可用 5 次" });
+  await panel.getByRole("button", { name: "生成邀请" }).click();
+  const url = (await panel.locator("code.url").textContent())!;
+  await panel.getByRole("button", { name: "二维码" }).click();
+  await expect(panel.getByRole("img", { name: "二维码" })).toBeVisible();
+  await expect(panel.locator("tbody tr").first()).toContainText("0/5");
+
+  const ctx = await browser.newContext();
+  const guest = await ctx.newPage();
+  await guest.goto(new URL(url).pathname + new URL(url).hash);
+  await expect(guest.getByRole("note")).toContainText("Ad Min（@admin）邀请你加入");
+  await ctx.close();
+
+  // 清理：作废这个邀请，昵称还原
+  await panel.locator("tbody tr").first().getByRole("button", { name: "撤销" }).click();
+  await expect(panel.locator("tbody tr").first()).toContainText("已作废");
+  await page.getByLabel("昵称", { exact: true }).fill("");
+  await page.locator("section").filter({ hasText: "昵称与用户名" }).getByRole("button", { name: "保存" }).click();
+});

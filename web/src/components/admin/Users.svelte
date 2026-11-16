@@ -26,6 +26,10 @@
     usage: { sources: number; profiles: number; links: number; bytes: number };
     quota: Limits;
     invited: boolean;
+    nickname?: string;
+    /** 邀请人的用户名（需求 R12） */
+    invitedBy?: string;
+    inviteBanned: boolean;
     /** 这个用户适用的默认配额（开放注册的用户更小，反馈 #71） */
     defaults: Limits;
   }
@@ -63,6 +67,16 @@
 
   const mb = (n: number) => (n / (1 << 20)).toLocaleString(i18n.intlLocale, { maximumFractionDigits: 1 }) + " MiB";
 
+  // 收回或恢复邀请权（需求 R12）：收回时该用户未用完的邀请随之作废
+  async function toggleInvite(u: U) {
+    try {
+      await api.put(`/api/v1/admin/users/${u.id}/invite-ban`, { banned: !u.inviteBanned });
+      toasts.push("ok", u.inviteBanned ? t("invites.ban_lifted", { name: u.username }) : t("invites.banned", { name: u.username }));
+      await load(pageN);
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
   async function toggle(u: U) {
     try {
       await api.patch("/api/v1/admin/users/" + u.id, { disabled: !u.disabled });
@@ -121,6 +135,7 @@
   <span class="muted">{t("admin.user_total", { n: total })}</span>
 </div>
 <div class="wrap">
+  <div class="table-wrap">
   <table class="table flush">
     <thead>
       <tr>
@@ -135,8 +150,9 @@
       {#each users as u (u.id)}
         <tr>
           <td>
-            <strong>{u.username}</strong>
+            <strong>{u.username}</strong>{#if u.nickname}<span class="muted nick">{u.nickname}</span>{/if}
             {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{:else if !u.invited}<span class="role open" title={t("admin.open_user_hint")}>{t("admin.open_user")}</span>{/if}
+            {#if u.invitedBy}<div class="muted by">{t("invites.by_user", { name: u.invitedBy })}</div>{/if}
           </td>
           <td>
             {#if u.disabled}<StatusBadge tone="err" label={t("admin.disabled")} />{:else}<StatusBadge tone="ok" label={t("admin.active")} />{/if}
@@ -148,6 +164,7 @@
             {#if u.id !== session.user?.id}
               <button class="btn sm ghost" type="button" onclick={() => openQuota(u)}>{t("admin.quota")}</button>
               <button class="btn sm ghost" type="button" onclick={() => openReset(u)}>{t("admin.reset_password")}</button>
+              {#if u.role !== "admin"}<button class="btn sm ghost" type="button" onclick={() => void toggleInvite(u)}>{u.inviteBanned ? t("invites.allow") : t("invites.ban")}</button>{/if}
               <button class="btn sm ghost" class:danger={!u.disabled} type="button" onclick={() => void toggle(u)}>{u.disabled ? t("admin.enable") : t("admin.disable")}</button>
             {/if}
           </td>
@@ -155,6 +172,7 @@
       {/each}
     </tbody>
   </table>
+  </div>
   {#if pages > 1}
     <nav class="pager" aria-label={t("admin.user_pager")}>
       <button class="btn sm" type="button" disabled={pageN <= 1} onclick={() => void load(pageN - 1)}>{t("audit.prev")}</button>
@@ -212,6 +230,13 @@
     /* 让表内绝对定位的无障碍标签以此为包含块，否则会逃出滚动容器、撑宽页面（反馈 #41） */
     position: relative;
   }
+  .nick {
+    margin-inline-start: var(--space-1);
+    font-size: var(--text-xs);
+  }
+  .by {
+    font-size: var(--text-xs);
+  }
   .role {
     margin-inline-start: var(--space-2);
     padding-inline: 6px;
@@ -252,7 +277,15 @@
   }
   .act {
     text-align: end;
-    white-space: nowrap;
+  }
+  /* 操作按钮在窄屏上换行，不把表格撑出页面（需求 R12 新增了一个按钮） */
+  .act :global(.btn) {
+    margin-block: 2px;
+  }
+  .table-wrap {
+    /* 表头里的 visually-hidden 是绝对定位的：滚动框必须是它的包含块，否则会跑出滚动框、撑宽页面 */
+    position: relative;
+    overflow-x: auto;
   }
   .form {
     display: grid;

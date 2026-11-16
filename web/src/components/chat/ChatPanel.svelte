@@ -21,6 +21,7 @@
   interface Thread {
     userId: string;
     username: string;
+    nickname?: string;
     last: string;
     lastKind: string;
     lastAt: string;
@@ -50,7 +51,7 @@
     text: string;
     attach?: Attach;
     /** 系统通知（需求 R2）：授权的对象被所有者删除 */
-    notice?: { code: string; target: "source" | "short"; name: string };
+    notice?: { code: string; target?: "source" | "short"; name: string };
     createdAt: string;
     readAt?: string;
     addedSource?: string;
@@ -69,7 +70,7 @@
   let threads = $state<Thread[] | null>(null);
   let deleted = $state<Deleted[]>([]);
   let showBin = $state(false);
-  let other = $state<{ id: string; username: string } | null>(null);
+  let other = $state<{ id: string; username: string; nickname?: string } | null>(null);
   let deletedAt = $state<string | null>(null);
   let purgeAt = $state<string | null>(null);
   let msgs = $state<Msg[]>([]); // 正序（旧的在前）
@@ -307,6 +308,12 @@
   const daysLeft = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
   // 同一天的消息之间不重复显示日期
   const dayOf = (iso: string) => i18n.date(iso, "long").split(" ")[0];
+  // 系统通知的文案（需求 R2、R12）：双方看到各自视角的说法
+  function noticeText(n: NonNullable<Msg["notice"]>, mine: boolean): string {
+    if (n.code === "invite_joined") return mine ? t("messages.notice_joined_mine") : t("messages.notice_joined", { name: n.name });
+    if (n.target === "short") return mine ? t("messages.notice_short_mine", { name: n.name }) : t("messages.notice_short", { name: n.name });
+    return mine ? t("messages.notice_source_mine", { name: n.name }) : t("messages.notice_source", { name: n.name });
+  }
   const attachIcon = (a: Attach) => (a.kind === "template" ? "layers" : a.kind === "grant" ? (a.target === "short" ? "shrink" : "shield") : a.kind === "subscription" ? "link" : "server");
   function attachLine(a: Attach): string {
     if (a.kind === "subscription") return t("messages.attach_sub", { host: host(a.url) });
@@ -341,7 +348,7 @@
             <a href={"/messages/" + encodeURIComponent(th.username)} onclick={(e) => { e.preventDefault(); open(th.username); }} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
               <span class="avatar" aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
               <span class="th-main">
-                <span class="th-top"><strong>{th.username}</strong><span class="muted when">{i18n.relative(th.lastAt)}</span></span>
+                <span class="th-top"><strong>{th.nickname || th.username}</strong>{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
                   {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{th.last}
                 </span>
@@ -391,7 +398,7 @@
       <header class="chat-head">
         <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
         <span class="avatar" aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
-        <strong class="peer">{other?.username ?? peer}</strong>
+        <strong class="peer">{other?.nickname || other?.username || peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
         {#if other && !deletedAt}
           <button class="btn sm ghost" type="button" onclick={() => void toggleBlock()}>{blocked ? t("messages.unblock") : t("messages.block")}</button>
           {#if threads?.some((x) => x.userId === other!.id)}
@@ -419,7 +426,7 @@
               <!-- 系统通知不是谁说的话：居中显示，双方各自看到对应的说法 -->
               <p class="notice muted" role="note">
                 <Icon name="info" size={13} />
-                <span>{m.notice.target === "short" ? (m.mine ? t("messages.notice_short_mine", { name: m.notice.name }) : t("messages.notice_short", { name: m.notice.name })) : m.mine ? t("messages.notice_source_mine", { name: m.notice.name }) : t("messages.notice_source", { name: m.notice.name })}</span>
+                <span>{noticeText(m.notice, m.mine)}</span>
                 <time datetime={m.createdAt} title={i18n.date(m.createdAt, "long")}>{i18n.date(m.createdAt).split(" ").slice(-1)[0]}</time>
               </p>
             {:else}
@@ -623,10 +630,16 @@
   }
   .th-top {
     display: flex;
-    justify-content: space-between;
+    align-items: baseline;
     gap: var(--space-2);
   }
+  .at {
+    margin-inline-start: var(--space-1);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
   .when {
+    margin-inline-start: auto;
     font-size: var(--text-xs);
     white-space: nowrap;
   }

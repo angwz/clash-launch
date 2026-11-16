@@ -30,7 +30,7 @@ const dynamic: Record<string, string[]> = {
   "region.kind.": ["flag", "keyword", "route", "manual", "rule", "unknown"],
   "severity.": ["error", "warning", "info"],
   "kernel.": ["passed", "failed", "unavailable", "timeout"],
-  "invite.": ["active", "used", "expired"],
+  "invite.": ["active", "used", "expired", "revoked"],
   "palette.kind.": ["page", "field", "command"],
   "mode.": ["inline", "provider"],
   "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],

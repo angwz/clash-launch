@@ -9,6 +9,8 @@
   import Passkeys from "../components/account/Passkeys.svelte";
   import Alerts from "../components/account/Alerts.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
+  import Identity from "../components/account/Identity.svelte";
+  import InvitesPanel from "../components/InvitesPanel.svelte";
   import { regionName } from "../lib/regions";
   import AuditLog from "../components/AuditLog.svelte";
   import { api } from "../lib/api/client";
@@ -124,6 +126,8 @@
 <div class="page">
   <PageHeader title={t("nav.account")} subtitle={session.user ? session.user.username + " · " + t("role." + session.user.role) : ""} />
 
+  <Identity />
+
   <section class="panel box" aria-labelledby="ac-pw">
     <h2 id="ac-pw">{t("account.password")}</h2>
     <form class="grid" onsubmit={changePassword}>
@@ -218,6 +222,8 @@
       </ul>
     </section>
   {/if}
+
+  <InvitesPanel />
 
   <section class="panel box" aria-labelledby="ac-audit">
     <h2 id="ac-audit">{t("account.audit")}</h2>
