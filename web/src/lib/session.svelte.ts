@@ -10,6 +10,8 @@ export interface MFAChallenge {
 
 class SessionState {
   user = $state<User | null>(null);
+  /** 当前设备的定时退出时间（需求 R8）；没有定时为 null */
+  logoutAt = $state<string | null>(null);
   loaded = $state(false);
 
   get isAdmin(): boolean {
@@ -65,6 +67,7 @@ class SessionState {
 
   #apply(s: Session): void {
     this.user = s.user;
+    this.logoutAt = s.logoutAt ?? null;
     i18n.timeZone = s.user?.timezone || undefined;
     setCsrf(s.csrf);
   }

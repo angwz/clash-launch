@@ -41,6 +41,7 @@ func (s *Server) routes() []Route {
 		{"PUT", "/api/v1/account/timezone", a(s.putTimezone)},
 		{"GET", "/api/v1/account/sessions", a(s.listSessions)},
 		{"DELETE", "/api/v1/account/sessions/{id}", a(s.deleteSession)},
+		{"PUT", "/api/v1/account/sessions/{id}/logout-at", a(s.scheduleLogout)},
 		{"POST", "/api/v1/session/totp", s.sessionTOTP},
 		{"GET", "/api/v1/account/totp", a(s.totpStatus)},
 		{"POST", "/api/v1/account/totp/setup", a(s.totpSetup)},

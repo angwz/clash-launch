@@ -194,6 +194,7 @@ components:
       properties:
         user: {$ref: '#/components/schemas/User'}
         csrf: {type: string}
+        logoutAt: {type: string, format: date-time, description: 当前设备的定时退出时间（需求 R8）}
     Snapshot:
       type: object
       properties:
@@ -420,14 +421,18 @@ components:
         questions: {type: array, items: {$ref: '#/components/schemas/Question'}}
     SessionInfo:
       type: object
-      required: [id, device, ua, ip, createdAt, lastSeen, current]
+      required: [id, device, ua, ip, createdAt, lastSeen, expiresAt, idleUntil, current]
       properties:
         id: {type: string}
         device: {type: string, description: 浏览器与系统的粗略归类}
         ua: {type: string}
         ip: {type: string, description: IP 前缀（IPv4 /24、IPv6 /48）}
+        location: {type: string, description: 登录时由本地地理库得出的所在地（需求 R7）}
         createdAt: {type: string, format: date-time}
         lastSeen: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time, description: 自然到期时间（登录满 30 天）}
+        idleUntil: {type: string, format: date-time, description: 闲置到这个时间会失效（随使用后延）}
+        logoutAt: {type: string, format: date-time, description: 定时退出的时间（需求 R8）}
         current: {type: boolean}
     TOTPStatus:
       type: object
@@ -693,6 +698,14 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/sessions/{id}/logout-at:
+    put:
+      tags: [account]
+      summary: 设定或取消（at 为 null）定时退出；id 为 others 时作用于除当前设备外的全部设备。时间至少在一分钟后，且早于该设备的自然到期
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [at], properties: {at: {type: [string, "null"], format: date-time}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [updated], properties: {updated: {type: integer}}}}}}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /api/v1/session/totp:
     post:
       tags: [session]

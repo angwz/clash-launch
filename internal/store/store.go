@@ -82,6 +82,10 @@ type Session struct {
 	ExpiresAt time.Time
 	UA        string
 	IPPrefix  string
+	// LogoutAt 是定时退出的时间（需求 R8），零值表示未设定；生效时间取它与 ExpiresAt 中较早的
+	LogoutAt time.Time
+	// Location 是登录时得出的所在地（需求 R7），只用于展示
+	Location string
 }
 
 // Source 是节点源。URL、内容与请求头在存储层加密。
@@ -261,6 +265,8 @@ type SessionRepo interface {
 	Delete(ctx context.Context, userID, idHash string) error
 	DeleteAll(ctx context.Context, userID string) error
 	List(ctx context.Context, userID string) ([]Session, error)
+	// SetLogoutAt 设定或取消（零值）定时退出。
+	SetLogoutAt(ctx context.Context, userID, idHash string, at time.Time) error
 }
 
 // SourceRepo 管理节点源。

@@ -8,6 +8,7 @@
   import TwoFactor from "../components/account/TwoFactor.svelte";
   import Passkeys from "../components/account/Passkeys.svelte";
   import Alerts from "../components/account/Alerts.svelte";
+  import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import AuditLog from "../components/AuditLog.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -20,12 +21,36 @@
     device: string;
     ua: string;
     ip: string;
+    location?: string;
     createdAt: string;
     lastSeen: string;
+    expiresAt: string;
+    idleUntil: string;
+    logoutAt?: string;
     current: boolean;
   }
 
   let sessions = $state<SessionInfo[]>([]);
+  // 定时退出（需求 R8）：目标为单台设备或 "others"
+  let scheduling = $state<{ id: string; device: string; current?: boolean } | null>(null);
+  let scheduleOpen = $state(false);
+  const others = $derived(sessions.filter((s) => !s.current));
+  const scheduleLimit = $derived(
+    scheduling?.id === "others" ? others.reduce((m, s) => (s.expiresAt > m ? s.expiresAt : m), "") : (sessions.find((s) => s.id === scheduling?.id)?.expiresAt ?? ""),
+  );
+  function schedule(target: { id: string; device: string; current?: boolean }) {
+    scheduling = target;
+    scheduleOpen = true;
+  }
+  async function cancelSchedule(s: SessionInfo) {
+    try {
+      await api.put(`/api/v1/account/sessions/${s.id}/logout-at`, { at: null });
+      if (s.current) session.logoutAt = null;
+      await load();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
   let quota = $state<{ limits: { sources: number; profiles: number; links: number; storage: number }; usage: { sources: number; profiles: number; links: number; bytes: number } } | null>(null);
   let myQuestions = $state<{ builtin: number; text?: string }[]>([]);
 
@@ -146,20 +171,34 @@
   <Alerts />
 
   <section class="panel box" aria-labelledby="ac-s">
-    <h2 id="ac-s">{t("account.sessions")}</h2>
+    <div class="shead">
+      <h2 id="ac-s">{t("account.sessions")}</h2>
+      {#if others.length}<button class="btn sm ghost" type="button" onclick={() => schedule({ id: "others", device: "" })}>{t("account.logout_others_later")}</button>{/if}
+    </div>
     <ul class="sessions">
       {#each sessions as s (s.id)}
         <li>
           <Icon name="monitor" size={18} />
           <div class="sinfo">
             <strong>{s.device}{#if s.current}<span class="cur">{t("account.this_device")}</span>{/if}</strong>
-            <span class="muted mono ltr">{s.ip || "—"}</span>
+            <span class="muted">{#if s.location}{s.location} · {/if}<span class="mono ltr">{s.ip || "—"}</span></span>
             <span class="muted">{t("account.last_active", { when: i18n.relative(s.lastSeen) })}</span>
+            {#if s.logoutAt}
+              <span class="sched"><Icon name="history" size={13} />{t("account.logout_at", { when: i18n.date(s.logoutAt, "long"), rel: i18n.relative(s.logoutAt) })}</span>
+            {/if}
           </div>
-          {#if !s.current}<button class="btn sm ghost danger" type="button" onclick={() => void revoke(s)}>{t("account.revoke")}</button>{/if}
+          <div class="sactions">
+            {#if s.logoutAt}
+              <button class="btn sm ghost" type="button" onclick={() => void cancelSchedule(s)}>{t("account.logout_cancel")}</button>
+            {:else}
+              <button class="btn sm ghost" type="button" onclick={() => schedule(s)}>{t("account.logout_schedule")}</button>
+            {/if}
+            {#if !s.current}<button class="btn sm ghost danger" type="button" onclick={() => void revoke(s)}>{t("account.revoke")}</button>{/if}
+          </div>
         </li>
       {/each}
     </ul>
+    <ScheduleLogoutDialog bind:open={scheduleOpen} target={scheduling} expiresAt={scheduleLimit} onDone={() => void load()} />
   </section>
 
   {#if quota}
@@ -259,6 +298,24 @@
     display: grid;
     flex: 1;
     font-size: var(--text-sm);
+  }
+  .shead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .sched {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--info);
+  }
+  .sactions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1);
   }
   .cur {
     margin-inline-start: var(--space-2);

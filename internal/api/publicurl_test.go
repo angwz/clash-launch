@@ -32,7 +32,7 @@ func TestPublicURLPerHost(t *testing.T) {
 		{"B.example.com:8080", "http://b.example.com:8080", "http://b.example.com:8080", false, true},
 		{"b.example.com:8080", "https://a.example.com", "http://b.example.com:8080", false, false}, // 跨域写请求
 		{"evil.example.com", "https://evil.example.com", "https://a.example.com", true, false},     // 伪造 Host
-		{"evil.example.com", "https://a.example.com", "https://a.example.com", true, false},       // Host 与 Origin 不一致
+		{"evil.example.com", "https://a.example.com", "https://a.example.com", true, false},        // Host 与 Origin 不一致
 	}
 	for _, c := range cases {
 		r := httptest.NewRequest("POST", "/api/v1/x", nil)

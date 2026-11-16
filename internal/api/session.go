@@ -62,6 +62,12 @@ func (s *Server) principal(r *http.Request) (*principal, error) {
 		_ = s.Svc.Store.Sessions().Delete(ctx, sess.UserID, sess.IDHash)
 		return nil, errors.New("session expired")
 	}
+	// 定时退出到点（需求 R8）：与过期一样删除会话，并记入审计
+	if !sess.LogoutAt.IsZero() && now.After(sess.LogoutAt) {
+		_ = s.Svc.Store.Sessions().Delete(ctx, sess.UserID, sess.IDHash)
+		s.audit(ctx, sess.UserID, "session.scheduled_logout", map[string]string{"device": auth.DeviceName(sess.UA)})
+		return nil, errors.New("session ended as scheduled")
+	}
 	u, err := s.Svc.Store.Users().ByID(ctx, sess.UserID)
 	if err != nil || u.Disabled {
 		return nil, errors.New("user unavailable")
@@ -98,6 +104,8 @@ type loginReq struct {
 type sessionResp struct {
 	User userDTO `json:"user"`
 	CSRF string  `json:"csrf"`
+	// LogoutAt 是当前设备的定时退出时间（需求 R8），页面顶部据此提示
+	LogoutAt *time.Time `json:"logoutAt,omitempty"`
 }
 
 type userDTO struct {
@@ -169,7 +177,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request, p *principal) {
-	writeJSON(w, http.StatusOK, sessionResp{User: toUser(p.User), CSRF: p.Session.CSRF})
+	writeJSON(w, http.StatusOK, sessionResp{User: toUser(p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt)})
 }
 
 type setupReq struct {

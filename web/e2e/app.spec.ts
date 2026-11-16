@@ -930,3 +930,29 @@ test("分流：规则源更新后提示并能采纳；从追踪固定期望", as
   expect(saved.doc).toContain("host: www.example.com");
   expect(problems).toEqual([]);
 });
+
+test("定时退出：在一台设备上给另一台定时，对方页面顶部提示；可以取消", async ({ browser, page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const user = { username: await createUser(request, baseURL!, "sched"), password: "a long enough password" };
+  const ctx2 = await browser.newContext();
+  const other = await ctx2.newPage();
+  await login(other, user);
+  await login(page, user);
+
+  await page.goto("/account");
+  const others = page.locator(".sessions li").filter({ hasNot: page.getByText("当前设备") });
+  await others.getByRole("button", { name: "定时退出" }).click();
+  const dialog = page.getByRole("dialog", { name: /定时退出/ });
+  await expect(dialog.getByRole("radio", { name: /1 小时后/ })).toBeChecked();
+  await dialog.getByRole("button", { name: "定时退出" }).click();
+  await expect(others).toContainText("将于");
+
+  await other.goto("/account");
+  await expect(other.getByRole("status").filter({ hasText: "此设备将于" })).toBeVisible();
+
+  await others.getByRole("button", { name: "取消定时" }).click();
+  await expect(others).not.toContainText("将于");
+  await other.reload();
+  await expect(other.getByText("此设备将于")).toHaveCount(0);
+  await ctx2.close();
+});

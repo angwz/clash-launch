@@ -387,22 +387,22 @@ func (r users) List(ctx context.Context, p Page) ([]User, error) {
 type sessions struct{ d *DB }
 
 func (r sessions) Create(ctx context.Context, s *Session) error {
-	_, err := r.d.exec(ctx, "INSERT INTO sessions (id_hash, user_id, csrf, created_at, last_seen, expires_at, ua, ip_prefix) VALUES (?,?,?,?,?,?,?,?)",
-		s.IDHash, s.UserID, s.CSRF, ms(s.CreatedAt), ms(s.LastSeen), ms(s.ExpiresAt), s.UA, s.IPPrefix)
+	_, err := r.d.exec(ctx, "INSERT INTO sessions (id_hash, user_id, csrf, created_at, last_seen, expires_at, ua, ip_prefix, logout_at, location) VALUES (?,?,?,?,?,?,?,?,?,?)",
+		s.IDHash, s.UserID, s.CSRF, ms(s.CreatedAt), ms(s.LastSeen), ms(s.ExpiresAt), s.UA, s.IPPrefix, msOrZero(s.LogoutAt), s.Location)
 	return err
 }
 
 func scanSession(r interface{ Scan(...any) error }) (*Session, error) {
 	var s Session
-	var c, l, e int64
-	if err := r.Scan(&s.IDHash, &s.UserID, &s.CSRF, &c, &l, &e, &s.UA, &s.IPPrefix); err != nil {
+	var c, l, e, lo int64
+	if err := r.Scan(&s.IDHash, &s.UserID, &s.CSRF, &c, &l, &e, &s.UA, &s.IPPrefix, &lo, &s.Location); err != nil {
 		return nil, notFound(err)
 	}
-	s.CreatedAt, s.LastSeen, s.ExpiresAt = fromMS(c), fromMS(l), fromMS(e)
+	s.CreatedAt, s.LastSeen, s.ExpiresAt, s.LogoutAt = fromMS(c), fromMS(l), fromMS(e), fromMS(lo)
 	return &s, nil
 }
 
-const sessionCols = "id_hash, user_id, csrf, created_at, last_seen, expires_at, ua, ip_prefix"
+const sessionCols = "id_hash, user_id, csrf, created_at, last_seen, expires_at, ua, ip_prefix, logout_at, location"
 
 func (r sessions) ByHash(ctx context.Context, h string) (*Session, error) {
 	return scanSession(r.d.row(ctx, "SELECT "+sessionCols+" FROM sessions WHERE id_hash = ?", h))
@@ -415,6 +415,11 @@ func (r sessions) Touch(ctx context.Context, h string, at time.Time) error {
 
 func (r sessions) Delete(ctx context.Context, userID, h string) error {
 	res, err := r.d.exec(ctx, "DELETE FROM sessions WHERE user_id=? AND id_hash=?", userID, h)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r sessions) SetLogoutAt(ctx context.Context, userID, h string, at time.Time) error {
+	res, err := r.d.exec(ctx, "UPDATE sessions SET logout_at=? WHERE user_id=? AND id_hash=?", msOrZero(at), userID, h)
 	return affected(res, err, ErrNotFound)
 }
 

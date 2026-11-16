@@ -177,6 +177,10 @@
   {/if}
 
   <main id="main" class="main" tabindex="-1">
+    {#if session.logoutAt}
+      <!-- 当前设备被定时退出（需求 R8）：每个页面顶部提示，链到账户页可以取消 -->
+      <p class="logout-banner" role="status"><Icon name="info" size={14} /><span>{t("account.logout_banner", { when: i18n.date(session.logoutAt, "long") })}</span><a href="/account">{t("account.logout_manage")}</a></p>
+    {/if}
     {@render children()}
   </main>
 </div>
@@ -465,6 +469,20 @@
     overflow: auto;
     min-inline-size: 0;
     outline: none;
+  }
+  .logout-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    background: var(--info-soft);
+    color: var(--info);
+    font-size: var(--text-sm);
+  }
+  .logout-banner a {
+    margin-inline-start: auto;
+    color: inherit;
   }
   /* 页面切换：新页面挂载时淡入（App.svelte 按路由重新挂载页面，动画随之重放） */
   .main > :global(*) {

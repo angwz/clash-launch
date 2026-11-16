@@ -945,6 +945,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/sessions/{id}/logout-at": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 设定或取消（at 为 null）定时退出；id 为 others 时作用于除当前设备外的全部设备。时间至少在一分钟后，且早于该设备的自然到期 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        at: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            updated: number;
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/totp": {
         parameters: {
             query?: never;
@@ -4653,6 +4702,11 @@ export interface components {
         Session: {
             user: components["schemas"]["User"];
             csrf: string;
+            /**
+             * Format: date-time
+             * @description 当前设备的定时退出时间（需求 R8）
+             */
+            logoutAt?: string;
         };
         Snapshot: {
             /** Format: date-time */
@@ -4909,10 +4963,27 @@ export interface components {
             ua: string;
             /** @description IP 前缀（IPv4 /24、IPv6 /48） */
             ip: string;
+            /** @description 登录时由本地地理库得出的所在地（需求 R7） */
+            location?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             lastSeen: string;
+            /**
+             * Format: date-time
+             * @description 自然到期时间（登录满 30 天）
+             */
+            expiresAt: string;
+            /**
+             * Format: date-time
+             * @description 闲置到这个时间会失效（随使用后延）
+             */
+            idleUntil: string;
+            /**
+             * Format: date-time
+             * @description 定时退出的时间（需求 R8）
+             */
+            logoutAt?: string;
             current: boolean;
         };
         TOTPStatus: {

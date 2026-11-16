@@ -8,6 +8,7 @@ import (
 
 	"github.com/angwz/clash-launch/internal/auth"
 	"github.com/angwz/clash-launch/internal/service"
+	"github.com/angwz/clash-launch/internal/store"
 )
 
 // 账号安全接口（第 14.1 节）：工作量证明、找回、安全问题、修改密码、会话管理。
@@ -155,9 +156,19 @@ type sessionDTO struct {
 	Device    string    `json:"device"`
 	UA        string    `json:"ua"`
 	IP        string    `json:"ip"`
+	Location  string    `json:"location,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	LastSeen  time.Time `json:"lastSeen"`
-	Current   bool      `json:"current"`
+	// ExpiresAt 是自然到期时间（登录满 SessionMax）；闲置满 SessionIdle 也会失效，见 IdleUntil
+	ExpiresAt time.Time  `json:"expiresAt"`
+	IdleUntil time.Time  `json:"idleUntil"`
+	LogoutAt  *time.Time `json:"logoutAt,omitempty"`
+	Current   bool       `json:"current"`
+}
+
+func (s *Server) toSession(x *store.Session, current string) sessionDTO {
+	return sessionDTO{ID: x.IDHash[:16], Device: auth.DeviceName(x.UA), UA: x.UA, IP: x.IPPrefix, Location: x.Location, CreatedAt: x.CreatedAt, LastSeen: x.LastSeen,
+		ExpiresAt: x.ExpiresAt, IdleUntil: x.LastSeen.Add(s.Cfg.SessionIdle), LogoutAt: tp(x.LogoutAt), Current: x.IDHash == current}
 }
 
 func (s *Server) listSessions(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -167,10 +178,76 @@ func (s *Server) listSessions(w http.ResponseWriter, r *http.Request, p *princip
 		return
 	}
 	out := make([]sessionDTO, 0, len(list))
-	for _, x := range list {
-		out = append(out, sessionDTO{ID: x.IDHash[:16], Device: auth.DeviceName(x.UA), UA: x.UA, IP: x.IPPrefix, CreatedAt: x.CreatedAt, LastSeen: x.LastSeen, Current: x.IDHash == p.Session.IDHash})
+	for i := range list {
+		out = append(out, s.toSession(&list[i], p.Session.IDHash))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+// minLogoutDelay 是定时退出最早的时间：再早就等于立即注销，应当用「注销」。
+const minLogoutDelay = time.Minute
+
+// scheduleLogout 设定或取消定时退出（需求 R8）。路径中的 id 为 others 时作用于除当前设备外的全部设备。
+// 请求 {"at": 时间} 设定，{"at": null} 取消。定时只能早于该设备的自然到期时间（只能提前，不能延后）；
+// 作用于全部其他设备时，自然到期更早的设备保持不变，不算错误。
+func (s *Server) scheduleLogout(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		At *time.Time `json:"at"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	now := time.Now()
+	if req.At != nil && req.At.Before(now.Add(minLogoutDelay)) {
+		problem(w, http.StatusUnprocessableEntity, "session.logout_too_soon", "the time must be at least a minute from now")
+		return
+	}
+	list, err := s.Svc.Store.Sessions().List(r.Context(), p.User.ID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	id := r.PathValue("id")
+	var targets []store.Session
+	for _, x := range list {
+		if (id == "others" && x.IDHash != p.Session.IDHash) || (len(id) == 16 && strings.HasPrefix(x.IDHash, id)) {
+			targets = append(targets, x)
+		}
+	}
+	if id != "others" && len(targets) == 0 {
+		problem(w, http.StatusNotFound, "not_found", "resource not found")
+		return
+	}
+	n := 0
+	for _, x := range targets {
+		var at time.Time
+		if req.At != nil {
+			at = req.At.UTC()
+			if !at.Before(x.ExpiresAt) {
+				if id != "others" {
+					problem(w, http.StatusUnprocessableEntity, "session.logout_after_expiry", "the device signs out on its own before this time")
+					return
+				}
+				continue
+			}
+		}
+		if err := s.Svc.Store.Sessions().SetLogoutAt(r.Context(), p.User.ID, x.IDHash, at); err != nil {
+			s.fail(w, err)
+			return
+		}
+		n++
+		action := "session.schedule_logout"
+		if req.At == nil {
+			action = "session.cancel_logout"
+		}
+		detail := map[string]string{"device": auth.DeviceName(x.UA)}
+		if req.At != nil {
+			detail["at"] = at.Format(time.RFC3339)
+		}
+		s.audit(r.Context(), p.User.ID, action, detail)
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"updated": n})
 }
 
 func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request, p *principal) {
