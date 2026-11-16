@@ -128,3 +128,4 @@
 | 94 | 仓库转为私有，镜像继续公开；以后会重新开源 | ✅ | [progress](progress.md)「远端」 |
 | 95 | 全面迁移到 PostgreSQL，并为千万级数据与日志优化效率；先加入需求清单 | 🕓 | [backlog](backlog.md) R14 |
 | 96 | 在 OpenClash、Clash Verge 之外，再支持官方客户端 Stash；写入需求清单 | 🕓 | [backlog](backlog.md) R15、R16 |
+| 97 | 配置导入导出：导出可选是否含节点、规则集，重点适配各客户端；导入可直接粘贴网上复制的 YAML 反向解析，提示无用内容并丢弃；加入需求清单 | 🕓 | [backlog](backlog.md) R17 |
