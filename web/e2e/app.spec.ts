@@ -586,6 +586,38 @@ test("管理：审计日志分页", async ({ page, request, baseURL }) => {
   await expect(pager).toContainText("第 2 /");
 });
 
+test("删除配置：从列表卡片、编辑器的「更多」或命令面板删除，订阅链接随之失效", async ({ page, request, baseURL }) => {
+  const suffix = " " + test.info().project.name;
+  const a = await seedProfile(request, baseURL!, "删除甲" + suffix);
+  const b = await seedProfile(request, baseURL!, "删除乙" + suffix);
+  const link = await b.call<{ url: string }>("POST", `/api/v1/profiles/${a.profile}/links`, { note: "手机" }); // 用最后一次登录的会话（每次登录换新的 CSRF）
+  await login(page);
+
+  // 列表：卡片右端的删除按钮 → 对话框列出会一起删除的内容 → 确认
+  await page.getByRole("button", { name: `删除配置「删除甲${suffix}」` }).click();
+  const dialog = page.getByRole("dialog", { name: "删除配置" });
+  await expect(dialog).toContainText("1 条订阅链接");
+  await dialog.getByRole("button", { name: "删除", exact: true }).click();
+  await expect(page.getByRole("link", { name: "删除甲" + suffix })).toHaveCount(0);
+  expect((await request.get(new URL(link.url).pathname)).status()).toBe(404);
+
+  // 编辑器：桌面在「更多」里，手机（分节导航是下拉框）经命令面板；删除后回到列表
+  await page.goto(`/profiles/${b.profile}`);
+  await page.locator("#editor-main").waitFor();
+  if (test.info().project.name === "mobile") {
+    await page.keyboard.press("Control+K");
+    await expect(page.locator("dialog.palette input")).toBeFocused();
+    await page.locator("dialog.palette input").fill(">删除配置");
+    await page.keyboard.press("Enter");
+  } else {
+    await page.getByText("更多", { exact: true }).click();
+    await page.getByRole("button", { name: "删除配置" }).click();
+  }
+  await page.getByRole("dialog", { name: "删除配置" }).getByRole("button", { name: "删除", exact: true }).click();
+  await expect(page).toHaveURL(/\/profiles$/);
+  await expect(page.getByRole("link", { name: "删除乙" + suffix })).toHaveCount(0);
+});
+
 test("节点页：显示节点概况，直接分享或授权给好友；注册时安全问题可选并逐个出现", async ({ browser, page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "与桌面相同");
   const bob = await createUser(request, baseURL!, "nd");

@@ -251,7 +251,7 @@ func (s *Server) patchShortLink(w http.ResponseWriter, r *http.Request, p *princ
 }
 
 func (s *Server) deleteShortLink(w http.ResponseWriter, r *http.Request, p *principal) {
-	if err := s.Svc.Store.ShortLinks().Delete(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+	if err := s.Svc.DeleteShortLink(r.Context(), p.User, r.PathValue("id")); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -344,20 +344,22 @@ type attachDTO struct {
 }
 
 type messageDTO struct {
-	ID          string     `json:"id"`
-	Mine        bool       `json:"mine"`
-	Text        string     `json:"text"`
-	Attach      *attachDTO `json:"attach,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	ReadAt      *time.Time `json:"readAt,omitempty"`
-	AddedSource string     `json:"addedSource,omitempty"`
+	ID     string     `json:"id"`
+	Mine   bool       `json:"mine"`
+	Text   string     `json:"text"`
+	Attach *attachDTO `json:"attach,omitempty"`
+	// Notice 是系统通知（如授权的对象被删除），前端按 code 生成文案
+	Notice      *service.Notice `json:"notice,omitempty"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	ReadAt      *time.Time      `json:"readAt,omitempty"`
+	AddedSource string          `json:"addedSource,omitempty"`
 }
 
 // toMessage 转换消息；授权附件查询授权当前是否有效（收发双方都能读取这项授权）。
 func (s *Server) toMessage(ctx context.Context, me string, m *store.Message) messageDTO {
 	var b service.MessageBody
 	_ = json.Unmarshal(m.Body, &b)
-	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
+	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, Notice: b.Notice, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
 	if !d.Mine {
 		d.AddedSource = m.AddedSource
 	}

@@ -3,6 +3,7 @@
   import { uniqueName } from "../lib/names";
   import Emoji from "../components/Emoji.svelte";
   import Dialog from "../components/Dialog.svelte";
+  import DeleteProfileDialog from "../components/DeleteProfileDialog.svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
@@ -52,6 +53,8 @@
   }
 
   let shareTarget = $state<ShareTarget | null>(null);
+  let deleting = $state<Profile | null>(null);
+  let deleteOpen = $state(false);
 
   async function patchTemplate(x: Template, patch: { name?: string; note?: string; default?: boolean }) {
     try {
@@ -155,12 +158,15 @@
           <div class="links">
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/history"}><Icon name="history" size={14} />{t("profiles.history")}</a>
+            <button class="btn sm ghost danger del" type="button" aria-label={t("profiles.delete_named", { name: p.name })} title={t("profiles.delete")} onclick={() => { deleting = p; deleteOpen = true; }}><Icon name="trash" size={14} /></button>
           </div>
         </li>
       {/each}
     </ul>
   {/if}
 </div>
+
+<DeleteProfileDialog bind:open={deleteOpen} profile={deleting} onDeleted={() => (items = (items ?? []).filter((x) => x.id !== deleting?.id))} />
 
 <Dialog bind:open={creating} title={t("profiles.new")}>
   <form id="new-profile" class="form" onsubmit={create}>
@@ -325,6 +331,10 @@
     display: flex;
     gap: var(--space-1);
     margin-inline-start: calc(-1 * var(--space-2));
+  }
+  /* 删除放在卡片操作行的最右端，与常用操作拉开距离，避免误点 */
+  .links .del {
+    margin-inline-start: auto;
   }
   .empty {
     display: grid;

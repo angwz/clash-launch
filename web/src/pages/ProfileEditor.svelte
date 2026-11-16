@@ -9,6 +9,7 @@
   import SourcesPanel from "../components/editor/SourcesPanel.svelte";
   import ChainsPanel from "../components/editor/ChainsPanel.svelte";
   import SaveTemplateDialog from "../components/editor/SaveTemplateDialog.svelte";
+  import DeleteProfileDialog from "../components/DeleteProfileDialog.svelte";
   import { catalog, type MetaField, type NavSection } from "../lib/catalog.svelte";
   import { EditorState } from "../lib/editor.svelte";
   import { errorText } from "../lib/errors";
@@ -25,6 +26,13 @@
   let section = $state(new URLSearchParams(location.search).get("section") || "sources");
   let rawOpen = $state(false);
   let savingTemplate = $state(false);
+  let deletingProfile = $state(false);
+
+  // 删除后离开编辑器：先撤掉「离开时自动保存」，否则会去保存一个已经不存在的配置
+  function afterDelete() {
+    router.guard = null;
+    router.go("/profiles", true); // 替换当前历史记录：返回时不再回到已删除的配置
+  }
   let rawKey = $state<string | undefined>();
   let previewOpen = $state(false); // 浮层 / 手机视图中预览是否可见
   // 预览的呈现（反馈 #28）：宽屏上编辑设置时停靠在右侧并高亮当前字段；
@@ -158,6 +166,7 @@
       { id: "cmd.save", kind: "command", title: t("editor.save"), hint: "Ctrl S", icon: "check", run: () => void editor.save() },
       { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true, true) },
       { id: "routing.open", kind: "command", title: t("routing.title"), hint: "routing", icon: "rules", run: () => select("routing") },
+      { id: "profile.delete", kind: "command", title: t("profiles.delete"), hint: "delete", icon: "trash", run: () => (deletingProfile = true) },
     ];
     // 输入像域名或 IP 的内容时，提供「追踪」：跳到分流分节并开始追踪（routing 第 11.1 节）
     const q = palette.query.replace(/^>\s*/, "").trim();
@@ -255,6 +264,9 @@
           <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><span class="t">{t("profiles.history")}</span></a>
         </li>
         <li>
+          <button type="button" class="danger-item" onclick={() => (deletingProfile = true)}><span class="t">{t("profiles.delete")}</span></button>
+        </li>
+        <li>
           <button type="button" class:active={rawOpen} aria-current={rawOpen ? "true" : undefined} onclick={() => openRaw()}>
             <span class="t">{t("raw.title")}</span>
             {#if editor.raw.trim()}<span class="raw-dot" title={t("raw.indicator")}><Icon name="bolt" size={11} /></span>{/if}
@@ -305,6 +317,7 @@
     </div>
 
     <SaveTemplateDialog bind:open={savingTemplate} doc={editor.text} profileName={editor.profile.name} />
+    <DeleteProfileDialog bind:open={deletingProfile} profile={editor.profile} onDeleted={afterDelete} />
 
     <aside class="preview" aria-label={t("preview.title")}>
       <PreviewPane {editor} {floating} onLocate={(p) => void locate(p)} onHide={mobile ? undefined : docked ? () => (dockHidden = true) : () => (previewOpen = false)} />
@@ -449,6 +462,10 @@
   .secnav a.item:hover {
     background: var(--bg-hover);
     color: var(--fg);
+  }
+  .secnav button.danger-item:hover {
+    background: var(--err-soft);
+    color: var(--err);
   }
   /* 选中项：强调色浅底、强调色文字，前缘一条短竖条 */
   .secnav button,

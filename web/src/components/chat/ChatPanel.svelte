@@ -49,6 +49,8 @@
     mine: boolean;
     text: string;
     attach?: Attach;
+    /** 系统通知（需求 R2）：授权的对象被所有者删除 */
+    notice?: { code: string; target: "source" | "short"; name: string };
     createdAt: string;
     readAt?: string;
     addedSource?: string;
@@ -341,7 +343,7 @@
               <span class="th-main">
                 <span class="th-top"><strong>{th.username}</strong><span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
-                  {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : "server"} size={12} /> {/if}{th.last}
+                  {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{th.last}
                 </span>
               </span>
               {#if th.unread}<span class="badge">{th.unread}</span>{/if}
@@ -413,6 +415,14 @@
             {#if i === 0 || dayOf(msgs[i - 1]!.createdAt) !== dayOf(m.createdAt)}
               <p class="day muted">{dayOf(m.createdAt)}</p>
             {/if}
+            {#if m.notice}
+              <!-- 系统通知不是谁说的话：居中显示，双方各自看到对应的说法 -->
+              <p class="notice muted" role="note">
+                <Icon name="info" size={13} />
+                <span>{m.notice.target === "short" ? (m.mine ? t("messages.notice_short_mine", { name: m.notice.name }) : t("messages.notice_short", { name: m.notice.name })) : m.mine ? t("messages.notice_source_mine", { name: m.notice.name }) : t("messages.notice_source", { name: m.notice.name })}</span>
+                <time datetime={m.createdAt} title={i18n.date(m.createdAt, "long")}>{i18n.date(m.createdAt).split(" ").slice(-1)[0]}</time>
+              </p>
+            {:else}
             <div class="msg" class:mine={m.mine}>
               <div class="bubble">
                 {#if m.text}<p class="text">{m.text}</p>{/if}
@@ -449,6 +459,7 @@
                 <button class="hide" type="button" aria-label={t("messages.hide")} title={t("messages.hide")} onclick={() => void hide(m)}><Icon name="x" size={12} /></button>
               </div>
             </div>
+            {/if}
           {/each}
         </div>
 
@@ -682,6 +693,23 @@
     align-self: center;
     font-size: var(--text-xs);
     margin-block: var(--space-2);
+  }
+  .notice {
+    align-self: center;
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-1);
+    max-inline-size: 85%;
+    margin-block: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+  .notice time {
+    flex: none;
+    opacity: 0.7;
   }
   .msg {
     display: grid;

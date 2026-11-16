@@ -28,7 +28,7 @@
   }
 
   let { scope }: { scope: "me" | "all" } = $props();
-  const SIZE = 30;
+  const SIZE = 10; // 每页 10 条（需求 R6）
   let items = $state<Entry[]>([]);
   let pageN = $state(1);
   let total = $state(0);

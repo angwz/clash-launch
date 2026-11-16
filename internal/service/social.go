@@ -96,6 +96,7 @@ const (
 type MessageBody struct {
 	Text   string      `json:"text,omitempty"`
 	Attach *Attachment `json:"attach,omitempty"`
+	Notice *Notice     `json:"notice,omitempty"` // 系统通知（kind = notice），见 deletion.go
 }
 
 // Attachment 是随消息发送的节点：手动节点的原文，或订阅地址。不包含发件人设置的请求头（可能含凭据）。
@@ -350,6 +351,9 @@ func preview(b MessageBody) string {
 	t := b.Text
 	if t == "" && b.Attach != nil {
 		t = b.Attach.Name
+	}
+	if t == "" && b.Notice != nil {
+		t = b.Notice.Name
 	}
 	if r := []rune(t); len(r) > 60 {
 		t = string(r[:60]) + "…"

@@ -263,7 +263,7 @@ func (s *Server) updateSource(w http.ResponseWriter, r *http.Request, p *princip
 }
 
 func (s *Server) deleteSource(w http.ResponseWriter, r *http.Request, p *principal) {
-	if err := s.Svc.Store.Sources().Delete(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+	if err := s.Svc.DeleteSource(r.Context(), p.User, r.PathValue("id")); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -641,7 +641,7 @@ func (s *Server) updateProfile(w http.ResponseWriter, r *http.Request, p *princi
 }
 
 func (s *Server) deleteProfile(w http.ResponseWriter, r *http.Request, p *principal) {
-	if err := s.Svc.Store.Profiles().Delete(r.Context(), p.User.ID, r.PathValue("id")); err != nil {
+	if err := s.Svc.DeleteProfile(r.Context(), p.User, r.PathValue("id")); err != nil {
 		s.fail(w, err)
 		return
 	}
@@ -957,7 +957,7 @@ func (s *Server) deleteLink(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
-	if err := s.Svc.Store.Links().Delete(r.Context(), p.User.ID, l.ID); err != nil {
+	if err := s.Svc.DeleteLink(r.Context(), p.User, l.ID); err != nil {
 		s.fail(w, err)
 		return
 	}
