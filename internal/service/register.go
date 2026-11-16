@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/angwz/clash-launch/internal/auth"
@@ -44,20 +43,6 @@ func (s *Service) SetRegistration(ctx context.Context, admin string, open bool) 
 	return s.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: admin, Action: "admin.registration", Detail: []byte(`{"open":` + v + `}`)})
 }
 
-// CreateInvite 生成一次性邀请，返回令牌原文（只此一次）。ttl 为 0 表示不过期。
-func (s *Service) CreateInvite(ctx context.Context, admin string, ttl time.Duration, note string) (string, *store.Invite, error) {
-	tok := auth.NewToken(24)
-	inv := &store.Invite{TokenHash: auth.HashToken(tok), CreatedBy: admin, Note: note}
-	if ttl > 0 {
-		inv.ExpiresAt = s.now().Add(ttl)
-	}
-	if err := s.Store.Invites().Create(ctx, inv); err != nil {
-		return "", nil, err
-	}
-	_ = s.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: admin, Action: "admin.invite.create", Detail: []byte(`{"invite":"` + inv.ID + `"}`)})
-	return tok, inv, nil
-}
-
 // CheckUsername 校验用户名：1–32 个字符，首尾无空白，不含控制字符（反馈 #17：用户名可以简单）。
 func CheckUsername(name string) error {
 	n := utf8.RuneCountInString(name)
@@ -86,6 +71,9 @@ type RegisterInput struct {
 func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, error) {
 	username, password, invite := in.Username, in.Password, in.Invite
 	if err := CheckUsername(username); err != nil {
+		return nil, err
+	}
+	if err := s.checkNameFree(ctx, username, ""); err != nil {
 		return nil, err
 	}
 	if err := auth.CheckPassword(password); err != nil {
@@ -119,14 +107,24 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 			return err
 		}
 		if invite != "" {
-			// 邀请成功消费即记为受邀用户（可自选节点写法，反馈 #46）；开放注册时邀请可选，
-			// 无效或过期的邀请不挡住注册，只是不算受邀。
-			_, err := tx.Invites().Use(ctx, auth.HashToken(invite), u.ID, s.now())
+			// 邀请成功消费即记下邀请关系（需求 R12）；管理员发出的邀请同时记为受邀用户（可自选节点写法，反馈 #46）。
+			// 开放注册时邀请可选，无效或过期的邀请不挡住注册，只是不记关系。
+			inv, err := tx.Invites().Use(ctx, auth.HashToken(invite), u.ID, s.now())
 			switch {
 			case err == nil:
-				u.Invited = true
-				if err := tx.Users().SetInvited(ctx, u.ID, true); err != nil {
+				inviter, err := tx.Users().ByID(ctx, inv.CreatedBy)
+				if err != nil {
 					return err
+				}
+				u.InvitedBy, u.InvitedByName, u.InviteID = inviter.ID, inviter.Username, inv.ID
+				if err := tx.Users().SetInviter(ctx, u.ID, inviter.ID, inviter.Username, inv.ID); err != nil {
+					return err
+				}
+				if inviter.Role == "admin" {
+					u.Invited = true
+					if err := tx.Users().SetInvited(ctx, u.ID, true); err != nil {
+						return err
+					}
 				}
 			case !errors.Is(err, store.ErrNotFound):
 				return err
@@ -139,5 +137,6 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 	if err != nil {
 		return nil, err
 	}
+	s.notifyInviter(ctx, u)
 	return u, nil
 }

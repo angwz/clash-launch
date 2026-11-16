@@ -27,6 +27,10 @@ type AdminUser struct {
 	Quota     store.Quota `json:"quota"` // -1 表示使用默认值
 	Invited   bool        `json:"invited"`
 	Defaults  Limits      `json:"defaults"` // 这个用户适用的默认配额（开放注册的用户更小）
+	// 需求 R5、R12：昵称、邀请人（当前用户名，已注销时为快照）、是否被收回邀请权
+	Nickname     string `json:"nickname,omitempty"`
+	InvitedBy    string `json:"invitedBy,omitempty"`
+	InviteBanned bool   `json:"inviteBanned"`
 }
 
 // AdminUsers 列出用户（只含元数据）。
@@ -60,7 +64,7 @@ func (s *Service) adminView(ctx context.Context, users []store.User) ([]AdminUse
 			return nil, err
 		}
 		st, _ := s.TOTPStatus(ctx, u.ID)
-		out = append(out, AdminUser{ID: u.ID, Username: u.Username, Role: u.Role, Disabled: u.Disabled, CreatedAt: u.CreatedAt, MFA: st.Enabled, Usage: *usage, Quota: *q, Invited: u.Invited, Defaults: limitsOf(s.defaultsFor(&u))})
+		out = append(out, AdminUser{ID: u.ID, Username: u.Username, Role: u.Role, Disabled: u.Disabled, CreatedAt: u.CreatedAt, MFA: st.Enabled, Usage: *usage, Quota: *q, Invited: u.Invited, Defaults: limitsOf(s.defaultsFor(&u)), Nickname: u.Nickname, InvitedBy: s.inviterName(ctx, &u), InviteBanned: u.InviteBanned})
 	}
 	return out, nil
 }

@@ -250,15 +250,16 @@ func (d *DB) Invites() InviteRepo         { return invites{d} }
 
 type users struct{ d *DB }
 
-const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version"
+const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version, nickname, username_changed_at, invited_by, invited_by_name, invite_id, invite_banned"
 
 func scanUser(r interface{ Scan(...any) error }) (*User, error) {
 	var u User
-	var dis, inv, c, up int64
-	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version); err != nil {
+	var dis, inv, c, up, ch, ban int64
+	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version, &u.Nickname, &ch, &u.InvitedBy, &u.InvitedByName, &u.InviteID, &ban); err != nil {
 		return nil, notFound(err)
 	}
 	u.Disabled, u.Invited, u.CreatedAt, u.UpdatedAt = dis == 1, inv == 1, fromMS(c), fromMS(up)
+	u.UsernameChangedAt, u.InviteBanned = fromMS(ch), ban == 1
 	return &u, nil
 }
 
@@ -310,12 +311,18 @@ func (r users) Paged(ctx context.Context, q string, offset, limit int) ([]User, 
 }
 
 func (r users) Search(ctx context.Context, prefix string, limit int) ([]User, error) {
-	// LIKE 的通配符按字面量处理；转义字符用 !（两种数据库都支持 ESCAPE，且不涉及反斜杠的转义差异）
+	// LIKE 的通配符按字面量处理；转义字符用 !（两种数据库都支持 ESCAPE，且不涉及反斜杠的转义差异）。
+	// 用户名按前缀匹配，昵称按包含匹配（需求 R5：昵称可含空格，输入其中任一段都能找到）；用户名命中的排在前面。
 	p := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(NormalizeUsername(prefix))
-	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE username_norm LIKE ? ESCAPE '!' ORDER BY username_norm LIMIT ?", p+"%", limit)
+	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE username_norm LIKE ? ESCAPE '!' OR nickname_norm LIKE ? ESCAPE '!' "+
+		"ORDER BY CASE WHEN username_norm LIKE ? ESCAPE '!' THEN 0 ELSE 1 END, username_norm LIMIT ?", p+"%", "%"+p+"%", p+"%", limit)
 	if err != nil {
 		return nil, err
 	}
+	return collectUsers(rows)
+}
+
+func collectUsers(rows *sql.Rows) ([]User, error) {
 	defer func() { _ = rows.Close() }()
 	var out []User
 	for rows.Next() {
@@ -326,6 +333,57 @@ func (r users) Search(ctx context.Context, prefix string, limit int) ([]User, er
 		out = append(out, *u)
 	}
 	return out, rows.Err()
+}
+
+// —— 昵称、改名与邀请关系（需求 R4、R5、R12）——
+
+func (r users) SetNickname(ctx context.Context, id, nickname string) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET nickname=?, nickname_norm=?, updated_at=? WHERE id=?", nickname, strings.ToLower(nickname), ms(time.Now()), id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r users) Rename(ctx context.Context, id, username string, at time.Time) error {
+	return r.d.Tx(ctx, func(st Store) error {
+		x := st.(*DB)
+		old, err := scanUser(x.row(ctx, "SELECT "+userCols+" FROM users WHERE id = ?", id))
+		if err != nil {
+			return err
+		}
+		if _, err := x.exec(ctx, "INSERT INTO username_history (user_id, username, name_norm, changed_at) VALUES (?,?,?,?)",
+			id, old.Username, NormalizeUsername(old.Username), ms(at)); err != nil {
+			return err
+		}
+		_, err = x.exec(ctx, "UPDATE users SET username=?, username_norm=?, username_changed_at=?, updated_at=?, version=version+1 WHERE id=?",
+			username, NormalizeUsername(username), ms(at), ms(at), id)
+		if err != nil && isUnique(err) {
+			return ErrExists
+		}
+		return err
+	})
+}
+
+func (r users) NameReserved(ctx context.Context, norm, exceptUser string, since time.Time) (bool, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM username_history WHERE name_norm=? AND user_id<>? AND changed_at>?", norm, exceptUser, ms(since)).Scan(&n)
+	return n > 0, err
+}
+
+func (r users) SetInviter(ctx context.Context, id, inviterID, inviterName, inviteID string) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET invited_by=?, invited_by_name=?, invite_id=? WHERE id=?", inviterID, inviterName, inviteID, id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r users) SetInviteBanned(ctx context.Context, id string, banned bool) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET invite_banned=? WHERE id=?", b2i(banned), id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r users) Invitees(ctx context.Context, inviterID string) ([]User, error) {
+	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE invited_by=? ORDER BY created_at", inviterID)
+	if err != nil {
+		return nil, err
+	}
+	return collectUsers(rows)
 }
 
 func (r users) Update(ctx context.Context, u *User) error {
@@ -1165,13 +1223,44 @@ func (r settings) Set(ctx context.Context, key, value string) error {
 
 type invites struct{ d *DB }
 
+const inviteCols = "id, token_hash, created_by, note, created_at, expires_at, used_at, used_by, max_uses, uses, revoked_at"
+
+func scanInvite(r interface{ Scan(...any) error }) (*Invite, error) {
+	var v Invite
+	var c, e, u, rv int64
+	if err := r.Scan(&v.ID, &v.TokenHash, &v.CreatedBy, &v.Note, &c, &e, &u, &v.UsedBy, &v.MaxUses, &v.Uses, &rv); err != nil {
+		return nil, notFound(err)
+	}
+	v.CreatedAt, v.ExpiresAt, v.UsedAt, v.RevokedAt = fromMS(c), fromMS(e), fromMS(u), fromMS(rv)
+	return &v, nil
+}
+
+func (r invites) list(rows *sql.Rows, err error) ([]Invite, error) {
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Invite
+	for rows.Next() {
+		v, err := scanInvite(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *v)
+	}
+	return out, rows.Err()
+}
+
 func (r invites) Create(ctx context.Context, inv *Invite) error {
 	if inv.ID == "" {
 		inv.ID = NewID()
 	}
+	if inv.MaxUses < 1 {
+		inv.MaxUses = 1
+	}
 	inv.CreatedAt = time.Now()
-	_, err := r.d.exec(ctx, "INSERT INTO invites (id, token_hash, created_by, note, created_at, expires_at, used_at, used_by) VALUES (?,?,?,?,?,?,0,'')",
-		inv.ID, inv.TokenHash, inv.CreatedBy, inv.Note, ms(inv.CreatedAt), ms(inv.ExpiresAt))
+	_, err := r.d.exec(ctx, "INSERT INTO invites ("+inviteCols+") VALUES (?,?,?,?,?,?,0,'',?,0,0)",
+		inv.ID, inv.TokenHash, inv.CreatedBy, inv.Note, ms(inv.CreatedAt), ms(inv.ExpiresAt), inv.MaxUses)
 	return err
 }
 
@@ -1180,22 +1269,21 @@ func (r invites) List(ctx context.Context, p Page) ([]Invite, error) {
 	if p.After != "" {
 		after = p.After
 	}
-	rows, err := r.d.query(ctx, "SELECT id, token_hash, created_by, note, created_at, expires_at, used_at, used_by FROM invites WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p))
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	var out []Invite
-	for rows.Next() {
-		var v Invite
-		var c, e, u int64
-		if err := rows.Scan(&v.ID, &v.TokenHash, &v.CreatedBy, &v.Note, &c, &e, &u, &v.UsedBy); err != nil {
-			return nil, err
-		}
-		v.CreatedAt, v.ExpiresAt, v.UsedAt = fromMS(c), fromMS(e), fromMS(u)
-		out = append(out, v)
-	}
-	return out, rows.Err()
+	return r.list(r.d.query(ctx, "SELECT "+inviteCols+" FROM invites WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p)))
+}
+
+func (r invites) ByCreator(ctx context.Context, creator string) ([]Invite, error) {
+	return r.list(r.d.query(ctx, "SELECT "+inviteCols+" FROM invites WHERE created_by=? ORDER BY created_at DESC", creator))
+}
+
+func (r invites) ByToken(ctx context.Context, tokenHash string) (*Invite, error) {
+	return scanInvite(r.d.row(ctx, "SELECT "+inviteCols+" FROM invites WHERE token_hash=?", tokenHash))
+}
+
+func (r invites) CountSince(ctx context.Context, creator string, since time.Time) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM invites WHERE created_by=? AND created_at>?", creator, ms(since)).Scan(&n)
+	return n, err
 }
 
 func (r invites) Delete(ctx context.Context, id string) error {
@@ -1203,21 +1291,54 @@ func (r invites) Delete(ctx context.Context, id string) error {
 	return affected(res, err, ErrNotFound)
 }
 
+func (r invites) Revoke(ctx context.Context, id, creator string, at time.Time) error {
+	q, args := "UPDATE invites SET revoked_at=? WHERE id=? AND revoked_at=0", []any{ms(at), id}
+	if creator != "" {
+		q, args = q+" AND created_by=?", append(args, creator)
+	}
+	res, err := r.d.exec(ctx, q, args...)
+	return affected(res, err, ErrNotFound)
+}
+
 func (r invites) Use(ctx context.Context, tokenHash, userID string, now time.Time) (*Invite, error) {
 	n := ms(now)
-	res, err := r.d.exec(ctx, "UPDATE invites SET used_at=?, used_by=? WHERE token_hash=? AND used_at=0 AND (expires_at=0 OR expires_at>?)", n, userID, tokenHash, n)
-	if err := affected(res, err, ErrNotFound); err != nil {
+	var out *Invite
+	err := r.d.Tx(ctx, func(st Store) error {
+		x := st.(*DB)
+		// 条件与更新在同一条语句中：并发注册不会超过上限
+		res, err := x.exec(ctx, "UPDATE invites SET uses=uses+1, used_at=CASE WHEN used_at=0 THEN ? ELSE used_at END, used_by=CASE WHEN used_by='' THEN ? ELSE used_by END "+
+			"WHERE token_hash=? AND revoked_at=0 AND uses<max_uses AND (expires_at=0 OR expires_at>?)", n, userID, tokenHash, n)
+		if err := affected(res, err, ErrNotFound); err != nil {
+			return err
+		}
+		v, err := scanInvite(x.row(ctx, "SELECT "+inviteCols+" FROM invites WHERE token_hash=?", tokenHash))
+		if err != nil {
+			return err
+		}
+		if _, err := x.exec(ctx, "INSERT INTO invite_uses (invite_id, user_id, used_at) VALUES (?,?,?)", v.ID, userID, n); err != nil {
+			return err
+		}
+		out = v
+		return nil
+	})
+	return out, err
+}
+
+func (r invites) UsedBy(ctx context.Context, inviteID string) ([]string, error) {
+	rows, err := r.d.query(ctx, "SELECT user_id FROM invite_uses WHERE invite_id=? ORDER BY used_at", inviteID)
+	if err != nil {
 		return nil, err
 	}
-	var v Invite
-	var c, e, u int64
-	err = r.d.row(ctx, "SELECT id, token_hash, created_by, note, created_at, expires_at, used_at, used_by FROM invites WHERE token_hash=?", tokenHash).
-		Scan(&v.ID, &v.TokenHash, &v.CreatedBy, &v.Note, &c, &e, &u, &v.UsedBy)
-	if err != nil {
-		return nil, notFound(err)
+	defer func() { _ = rows.Close() }()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
 	}
-	v.CreatedAt, v.ExpiresAt, v.UsedAt = fromMS(c), fromMS(e), fromMS(u)
-	return &v, nil
+	return out, rows.Err()
 }
 
 // —— 配置模板（反馈 #51）——

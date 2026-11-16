@@ -220,6 +220,8 @@ func problem(w http.ResponseWriter, status int, code, detail string, ds ...diag.
 // fail 把错误映射为问题详情：不存在与不属于当前用户一律 404（第 14.3 节）。
 func (s *Server) fail(w http.ResponseWriter, err error) {
 	var wait *service.WaitError
+	var renameWait *service.RenameWaitError
+	var denied *service.InviteDeniedError
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		problem(w, http.StatusNotFound, "not_found", "resource not found")
@@ -283,6 +285,16 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "admin.self", "administrators cannot do this to their own account")
 	case errors.Is(err, service.ErrInvalidLogin):
 		problem(w, http.StatusUnauthorized, "auth.invalid", "invalid username or password")
+	case errors.As(err, &renameWait):
+		problem(w, http.StatusConflict, "account.rename_wait", "the username can be changed again at "+renameWait.Until.UTC().Format(time.RFC3339))
+	case errors.Is(err, service.ErrNameReserved):
+		problem(w, http.StatusConflict, "account.name_reserved", err.Error())
+	case errors.Is(err, service.ErrNickname):
+		problem(w, http.StatusUnprocessableEntity, "account.nickname", err.Error())
+	case errors.As(err, &denied):
+		problem(w, http.StatusForbidden, "invite."+denied.Reason, err.Error())
+	case errors.Is(err, service.ErrInviteInput):
+		problem(w, http.StatusUnprocessableEntity, "invite.input", err.Error())
 	case errors.As(err, &wait):
 		w.Header().Set("Retry-After", strconv.Itoa(int(wait.Wait.Seconds())+1))
 		problem(w, http.StatusTooManyRequests, "auth.locked", "too many failed attempts; try again later")

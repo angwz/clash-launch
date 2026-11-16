@@ -188,6 +188,9 @@ components:
         role: {type: string, enum: [admin, user]}
         lang: {type: string}
         timezone: {type: string}
+        nickname: {type: string, description: 昵称，可含空格、不唯一（需求 R5）}
+        nextRenameAt: {type: string, format: date-time, description: 下次可以改用户名的时间；为空表示现在就可以（需求 R4）}
+        invitedBy: {type: string, description: 邀请人的用户名（需求 R12）}
     Session:
       type: object
       required: [user, csrf]
@@ -366,7 +369,7 @@ components:
         version: {type: integer}
     Invite:
       type: object
-      required: [id, note, createdAt, status]
+      required: [id, note, createdAt, status, maxUses, uses]
       properties:
         id: {type: string}
         url: {type: string, description: 只在创建时返回；令牌只以哈希存储}
@@ -374,7 +377,34 @@ components:
         createdAt: {type: string, format: date-time}
         expiresAt: {type: string, format: date-time}
         usedAt: {type: string, format: date-time}
-        status: {type: string, enum: [active, used, expired]}
+        maxUses: {type: integer, description: 可用次数上限}
+        uses: {type: integer}
+        status: {type: string, enum: [active, used, expired, revoked]}
+        createdBy: {type: string, description: 管理员视图：发出者的用户名}
+        usedBy: {type: array, items: {type: string}, description: 用这个邀请注册的人（用户名）}
+    InvitePolicy:
+      type: object
+      required: [perMonth, minAgeDays]
+      properties:
+        perMonth: {type: integer, minimum: 0, maximum: 1000, description: 普通用户最近 30 天可发出的邀请数；0 表示普通用户不能邀请}
+        minAgeDays: {type: integer, minimum: 0, maximum: 3650}
+    InviteQuota:
+      type: object
+      required: [unlimited, limit, used, allowed]
+      properties:
+        unlimited: {type: boolean}
+        limit: {type: integer}
+        used: {type: integer}
+        allowed: {type: boolean}
+        reason: {type: string, enum: [banned, too_new, quota, disabled]}
+        availableAt: {type: string, format: date-time}
+    Invitee:
+      type: object
+      required: [username, joinedAt]
+      properties:
+        username: {type: string}
+        nickname: {type: string}
+        joinedAt: {type: string, format: date-time}
     Prefs:
       type: object
       additionalProperties: false
@@ -915,6 +945,65 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/invite-policy:
+    get:
+      tags: [admin]
+      summary: 邀请规则：普通用户最近 30 天可发出的邀请数与注册满几天后才能邀请（需求 R12）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/InvitePolicy'}}}}}
+    put:
+      tags: [admin]
+      summary: 修改邀请规则
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/InvitePolicy'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/InvitePolicy'}}}}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/users/{id}/invite-ban:
+    put:
+      tags: [admin]
+      summary: 收回或恢复某人的邀请权；收回时其未用完的邀请随之作废
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [banned], properties: {banned: {type: boolean}}}}}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/invites:
+    get:
+      tags: [account]
+      summary: 我的邀请名额、发出的邀请与邀请来的人（需求 R12）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [quota, items, invitees], properties: {quota: {$ref: '#/components/schemas/InviteQuota'}, items: {type: array, items: {$ref: '#/components/schemas/Invite'}}, invitees: {type: array, items: {$ref: '#/components/schemas/Invitee'}}}}}}}}
+    post:
+      tags: [account]
+      summary: 发出邀请。hours 为有效期（0 不过期，最长 2160），maxUses 为可用次数（默认 1，最多 100）。管理员不受名额限制；只有管理员的邀请赋予「受邀用户」权限
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {hours: {type: integer}, note: {type: string, maxLength: 200}, maxUses: {type: integer}}}}}}
+      responses: {'201': {description: created, content: {application/json: {schema: {$ref: '#/components/schemas/Invite'}}}}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/invites/{id}/revoke:
+    post:
+      tags: [account]
+      summary: 作废自己发出的邀请
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/register/inviter:
+    post:
+      tags: [session]
+      summary: 凭邀请令牌查询邀请人（注册页显示「由谁邀请」）；令牌在请求体中，不进访问日志；无效时 404
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [token], properties: {token: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [username], properties: {username: {type: string}, nickname: {type: string}}}}}}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/username:
+    put:
+      tags: [account]
+      summary: 改用户名（需要当前密码）。180 天一次；旧名保留 180 天，期间别人不能使用（需求 R4）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password], properties: {username: {type: string}, password: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/nickname:
+    put:
+      tags: [account]
+      summary: 设置昵称（空串清除）；可含空格，最多 32 个字符（需求 R5）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [nickname], properties: {nickname: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '422': {$ref: '#/components/responses/Problem'}}
   /api/v1/catalog/{pack}:
     get:
       tags: [catalog]

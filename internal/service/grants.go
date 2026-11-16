@@ -135,7 +135,7 @@ func (s *Service) Threads(ctx context.Context, u *store.User) ([]Thread, error) 
 		if err != nil {
 			continue
 		}
-		t := Thread{UserID: c.PeerID, Username: peer.Username, LastAt: c.LastAt}
+		t := Thread{UserID: c.PeerID, Username: peer.Username, Nickname: peer.Nickname, LastAt: c.LastAt}
 		if ms, err := s.Store.Messages().Thread(ctx, u.ID, c.PeerID, store.Page{Limit: 1}); err == nil && len(ms) > 0 {
 			var body MessageBody
 			_ = json.Unmarshal(ms[0].Body, &body)
@@ -233,10 +233,11 @@ func (s *Service) PurgeThreads(ctx context.Context) {
 // UserHit 是用户名联想的一项。
 type UserHit struct {
 	Username string `json:"username"`
-	Accepts  bool   `json:"accepts"` // 是否接收站内消息
+	Nickname string `json:"nickname,omitempty"` // 需求 R5
+	Accepts  bool   `json:"accepts"`            // 是否接收站内消息
 }
 
-// SearchUsers 按用户名前缀联想（不区分大小写，最多 8 个），用于消息的收件人输入框。
+// SearchUsers 按用户名前缀或昵称中的任一段联想（不区分大小写，最多 8 个），用于消息的收件人输入框。
 // 不包含自己与已停用的账号。
 func (s *Service) SearchUsers(ctx context.Context, u *store.User, q string) ([]UserHit, error) {
 	q = strings.TrimSpace(q)
@@ -256,7 +257,7 @@ func (s *Service) SearchUsers(ctx context.Context, u *store.User, q string) ([]U
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, UserHit{Username: x.Username, Accepts: p.Inbox != "off"})
+		out = append(out, UserHit{Username: x.Username, Nickname: x.Nickname, Accepts: p.Inbox != "off"})
 	}
 	return out, nil
 }

@@ -409,7 +409,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 	}
 	// 对话在回收站中：不返回消息，界面显示「已删除」与恢复按钮（反馈 #75）
 	if c, err := s.Svc.Store.Contacts().Get(ctx, p.User.ID, other.ID); err == nil && !c.DeletedAt.IsZero() {
-		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username}, "items": []messageDTO{}, "deletedAt": c.DeletedAt, "purgeAt": c.DeletedAt.Add(365 * 24 * time.Hour)})
+		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username, "nickname": other.Nickname}, "items": []messageDTO{}, "deletedAt": c.DeletedAt, "purgeAt": c.DeletedAt.Add(365 * 24 * time.Hour)})
 		return
 	}
 	items, err := s.Svc.Store.Messages().Thread(ctx, p.User.ID, other.ID, page(r))
@@ -429,7 +429,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 		last := items[len(items)-1]
 		out.Next = strconv.FormatInt(last.CreatedAt.UnixMilli(), 10) + "|" + last.ID
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username}, "items": out.Items, "next": out.Next})
+	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username, "nickname": other.Nickname}, "items": out.Items, "next": out.Next})
 }
 
 func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principal) {

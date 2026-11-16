@@ -3,11 +3,9 @@ package api
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/angwz/clash-launch/internal/auth"
 	"github.com/angwz/clash-launch/internal/service"
-	"github.com/angwz/clash-launch/internal/store"
 )
 
 // adminOnly 包装只有管理员能用的处理器；普通用户得到 404（不暴露管理接口的存在）。
@@ -82,74 +80,4 @@ func (s *Server) putRegistration(w http.ResponseWriter, r *http.Request, p *prin
 		return
 	}
 	writeJSON(w, http.StatusOK, req)
-}
-
-type inviteDTO struct {
-	ID        string     `json:"id"`
-	URL       string     `json:"url,omitempty"` // 只在创建时返回：令牌只以哈希存储
-	Note      string     `json:"note"`
-	CreatedAt time.Time  `json:"createdAt"`
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-	UsedAt    *time.Time `json:"usedAt,omitempty"`
-	Status    string     `json:"status"` // active | used | expired
-}
-
-func inviteStatus(v *store.Invite, now time.Time) string {
-	switch {
-	case !v.UsedAt.IsZero():
-		return "used"
-	case !v.ExpiresAt.IsZero() && now.After(v.ExpiresAt):
-		return "expired"
-	}
-	return "active"
-}
-
-func toInvite(v *store.Invite) inviteDTO {
-	return inviteDTO{ID: v.ID, Note: v.Note, CreatedAt: v.CreatedAt, ExpiresAt: tp(v.ExpiresAt), UsedAt: tp(v.UsedAt), Status: inviteStatus(v, time.Now())}
-}
-
-func (s *Server) listInvites(w http.ResponseWriter, r *http.Request, _ *principal) {
-	items, err := s.Svc.Store.Invites().List(r.Context(), page(r))
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	out := list[inviteDTO]{Items: []inviteDTO{}}
-	for i := range items {
-		out.Items = append(out.Items, toInvite(&items[i]))
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-// createInvite 生成一次性邀请链接；hours 为有效期（小时），0 表示不过期，最长 90 天。
-func (s *Server) createInvite(w http.ResponseWriter, r *http.Request, p *principal) {
-	var req struct {
-		Hours int    `json:"hours"`
-		Note  string `json:"note"`
-	}
-	if err := readJSON(r, &req); err != nil {
-		s.fail(w, err)
-		return
-	}
-	if req.Hours < 0 || req.Hours > 90*24 {
-		s.fail(w, badRequest("hours must be between 0 (never expires) and 2160"))
-		return
-	}
-	tok, inv, err := s.Svc.CreateInvite(r.Context(), p.User.ID, time.Duration(req.Hours)*time.Hour, truncate(req.Note, 200))
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
-	d := toInvite(inv)
-	d.URL = s.baseURL(r) + "/register#" + tok // 令牌放在片段中：不会出现在反向代理的访问日志里
-	writeJSON(w, http.StatusCreated, d)
-}
-
-func (s *Server) deleteInvite(w http.ResponseWriter, r *http.Request, p *principal) {
-	if err := s.Svc.Store.Invites().Delete(r.Context(), r.PathValue("id")); err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.audit(r.Context(), p.User.ID, "admin.invite.delete", map[string]string{"invite": r.PathValue("id")})
-	w.WriteHeader(http.StatusNoContent)
 }

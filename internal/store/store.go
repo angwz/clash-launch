@@ -70,6 +70,13 @@ type User struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Version      int64
+	// 需求 R4、R5、R12
+	Nickname          string    // 昵称：可含空格，不唯一
+	UsernameChangedAt time.Time // 最近一次改用户名，零值表示从未改过
+	InvitedBy         string    // 邀请人的用户 ID
+	InvitedByName     string    // 邀请人的用户名快照（邀请人注销后仍能显示）
+	InviteID          string
+	InviteBanned      bool // 管理员收回了邀请权
 }
 
 // Session 是登录会话。ID 只以哈希形式存储。
@@ -251,6 +258,19 @@ type UserRepo interface {
 	SetPrefs(ctx context.Context, id string, prefs []byte) error
 	// SetInvited 记录账号是否经邀请注册（不改变 version：不是用户可编辑的资料）。
 	SetInvited(ctx context.Context, id string, invited bool) error
+	// —— 需求 R4、R5、R12 ——
+	// SetNickname 设置昵称（空串清除）。
+	SetNickname(ctx context.Context, id, nickname string) error
+	// Rename 改用户名：旧名记入 username_history，记录修改时间；新名已被占用时返回 ErrExists。
+	Rename(ctx context.Context, id, username string, at time.Time) error
+	// NameReserved 报告用户名（规范形式）是否在 since 之后被 exceptUser 以外的人用过（改名后的保留期）。
+	NameReserved(ctx context.Context, norm, exceptUser string, since time.Time) (bool, error)
+	// SetInviter 记录邀请关系。
+	SetInviter(ctx context.Context, id, inviterID, inviterName, inviteID string) error
+	// SetInviteBanned 收回或恢复邀请权。
+	SetInviteBanned(ctx context.Context, id string, banned bool) error
+	// Invitees 返回由 inviterID 邀请注册的用户（注册早的在前）。
+	Invitees(ctx context.Context, inviterID string) ([]User, error)
 	Count(ctx context.Context) (int, error)
 	List(ctx context.Context, p Page) ([]User, error) // 管理用：只含元数据
 	// Paged 按页返回用户（按用户名排序）与总数；q 非空时按用户名包含 q 过滤（管理页分页，反馈 #76）
@@ -358,7 +378,10 @@ type Invite struct {
 	CreatedAt time.Time
 	ExpiresAt time.Time // 零值表示不过期
 	UsedAt    time.Time
-	UsedBy    string
+	UsedBy    string // 第一次使用的用户
+	MaxUses   int    // 可用次数上限（需求 R12）
+	Uses      int
+	RevokedAt time.Time
 }
 
 // InviteRepo 管理邀请（管理员功能；Use 供注册使用）。
@@ -366,8 +389,18 @@ type InviteRepo interface {
 	Create(ctx context.Context, inv *Invite) error
 	List(ctx context.Context, p Page) ([]Invite, error)
 	Delete(ctx context.Context, id string) error
-	// Use 原子地把未使用、未过期的邀请标记为已用；邀请无效时返回 ErrNotFound。
+	// Use 原子地把一次使用记到未作废、未过期、未用完的邀请上，并记录使用者；邀请无效时返回 ErrNotFound。
 	Use(ctx context.Context, tokenHash, userID string, now time.Time) (*Invite, error)
+	// ByToken 按令牌哈希查找邀请（注册页显示邀请人；不判断是否仍有效）。
+	ByToken(ctx context.Context, tokenHash string) (*Invite, error)
+	// ByCreator 返回某人发出的邀请（新的在前）。
+	ByCreator(ctx context.Context, creator string) ([]Invite, error)
+	// CountSince 返回某人在 since 之后发出的邀请数（名额）。
+	CountSince(ctx context.Context, creator string, since time.Time) (int, error)
+	// Revoke 作废邀请；creator 非空时只能作废自己发出的。
+	Revoke(ctx context.Context, id, creator string, at time.Time) error
+	// UsedBy 返回使用过这个邀请的用户 ID（按使用时间）。
+	UsedBy(ctx context.Context, inviteID string) ([]string, error)
 }
 
 // Template 是配置模板（反馈 #51）：一份不含名称的配置文档，加上名称与说明（如适用的客户端、mihomo 版本）。

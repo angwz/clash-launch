@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/angwz/clash-launch/internal/auth"
+	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/store"
 )
 
@@ -114,10 +115,18 @@ type userDTO struct {
 	Role     string `json:"role"`
 	Lang     string `json:"lang"`
 	Timezone string `json:"timezone"`
+	// 需求 R4、R5、R12
+	Nickname     string     `json:"nickname,omitempty"`
+	NextRenameAt *time.Time `json:"nextRenameAt,omitempty"` // 下次可以改用户名的时间；为空表示现在就可以
+	InvitedBy    string     `json:"invitedBy,omitempty"`    // 邀请人的用户名
 }
 
 func toUser(u *store.User) userDTO {
-	return userDTO{ID: u.ID, Username: u.Username, Role: u.Role, Lang: u.Lang, Timezone: u.Timezone}
+	d := userDTO{ID: u.ID, Username: u.Username, Role: u.Role, Lang: u.Lang, Timezone: u.Timezone, Nickname: u.Nickname, InvitedBy: u.InvitedByName}
+	if next := service.NextRename(u); next.After(time.Now()) {
+		d.NextRenameAt = &next
+	}
+	return d
 }
 
 // login 校验密码并建立新会话（登录后总是新的会话 ID，防会话固定）。
@@ -178,7 +187,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request, p *principal) {
-	writeJSON(w, http.StatusOK, sessionResp{User: toUser(p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt)})
+	writeJSON(w, http.StatusOK, sessionResp{User: s.userWithInviter(r.Context(), p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt)})
 }
 
 type setupReq struct {

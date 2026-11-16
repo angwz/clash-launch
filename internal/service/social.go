@@ -340,6 +340,7 @@ func (s *Service) AcceptAttachment(ctx context.Context, u *store.User, id string
 type Thread struct {
 	UserID   string    `json:"userId"`
 	Username string    `json:"username"`
+	Nickname string    `json:"nickname,omitempty"`
 	Last     string    `json:"last"`     // 最后一条的文字预览
 	LastKind string    `json:"lastKind"` // text | nodes | subscription
 	LastAt   time.Time `json:"lastAt"`

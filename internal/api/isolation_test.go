@@ -38,6 +38,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/admin/users/":      firstAdmin(t, h),
 		"/api/v1/templates/":        tpl.ID,
 		"/api/v1/short-links/":      sl.ID,
+		"/api/v1/invites/":          inv.ID, // 管理员 A 发出的邀请：B 不能作废
 	}
 
 	// B：普通用户
@@ -67,6 +68,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"PATCH /api/v1/profiles/{id}/links/{lid}":   map[string]string{"note": "x"},
 		"PATCH /api/v1/templates/{id}":              map[string]string{"name": "x"},
 		"PATCH /api/v1/short-links/{id}":            map[string]string{"note": "x"},
+		"PUT /api/v1/admin/users/{id}/invite-ban":   map[string]bool{"banned": true},
 	}
 
 	checked := 0
