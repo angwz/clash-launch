@@ -142,7 +142,7 @@
   function resetView() {
     selected = null;
     expanded = new Set();
-    panel?.clear();
+    panel?.clear(false); // 不把焦点移到追踪框：否则页面会滚到下面
   }
 
   /** 追踪后把地图滚到可见：粒子沿规则逐条比对的动画在地图上。 */

@@ -747,7 +747,14 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
     // 重置视图：取消选中、清空追踪
     await page.locator(".map [data-box='group:PROXY']").click();
     await expect(page.locator(".detail")).toBeVisible();
+    const scrolled = () => page.evaluate(() => document.getElementById("editor-main")!.scrollTop);
+    const top = await scrolled();
     await page.getByRole("button", { name: "重置视图" }).click();
+    // 重置不移动页面，也不把光标放到追踪框（反馈 #89）
+    await expect(page.getByLabel("输入域名或 IP，例如 www.example.com")).not.toBeFocused();
+    // 内容变短时浏览器会把滚动位置往回收，但不会往下跳
+    expect(await scrolled()).toBeLessThanOrEqual(top + 1);
+    await expect(page.locator(".routing .card").first()).toBeInViewport();
     await expect(page.locator(".detail")).toHaveCount(0);
     await expect(page.locator(".hops")).toHaveCount(0);
     await page.getByLabel("输入域名或 IP，例如 www.example.com").fill("www.example.com");
