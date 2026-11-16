@@ -12,7 +12,7 @@
 - **反馈 #53–#57（2026-11-14）**：编辑器保存冲突与「检查中」卡住的两个根因已修；「常见做法」；「说明与建议」点击范围三选一；全站左缘与缩进梳理；新增「设置」页。验证：`go test ./...`、前端 74 项单元、e2e 20 通过。
 - **反馈 #58–#65（2026-11-14）**：关闭的分节整段不下发（依据 mihomo 源码逐个确认，预览显示为注释）；空配置可渲染、新建配置可设嵌套字段；模板可更新与改名；侧栏底部与配置菜单重做；「密码」；自动内核检查；默认名称。验证：`go test ./...`（含 `TestDisabledSections`、`TestEmptyConfig`）、关闭分节的配置经 mihomo -t、前端 78 项单元、e2e 20 通过。
 - **反馈 #66–#68（2026-11-14）**：统计（迁移 0007）：打开网站、页面、登录、订阅请求按天永久累计；订阅请求逐条记录与按 IP 汇总；令牌无效的来源；设置项热度每周重算并用于排序（总开关始终第一）。验证：`go test ./...`（`TestStats`、`TestStatsFlow`、全路由隔离与契约）、前端 82 项单元、e2e 21 通过、budget 58.5 KiB。
-- **反馈 #69（2026-11-14）**：正式版文案梳理：去掉开发期的实现细节与内部术语（源、快照、字段目录、配置文档、生成器），检查结果统一用界面上的说法；用户名规则的三处说明与实际校验（1–32 个字符、不含空格）对齐；帮助按自动保存与自动检查更新；删除已不会出现的设置链接错误。验证：`go test ./...`、前端 check / 82 项单元 / build / budget 58.2 KiB / e2e 21 通过。PostgreSQL 上未重新验证迁移 0006、0007（推送后由 CI 的 `postgres` 任务覆盖）。
+- **反馈 #69（2026-11-14）**：正式版文案梳理：去掉开发期的实现细节与内部术语（源、快照、字段目录、配置文档、生成器），检查结果统一用界面上的说法；用户名规则的三处说明与实际校验（1–32 个字符、不含空格）对齐；帮助按自动保存与自动检查更新；删除已不会出现的设置链接错误。验证：`go test ./...`、前端 check / 82 项单元 / build / budget 58.2 KiB / e2e 21 通过。迁移 0006、0007 在 PostgreSQL 17 上的验证见下文 2026-11-16 的 CI 记录。
 - **反馈 #70（2026-11-15）**：「直接编辑 YAML」改为在与预览一致的完整配置上修改，服务端换算为只含差异的原始编辑层（`engine.Absorb`、`layer.Diff`，接口 `/absorb`），订阅与规则更新后修改继续生效。验证：`TestAbsorb*`（往返逐字节一致、更新后保留修改、未启用分节不误删、无效输入）、`go test ./...`、前端 82 项单元、e2e 21 通过（含在完整 YAML 上新增一行只记下这一行）。
 - **反馈 #71（2026-11-15）**：为开放注册做准备：默认写法为「交给客户端」时，开放注册用户的订阅只由客户端拉取，服务器不访问（调度跳过，手动拉取返回 409 `source.client_fetch`）；开放注册用户使用更小的默认配额（`CLASH_LAUNCH_OPEN_QUOTA_*`）；预览与内核检查按用户限速（每分钟 240 / 30 次，管理员不限），前端在检查被限速时只做预览；UUIDv7 改为进程内严格递增，修正同一毫秒内订阅请求记录顺序不稳定。验证：`TestNodeModePolicy`（策略、拒绝拉取、配额、限速）、`TestQuotaAndAdmin`、`TestNewIDMonotonic`、`go test ./...`、前端 82 项单元、e2e 21 通过。
 - **反馈 #72（2026-11-15）**：普通用户的分流规则地址只能来自公共代码托管站（`source.Hosts`，主机名精确匹配、只接受 https、重定向逐跳检查；保存时校验，拉取时再校验；`CLASH_LAUNCH_RULE_HOSTS` 可替换）；配置链接旁「导出」（`/s/<令牌>?download=1`，附文件名、记为 export 请求）；用户时区（`PUT /account/timezone`，界面时间与未指定时区的配置文件头按它显示；可输入任意部分、不区分大小写自动补全）。验证：`TestHostsAllows`、`TestFetchHostsRedirect`、`TestRuleHostsExportTimezone`、`go test ./...`、前端 82 项单元、e2e 22 通过（含时区补全与导出下载）。
@@ -31,6 +31,7 @@
 - **分流可视化第 3 步（2026-11-15）**：分流可以在地图上编辑。方案文档新增 `routing` 段（键与 groups.toml、rulesets.toml 相同，另有 `bundle`），存在时引擎用它代替规则源；`POST /routing/fork` 生成开始自己管理时的 routing 段（domainrouter_v2 三件套自动识别为合集，`base` 留作之后的上游比对），追踪与体检接受草稿并给出应用前后的结果。前端：拖动规则改走向、移动、合并为合集，拖动组或节点加入成员，循环被拒绝；详情面板可改走向、上下移动、拆出合集、改组类型与参数（带适用场景与参数提醒）、设为首选与移除成员；改动先进草稿栏，「应用」写入 routing 段后照常自动保存、检查与撤销。验证：`go test ./...`（含 `TestRoutingRoundTrip`、`TestDetectBundles`、`TestForkINI`、`TestRoutingForkGolden`：domainrouter 开始自己管理后输出与跟随上游逐字节相同，文件头的名称与更新时间除外；`TestRoutingForkOwnDraft`）、`-tags kernel` 对新 golden 通过 mihomo -t；前端 check / 135 项单元（含 `draft.test.ts`）/ build / 首屏 70.5 KiB（增量为语言包）/ e2e 35 通过 19 跳过（新增「分流编辑」：合并与拆出、拒绝循环、改走向、改组类型、应用后预览、撤销）。截图 `web/test-results/shot-routing-edit.png`。
 - **分流可视化第 4 步（2026-11-15）**：上游同步与期望，分流可视化全部完成（反馈 #81–#84）。`POST /routing/upstream` 按开始管理时的 `base` 做三方比对（组名、规则集地址对应，逐字段；移动按最长递增子序列；与用户自己的改动冲突时标出），分流页提示「规则源有 N 处更新」，对话框里逐条采纳或忽略，确认后进入草稿；追踪结果可「固定为期望」，期望在分流页列出是否满足（`routing.check_failed`、`routing.check_unknown`、`routing.upstream_changed`）。帮助新增「分流」教程（中英文），[rules](../design/rules.md) 新增 routing 段一节。顺带修正通用对话框的标题 id 写死、同页多个对话框共用一个名字的缺陷。验证：`go test ./...`（含 `TestRoutingUpstreamChecks`）、`staticcheck`、`-tags kernel`；前端 check / 138 项单元 / build / 首屏 71.1 KiB / e2e 36 通过 20 跳过（新增「规则源更新后提示并能采纳；从追踪固定期望」）。
 - **反馈 #88（2026-11-16）**：分流页拖动后应用报「yamlx: 文档无效」的根因是后端的 go-yaml 不接受流式列表中未加引号、含 `?` 的普通标量（domainrouter_v2 的地区组正则 `(?=…)`），JS 的 yaml 库却不会加引号；写入方案文档时流式集合里含指示符的字符串一律加引号（routing 与链式代理）。「应用」改为先打开对比与检查（`ApplyDialog`：应用前后完整配置的逐行差异，未变的长段折叠；对应用后的配置做 mihomo -t，渲染失败或未通过时不能应用）。追踪后地图滚到可见；工具栏「重置视图」；下方追踪与详情两栏改为两等分、最小宽度 0，区域较窄时上下排列；详情里「默认」标签不再被拉成整行。「清空后追踪框与详情栏重叠」在 1440 宽与真实数据上未能复现。验证：用真实 domainrouter_v2 发布文件复现并确认修复（前端写出的七种编辑结果均能被后端解析），`go test ./...`、前端 139 项单元、e2e 36 通过 20 跳过（「分流编辑」加入含 `(?i)` 的正则组并经过对比对话框应用；「分流」覆盖重置视图与追踪后地图可见）。
+- **推送与 CI（2026-11-16）**：本地积压的 35 个提交（反馈 #65–#89 与分流可视化）推送到 GitHub。CI 的 `postgres` 任务发现 `TestEncryptLegacy` 在测试里直接写了 SQLite 的 `?` 占位符，改用按数据库换算的 `d.exec` 后再次推送：ci 的 go、web、container、postgres 四项全部通过（存储与 API 测试在 PostgreSQL 17 上运行，覆盖迁移 0001–0010），image 发布 amd64、arm64 镜像。
 - **下一步**：维护者在网站上试用分流页并反馈；之后回到其他客户端预设与 Docker 实测（见「待维护者」）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
@@ -124,7 +125,7 @@
 | 规则源、匹配器、现代选择器、预设 | `internal/ruleset`、`catalog/rulesources/` | ✓ | 单元测试、差异测试、真实数据（domainrouter_v2、ACL4SSR） |
 | 直连拉取、SSRF、快照 | `internal/source` | ✓ | httptest；`Dialer.Control` 拦截 DNS rebinding；未对公网真实订阅长期运行 |
 | 生成阶段（有序源、编号、provider 模式） | `internal/engine/build.go` | ✓ | 工作区 golden（两份方案）、内核检查 |
-| 存储、迁移、加密、备份、db copy | `internal/store`、`migrations/` | ✓ | 单元测试（SQLite）：所有者隔离、乐观锁、AAD 绑定、轮换后旧密文可解密；PostgreSQL 未测试 |
+| 存储、迁移、加密、备份、db copy | `internal/store`、`migrations/` | ✓ | 单元测试（SQLite）：所有者隔离、乐观锁、AAD 绑定、轮换后旧密文可解密；PostgreSQL 17：存储与 API 测试由 CI 的 `postgres` 任务运行（迁移 0001–0010，2026-11-16 通过）；`db copy` 只测了 SQLite → SQLite |
 | 口令、令牌 | `internal/auth` | ✓ | 经 API 测试覆盖 |
 | 注册开关、一次性邀请 | `internal/service/register.go`、`internal/api/register.go` | ✓ | `TestInvites`、`TestRegistrationAndInvites`；无前端，未在浏览器中走过 |
 | 服务编排、调度、托管 provider | `internal/service` | ✓ | API 端到端测试；后台调度器只在本机冒烟运行中启动，未长时间运行 |
@@ -153,7 +154,7 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过（�
 真机验收（clash-launch serve）      → 订阅取回 200，mihomo -t 通过，实际启动监听，日志 0 error
 ```
 
-未验证：在 OpenClash 中实际导入（维护者验证）；容器实际运行（镜像已构建）；PostgreSQL；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
+未验证：在 OpenClash 中实际导入（维护者验证）；容器实际运行（镜像已构建）；PostgreSQL 上的实际部署与 `db copy`（存储与 API 测试已在 CI 的 PostgreSQL 17 上通过）；与实际运行的 subconverter 对比；真实手机与硬件安全密钥上的通行密钥；真实邮件服务商；手机浏览器上工作量证明的耗时。
 
 ## 已知限制
 
