@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/angwz/clash-launch/internal/diag"
 )
 
 // 分流地图、追踪与体检（docs/design/routing.md 第 7 节）。doc 是编辑器当前的方案文档，与 preview 相同的约定；
@@ -11,6 +13,7 @@ import (
 
 type routingReq struct {
 	Doc     string `json:"doc"`
+	Draft   string `json:"draft"` // 草稿的 routing 段文本（第 3 步）
 	Host    string `json:"host"`
 	Process string `json:"process"`
 	Network string `json:"network"`
@@ -61,12 +64,16 @@ func (s *Server) routingTrace(w http.ResponseWriter, r *http.Request, p *princip
 	if !ok || !s.traceAllowed(w, p) {
 		return
 	}
-	t, err := s.Svc.RoutingTrace(r.Context(), p.User, []byte(req.Doc), req.Host, req.Process, req.Network)
+	t, after, err := s.Svc.RoutingTrace(r.Context(), p.User, []byte(req.Doc), req.Draft, req.Host, req.Process, req.Network)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"current": t})
+	res := map[string]any{"current": t}
+	if after != nil {
+		res["draft"] = after
+	}
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (s *Server) routingHealth(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -74,10 +81,24 @@ func (s *Server) routingHealth(w http.ResponseWriter, r *http.Request, p *princi
 	if !ok || !s.traceAllowed(w, p) {
 		return
 	}
-	items, err := s.Svc.RoutingHealth(r.Context(), p.User, []byte(req.Doc))
+	items, err := s.Svc.RoutingHealth(r.Context(), p.User, []byte(req.Doc), req.Draft)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// routingFork 返回开始自己管理时的 routing 段文本（不保存，前端放进草稿，应用时写入方案文档）。
+func (s *Server) routingFork(w http.ResponseWriter, r *http.Request, p *principal) {
+	req, ok := s.routingBegin(w, r, p)
+	if !ok || !s.renderAllowed(w, p, false) {
+		return
+	}
+	text, ds, err := s.Svc.RoutingFork(r.Context(), p.User, []byte(req.Doc))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"routing": text, "diagnostics": diag.Sorted(ds)})
 }

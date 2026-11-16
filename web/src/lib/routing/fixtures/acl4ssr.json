@@ -8,6 +8,7 @@
       "type": "RULE-SET",
       "target": "🎯 全球直连",
       "origin": "rules",
+      "entry": 0,
       "set": {
         "name": "LocalAreaNetwork",
         "behavior": "classical",
@@ -22,6 +23,7 @@
       "type": "RULE-SET",
       "target": "🛑 全球拦截",
       "origin": "rules",
+      "entry": 1,
       "set": {
         "name": "Reject",
         "behavior": "domain",
@@ -36,6 +38,7 @@
       "type": "RULE-SET",
       "target": "🚀 节点选择",
       "origin": "rules",
+      "entry": 2,
       "set": {
         "name": "Telegram",
         "behavior": "ipcidr",
@@ -52,6 +55,7 @@
       "type": "GEOIP",
       "target": "🎯 全球直连",
       "origin": "rules",
+      "entry": 3,
       "flags": []
     },
     {
@@ -60,6 +64,7 @@
       "type": "MATCH",
       "target": "🐟 漏网之鱼",
       "origin": "rules",
+      "entry": 4,
       "flags": []
     }
   ],
@@ -70,11 +75,13 @@
       "members": [
         {
           "name": "♻️ 自动选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 1
         },
         {
           "name": "🇭🇰 香港 01",
@@ -194,11 +201,13 @@
       "members": [
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 0
         },
         {
           "name": "🚀 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {},
@@ -211,11 +220,13 @@
       "members": [
         {
           "name": "REJECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 0
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 1
         }
       ],
       "params": {},
@@ -228,11 +239,13 @@
       "members": [
         {
           "name": "🚀 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🎯 全球直连",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "🇭🇰 香港 01",

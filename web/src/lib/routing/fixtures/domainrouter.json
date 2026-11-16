@@ -8,6 +8,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 0,
       "set": {
         "name": "Direct",
         "behavior": "domain",
@@ -22,7 +23,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Direct"
       },
       "flags": []
     },
@@ -32,6 +34,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 1,
       "set": {
         "name": "Direct-ipcidr",
         "behavior": "ipcidr",
@@ -46,7 +49,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Direct"
       },
       "flags": [
         "no-resolve"
@@ -58,6 +62,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 2,
       "set": {
         "name": "Direct-classic",
         "behavior": "classical",
@@ -72,7 +77,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Direct"
       },
       "flags": []
     },
@@ -82,6 +88,7 @@
       "type": "RULE-SET",
       "target": "🏖️ Community",
       "origin": "rules",
+      "entry": 3,
       "set": {
         "name": "NS",
         "behavior": "domain",
@@ -96,7 +103,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "NS"
       },
       "flags": []
     },
@@ -106,6 +114,7 @@
       "type": "RULE-SET",
       "target": "🏖️ Community",
       "origin": "rules",
+      "entry": 4,
       "set": {
         "name": "NS-classic",
         "behavior": "classical",
@@ -120,7 +129,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "NS"
       },
       "flags": []
     },
@@ -130,6 +140,7 @@
       "type": "RULE-SET",
       "target": "🗨️ ChatGPT",
       "origin": "rules",
+      "entry": 5,
       "set": {
         "name": "AI",
         "behavior": "domain",
@@ -144,7 +155,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "AI"
       },
       "flags": []
     },
@@ -154,6 +166,7 @@
       "type": "RULE-SET",
       "target": "🗨️ ChatGPT",
       "origin": "rules",
+      "entry": 6,
       "set": {
         "name": "AI-ipcidr",
         "behavior": "ipcidr",
@@ -168,7 +181,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "AI"
       },
       "flags": [
         "no-resolve"
@@ -180,6 +194,7 @@
       "type": "RULE-SET",
       "target": "🗨️ ChatGPT",
       "origin": "rules",
+      "entry": 7,
       "set": {
         "name": "AI-classic",
         "behavior": "classical",
@@ -194,7 +209,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "AI"
       },
       "flags": []
     },
@@ -204,6 +220,7 @@
       "type": "RULE-SET",
       "target": "📱 TikTok",
       "origin": "rules",
+      "entry": 8,
       "set": {
         "name": "TikTok",
         "behavior": "domain",
@@ -218,7 +235,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "TikTok"
       },
       "flags": []
     },
@@ -228,6 +246,7 @@
       "type": "RULE-SET",
       "target": "📱 TikTok",
       "origin": "rules",
+      "entry": 9,
       "set": {
         "name": "TikTok-classic",
         "behavior": "classical",
@@ -242,7 +261,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "TikTok"
       },
       "flags": []
     },
@@ -252,6 +272,7 @@
       "type": "RULE-SET",
       "target": "📺 哔哩哔哩",
       "origin": "rules",
+      "entry": 10,
       "set": {
         "name": "Bilibili",
         "behavior": "domain",
@@ -266,7 +287,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Bilibili"
       },
       "flags": []
     },
@@ -276,6 +298,7 @@
       "type": "RULE-SET",
       "target": "📺 哔哩哔哩",
       "origin": "rules",
+      "entry": 11,
       "set": {
         "name": "Bilibili-ipcidr",
         "behavior": "ipcidr",
@@ -290,7 +313,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Bilibili"
       },
       "flags": [
         "no-resolve"
@@ -302,6 +326,7 @@
       "type": "RULE-SET",
       "target": "📺 哔哩哔哩",
       "origin": "rules",
+      "entry": 12,
       "set": {
         "name": "Bilibili-classic",
         "behavior": "classical",
@@ -316,7 +341,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Bilibili"
       },
       "flags": []
     },
@@ -326,6 +352,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 13,
       "set": {
         "name": "Tencent",
         "behavior": "domain",
@@ -340,7 +367,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Tencent"
       },
       "flags": []
     },
@@ -350,6 +378,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 14,
       "set": {
         "name": "Tencent-ipcidr",
         "behavior": "ipcidr",
@@ -364,7 +393,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Tencent"
       },
       "flags": [
         "no-resolve"
@@ -376,6 +406,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 15,
       "set": {
         "name": "Tencent-classic",
         "behavior": "classical",
@@ -390,7 +421,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Tencent"
       },
       "flags": []
     },
@@ -400,6 +432,7 @@
       "type": "RULE-SET",
       "target": "🎬 Netflix",
       "origin": "rules",
+      "entry": 16,
       "set": {
         "name": "Netflix",
         "behavior": "domain",
@@ -414,7 +447,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Netflix"
       },
       "flags": []
     },
@@ -424,6 +458,7 @@
       "type": "RULE-SET",
       "target": "🎬 Netflix",
       "origin": "rules",
+      "entry": 17,
       "set": {
         "name": "Netflix-ipcidr",
         "behavior": "ipcidr",
@@ -438,7 +473,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Netflix"
       },
       "flags": [
         "no-resolve"
@@ -450,6 +486,7 @@
       "type": "RULE-SET",
       "target": "🎬 Netflix",
       "origin": "rules",
+      "entry": 18,
       "set": {
         "name": "Netflix-classic",
         "behavior": "classical",
@@ -464,7 +501,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Netflix"
       },
       "flags": []
     },
@@ -474,6 +512,7 @@
       "type": "RULE-SET",
       "target": "💻 YouTube",
       "origin": "rules",
+      "entry": 19,
       "set": {
         "name": "YouTube",
         "behavior": "domain",
@@ -488,7 +527,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "YouTube"
       },
       "flags": []
     },
@@ -498,6 +538,7 @@
       "type": "RULE-SET",
       "target": "💻 YouTube",
       "origin": "rules",
+      "entry": 20,
       "set": {
         "name": "YouTube-ipcidr",
         "behavior": "ipcidr",
@@ -512,7 +553,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "YouTube"
       },
       "flags": [
         "no-resolve"
@@ -524,6 +566,7 @@
       "type": "RULE-SET",
       "target": "💻 YouTube",
       "origin": "rules",
+      "entry": 21,
       "set": {
         "name": "YouTube-classic",
         "behavior": "classical",
@@ -538,7 +581,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "YouTube"
       },
       "flags": []
     },
@@ -548,6 +592,7 @@
       "type": "RULE-SET",
       "target": "📩 Google",
       "origin": "rules",
+      "entry": 22,
       "set": {
         "name": "Google",
         "behavior": "domain",
@@ -562,7 +607,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Google"
       },
       "flags": []
     },
@@ -572,6 +618,7 @@
       "type": "RULE-SET",
       "target": "📩 Google",
       "origin": "rules",
+      "entry": 23,
       "set": {
         "name": "Google-ipcidr",
         "behavior": "ipcidr",
@@ -586,7 +633,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Google"
       },
       "flags": [
         "no-resolve"
@@ -598,6 +646,7 @@
       "type": "RULE-SET",
       "target": "📩 Google",
       "origin": "rules",
+      "entry": 24,
       "set": {
         "name": "Google-classic",
         "behavior": "classical",
@@ -612,7 +661,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Google"
       },
       "flags": []
     },
@@ -622,6 +672,7 @@
       "type": "RULE-SET",
       "target": "🛸 Telegram",
       "origin": "rules",
+      "entry": 25,
       "set": {
         "name": "Telegram",
         "behavior": "domain",
@@ -636,7 +687,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Telegram"
       },
       "flags": []
     },
@@ -646,6 +698,7 @@
       "type": "RULE-SET",
       "target": "🛸 Telegram",
       "origin": "rules",
+      "entry": 26,
       "set": {
         "name": "Telegram-ipcidr",
         "behavior": "ipcidr",
@@ -660,7 +713,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Telegram"
       },
       "flags": [
         "no-resolve"
@@ -672,6 +726,7 @@
       "type": "RULE-SET",
       "target": "🛸 Telegram",
       "origin": "rules",
+      "entry": 27,
       "set": {
         "name": "Telegram-classic",
         "behavior": "classical",
@@ -686,7 +741,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Telegram"
       },
       "flags": []
     },
@@ -696,6 +752,7 @@
       "type": "RULE-SET",
       "target": "🌺 日本专线",
       "origin": "rules",
+      "entry": 28,
       "set": {
         "name": "Japan",
         "behavior": "domain",
@@ -710,7 +767,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Japan"
       },
       "flags": []
     },
@@ -720,6 +778,7 @@
       "type": "RULE-SET",
       "target": "🌺 日本专线",
       "origin": "rules",
+      "entry": 29,
       "set": {
         "name": "Japan-ipcidr",
         "behavior": "ipcidr",
@@ -734,7 +793,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Japan"
       },
       "flags": [
         "no-resolve"
@@ -746,6 +806,7 @@
       "type": "RULE-SET",
       "target": "🌺 日本专线",
       "origin": "rules",
+      "entry": 30,
       "set": {
         "name": "Japan-classic",
         "behavior": "classical",
@@ -760,7 +821,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Japan"
       },
       "flags": []
     },
@@ -770,6 +832,7 @@
       "type": "RULE-SET",
       "target": "🛫 香港专线",
       "origin": "rules",
+      "entry": 31,
       "set": {
         "name": "HK",
         "behavior": "domain",
@@ -784,7 +847,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "HK"
       },
       "flags": []
     },
@@ -794,6 +858,7 @@
       "type": "RULE-SET",
       "target": "🛫 香港专线",
       "origin": "rules",
+      "entry": 32,
       "set": {
         "name": "HK-ipcidr",
         "behavior": "ipcidr",
@@ -808,7 +873,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "HK"
       },
       "flags": [
         "no-resolve"
@@ -820,6 +886,7 @@
       "type": "RULE-SET",
       "target": "🛫 香港专线",
       "origin": "rules",
+      "entry": 33,
       "set": {
         "name": "HK-classic",
         "behavior": "classical",
@@ -834,7 +901,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "HK"
       },
       "flags": []
     },
@@ -844,6 +912,7 @@
       "type": "RULE-SET",
       "target": "🍎 Apple",
       "origin": "rules",
+      "entry": 34,
       "set": {
         "name": "Apple",
         "behavior": "domain",
@@ -858,7 +927,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Apple"
       },
       "flags": []
     },
@@ -868,6 +938,7 @@
       "type": "RULE-SET",
       "target": "🍎 Apple",
       "origin": "rules",
+      "entry": 35,
       "set": {
         "name": "Apple-ipcidr",
         "behavior": "ipcidr",
@@ -882,7 +953,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Apple"
       },
       "flags": [
         "no-resolve"
@@ -894,6 +966,7 @@
       "type": "RULE-SET",
       "target": "🍎 Apple",
       "origin": "rules",
+      "entry": 36,
       "set": {
         "name": "Apple-classic",
         "behavior": "classical",
@@ -908,7 +981,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Apple"
       },
       "flags": []
     },
@@ -918,6 +992,7 @@
       "type": "RULE-SET",
       "target": "🧊 新加坡专线",
       "origin": "rules",
+      "entry": 37,
       "set": {
         "name": "Singapore",
         "behavior": "domain",
@@ -932,7 +1007,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Singapore"
       },
       "flags": []
     },
@@ -942,6 +1018,7 @@
       "type": "RULE-SET",
       "target": "🧊 新加坡专线",
       "origin": "rules",
+      "entry": 38,
       "set": {
         "name": "Singapore-ipcidr",
         "behavior": "ipcidr",
@@ -956,7 +1033,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Singapore"
       },
       "flags": [
         "no-resolve"
@@ -968,6 +1046,7 @@
       "type": "RULE-SET",
       "target": "🧊 新加坡专线",
       "origin": "rules",
+      "entry": 39,
       "set": {
         "name": "Singapore-classic",
         "behavior": "classical",
@@ -982,7 +1061,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Singapore"
       },
       "flags": []
     },
@@ -992,6 +1072,7 @@
       "type": "RULE-SET",
       "target": "⛳ 美国专线",
       "origin": "rules",
+      "entry": 40,
       "set": {
         "name": "America",
         "behavior": "domain",
@@ -1006,7 +1087,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "America"
       },
       "flags": []
     },
@@ -1016,6 +1098,7 @@
       "type": "RULE-SET",
       "target": "⛳ 美国专线",
       "origin": "rules",
+      "entry": 41,
       "set": {
         "name": "America-classic",
         "behavior": "classical",
@@ -1030,7 +1113,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "America"
       },
       "flags": []
     },
@@ -1040,6 +1124,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 42,
       "set": {
         "name": "ChinaMedia",
         "behavior": "domain",
@@ -1054,7 +1139,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "ChinaMedia"
       },
       "flags": []
     },
@@ -1064,6 +1150,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 43,
       "set": {
         "name": "ChinaMedia-ipcidr",
         "behavior": "ipcidr",
@@ -1078,7 +1165,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "ChinaMedia"
       },
       "flags": [
         "no-resolve"
@@ -1090,6 +1178,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 44,
       "set": {
         "name": "ChinaMedia-classic",
         "behavior": "classical",
@@ -1104,7 +1193,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "ChinaMedia"
       },
       "flags": []
     },
@@ -1114,6 +1204,7 @@
       "type": "RULE-SET",
       "target": "⛅ OneDrive",
       "origin": "rules",
+      "entry": 45,
       "set": {
         "name": "OneDrive",
         "behavior": "domain",
@@ -1128,7 +1219,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "OneDrive"
       },
       "flags": []
     },
@@ -1138,6 +1230,7 @@
       "type": "RULE-SET",
       "target": "⛅ OneDrive",
       "origin": "rules",
+      "entry": 46,
       "set": {
         "name": "OneDrive-ipcidr",
         "behavior": "ipcidr",
@@ -1152,7 +1245,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "OneDrive"
       },
       "flags": [
         "no-resolve"
@@ -1164,6 +1258,7 @@
       "type": "RULE-SET",
       "target": "⛅ OneDrive",
       "origin": "rules",
+      "entry": 47,
       "set": {
         "name": "OneDrive-classic",
         "behavior": "classical",
@@ -1178,7 +1273,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "OneDrive"
       },
       "flags": []
     },
@@ -1188,6 +1284,7 @@
       "type": "RULE-SET",
       "target": "🪟 Microsoft",
       "origin": "rules",
+      "entry": 48,
       "set": {
         "name": "Microsoft",
         "behavior": "domain",
@@ -1202,7 +1299,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Microsoft"
       },
       "flags": []
     },
@@ -1212,6 +1310,7 @@
       "type": "RULE-SET",
       "target": "🪟 Microsoft",
       "origin": "rules",
+      "entry": 49,
       "set": {
         "name": "Microsoft-classic",
         "behavior": "classical",
@@ -1226,7 +1325,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Microsoft"
       },
       "flags": []
     },
@@ -1236,6 +1336,7 @@
       "type": "RULE-SET",
       "target": "🛖 国际流媒体",
       "origin": "rules",
+      "entry": 50,
       "set": {
         "name": "Media",
         "behavior": "domain",
@@ -1250,7 +1351,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Media"
       },
       "flags": []
     },
@@ -1260,6 +1362,7 @@
       "type": "RULE-SET",
       "target": "🛖 国际流媒体",
       "origin": "rules",
+      "entry": 51,
       "set": {
         "name": "Media-ipcidr",
         "behavior": "ipcidr",
@@ -1274,7 +1377,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Media"
       },
       "flags": [
         "no-resolve"
@@ -1286,6 +1390,7 @@
       "type": "RULE-SET",
       "target": "🛖 国际流媒体",
       "origin": "rules",
+      "entry": 52,
       "set": {
         "name": "Media-classic",
         "behavior": "classical",
@@ -1300,7 +1405,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Media"
       },
       "flags": []
     },
@@ -1310,6 +1416,7 @@
       "type": "GEOIP",
       "target": "🛫 香港专线",
       "origin": "rules",
+      "entry": 53,
       "flags": [
         "no-resolve"
       ]
@@ -1320,6 +1427,7 @@
       "type": "GEOIP",
       "target": "🌺 日本专线",
       "origin": "rules",
+      "entry": 54,
       "flags": [
         "no-resolve"
       ]
@@ -1330,6 +1438,7 @@
       "type": "GEOIP",
       "target": "⛳ 美国专线",
       "origin": "rules",
+      "entry": 55,
       "flags": [
         "no-resolve"
       ]
@@ -1340,6 +1449,7 @@
       "type": "GEOIP",
       "target": "⛳ 美国专线",
       "origin": "rules",
+      "entry": 56,
       "flags": [
         "no-resolve"
       ]
@@ -1350,6 +1460,7 @@
       "type": "GEOIP",
       "target": "🛫 香港专线",
       "origin": "rules",
+      "entry": 57,
       "flags": [
         "no-resolve"
       ]
@@ -1360,6 +1471,7 @@
       "type": "RULE-SET",
       "target": "🌠 节点选择",
       "origin": "rules",
+      "entry": 58,
       "set": {
         "name": "Proxy",
         "behavior": "domain",
@@ -1374,7 +1486,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Proxy"
       },
       "flags": []
     },
@@ -1384,6 +1497,7 @@
       "type": "RULE-SET",
       "target": "🌠 节点选择",
       "origin": "rules",
+      "entry": 59,
       "set": {
         "name": "Proxy-ipcidr",
         "behavior": "ipcidr",
@@ -1398,7 +1512,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Proxy"
       },
       "flags": [
         "no-resolve"
@@ -1410,6 +1525,7 @@
       "type": "RULE-SET",
       "target": "🌠 节点选择",
       "origin": "rules",
+      "entry": 60,
       "set": {
         "name": "Proxy-classic",
         "behavior": "classical",
@@ -1424,7 +1540,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "Proxy"
       },
       "flags": []
     },
@@ -1434,6 +1551,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 61,
       "set": {
         "name": "China",
         "behavior": "domain",
@@ -1448,7 +1566,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "China"
       },
       "flags": []
     },
@@ -1458,6 +1577,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 62,
       "set": {
         "name": "China-ipcidr",
         "behavior": "ipcidr",
@@ -1472,7 +1592,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "China"
       },
       "flags": [
         "no-resolve"
@@ -1484,6 +1605,7 @@
       "type": "RULE-SET",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 63,
       "set": {
         "name": "China-classic",
         "behavior": "classical",
@@ -1498,7 +1620,8 @@
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
-        }
+        },
+        "bundle": "China"
       },
       "flags": []
     },
@@ -1508,6 +1631,7 @@
       "type": "GEOIP",
       "target": "DIRECT",
       "origin": "rules",
+      "entry": 64,
       "flags": []
     },
     {
@@ -1516,6 +1640,7 @@
       "type": "MATCH",
       "target": "🐳 漏网の鱼",
       "origin": "rules",
+      "entry": 65,
       "flags": []
     }
   ],
@@ -1526,27 +1651,33 @@
       "members": [
         {
           "name": "🛫 香港专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 4
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 5
         }
       ],
       "params": {},
@@ -1559,7 +1690,8 @@
       "members": [
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🇭🇰 香港 01",
@@ -1584,19 +1716,23 @@
       "members": [
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1609,15 +1745,18 @@
       "members": [
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 0
         },
         {
           "name": "🛫 香港专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         }
       ],
       "params": {},
@@ -1630,15 +1769,18 @@
       "members": [
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 0
         },
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         }
       ],
       "params": {},
@@ -1651,19 +1793,23 @@
       "members": [
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1676,19 +1822,23 @@
       "members": [
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1701,15 +1851,18 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         }
       ],
       "params": {},
@@ -1722,23 +1875,28 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🗨️ ChatGPT",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 4
         }
       ],
       "params": {},
@@ -1751,23 +1909,28 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 4
         }
       ],
       "params": {},
@@ -1780,15 +1943,18 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 2
         }
       ],
       "params": {},
@@ -1801,19 +1967,23 @@
       "members": [
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🛫 香港专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1826,19 +1996,23 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1851,19 +2025,23 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         }
       ],
       "params": {},
@@ -1876,23 +2054,28 @@
       "members": [
         {
           "name": "🌠 节点选择",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         },
         {
           "name": "🌺 日本专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 2
         },
         {
           "name": "✈️ 手动切换",
-          "kind": "group"
+          "kind": "group",
+          "entry": 3
         },
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 4
         }
       ],
       "params": {},
@@ -1905,11 +2088,13 @@
       "members": [
         {
           "name": "🎇 香港高速",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🧊 新加坡专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {
@@ -1926,11 +2111,13 @@
       "members": [
         {
           "name": "🗾 日本高速",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {
@@ -1947,11 +2134,13 @@
       "members": [
         {
           "name": "🦁 新加坡高速",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {
@@ -1968,7 +2157,8 @@
       "members": [
         {
           "name": "🏞️ 美利坚高速",
-          "kind": "group"
+          "kind": "group",
+          "entry": 0
         },
         {
           "name": "🇺🇸 美国 03",
@@ -1993,7 +2183,8 @@
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {},
@@ -2010,7 +2201,8 @@
         },
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {},
@@ -2023,7 +2215,8 @@
       "members": [
         {
           "name": "⛳ 美国专线",
-          "kind": "group"
+          "kind": "group",
+          "entry": 1
         }
       ],
       "params": {},

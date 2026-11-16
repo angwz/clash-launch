@@ -26,13 +26,14 @@ var needsProbe = []string{"url-test", "fallback", "load-balance"}
 
 // Group 是一个策略组定义（[[custom_groups]] 或 ini 的 custom_proxy_group）。
 type Group struct {
-	Name   string
-	Type   string
-	Rule   []string       // 成员条目：[]名称、正则、!!GROUPID= 等匹配器、"@select"
-	Use    []string       // 直接引用的 proxy-provider
-	Select *Selector      // 现代选择器（第 6.4 节）
-	Extra  map[string]any // 其余键：url、interval、tolerance……，按键名排序输出
-	Where  string         // 定位：groups.toml#3
+	Name      string
+	Type      string
+	Rule      []string       // 成员条目：[]名称、正则、!!GROUPID= 等匹配器、"@select"
+	Use       []string       // 直接引用的 proxy-provider
+	Select    *Selector      // 现代选择器（第 6.4 节）
+	SelectRaw map[string]any // select 的原始写法：写回 routing 段时原样输出（ToRouting）
+	Extra     map[string]any // 其余键：url、interval、tolerance……，按键名排序输出
+	Where     string         // 定位：groups.toml#3
 }
 
 // Ruleset 是一条规则集定义（[[rulesets]] 或 ini 的 ruleset=）。
@@ -44,6 +45,8 @@ type Ruleset struct {
 	// Format 是本项目的扩展键（subconverter 忽略它）：扩展名不能说明格式时显式指定 yaml、text 或 mrs，
 	// 例如 Loyalsoldier/clash-rules 的 .txt 文件内容是 YAML payload。
 	Format string
+	// Bundle 是 routing 段的扩展键：同一合集的条目相邻、走向相同，在界面上占一个位置（决定 0007 第 9 条）。
+	Bundle string
 	Where  string
 }
 
@@ -152,6 +155,7 @@ func groupFromMap(raw map[string]any, where string, out *diag.List) (Group, bool
 		if !ok {
 			out.Add(diag.SelectInvalid, where, "name", name, "reason", "select must be a table")
 		} else if sel := parseSelector(m, name, where, out); sel != nil {
+			g.SelectRaw = m
 			g.Select = sel
 		}
 	}
@@ -261,38 +265,51 @@ func ParseRulesets(text []byte, file string, out *diag.List) []Ruleset {
 	}
 	var list []Ruleset
 	for i, raw := range doc.Rulesets {
-		where := fmt.Sprintf("%s#%d", file, i+1)
-		r := Ruleset{Where: where, Interval: 86400, Type: "surge-ruleset"} // 缺省值与 fork 的 binding.h 一致
-		r.Group, _ = raw["group"].(string)
-		r.Ruleset, _ = raw["ruleset"].(string)
-		if t, ok := raw["type"].(string); ok {
-			r.Type = t
+		if r, ok := rulesetFromMap(raw, fmt.Sprintf("%s#%d", file, i+1), false, out); ok {
+			list = append(list, r)
 		}
-		if iv, ok := raw["interval"].(int64); ok {
-			r.Interval = int(iv)
-		}
-		if f, ok := raw["format"].(string); ok {
-			if f != "yaml" && f != "text" && f != "mrs" {
-				out.Add(diag.RulesetInvalid, where, "index", where, "reason", "format must be yaml, text or mrs")
-				continue
-			}
-			r.Format = f
-		}
-		if r.Group == "" || r.Ruleset == "" {
-			out.Add(diag.RulesetInvalid, where, "index", where, "reason", "group and ruleset are required")
-			continue
-		}
-		var unknown []string
-		for k := range raw {
-			if !slices.Contains([]string{"group", "ruleset", "type", "interval", "format"}, k) {
-				unknown = append(unknown, k)
-			}
-		}
-		sort.Strings(unknown)
-		for _, k := range unknown {
-			out.Add(diag.RulesetLimit, where, "index", where, "reason", "unknown key "+k+" ignored")
-		}
-		list = append(list, r)
 	}
 	return list
+}
+
+// rulesetFromMap 转换并校验一条规则集；allowBundle 只在 routing 段中为真（bundle 是本项目的扩展键）。
+func rulesetFromMap(raw map[string]any, where string, allowBundle bool, out *diag.List) (Ruleset, bool) {
+	r := Ruleset{Where: where, Interval: 86400, Type: "surge-ruleset"} // 缺省值与 fork 的 binding.h 一致
+	r.Group, _ = raw["group"].(string)
+	r.Ruleset, _ = raw["ruleset"].(string)
+	if t, ok := raw["type"].(string); ok {
+		r.Type = t
+	}
+	if iv, ok := raw["interval"].(int64); ok {
+		r.Interval = int(iv)
+	}
+	if f, ok := raw["format"].(string); ok {
+		if f != "yaml" && f != "text" && f != "mrs" {
+			out.Add(diag.RulesetInvalid, where, "index", where, "reason", "format must be yaml, text or mrs")
+			return r, false
+		}
+		r.Format = f
+	}
+	if b, ok := raw["bundle"].(string); ok && allowBundle {
+		r.Bundle = b
+	}
+	if r.Group == "" || r.Ruleset == "" {
+		out.Add(diag.RulesetInvalid, where, "index", where, "reason", "group and ruleset are required")
+		return r, false
+	}
+	known := []string{"group", "ruleset", "type", "interval", "format"}
+	if allowBundle {
+		known = append(known, "bundle")
+	}
+	var unknown []string
+	for k := range raw {
+		if !slices.Contains(known, k) {
+			unknown = append(unknown, k)
+		}
+	}
+	sort.Strings(unknown)
+	for _, k := range unknown {
+		out.Add(diag.RulesetLimit, where, "index", where, "reason", "unknown key "+k+" ignored")
+	}
+	return r, true
 }

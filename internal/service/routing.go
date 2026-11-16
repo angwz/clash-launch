@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,9 +18,11 @@ import (
 	"github.com/angwz/clash-launch/internal/match"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
+	"github.com/angwz/clash-launch/internal/render"
 	"github.com/angwz/clash-launch/internal/ruleset"
 	"github.com/angwz/clash-launch/internal/source"
 	"github.com/angwz/clash-launch/internal/store"
+	"github.com/angwz/clash-launch/internal/yamlx"
 )
 
 // 分流地图、追踪与体检（docs/design/routing.md 第 6、7 节）。图按**最终配置**画（表单层与原始编辑合并之后），
@@ -50,13 +53,15 @@ type GraphDTO struct {
 }
 
 type RuleDTO struct {
-	Index  int         `json:"index"`
-	Raw    string      `json:"raw"`
-	Type   string      `json:"type"`
-	Target string      `json:"target"`
-	Origin string      `json:"origin"` // rules | raw（第 3 步起另有 routing）
-	Set    *RuleSetDTO `json:"set,omitempty"`
-	Flags  []string    `json:"flags"`
+	Index  int    `json:"index"`
+	Raw    string `json:"raw"`
+	Type   string `json:"type"`
+	Target string `json:"target"`
+	Origin string `json:"origin"` // routing（自己管理）| rules（跟随上游）| raw（原始编辑）
+	// Entry 是这一行对应 routing.rulesets（跟随上游时为开始管理后会得到的）中的第几条；原始编辑的行没有
+	Entry *int        `json:"entry,omitempty"`
+	Set   *RuleSetDTO `json:"set,omitempty"`
+	Flags []string    `json:"flags"`
 }
 
 type RuleSetDTO struct {
@@ -68,6 +73,7 @@ type RuleSetDTO struct {
 	Samples     []SampleDTO          `json:"samples,omitempty"`
 	Description *ruleset.Description `json:"description,omitempty"` // 规则集说明目录中收录的说明
 	Stale       bool                 `json:"stale,omitempty"`
+	Bundle      string               `json:"bundle,omitempty"` // 所属合集（决定 0007 第 9 条）
 }
 
 type SampleDTO struct {
@@ -89,6 +95,8 @@ type GroupDTO struct {
 type MemberDTO struct {
 	Name string `json:"name"`
 	Kind string `json:"kind"` // group | node | builtin | provider
+	// Entry 是这个成员来自组的 rule 列表中的第几条（单独写出的 []名称）；来自正则或选择器时省略
+	Entry *int `json:"entry,omitempty"`
 }
 
 type GroupParams struct {
@@ -296,7 +304,7 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 		return g, nil
 	}
 	switch {
-	case in.prof == nil || in.prof.Rules == nil:
+	case in.prof == nil || (in.prof.Rules == nil && in.prof.Routing == nil):
 		g.ReadonlyReason = "no_rules"
 	case rawOverrides(in.prof.Raw):
 		g.ReadonlyReason = "raw_override"
@@ -304,6 +312,21 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 	g.Editable = g.ReadonlyReason == ""
 
 	genRules, genGroups := generatedParts(in.res.Generated)
+	// 生成的行与组的来源：自己管理时为 routing，跟随上游时为 rules
+	srcOrigin := "rules"
+	if in.prof != nil && in.prof.Routing != nil {
+		g.State, srcOrigin = "own", "routing"
+	}
+	// routing 模型（跟随上游时为开始管理后会得到的）：用来标出每一行、每个成员对应 routing 中的第几条
+	model := s.routingModel(ctx, user.ID, in.prof)
+	var mapEntries bool
+	if model != nil {
+		var gen finalConfig
+		if in.res.Generated != nil && in.res.Generated.Decode(&gen) == nil {
+			mapEntries = len(gen.Rules) == len(model.Rulesets) && !model.NoRules
+		}
+	}
+	entry := 0
 	descs := s.descriptions()
 
 	// 规则
@@ -321,7 +344,12 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 		r := RuleDTO{Index: l.Index, Raw: l.Raw, Type: l.Type, Target: l.Target, Origin: "raw", Flags: ruleFlags(l)}
 		if genRules[l.Raw] > 0 {
 			genRules[l.Raw]--
-			r.Origin = "rules"
+			r.Origin = srcOrigin
+			if mapEntries {
+				k := entry
+				r.Entry = &k
+			}
+			entry++
 		}
 		if l.Type == "RULE-SET" {
 			if spec, ok := in.specs[l.Payload]; ok {
@@ -347,6 +375,9 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 				r.Set = rs
 			}
 		}
+		if r.Entry != nil && r.Set != nil {
+			r.Set.Bundle = model.Rulesets[*r.Entry].Bundle
+		}
 		g.Rules = append(g.Rules, r)
 	}
 
@@ -364,10 +395,16 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 		gd := GroupDTO{Name: fg.Name, Type: fg.Type, Use: fg.Use, Filter: fg.Filter, Origin: "raw", Lints: []string{},
 			Params: GroupParams{URL: fg.URL, Interval: fg.Interval, Tolerance: fg.Tolerance, Lazy: fg.Lazy, Strategy: fg.Strategy}}
 		if gen, ok := genGroups[fg.Name]; ok && sameGroup(gen, fg) {
-			gd.Origin = "rules"
+			gd.Origin = srcOrigin
 		}
 		for _, m := range fg.Proxies {
-			gd.Members = append(gd.Members, MemberDTO{Name: m, Kind: in.kindOf(m)})
+			md := MemberDTO{Name: m, Kind: in.kindOf(m)}
+			if mg := modelGroup(model, fg.Name); mg != nil {
+				if i := slices.Index(mg.Rule, "[]"+m); i >= 0 {
+					md.Entry = &i
+				}
+			}
+			gd.Members = append(gd.Members, md)
 		}
 		for _, p := range fg.Use {
 			gd.Members = append(gd.Members, MemberDTO{Name: p, Kind: "provider"})
@@ -521,21 +558,33 @@ func groupLints(g finalGroup, referenced bool) []string {
 
 // —— 追踪 ——
 
-// RoutingTrace 追踪一个域名或 IP 在当前配置下的走向。
-func (s *Service) RoutingTrace(ctx context.Context, user *store.User, doc []byte, host, process, network string) (*TraceDTO, error) {
+// RoutingTrace 追踪一个域名或 IP 在当前配置下的走向。draft 非空时它是草稿的 routing 段，
+// 另外给出应用草稿后的走向，供界面对比（routing 第 7 节）。
+func (s *Service) RoutingTrace(ctx context.Context, user *store.User, doc []byte, draft, host, process, network string) (current, after *TraceDTO, err error) {
 	if s.Trace.Disabled {
-		return nil, ErrTraceDisabled
+		return nil, nil, ErrTraceDisabled
 	}
 	req, err := match.NewRequest(host, process, network)
 	if err != nil {
-		return nil, fmt.Errorf("%w：%w", ErrInvalidHost, err)
+		return nil, nil, fmt.Errorf("%w：%w", ErrInvalidHost, err)
 	}
-	in, err := s.routingInput(ctx, user, doc)
+	run := func(d []byte) (*TraceDTO, error) {
+		in, err := s.routingInput(ctx, user, d)
+		if err != nil {
+			return nil, err
+		}
+		sets, stale := s.loadSets(ctx, in)
+		return in.trace(req, sets, stale), nil
+	}
+	if current, err = run(doc); err != nil || draft == "" {
+		return current, nil, err
+	}
+	d, err := withRouting(doc, draft)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	sets, stale := s.loadSets(ctx, in)
-	return in.trace(req, sets, stale), nil
+	after, err = run(d)
+	return current, after, err
 }
 
 // loadSets 取得 rules 引用的全部规则集（并发、有上限）。拿不到的规则集不放进结果，追踪中记为 no-content。
@@ -687,13 +736,20 @@ func LoadHealthSites(fsys fs.FS) ([]HealthSite, error) {
 }
 
 // RoutingHealth 用常用网站批量追踪当前配置（按 443 端口、TCP）。
-func (s *Service) RoutingHealth(ctx context.Context, user *store.User, doc []byte) ([]HealthItem, error) {
+func (s *Service) RoutingHealth(ctx context.Context, user *store.User, doc []byte, draft string) ([]HealthItem, error) {
 	if s.Trace.Disabled {
 		return nil, ErrTraceDisabled
 	}
 	healthOnce.Do(func() { healthSites, healthErr = LoadHealthSites(s.catalogFS()) })
 	if healthErr != nil {
 		return nil, healthErr
+	}
+	if draft != "" { // 有草稿时按草稿体检
+		d, err := withRouting(doc, draft)
+		if err != nil {
+			return nil, err
+		}
+		doc = d
 	}
 	in, err := s.routingInput(ctx, user, doc)
 	if err != nil {
@@ -741,3 +797,84 @@ func (s *Service) descriptions() *ruleset.Descriptions {
 }
 
 func (s *Service) catalogFS() fs.FS { return catalogdata.FS }
+
+// routingModel 返回方案的 routing 模型：自己管理时就是 routing 段；跟随上游时是规则源的当前内容（合集自动识别），
+// 即开始管理后会得到的 routing。没有规则时返回 nil。诊断不在这里报告（预览已报告过）。
+func (s *Service) routingModel(ctx context.Context, owner string, p *profile.Profile) *ruleset.Source {
+	var l diag.List
+	switch {
+	case p == nil:
+		return nil
+	case p.Routing != nil:
+		return ruleset.FromRouting(p.Routing.Groups, p.Routing.Rulesets, &l)
+	case p.Rules != nil:
+		ri, err := s.rulesInput(ctx, owner, p.Rules.Ref)
+		if err != nil {
+			return nil
+		}
+		var src *ruleset.Source
+		if len(bytes.TrimSpace(ri.INI)) > 0 {
+			src = ruleset.ParseINI(ri.INI, ri.Name+".ini", &l)
+		} else {
+			src = &ruleset.Source{Groups: ruleset.ParseGroups(ri.Groups, "groups.toml", &l), Rulesets: ruleset.ParseRulesets(ri.Rulesets, "rulesets.toml", &l)}
+		}
+		ruleset.DetectBundles(src.Rulesets)
+		return src
+	}
+	return nil
+}
+
+func modelGroup(m *ruleset.Source, name string) *ruleset.Group {
+	if m == nil {
+		return nil
+	}
+	for i := range m.Groups {
+		if m.Groups[i].Name == name {
+			return &m.Groups[i]
+		}
+	}
+	return nil
+}
+
+// ErrNoRules 表示方案没有选择规则源，无法开始自己管理分流。
+var ErrNoRules = errors.New("service: 方案没有选择分流规则")
+
+// RoutingFork 从规则源的当前内容生成 routing 段文本（开始自己管理，决定 0007 第 7 条）。不保存：
+// 前端把它放进草稿，用户点「应用」时才写入方案文档。已经自己管理时返回当前的 routing 段。
+func (s *Service) RoutingFork(ctx context.Context, user *store.User, doc []byte) (string, []diag.Diagnostic, error) {
+	var l diag.List
+	p, err := profile.Parse(doc, &l)
+	if err != nil {
+		return "", l.Items(), err
+	}
+	if p.Rules == nil {
+		return "", nil, ErrNoRules
+	}
+	ri, err := s.rulesInput(ctx, user.ID, p.Rules.Ref)
+	if err != nil {
+		return "", nil, err
+	}
+	n := ruleset.Fork(ri.Groups, ri.Rulesets, ri.INI, ri.Name, p.Rules.Ref, s.now().UTC().Format(time.RFC3339), &l)
+	text, err := render.Render(n, render.Options{}, &l)
+	if err != nil {
+		return "", l.Items(), fmt.Errorf("输出 routing 段: %w", err)
+	}
+	return string(text), l.Items(), nil
+}
+
+// withRouting 把方案文档中的 routing 段替换为 draft（草稿的 routing 段文本），用于草稿与已应用的对比追踪。
+func withRouting(doc []byte, draft string) ([]byte, error) {
+	var root yaml.Node
+	if err := yaml.Unmarshal(doc, &root); err != nil || len(root.Content) == 0 {
+		return nil, fmt.Errorf("%w：方案文档无效", ErrBadDraft)
+	}
+	var d yaml.Node
+	if err := yaml.Unmarshal([]byte(draft), &d); err != nil || len(d.Content) == 0 || d.Content[0].Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("%w：routing 草稿必须是映射", ErrBadDraft)
+	}
+	yamlx.Set(root.Content[0], "routing", d.Content[0])
+	return yaml.Marshal(&root)
+}
+
+// ErrBadDraft 表示 routing 草稿或方案文档无法解析。
+var ErrBadDraft = errors.New("service: 草稿无效")

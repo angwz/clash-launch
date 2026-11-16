@@ -152,6 +152,11 @@ var (
 	IniInvalid         = reg("ini.invalid", Error, "External config line {line}: {reason}", "外部配置第 {line} 行：{reason}")
 )
 
+// —— 自己管理的分流（docs/design/routing.md 第 4.3 节）——
+var (
+	RoutingBundleSplit = reg("routing.bundle_split", Warning, "Bundle {bundle}: its rule sets must be adjacent and go to the same group ({where}); kept in their original order", "合集 {bundle}：其中的规则集必须相邻且走向相同（{where}），已按原顺序输出")
+)
+
 // —— 拉取与网络（第 5.4、14.5、14.6 节）——
 var (
 	FetchFailed    = reg("fetch.failed", Warning, "Fetching {source} failed: {reason}", "拉取 {source} 失败：{reason}")

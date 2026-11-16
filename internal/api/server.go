@@ -243,6 +243,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusUnprocessableEntity, "account.timezone", err.Error())
 	case errors.Is(err, service.ErrTraceDisabled):
 		problem(w, http.StatusNotFound, "feature_disabled", "routing trace is disabled on this server")
+	case errors.Is(err, service.ErrNoRules):
+		problem(w, http.StatusBadRequest, "routing.no_rules", "this config has no routing rules to start from")
+	case errors.Is(err, service.ErrBadDraft):
+		problem(w, http.StatusBadRequest, "routing.draft", err.Error())
 	case errors.Is(err, service.ErrInvalidHost):
 		problem(w, http.StatusBadRequest, "invalid_host", err.Error())
 	case errors.Is(err, source.ErrHostNotAllowed):

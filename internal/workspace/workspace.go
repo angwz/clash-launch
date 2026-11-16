@@ -110,7 +110,9 @@ func Build(path string, p *profile.Profile, cat *catalog.Catalog) (*yaml.Node, [
 			ds.Add(diag.ProfileSourceRef, fmt.Sprintf("sources[%d]", i), "ref", ref.Ref)
 		}
 	}
-	if p.Rules != nil {
+	if p.Routing != nil {
+		in.Routing = p.Routing // 自己管理的分流：不读取规则源
+	} else if p.Rules != nil {
 		found := false
 		for _, r := range ws.RuleSources {
 			if r.ID != p.Rules.Ref {

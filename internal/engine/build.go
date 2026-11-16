@@ -54,6 +54,8 @@ type RulesInput struct {
 type BuildInput struct {
 	Sources []SourceInput // 已排除停用的源
 	Rules   *RulesInput
+	// Routing 是方案自己管理的分流：存在时代替 Rules（决定 0007 第 6、7 条），Rules 不再读取
+	Routing *profile.Routing
 	Catalog *catalog.Catalog
 	Tools   *node.Tools
 	Chains  []profile.Chain // 链式代理规则（方案顺序）
@@ -85,7 +87,11 @@ func Build(in BuildInput) Built {
 	res := Built{Generated: yamlx.Map()}
 	var ops *node.Processing
 	var rs *ruleset.Source
-	if in.Rules != nil {
+	if in.Routing != nil {
+		rs = ruleset.FromRouting(in.Routing.Groups, in.Routing.Rulesets, &out)
+		rs.NodeOps = ruleset.ParseNodeOps(in.Routing.ININodeOps, "routing.ini-node-ops", &out)
+		ops = rs.NodeOps
+	} else if in.Rules != nil {
 		rs = parseRules(in.Rules, &out)
 		ops = rs.NodeOps
 		res.Updated = in.Rules.Updated

@@ -78,6 +78,7 @@ components:
         type: {type: string}
         target: {type: string}
         origin: {type: string, enum: [routing, rules, raw]}
+        entry: {type: integer, description: 对应 routing.rulesets 中的第几条（跟随上游时为开始管理后会得到的）；原始编辑的行没有}
         set: {$ref: '#/components/schemas/RoutingRuleSet'}
         flags: {type: array, items: {type: string, enum: [logic, sub-rule, process, no-resolve]}}
     RoutingRuleSet:
@@ -92,13 +93,14 @@ components:
         samples: {type: array, items: {type: object, required: [host, hit], properties: {host: {type: string}, hit: {type: integer}}}}
         description: {type: object, required: [source, repo, license, checked, text], properties: {source: {type: string}, repo: {type: string}, license: {type: string}, checked: {type: string}, text: {type: object, additionalProperties: {type: string}}}}
         stale: {type: boolean}
+        bundle: {type: string, description: 所属合集}
     RoutingGroup:
       type: object
       required: [name, type, members, params, origin, lints]
       properties:
         name: {type: string}
         type: {type: string}
-        members: {type: array, items: {type: object, required: [name, kind], properties: {name: {type: string}, kind: {type: string, enum: [group, node, builtin, provider]}}}}
+        members: {type: array, items: {type: object, required: [name, kind], properties: {name: {type: string}, kind: {type: string, enum: [group, node, builtin, provider]}, entry: {type: integer, description: 来自组的 rule 列表中的第几条；来自正则或选择器时省略}}}}
         use: {type: array, items: {type: string}}
         filter: {type: string}
         params: {type: object, properties: {url: {type: string}, interval: {type: integer}, tolerance: {type: integer}, lazy: {type: boolean}, strategy: {type: string}}}
@@ -1222,8 +1224,16 @@ paths:
       summary: 追踪一个域名或 IP 的走向（每用户每分钟 60 次）
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc, host], properties: {doc: {type: string}, host: {type: string}, process: {type: string}, network: {type: string, enum: [tcp, udp]}}}}}}
-      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [current], properties: {current: {$ref: '#/components/schemas/RoutingTrace'}}}}}}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc, host], properties: {doc: {type: string}, draft: {type: string, description: 草稿的 routing 段文本；给出时另外返回 draft}, host: {type: string}, process: {type: string}, network: {type: string, enum: [tcp, udp]}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [current], properties: {current: {$ref: '#/components/schemas/RoutingTrace'}, draft: {$ref: '#/components/schemas/RoutingTrace'}}}}}}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/routing/fork:
+    post:
+      tags: [routing]
+      summary: 开始自己管理分流时的 routing 段文本（由规则源当前内容生成，不保存；前端放进草稿，应用时写入方案文档）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [doc], properties: {doc: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [routing, diagnostics], properties: {routing: {type: string}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}, '400': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles/{id}/routing/health:
     post:
       tags: [routing]

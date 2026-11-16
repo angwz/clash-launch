@@ -27,7 +27,8 @@
       "members": [
         {
           "name": "DIRECT",
-          "kind": "builtin"
+          "kind": "builtin",
+          "entry": 0
         },
         {
           "name": "🇭🇰 香港 01",

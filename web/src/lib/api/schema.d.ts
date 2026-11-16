@@ -4046,6 +4046,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         doc: string;
+                        /** @description 草稿的 routing 段文本；给出时另外返回 draft */
+                        draft?: string;
                         host: string;
                         process?: string;
                         /** @enum {string} */
@@ -4062,12 +4064,61 @@ export interface paths {
                     content: {
                         "application/json": {
                             current: components["schemas"]["RoutingTrace"];
+                            draft?: components["schemas"]["RoutingTrace"];
                         };
                     };
                 };
                 400: components["responses"]["Problem"];
                 404: components["responses"]["Problem"];
                 429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{id}/routing/fork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 开始自己管理分流时的 routing 段文本（由规则源当前内容生成，不保存；前端放进草稿，应用时写入方案文档） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            routing: string;
+                            diagnostics: components["schemas"]["Diagnostic"][];
+                        };
+                    };
+                };
+                400: components["responses"]["Problem"];
             };
         };
         delete?: never;
@@ -4406,6 +4457,8 @@ export interface components {
             target: string;
             /** @enum {string} */
             origin: "routing" | "rules" | "raw";
+            /** @description 对应 routing.rulesets 中的第几条（跟随上游时为开始管理后会得到的）；原始编辑的行没有 */
+            entry?: number;
             set?: components["schemas"]["RoutingRuleSet"];
             flags: ("logic" | "sub-rule" | "process" | "no-resolve")[];
         };
@@ -4429,6 +4482,8 @@ export interface components {
                 };
             };
             stale?: boolean;
+            /** @description 所属合集 */
+            bundle?: string;
         };
         RoutingGroup: {
             name: string;
@@ -4437,6 +4492,8 @@ export interface components {
                 name: string;
                 /** @enum {string} */
                 kind: "group" | "node" | "builtin" | "provider";
+                /** @description 来自组的 rule 列表中的第几条；来自正则或选择器时省略 */
+                entry?: number;
             }[];
             use?: string[];
             filter?: string;

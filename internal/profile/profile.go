@@ -92,9 +92,11 @@ type Profile struct {
 	Output  Output      `yaml:"output,omitempty"`
 	Form    *yaml.Node  `yaml:"-"`
 	Raw     string      `yaml:"-"`
+	// Routing 是方案自己管理的分流（决定 0007 第 6、7 条）：存在时引擎用它代替规则源的 groups、rulesets 与 ini。
+	Routing *Routing `yaml:"-"`
 }
 
-var knownKeys = []string{DocType, "name", "target", "sources", "rules", "chains", "output", "form", "raw"}
+var knownKeys = []string{DocType, "name", "target", "sources", "rules", "chains", "output", "form", "raw", "routing"}
 
 // Parse 解析方案文档。未知键给出警告（可能来自更新的版本）；结构错误给出 error 并返回错误。
 func Parse(text []byte, out *diag.List) (*Profile, error) {
@@ -121,7 +123,7 @@ func Parse(text []byte, out *diag.List) (*Profile, error) {
 		}
 	}
 	p := &Profile{}
-	for _, k := range []string{"name", "target", "sources", "rules", "chains", "output"} {
+	for _, k := range []string{"name", "target", "sources", "rules", "chains", "output", "routing"} {
 		v := yamlx.Get(root, k)
 		if v == nil {
 			continue
@@ -141,6 +143,9 @@ func Parse(text []byte, out *diag.List) (*Profile, error) {
 			err = v.Decode(&p.Chains)
 		case "output":
 			err = v.Decode(&p.Output)
+		case "routing":
+			p.Routing = &Routing{}
+			err = v.Decode(p.Routing)
 		}
 		if err != nil {
 			out.Add(diag.ProfileInvalid, k, "reason", err.Error())
@@ -198,47 +203,6 @@ func (p *Profile) normalize(out *diag.List) error {
 		return fmt.Errorf("profile: output.empty-groups 无效：%s", p.Output.EmptyGroups)
 	}
 	return nil
-}
-
-// Marshal 输出规范形式的方案文档（键序固定），用于导出与版本记录。
-// raw 以字面块原样保存，注释与空行逐字节保留。
-func (p *Profile) Marshal() ([]byte, error) {
-	root := yamlx.Map(DocType, Version)
-	if p.Name != "" {
-		yamlx.Set(root, "name", yamlx.Str(p.Name))
-	}
-	var t yaml.Node
-	if err := t.Encode(p.Target); err != nil {
-		return nil, err
-	}
-	t.Style = yaml.FlowStyle
-	yamlx.Set(root, "target", &t)
-	if len(p.Sources) > 0 {
-		var s yaml.Node
-		if err := s.Encode(p.Sources); err != nil {
-			return nil, err
-		}
-		yamlx.Set(root, "sources", &s)
-	}
-	if p.Rules != nil {
-		yamlx.Set(root, "rules", yamlx.Map("ref", p.Rules.Ref))
-	}
-	if p.Output != (Output{}) {
-		var o yaml.Node
-		if err := o.Encode(p.Output); err != nil {
-			return nil, err
-		}
-		yamlx.Set(root, "output", &o)
-	}
-	if p.Form != nil && len(p.Form.Content) > 0 {
-		yamlx.Set(root, "form", yamlx.Clone(p.Form))
-	}
-	if p.Raw != "" {
-		raw := yamlx.Str(p.Raw)
-		raw.Style = yaml.LiteralStyle
-		yamlx.Set(root, "raw", raw)
-	}
-	return yaml.Marshal(root)
 }
 
 // Refs 返回启用的源引用（保持顺序）。

@@ -307,28 +307,16 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		}
 		in.Sources = append(in.Sources, si)
 	}
-	if p.Rules != nil {
-		rs, err := s.Store.RuleSources().Get(ctx, owner, p.Rules.Ref)
+	// 自己管理分流时引擎只用 routing 段，不读取规则源（routing 在方案文档里，缓存键已包含它）
+	if p.Routing != nil {
+		in.Routing = p.Routing
+	} else if p.Rules != nil {
+		ri, err := s.rulesInput(ctx, owner, p.Rules.Ref)
 		if errors.Is(err, store.ErrNotFound) {
 			ds.Add(diag.ProfileRuleRef, "rules", "ref", p.Rules.Ref)
 		} else if err != nil {
 			return in, nil, latest, nil, ds, err
 		} else {
-			ri := &engine.RulesInput{Name: rs.Name, Groups: []byte(rs.GroupsText), Rulesets: []byte(rs.RulesetsText), INI: []byte(rs.INIText), Updated: rs.UpdatedAt}
-			// 粘贴的文本优先；文本为空且配置了地址时才用拉取快照。
-			// 地址被清空后残留的快照不再生效，避免界面说明与实际输出不一致。
-			urls := map[string]string{"groups": rs.GroupsURL, "rulesets": rs.RulesetsURL, "ini": rs.INIURL}
-			for part, dst := range map[string]*[]byte{"groups": &ri.Groups, "rulesets": &ri.Rulesets, "ini": &ri.INI} {
-				if len(bytes.TrimSpace(*dst)) > 0 || urls[part] == "" {
-					continue
-				}
-				if snap, err := s.Store.Snapshots().Get(ctx, owner, RuleKey(rs.ID, part)); err == nil && snap.Hash != "" {
-					*dst = snap.Content
-					if snap.FetchedAt.After(ri.Updated) {
-						ri.Updated = snap.FetchedAt
-					}
-				}
-			}
 			h := sha256.Sum256(append(append(append([]byte{}, ri.Groups...), ri.Rulesets...), ri.INI...))
 			hashes = append(hashes, "rules:"+hex.EncodeToString(h[:]))
 			if ri.Updated.After(latest) {
@@ -339,6 +327,29 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 	}
 	sort.Strings(hashes)
 	return in, hashes, latest, headers, ds, nil
+}
+
+// rulesInput 读取规则源的当前内容：粘贴的文本优先；文本为空且配置了地址时才用拉取快照。
+// 地址被清空后残留的快照不再生效，避免界面说明与实际输出不一致。
+func (s *Service) rulesInput(ctx context.Context, owner, ref string) (*engine.RulesInput, error) {
+	rs, err := s.Store.RuleSources().Get(ctx, owner, ref)
+	if err != nil {
+		return nil, err
+	}
+	ri := &engine.RulesInput{Name: rs.Name, Groups: []byte(rs.GroupsText), Rulesets: []byte(rs.RulesetsText), INI: []byte(rs.INIText), Updated: rs.UpdatedAt}
+	urls := map[string]string{"groups": rs.GroupsURL, "rulesets": rs.RulesetsURL, "ini": rs.INIURL}
+	for part, dst := range map[string]*[]byte{"groups": &ri.Groups, "rulesets": &ri.Rulesets, "ini": &ri.INI} {
+		if len(bytes.TrimSpace(*dst)) > 0 || urls[part] == "" {
+			continue
+		}
+		if snap, err := s.Store.Snapshots().Get(ctx, owner, RuleKey(rs.ID, part)); err == nil && snap.Hash != "" {
+			*dst = snap.Content
+			if snap.FetchedAt.After(ri.Updated) {
+				ri.Updated = snap.FetchedAt
+			}
+		}
+	}
+	return ri, nil
 }
 
 // Render 渲染方案文档（不写存储）。doc 是方案文档原文；updated 是方案版本的时间。

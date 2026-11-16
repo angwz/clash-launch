@@ -239,3 +239,66 @@ func group(g service.GraphDTO, name string) service.GroupDTO {
 	}
 	return service.GroupDTO{}
 }
+
+// 开始自己管理（routing 第 13 节第 3 步）：fork 得到的 routing 段写入文档后输出不变；地图标为 own；
+// 草稿改了走向时，追踪同时给出应用前后的结果。
+func TestRoutingForkOwnDraft(t *testing.T) {
+	h := newHarness(t, nil)
+	c, _ := h.setup()
+	rsrv, _ := ruleServer(t)
+	pid, doc := routingProfile(t, h, c, rsrv.URL)
+	path := "/api/v1/profiles/" + pid + "/routing/"
+	fk := decode[struct{ Routing string }](t, c.want(200, "POST", path+"fork", map[string]string{"doc": doc}))
+	if !strings.Contains(fk.Routing, "digest: sha256:") || !strings.Contains(fk.Routing, "base:") {
+		t.Fatalf("fork：%s", fk.Routing)
+	}
+	own := doc + "routing:\n" + indent(fk.Routing)
+	before := decode[previewResp](t, c.want(200, "POST", "/api/v1/profiles/"+pid+"/preview", map[string]string{"doc": doc}))
+	after := decode[previewResp](t, c.want(200, "POST", "/api/v1/profiles/"+pid+"/preview", map[string]string{"doc": own}))
+	if dropUpdated(before.YAML) != dropUpdated(after.YAML) {
+		t.Errorf("开始自己管理后输出变了：\n%s\n----\n%s", before.YAML, after.YAML)
+	}
+	g := decode[service.GraphDTO](t, c.want(200, "POST", path+"graph", map[string]string{"doc": own}))
+	if g.State != "own" || g.Rules[1].Origin != "routing" || g.Rules[1].Entry == nil || *g.Rules[1].Entry != 1 {
+		t.Errorf("自己管理的地图：%+v", g.Rules[1])
+	}
+	if px := group(g, "PROXY"); px.Members[0].Entry == nil || *px.Members[0].Entry != 0 || px.Members[2].Entry != nil {
+		t.Errorf("成员的条目：%+v", px.Members)
+	}
+	// 草稿：把 Proxy.list 改为直连
+	draft := strings.Replace(fk.Routing, "group: PROXY\n    ruleset: "+rsrv.URL+"/clash-domain/Proxy.list", "group: DIRECT\n    ruleset: "+rsrv.URL+"/clash-domain/Proxy.list", 1)
+	if draft == fk.Routing {
+		t.Fatalf("草稿没有改动：%s", fk.Routing)
+	}
+	tr := decode[struct{ Current, Draft service.TraceDTO }](t, c.want(200, "POST", path+"trace", map[string]string{"doc": own, "draft": draft, "host": "www.example.com"}))
+	if tr.Current.Exit.Kind != "node" || tr.Draft.Exit.Name != "DIRECT" || tr.Draft.Hit != tr.Current.Hit {
+		t.Errorf("草稿前后：%+v / %+v", tr.Current.Exit, tr.Draft.Exit)
+	}
+	c.want(400, "POST", path+"trace", map[string]string{"doc": own, "draft": "- not a mapping", "host": "www.example.com"})
+	// 没有规则源时不能开始自己管理
+	noRules := strings.Replace(doc, "rules: {ref: ", "#", 1)
+	if b := c.want(400, "POST", path+"fork", map[string]string{"doc": noRules}); !strings.Contains(string(b), "routing.no_rules") {
+		t.Errorf("没有规则源：%s", b)
+	}
+}
+
+func indent(s string) string {
+	var b strings.Builder
+	for _, l := range strings.Split(strings.TrimSuffix(s, "\n"), "\n") {
+		if l != "" {
+			b.WriteString("  ")
+		}
+		b.WriteString(l + "\n")
+	}
+	return b.String()
+}
+
+func dropUpdated(y string) string {
+	var out []string
+	for _, l := range strings.Split(y, "\n") {
+		if !strings.HasPrefix(l, "# UPDATED:") {
+			out = append(out, l)
+		}
+	}
+	return strings.Join(out, "\n")
+}
