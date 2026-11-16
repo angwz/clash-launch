@@ -32,7 +32,8 @@
 - **分流可视化第 4 步（2026-11-15）**：上游同步与期望，分流可视化全部完成（反馈 #81–#84）。`POST /routing/upstream` 按开始管理时的 `base` 做三方比对（组名、规则集地址对应，逐字段；移动按最长递增子序列；与用户自己的改动冲突时标出），分流页提示「规则源有 N 处更新」，对话框里逐条采纳或忽略，确认后进入草稿；追踪结果可「固定为期望」，期望在分流页列出是否满足（`routing.check_failed`、`routing.check_unknown`、`routing.upstream_changed`）。帮助新增「分流」教程（中英文），[rules](../design/rules.md) 新增 routing 段一节。顺带修正通用对话框的标题 id 写死、同页多个对话框共用一个名字的缺陷。验证：`go test ./...`（含 `TestRoutingUpstreamChecks`）、`staticcheck`、`-tags kernel`；前端 check / 138 项单元 / build / 首屏 71.1 KiB / e2e 36 通过 20 跳过（新增「规则源更新后提示并能采纳；从追踪固定期望」）。
 - **反馈 #88（2026-11-16）**：分流页拖动后应用报「yamlx: 文档无效」的根因是后端的 go-yaml 不接受流式列表中未加引号、含 `?` 的普通标量（domainrouter_v2 的地区组正则 `(?=…)`），JS 的 yaml 库却不会加引号；写入方案文档时流式集合里含指示符的字符串一律加引号（routing 与链式代理）。「应用」改为先打开对比与检查（`ApplyDialog`：应用前后完整配置的逐行差异，未变的长段折叠；对应用后的配置做 mihomo -t，渲染失败或未通过时不能应用）。追踪后地图滚到可见；工具栏「重置视图」；下方追踪与详情两栏改为两等分、最小宽度 0，区域较窄时上下排列；详情里「默认」标签不再被拉成整行。「清空后追踪框与详情栏重叠」在 1440 宽与真实数据上未能复现。验证：用真实 domainrouter_v2 发布文件复现并确认修复（前端写出的七种编辑结果均能被后端解析），`go test ./...`、前端 139 项单元、e2e 36 通过 20 跳过（「分流编辑」加入含 `(?i)` 的正则组并经过对比对话框应用；「分流」覆盖重置视图与追踪后地图可见）。
 - **推送与 CI（2026-11-16）**：本地积压的 35 个提交（反馈 #65–#89 与分流可视化）推送到 GitHub。CI 的 `postgres` 任务发现 `TestEncryptLegacy` 在测试里直接写了 SQLite 的 `?` 占位符，改用按数据库换算的 `d.exec` 后再次推送：ci 的 go、web、container、postgres 四项全部通过（存储与 API 测试在 PostgreSQL 17 上运行，覆盖迁移 0001–0010），image 发布 amd64、arm64 镜像。
-- **下一步**：维护者在网站上试用分流页并反馈；之后回到其他客户端预设与 Docker 实测（见「待维护者」）。
+- **需求清单（2026-11-16）**：生产部署后提出的十项需求逐项核实现状、评估工作量，连同此前的可选方向整理进 [backlog](backlog.md)（反馈 #90）。
+- **下一步**：按 [backlog](backlog.md) 的优先级进行，先做 P1（R1 配置删除入口、R2 授权对象删除后的处理）。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：公开仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 
@@ -166,10 +167,4 @@ playwright（Edge，桌面 + 手机）     → 14 通过、6 按设计跳过（�
 
 ## 下一步
 
-本轮核心路径已完成，等待维护者在 OpenClash 中导入实测并决定下一轮范围。可选方向（未排序）：
-
-- 维护者导入后反馈的问题（优先）。
-- 其他客户端预设（Clash Verge Rev、Stash 等），按官方文档或源码逐项核对。
-- 配置导入、规则源编辑器与策略组预览（M4 剩余）。
-- Docker 与 PostgreSQL 实测（需要环境）。
-- 通行密钥按 #15 不再投入；如需精简，可删除 `internal/auth/webauthn.go`、`internal/service/passkey.go`、`internal/api/passkey.go` 与前端对应组件。
+待办需求、工作量、优先级与可进一步优化的地方统一记在 [backlog](backlog.md)。
