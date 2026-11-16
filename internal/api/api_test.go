@@ -103,7 +103,7 @@ func newHarness(t *testing.T, checker *kernel.Checker) *harness {
 	h.http = httptest.NewServer(nil)
 	t.Cleanup(h.http.Close)
 	svc.PublicURL = h.http.URL
-	h.srv = New(svc, Config{PublicURL: h.http.URL, Guard: guard}, log)
+	h.srv = New(svc, Config{PublicURLs: []string{h.http.URL}, Guard: guard}, log)
 	h.http.Config.Handler = h.srv.Handler()
 	return h
 }

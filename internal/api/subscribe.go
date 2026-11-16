@@ -158,8 +158,8 @@ func (s *Server) serveConfig(w http.ResponseWriter, r *http.Request, l *store.Li
 	for k, v := range rd.GoodHeaders {
 		h.Set(k, v)
 	}
-	if s.Cfg.PublicURL != "" {
-		h.Set("profile-web-page-url", strings.TrimSuffix(s.Cfg.PublicURL, "/")+"/profiles/"+url.PathEscape(l.ProfileID))
+	if p := s.publicFor(r); p != "" {
+		h.Set("profile-web-page-url", p+"/profiles/"+url.PathEscape(l.ProfileID))
 	}
 	h.Set("Content-Type", "text/yaml; charset=utf-8")
 	h.Set("Cache-Control", "private, no-cache")

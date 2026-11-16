@@ -41,7 +41,7 @@ type config struct {
 	Listen         string
 	DataDir        string
 	DatabaseURL    string
-	PublicURL      string
+	PublicURLs     []string // 第一个为主地址（需求 R9）
 	TrustedProxies string
 	FetchAllowlist string
 	LogLevel       string
@@ -85,11 +85,16 @@ func loadConfig() (config, error) {
 		return def
 	}
 	c := config{
-		Listen: get("LISTEN", ":20230"), DataDir: get("DATA_DIR", "/data"), PublicURL: strings.TrimSuffix(get("PUBLIC_URL", ""), "/"),
+		Listen: get("LISTEN", ":20230"), DataDir: get("DATA_DIR", "/data"),
 		TrustedProxies: get("TRUSTED_PROXIES", ""),
 		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"),
 		Mihomo: get("MIHOMO", "/opt/mihomo/mihomo"), Geodata: get("GEODATA", "/opt/mihomo/geodata"),
 	}
+	publics, err := api.ParsePublicURLs(get("PUBLIC_URL", ""))
+	if err != nil {
+		return config{}, fmt.Errorf("CLASH_LAUNCH_PUBLIC_URL：%w", err)
+	}
+	c.PublicURLs = publics
 	bits, err := strconv.Atoi(get("POW_BITS", "20"))
 	if err != nil || bits < 1 || bits > 32 {
 		return config{}, fmt.Errorf("CLASH_LAUNCH_POW_BITS 需要 1–32 的整数")
@@ -215,8 +220,8 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.PublicURL, PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo}}
-	return svc, &api.Config{PublicURL: c.PublicURL, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.primaryURL(), PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo}}
+	return svc, &api.Config{PublicURLs: c.PublicURLs, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }
 
 func cmdServe(args []string) int {
@@ -245,7 +250,7 @@ func cmdServe(args []string) int {
 	}
 	srv := api.New(svc, *apiCfg, log)
 	if needed, err := svc.NeedsSetup(ctx); err == nil && needed {
-		base := c.PublicURL
+		base := c.primaryURL()
 		if base == "" {
 			base = "http://<对外地址>"
 		}
@@ -468,4 +473,12 @@ func cmdHealthcheck(_ []string) int {
 		return 1
 	}
 	return 0
+}
+
+// primaryURL 返回主对外地址（列表中的第一个）；没有配置时为空。
+func (c config) primaryURL() string {
+	if len(c.PublicURLs) == 0 {
+		return ""
+	}
+	return c.PublicURLs[0]
 }

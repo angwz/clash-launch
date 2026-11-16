@@ -827,10 +827,11 @@ type linkDTO struct {
 	Version    int64      `json:"version"`
 }
 
-// baseURL 返回对外地址：配置了 CLASH_LAUNCH_PUBLIC_URL 时以它为准，否则根据请求推断（第 14.2 节）。
+// baseURL 返回对外地址：配置了 CLASH_LAUNCH_PUBLIC_URL 时取与请求域名相同的那个（见 publicurl.go），
+// 否则根据请求推断（第 14.2 节）。
 func (s *Server) baseURL(r *http.Request) string {
-	if s.Cfg.PublicURL != "" {
-		return strings.TrimSuffix(s.Cfg.PublicURL, "/")
+	if p := s.publicFor(r); p != "" {
+		return p
 	}
 	scheme := "http"
 	if r.TLS != nil {

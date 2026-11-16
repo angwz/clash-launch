@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/angwz/clash-launch/internal/store"
@@ -227,7 +228,7 @@ func (s *Server) adminStatus(w http.ResponseWriter, r *http.Request, _ *principa
 		"keys":      map[string]any{"current": keyID, "count": keys},
 		"users":     n,
 		"database":  s.Svc.Store.Dialect(),
-		"publicURL": s.Cfg.PublicURL,
+		"publicURL": strings.Join(s.Cfg.PublicURLs, ", "),
 		"features":  map[string]bool{"passkeys": pkErr == nil, "smtp": s.Svc.Mailer != nil},
 		"auditDays": int(s.Svc.AuditRetention.Hours() / 24),
 	})

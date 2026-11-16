@@ -22,8 +22,8 @@ type principal struct {
 	Session *store.Session
 }
 
-func (s *Server) cookieName() string {
-	if s.secure() {
+func (s *Server) cookieName(r *http.Request) string {
+	if s.secure(r) {
 		return "__Host-cl_session" // __Host- 前缀要求 Secure、Path=/、无 Domain
 	}
 	return "cl_session"
@@ -48,7 +48,7 @@ func (s *Server) authed(h func(http.ResponseWriter, *http.Request, *principal)) 
 }
 
 func (s *Server) principal(r *http.Request) (*principal, error) {
-	c, err := r.Cookie(s.cookieName())
+	c, err := r.Cookie(s.cookieName(r))
 	if err != nil || c.Value == "" {
 		return nil, errors.New("no session")
 	}
@@ -82,9 +82,10 @@ func (s *Server) sameOrigin(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	if s.Cfg.PublicURL != "" {
-		pu, err := url.Parse(s.Cfg.PublicURL)
-		return err == nil && strings.EqualFold(pu.Host, u.Host) && pu.Scheme == u.Scheme
+	// 配置了对外地址时，Origin 必须等于这个请求所用的那一个（Host 不在列表中时是主地址，必然对不上）
+	if p := s.publicFor(r); p != "" {
+		pu, err := url.Parse(p)
+		return err == nil && strings.EqualFold(pu.Host, u.Host) && strings.EqualFold(pu.Host, r.Host) && pu.Scheme == u.Scheme
 	}
 	return strings.EqualFold(u.Host, r.Host)
 }
@@ -146,7 +147,7 @@ type mfaResp struct {
 func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.User) {
 	ctx := r.Context()
 	s.Svc.Stats().Login(time.Now()) // 登录次数（反馈 #66），密码、两步验证与通行密钥登录都经过这里
-	if old, err := r.Cookie(s.cookieName()); err == nil {
+	if old, err := r.Cookie(s.cookieName(r)); err == nil {
 		_ = s.Svc.Store.Sessions().Delete(ctx, u.ID, auth.HashToken(old.Value))
 	}
 	tok := auth.NewToken(32)
@@ -156,14 +157,14 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 		s.fail(w, err)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: s.cookieName(), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
+	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
 	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA)
 	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF})
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
 	_ = s.Svc.Store.Sessions().Delete(r.Context(), p.User.ID, p.Session.IDHash)
-	http.SetCookie(w, &http.Cookie{Name: s.cookieName(), Value: "", Path: "/", HttpOnly: true, Secure: s.secure(), SameSite: http.SameSiteLaxMode, MaxAge: -1}) //nolint:gosec // 同上
+	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: "", Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: -1}) //nolint:gosec // 同上
 	w.WriteHeader(http.StatusNoContent)
 }
 

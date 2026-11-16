@@ -62,3 +62,17 @@ curl -sI https://cl.example.com/healthz | grep -iE 'strict-transport|content-sec
 ```
 
 `CLASH_LAUNCH_PUBLIC_URL` 以 `https://` 开头时，服务发送 HSTS，会话 Cookie 带 `Secure` 与 `__Host-` 前缀。
+
+## 多个域名
+
+同一个服务可以挂在多个域名的反向代理之后。把这些地址都写进 `CLASH_LAUNCH_PUBLIC_URL`，用逗号分隔，第一个为主地址：
+
+```yaml
+CLASH_LAUNCH_PUBLIC_URL: https://cl.example.com,https://cl2.example.com
+```
+
+- 每个请求按反代传来的 `Host` 选用同域名的那个地址：页面上生成的订阅链接、短链接与邀请链接都指向你正在访问的域名，Cookie 的 `Secure` 与 HSTS 也按它决定。因此每个反代都要传原始的 `Host`（上面的 `proxy_set_header Host $host;`，Caddy 默认如此）。
+- 列表同时是白名单：经未列出的域名访问时，链接指向主地址，登录等写操作会被拒绝。
+- 各域名的登录状态互相独立（Cookie 按域名保存），需要分别登录。
+- 通行密钥由浏览器绑定到单个域名，只在主地址上可用。
+- 配置中「交给客户端」的手动节点地址在生成配置时写入，使用主地址。

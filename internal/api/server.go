@@ -26,7 +26,7 @@ import (
 
 // Config 是 HTTP 层的配置。
 type Config struct {
-	PublicURL      string         // CLASH_LAUNCH_PUBLIC_URL；决定生成的链接与 Cookie 的 Secure
+	PublicURLs     []string       // CLASH_LAUNCH_PUBLIC_URL（可多个，第一个为主地址）；决定生成的链接与 Cookie 的 Secure，见 publicurl.go
 	TrustedProxies []netip.Prefix // 只从这些网段读取 X-Forwarded-For/-Proto
 	SessionIdle    time.Duration  // 默认 7 天
 	SessionMax     time.Duration  // 默认 30 天
@@ -98,8 +98,6 @@ func (s *Server) HTTPServer(addr string) *http.Server {
 	}
 }
 
-func (s *Server) secure() bool { return strings.HasPrefix(s.Cfg.PublicURL, "https://") }
-
 func (s *Server) secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -108,7 +106,7 @@ func (s *Server) secureHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		if s.secure() {
+		if s.secure(r) {
 			h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		}
 		next.ServeHTTP(w, r)
