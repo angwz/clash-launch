@@ -690,6 +690,10 @@ func TestPrefsFieldClick(t *testing.T) {
 		t.Errorf("读回：%s", b)
 	}
 	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"fieldClick": "everywhere"})
+	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"routingView": map[string]string{"particles": "sparkle"}})
+	if got := decode[prefsDTO](t, c.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"routingView": map[string]any{"rules": "all", "particles": "focus", "candidates": true, "exits": "region"}})); got.RoutingView == nil || got.RoutingView.Particles != "focus" || !got.RoutingView.Candidates {
+		t.Errorf("routingView：%+v", got.RoutingView)
+	}
 	u, _ := h.db.Users().ByUsername(context.Background(), "admin")
 	if err := h.db.Users().SetPrefs(context.Background(), u.ID, []byte(`{"fieldClick":false}`)); err != nil {
 		t.Fatal(err)

@@ -1,0 +1,141 @@
+{
+  "state": "follow",
+  "editable": true,
+  "rules": [
+    {
+      "index": 0,
+      "raw": "RULE-SET,Ads,REJECT",
+      "type": "RULE-SET",
+      "target": "REJECT",
+      "origin": "raw",
+      "set": {
+        "name": "Ads",
+        "behavior": "domain",
+        "format": "inline",
+        "count": 2,
+        "samples": [
+          {
+            "host": "ads.example.com",
+            "hit": 0
+          },
+          {
+            "host": "track.example.net",
+            "hit": 0
+          }
+        ]
+      },
+      "flags": []
+    },
+    {
+      "index": 1,
+      "raw": "RULE-SET,Lan,DIRECT,no-resolve",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "raw",
+      "set": {
+        "name": "Lan",
+        "behavior": "ipcidr",
+        "format": "inline",
+        "count": 1,
+        "samples": [
+          {
+            "host": "192.0.2.1",
+            "hit": 1
+          }
+        ]
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 2,
+      "raw": "GEOIP,CN,DIRECT",
+      "type": "GEOIP",
+      "target": "DIRECT",
+      "origin": "rules",
+      "flags": []
+    },
+    {
+      "index": 3,
+      "raw": "MATCH,PROXY",
+      "type": "MATCH",
+      "target": "PROXY",
+      "origin": "rules",
+      "flags": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "PROXY",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇺🇸 美国 03",
+          "kind": "node"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    }
+  ],
+  "exits": [
+    {
+      "name": "🇭🇰 香港 01",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇯🇵 日本 02",
+      "kind": "node",
+      "region": "JP",
+      "regionName": {
+        "en": "Japan",
+        "zh": "日本"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇺🇸 美国 03",
+      "kind": "node",
+      "region": "US",
+      "regionName": {
+        "en": "United States",
+        "zh": "美国"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "DIRECT",
+      "kind": "builtin"
+    },
+    {
+      "name": "REJECT",
+      "kind": "builtin"
+    }
+  ],
+  "pending": 0,
+  "traceEnabled": true,
+  "diagnostics": []
+}

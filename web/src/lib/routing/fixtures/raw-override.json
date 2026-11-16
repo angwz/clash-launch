@@ -1,0 +1,92 @@
+{
+  "state": "follow",
+  "editable": false,
+  "readonlyReason": "raw_override",
+  "rules": [
+    {
+      "index": 0,
+      "raw": "DOMAIN-SUFFIX,example.com,PROXY",
+      "type": "DOMAIN-SUFFIX",
+      "target": "PROXY",
+      "origin": "raw",
+      "flags": []
+    },
+    {
+      "index": 1,
+      "raw": "MATCH,DIRECT",
+      "type": "MATCH",
+      "target": "DIRECT",
+      "origin": "raw",
+      "flags": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "PROXY",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇺🇸 美国 03",
+          "kind": "node"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    }
+  ],
+  "exits": [
+    {
+      "name": "🇭🇰 香港 01",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇯🇵 日本 02",
+      "kind": "node",
+      "region": "JP",
+      "regionName": {
+        "en": "Japan",
+        "zh": "日本"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇺🇸 美国 03",
+      "kind": "node",
+      "region": "US",
+      "regionName": {
+        "en": "United States",
+        "zh": "美国"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "DIRECT",
+      "kind": "builtin"
+    }
+  ],
+  "pending": 0,
+  "traceEnabled": false,
+  "diagnostics": []
+}

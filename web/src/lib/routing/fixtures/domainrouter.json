@@ -1,0 +1,2089 @@
+{
+  "state": "follow",
+  "editable": true,
+  "rules": [
+    {
+      "index": 0,
+      "raw": "RULE-SET,Direct,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Direct",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Direct.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 1,
+      "raw": "RULE-SET,Direct-ipcidr,DIRECT,no-resolve",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Direct-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Direct-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 2,
+      "raw": "RULE-SET,Direct-classic,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Direct-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Direct-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 3,
+      "raw": "RULE-SET,NS,🏖️ Community",
+      "type": "RULE-SET",
+      "target": "🏖️ Community",
+      "origin": "rules",
+      "set": {
+        "name": "NS",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/NS.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 4,
+      "raw": "RULE-SET,NS-classic,🏖️ Community",
+      "type": "RULE-SET",
+      "target": "🏖️ Community",
+      "origin": "rules",
+      "set": {
+        "name": "NS-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/NS-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 5,
+      "raw": "RULE-SET,AI,🗨️ ChatGPT",
+      "type": "RULE-SET",
+      "target": "🗨️ ChatGPT",
+      "origin": "rules",
+      "set": {
+        "name": "AI",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/AI.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 6,
+      "raw": "RULE-SET,AI-ipcidr,🗨️ ChatGPT,no-resolve",
+      "type": "RULE-SET",
+      "target": "🗨️ ChatGPT",
+      "origin": "rules",
+      "set": {
+        "name": "AI-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/AI-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 7,
+      "raw": "RULE-SET,AI-classic,🗨️ ChatGPT",
+      "type": "RULE-SET",
+      "target": "🗨️ ChatGPT",
+      "origin": "rules",
+      "set": {
+        "name": "AI-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/AI-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 8,
+      "raw": "RULE-SET,TikTok,📱 TikTok",
+      "type": "RULE-SET",
+      "target": "📱 TikTok",
+      "origin": "rules",
+      "set": {
+        "name": "TikTok",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/TikTok.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 9,
+      "raw": "RULE-SET,TikTok-classic,📱 TikTok",
+      "type": "RULE-SET",
+      "target": "📱 TikTok",
+      "origin": "rules",
+      "set": {
+        "name": "TikTok-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/TikTok-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 10,
+      "raw": "RULE-SET,Bilibili,📺 哔哩哔哩",
+      "type": "RULE-SET",
+      "target": "📺 哔哩哔哩",
+      "origin": "rules",
+      "set": {
+        "name": "Bilibili",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Bilibili.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 11,
+      "raw": "RULE-SET,Bilibili-ipcidr,📺 哔哩哔哩,no-resolve",
+      "type": "RULE-SET",
+      "target": "📺 哔哩哔哩",
+      "origin": "rules",
+      "set": {
+        "name": "Bilibili-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Bilibili-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 12,
+      "raw": "RULE-SET,Bilibili-classic,📺 哔哩哔哩",
+      "type": "RULE-SET",
+      "target": "📺 哔哩哔哩",
+      "origin": "rules",
+      "set": {
+        "name": "Bilibili-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Bilibili-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 13,
+      "raw": "RULE-SET,Tencent,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Tencent",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Tencent.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 14,
+      "raw": "RULE-SET,Tencent-ipcidr,DIRECT,no-resolve",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Tencent-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Tencent-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 15,
+      "raw": "RULE-SET,Tencent-classic,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "Tencent-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Tencent-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 16,
+      "raw": "RULE-SET,Netflix,🎬 Netflix",
+      "type": "RULE-SET",
+      "target": "🎬 Netflix",
+      "origin": "rules",
+      "set": {
+        "name": "Netflix",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Netflix.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 17,
+      "raw": "RULE-SET,Netflix-ipcidr,🎬 Netflix,no-resolve",
+      "type": "RULE-SET",
+      "target": "🎬 Netflix",
+      "origin": "rules",
+      "set": {
+        "name": "Netflix-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Netflix-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 18,
+      "raw": "RULE-SET,Netflix-classic,🎬 Netflix",
+      "type": "RULE-SET",
+      "target": "🎬 Netflix",
+      "origin": "rules",
+      "set": {
+        "name": "Netflix-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Netflix-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 19,
+      "raw": "RULE-SET,YouTube,💻 YouTube",
+      "type": "RULE-SET",
+      "target": "💻 YouTube",
+      "origin": "rules",
+      "set": {
+        "name": "YouTube",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/YouTube.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 20,
+      "raw": "RULE-SET,YouTube-ipcidr,💻 YouTube,no-resolve",
+      "type": "RULE-SET",
+      "target": "💻 YouTube",
+      "origin": "rules",
+      "set": {
+        "name": "YouTube-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/YouTube-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 21,
+      "raw": "RULE-SET,YouTube-classic,💻 YouTube",
+      "type": "RULE-SET",
+      "target": "💻 YouTube",
+      "origin": "rules",
+      "set": {
+        "name": "YouTube-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/YouTube-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 22,
+      "raw": "RULE-SET,Google,📩 Google",
+      "type": "RULE-SET",
+      "target": "📩 Google",
+      "origin": "rules",
+      "set": {
+        "name": "Google",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Google.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 23,
+      "raw": "RULE-SET,Google-ipcidr,📩 Google,no-resolve",
+      "type": "RULE-SET",
+      "target": "📩 Google",
+      "origin": "rules",
+      "set": {
+        "name": "Google-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Google-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 24,
+      "raw": "RULE-SET,Google-classic,📩 Google",
+      "type": "RULE-SET",
+      "target": "📩 Google",
+      "origin": "rules",
+      "set": {
+        "name": "Google-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Google-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 25,
+      "raw": "RULE-SET,Telegram,🛸 Telegram",
+      "type": "RULE-SET",
+      "target": "🛸 Telegram",
+      "origin": "rules",
+      "set": {
+        "name": "Telegram",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Telegram.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 26,
+      "raw": "RULE-SET,Telegram-ipcidr,🛸 Telegram,no-resolve",
+      "type": "RULE-SET",
+      "target": "🛸 Telegram",
+      "origin": "rules",
+      "set": {
+        "name": "Telegram-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Telegram-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 27,
+      "raw": "RULE-SET,Telegram-classic,🛸 Telegram",
+      "type": "RULE-SET",
+      "target": "🛸 Telegram",
+      "origin": "rules",
+      "set": {
+        "name": "Telegram-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Telegram-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 28,
+      "raw": "RULE-SET,Japan,🌺 日本专线",
+      "type": "RULE-SET",
+      "target": "🌺 日本专线",
+      "origin": "rules",
+      "set": {
+        "name": "Japan",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Japan.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 29,
+      "raw": "RULE-SET,Japan-ipcidr,🌺 日本专线,no-resolve",
+      "type": "RULE-SET",
+      "target": "🌺 日本专线",
+      "origin": "rules",
+      "set": {
+        "name": "Japan-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Japan-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 30,
+      "raw": "RULE-SET,Japan-classic,🌺 日本专线",
+      "type": "RULE-SET",
+      "target": "🌺 日本专线",
+      "origin": "rules",
+      "set": {
+        "name": "Japan-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Japan-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 31,
+      "raw": "RULE-SET,HK,🛫 香港专线",
+      "type": "RULE-SET",
+      "target": "🛫 香港专线",
+      "origin": "rules",
+      "set": {
+        "name": "HK",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/HK.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 32,
+      "raw": "RULE-SET,HK-ipcidr,🛫 香港专线,no-resolve",
+      "type": "RULE-SET",
+      "target": "🛫 香港专线",
+      "origin": "rules",
+      "set": {
+        "name": "HK-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/HK-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 33,
+      "raw": "RULE-SET,HK-classic,🛫 香港专线",
+      "type": "RULE-SET",
+      "target": "🛫 香港专线",
+      "origin": "rules",
+      "set": {
+        "name": "HK-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/HK-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 34,
+      "raw": "RULE-SET,Apple,🍎 Apple",
+      "type": "RULE-SET",
+      "target": "🍎 Apple",
+      "origin": "rules",
+      "set": {
+        "name": "Apple",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Apple.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 35,
+      "raw": "RULE-SET,Apple-ipcidr,🍎 Apple,no-resolve",
+      "type": "RULE-SET",
+      "target": "🍎 Apple",
+      "origin": "rules",
+      "set": {
+        "name": "Apple-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Apple-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 36,
+      "raw": "RULE-SET,Apple-classic,🍎 Apple",
+      "type": "RULE-SET",
+      "target": "🍎 Apple",
+      "origin": "rules",
+      "set": {
+        "name": "Apple-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Apple-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 37,
+      "raw": "RULE-SET,Singapore,🧊 新加坡专线",
+      "type": "RULE-SET",
+      "target": "🧊 新加坡专线",
+      "origin": "rules",
+      "set": {
+        "name": "Singapore",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Singapore.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 38,
+      "raw": "RULE-SET,Singapore-ipcidr,🧊 新加坡专线,no-resolve",
+      "type": "RULE-SET",
+      "target": "🧊 新加坡专线",
+      "origin": "rules",
+      "set": {
+        "name": "Singapore-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Singapore-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 39,
+      "raw": "RULE-SET,Singapore-classic,🧊 新加坡专线",
+      "type": "RULE-SET",
+      "target": "🧊 新加坡专线",
+      "origin": "rules",
+      "set": {
+        "name": "Singapore-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Singapore-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 40,
+      "raw": "RULE-SET,America,⛳ 美国专线",
+      "type": "RULE-SET",
+      "target": "⛳ 美国专线",
+      "origin": "rules",
+      "set": {
+        "name": "America",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/America.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 41,
+      "raw": "RULE-SET,America-classic,⛳ 美国专线",
+      "type": "RULE-SET",
+      "target": "⛳ 美国专线",
+      "origin": "rules",
+      "set": {
+        "name": "America-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/America-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 42,
+      "raw": "RULE-SET,ChinaMedia,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "ChinaMedia",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/ChinaMedia.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 43,
+      "raw": "RULE-SET,ChinaMedia-ipcidr,DIRECT,no-resolve",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "ChinaMedia-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/ChinaMedia-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 44,
+      "raw": "RULE-SET,ChinaMedia-classic,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "ChinaMedia-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/ChinaMedia-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 45,
+      "raw": "RULE-SET,OneDrive,⛅ OneDrive",
+      "type": "RULE-SET",
+      "target": "⛅ OneDrive",
+      "origin": "rules",
+      "set": {
+        "name": "OneDrive",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/OneDrive.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 46,
+      "raw": "RULE-SET,OneDrive-ipcidr,⛅ OneDrive,no-resolve",
+      "type": "RULE-SET",
+      "target": "⛅ OneDrive",
+      "origin": "rules",
+      "set": {
+        "name": "OneDrive-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/OneDrive-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 47,
+      "raw": "RULE-SET,OneDrive-classic,⛅ OneDrive",
+      "type": "RULE-SET",
+      "target": "⛅ OneDrive",
+      "origin": "rules",
+      "set": {
+        "name": "OneDrive-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/OneDrive-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 48,
+      "raw": "RULE-SET,Microsoft,🪟 Microsoft",
+      "type": "RULE-SET",
+      "target": "🪟 Microsoft",
+      "origin": "rules",
+      "set": {
+        "name": "Microsoft",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Microsoft.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 49,
+      "raw": "RULE-SET,Microsoft-classic,🪟 Microsoft",
+      "type": "RULE-SET",
+      "target": "🪟 Microsoft",
+      "origin": "rules",
+      "set": {
+        "name": "Microsoft-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Microsoft-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 50,
+      "raw": "RULE-SET,Media,🛖 国际流媒体",
+      "type": "RULE-SET",
+      "target": "🛖 国际流媒体",
+      "origin": "rules",
+      "set": {
+        "name": "Media",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Media.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 51,
+      "raw": "RULE-SET,Media-ipcidr,🛖 国际流媒体,no-resolve",
+      "type": "RULE-SET",
+      "target": "🛖 国际流媒体",
+      "origin": "rules",
+      "set": {
+        "name": "Media-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Media-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 52,
+      "raw": "RULE-SET,Media-classic,🛖 国际流媒体",
+      "type": "RULE-SET",
+      "target": "🛖 国际流媒体",
+      "origin": "rules",
+      "set": {
+        "name": "Media-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Media-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 53,
+      "raw": "GEOIP,CLOUDFLARE,🛫 香港专线,no-resolve",
+      "type": "GEOIP",
+      "target": "🛫 香港专线",
+      "origin": "rules",
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 54,
+      "raw": "GEOIP,JP,🌺 日本专线,no-resolve",
+      "type": "GEOIP",
+      "target": "🌺 日本专线",
+      "origin": "rules",
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 55,
+      "raw": "GEOIP,CA,⛳ 美国专线,no-resolve",
+      "type": "GEOIP",
+      "target": "⛳ 美国专线",
+      "origin": "rules",
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 56,
+      "raw": "GEOIP,US,⛳ 美国专线,no-resolve",
+      "type": "GEOIP",
+      "target": "⛳ 美国专线",
+      "origin": "rules",
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 57,
+      "raw": "GEOIP,HK,🛫 香港专线,no-resolve",
+      "type": "GEOIP",
+      "target": "🛫 香港专线",
+      "origin": "rules",
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 58,
+      "raw": "RULE-SET,Proxy,🌠 节点选择",
+      "type": "RULE-SET",
+      "target": "🌠 节点选择",
+      "origin": "rules",
+      "set": {
+        "name": "Proxy",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/Proxy.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 59,
+      "raw": "RULE-SET,Proxy-ipcidr,🌠 节点选择,no-resolve",
+      "type": "RULE-SET",
+      "target": "🌠 节点选择",
+      "origin": "rules",
+      "set": {
+        "name": "Proxy-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/Proxy-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 60,
+      "raw": "RULE-SET,Proxy-classic,🌠 节点选择",
+      "type": "RULE-SET",
+      "target": "🌠 节点选择",
+      "origin": "rules",
+      "set": {
+        "name": "Proxy-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/Proxy-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 61,
+      "raw": "RULE-SET,China,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "China",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-domain/China.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 62,
+      "raw": "RULE-SET,China-ipcidr,DIRECT,no-resolve",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "China-ipcidr",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-ipcidr/China-ipcidr.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 63,
+      "raw": "RULE-SET,China-classic,DIRECT",
+      "type": "RULE-SET",
+      "target": "DIRECT",
+      "origin": "rules",
+      "set": {
+        "name": "China-classic",
+        "behavior": "classical",
+        "format": "yaml",
+        "url": "https://raw.githubusercontent.com/angwz/domainrouter_v2/release/clash-classic/China-classic.yaml",
+        "description": {
+          "source": "domainrouter",
+          "repo": "https://github.com/angwz/domainrouter_v2",
+          "license": "见仓库",
+          "checked": "2026-11-15",
+          "text": {
+            "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
+          }
+        }
+      },
+      "flags": []
+    },
+    {
+      "index": 64,
+      "raw": "GEOIP,CN,DIRECT",
+      "type": "GEOIP",
+      "target": "DIRECT",
+      "origin": "rules",
+      "flags": []
+    },
+    {
+      "index": 65,
+      "raw": "MATCH,🐳 漏网の鱼",
+      "type": "MATCH",
+      "target": "🐳 漏网の鱼",
+      "origin": "rules",
+      "flags": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "🌠 节点选择",
+      "type": "select",
+      "members": [
+        {
+          "name": "🛫 香港专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "✈️ 手动切换",
+      "type": "select",
+      "members": [
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇺🇸 美国 03",
+          "kind": "node"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🗨️ ChatGPT",
+      "type": "select",
+      "members": [
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "📺 哔哩哔哩",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🛫 香港专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🍎 Apple",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "📱 TikTok",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🛸 Telegram",
+      "type": "select",
+      "members": [
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "💻 YouTube",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "📩 Google",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "🗨️ ChatGPT",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🏖️ Community",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "⛅ OneDrive",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🎬 Netflix",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "🛫 香港专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🪟 Microsoft",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🛖 国际流媒体",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🐳 漏网の鱼",
+      "type": "select",
+      "members": [
+        {
+          "name": "🌠 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        },
+        {
+          "name": "🌺 日本专线",
+          "kind": "group"
+        },
+        {
+          "name": "✈️ 手动切换",
+          "kind": "group"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🛫 香港专线",
+      "type": "fallback",
+      "members": [
+        {
+          "name": "🎇 香港高速",
+          "kind": "group"
+        },
+        {
+          "name": "🧊 新加坡专线",
+          "kind": "group"
+        }
+      ],
+      "params": {
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 97,
+        "lazy": false
+      },
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🌺 日本专线",
+      "type": "fallback",
+      "members": [
+        {
+          "name": "🗾 日本高速",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 127,
+        "lazy": false
+      },
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🧊 新加坡专线",
+      "type": "fallback",
+      "members": [
+        {
+          "name": "🦁 新加坡高速",
+          "kind": "group"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 177,
+        "lazy": false
+      },
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "⛳ 美国专线",
+      "type": "fallback",
+      "members": [
+        {
+          "name": "🏞️ 美利坚高速",
+          "kind": "group"
+        },
+        {
+          "name": "🇺🇸 美国 03",
+          "kind": "node"
+        }
+      ],
+      "params": {
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 233,
+        "lazy": false
+      },
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🎇 香港高速",
+      "type": "select",
+      "members": [
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🗾 日本高速",
+      "type": "select",
+      "members": [
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🦁 新加坡高速",
+      "type": "select",
+      "members": [
+        {
+          "name": "⛳ 美国专线",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🏞️ 美利坚高速",
+      "type": "select",
+      "members": [
+        {
+          "name": "🇺🇸 美国 03",
+          "kind": "node"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    }
+  ],
+  "exits": [
+    {
+      "name": "🇭🇰 香港 01",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇯🇵 日本 02",
+      "kind": "node",
+      "region": "JP",
+      "regionName": {
+        "en": "Japan",
+        "zh": "日本"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇺🇸 美国 03",
+      "kind": "node",
+      "region": "US",
+      "regionName": {
+        "en": "United States",
+        "zh": "美国"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "DIRECT",
+      "kind": "builtin"
+    }
+  ],
+  "pending": 0,
+  "traceEnabled": false,
+  "diagnostics": []
+}

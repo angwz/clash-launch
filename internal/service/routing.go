@@ -100,13 +100,14 @@ type GroupParams struct {
 }
 
 type ExitDTO struct {
-	Name     string `json:"name"`
-	Kind     string `json:"kind"` // node | builtin | provider
-	Region   string `json:"region,omitempty"`
-	Source   string `json:"source,omitempty"`
-	Protocol string `json:"protocol,omitempty"`
-	Via      string `json:"via,omitempty"`
-	Filter   string `json:"filter,omitempty"`
+	Name       string            `json:"name"`
+	Kind       string            `json:"kind"` // node | builtin | provider
+	Region     string            `json:"region,omitempty"`
+	RegionName map[string]string `json:"regionName,omitempty"` // 地区的中英文名（catalog/regions），出口按地区归并时显示
+	Source     string            `json:"source,omitempty"`
+	Protocol   string            `json:"protocol,omitempty"`
+	Via        string            `json:"via,omitempty"`
+	Filter     string            `json:"filter,omitempty"`
 }
 
 type TraceDTO struct {
@@ -152,7 +153,7 @@ type HealthItem struct {
 	Hit       int       `json:"hit"`
 	Rule      string    `json:"rule"`
 	Exit      TraceExit `json:"exit"`
-	Uncertain bool      `json:"uncertain"` // 命中之前有无法判断的行，或需要 IP
+	Uncertain bool      `json:"uncertain"` // 命中之前有无法判断的行（取决于应用的除外）
 }
 
 // —— 最终配置 ——
@@ -289,7 +290,7 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 	if err != nil {
 		return nil, err
 	}
-	g := &GraphDTO{State: "follow", Rules: []RuleDTO{}, Groups: []GroupDTO{}, Exits: []ExitDTO{}, TraceEnabled: !s.Trace.Disabled, Diagnostics: diag.Sorted(in.res.Diagnostics)}
+	g := &GraphDTO{State: "follow", Rules: []RuleDTO{}, Groups: []GroupDTO{}, Exits: []ExitDTO{}, TraceEnabled: !s.Trace.Disabled, Diagnostics: append([]diag.Diagnostic{}, diag.Sorted(in.res.Diagnostics)...)}
 	if in.res.Fatal != "" {
 		g.ReadonlyReason = "no_rules"
 		return g, nil
@@ -397,6 +398,11 @@ func (s *Service) RoutingGraph(ctx context.Context, user *store.User, doc []byte
 		}
 		if n := in.nodes[name]; n != nil {
 			e.Region, e.Source = n.Region.Code, n.SourceName
+			if s.Tools != nil && s.Tools.Regions != nil && e.Region != "" {
+				if zh, en := s.Tools.Regions.Name(e.Region); zh != "" || en != "" {
+					e.RegionName = map[string]string{"zh": zh, "en": en}
+				}
+			}
 		}
 		g.Exits = append(g.Exits, e)
 	}
@@ -698,12 +704,14 @@ func (s *Service) RoutingHealth(ctx context.Context, user *store.User, doc []byt
 	for _, site := range healthSites {
 		req, _ := match.NewRequest(site.Host+":443", "", "")
 		t := in.trace(req, sets, stale)
-		item := HealthItem{Host: site.Host, Category: site.Category, Hit: t.Hit, Exit: t.Exit, Uncertain: t.NeedsIP != nil}
+		item := HealthItem{Host: site.Host, Category: site.Category, Hit: t.Hit, Exit: t.Exit}
 		if t.Hit >= 0 {
 			item.Rule = in.lines[t.Hit].Raw
 		}
+		// 「不确定」只标真正可能改变结果、且用户无从补充的情况：网站体检不针对某个应用，
+		// 是否经过 DNS 解析在完整追踪里单独说明；这两类在几乎每份真实配置里都会出现，标出来没有区分度。
 		for _, st := range t.Steps {
-			if st.Result == match.ResultUnknown {
+			if st.Result == match.ResultUnknown && st.Reason != match.ReasonNeedsProcess {
 				item.Uncertain = true
 			}
 		}

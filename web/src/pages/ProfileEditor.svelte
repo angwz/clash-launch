@@ -32,7 +32,9 @@
   let wide = $state(matchMedia("(min-width: 1280px)").matches);
   let mobile = $state(matchMedia("(max-width: 767px)").matches);
   let dockHidden = $state(false);
-  const docked = $derived(wide && !dockHidden && section !== "sources");
+  const docked = $derived(wide && !dockHidden && section !== "sources" && section !== "routing");
+  // 分流分节按需加载（首屏预算不变，routing 第 13 节第 2 步）；从命令面板进入时带着要追踪的目标
+  let routingTrace = $state(new URLSearchParams(location.search).get("trace") ?? "");
   const floating = $derived(!docked && !mobile);
 
   const nav = $derived(catalog.meta?.pack.nav ?? []);
@@ -139,7 +141,7 @@
   }
 
   function togglePreview() {
-    if (wide && section !== "sources") dockHidden = false;
+    if (wide && section !== "sources" && section !== "routing") dockHidden = false;
     else previewOpen = !previewOpen;
   }
 
@@ -155,7 +157,13 @@
       { id: "raw.open", kind: "command", title: t("raw.title"), hint: "raw edit", icon: "bolt", run: () => openRaw() },
       { id: "cmd.save", kind: "command", title: t("editor.save"), hint: "Ctrl S", icon: "check", run: () => void editor.save() },
       { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true, true) },
+      { id: "routing.open", kind: "command", title: t("routing.title"), hint: "routing", icon: "rules", run: () => select("routing") },
     ];
+    // 输入像域名或 IP 的内容时，提供「追踪」：跳到分流分节并开始追踪（routing 第 11.1 节）
+    const q = palette.query.replace(/^>\s*/, "").trim();
+    if (/^[^\s,]+\.[^\s,]+$|^[0-9a-f:]+:[0-9a-f:]*$/i.test(q)) {
+      out.unshift({ id: "routing.trace", kind: "command", title: t("routing.palette_trace", { host: q }), hint: q, icon: "search", run: () => ((routingTrace = q), select("routing")) });
+    }
     const walk = (f: MetaField, path: string[], secTitle: string) => {
       if (f.type === "object" && f.fields?.length) {
         for (const c of f.fields) walk(c, [...path, c.key], secTitle);
@@ -212,6 +220,11 @@
             <span class="n">{editor.sourceRefs.length || ""}</span>
           </button>
         </li>
+        <li>
+          <button type="button" class:active={section === "routing" && !rawOpen} aria-current={section === "routing" && !rawOpen ? "true" : undefined} onclick={() => select("routing")}>
+            <span class="t">{t("routing.title")}</span>
+          </button>
+        </li>
       </ul>
       <span class="subtle label-sm group-label">{t("editor.settings")}</span>
       <ul>
@@ -251,6 +264,7 @@
       </details>
       <select class="select secnav-select" aria-label={t("editor.sections")} value={rawOpen ? "@raw" : section} onchange={(e) => (e.currentTarget.value === "@raw" ? openRaw() : select(e.currentTarget.value))}>
         <option value="sources">{t("editor.sources_rules")}</option>
+        <option value="routing">{t("routing.title")}</option>
         {#each settingsNav as s (s.id)}<option value={s.id}>{catalog.navTitle(s)}</option>{/each}
         <option value="@raw">{t("raw.title")}</option>
       </select>
@@ -272,9 +286,13 @@
           </button>
         </div>
       {/if}
-      <div class="content-inner">
+      <div class="content-inner" class:full={section === "routing" && !rawOpen}>
         {#if rawOpen}
           <RawEditor {editor} focusKey={rawKey} onClose={() => (rawOpen = false)} />
+        {:else if section === "routing"}
+          {#await import("../components/routing/RoutingView.svelte") then m}
+            <m.default {editor} initialTrace={routingTrace} />
+          {/await}
         {:else if section === "sources" || !current}
           <SourcesPanel {editor} />
           <ChainsPanel {editor} />
@@ -509,6 +527,11 @@
     /* 左对齐而不是居中：切换「节点与分流」与各设置分区时内容的左缘不跳动（反馈 #56） */
     margin-inline: 0 auto;
     padding: var(--space-6) var(--space-6) var(--space-10);
+  }
+  /* 分流地图需要整个宽度（列数随配置变化，地图在自身容器内横向滚动） */
+  .content-inner.full {
+    max-inline-size: none;
+    min-inline-size: 0;
   }
 
   /* —— 预览栏 —— */

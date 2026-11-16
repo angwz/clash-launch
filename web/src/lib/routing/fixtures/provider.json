@@ -1,0 +1,58 @@
+{
+  "state": "follow",
+  "editable": true,
+  "rules": [
+    {
+      "index": 0,
+      "raw": "GEOIP,CN,DIRECT",
+      "type": "GEOIP",
+      "target": "DIRECT",
+      "origin": "rules",
+      "flags": []
+    },
+    {
+      "index": 1,
+      "raw": "MATCH,PROXY",
+      "type": "MATCH",
+      "target": "PROXY",
+      "origin": "rules",
+      "flags": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "PROXY",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "机场 B",
+          "kind": "provider"
+        }
+      ],
+      "use": [
+        "机场 B"
+      ],
+      "filter": ".*",
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    }
+  ],
+  "exits": [
+    {
+      "name": "DIRECT",
+      "kind": "builtin"
+    },
+    {
+      "name": "机场 B",
+      "kind": "provider"
+    }
+  ],
+  "pending": 0,
+  "traceEnabled": false,
+  "diagnostics": []
+}

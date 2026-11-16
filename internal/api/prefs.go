@@ -26,6 +26,8 @@ type prefsDTO struct {
 	Inbox   string   `json:"inbox,omitempty"`
 	AutoAdd *bool    `json:"autoAdd,omitempty"`
 	Blocked []string `json:"blocked,omitempty"`
+	// RoutingView：分流地图的显示偏好（routing 第 9 节）；省略的字段表示默认。
+	RoutingView *routingView `json:"routingView,omitempty"`
 }
 
 // fieldClick 兼容早期保存的布尔值（反馈 #50 的第一版）：false 读作 button，true 读作默认。
@@ -59,6 +61,9 @@ func (p prefsDTO) validate() error {
 	case "", "button", "text", "card":
 	default:
 		return badRequest("fieldClick must be button, text or card")
+	}
+	if err := p.RoutingView.validate(); err != nil {
+		return err
 	}
 	if p.Inbox != "" && p.Inbox != "off" {
 		return badRequest("inbox must be empty or off")
@@ -133,4 +138,34 @@ func (s *Server) putTimezone(w http.ResponseWriter, r *http.Request, p *principa
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"timezone": tz})
+}
+
+// routingView 是分流地图的显示偏好：rules auto|all（auto 时智能折叠）、particles all|focus|off、
+// candidates 是否总是画出候选成员、exits auto|node|region|source（出口按什么归并）。
+type routingView struct {
+	Rules      string `json:"rules,omitempty"`
+	Particles  string `json:"particles,omitempty"`
+	Candidates bool   `json:"candidates,omitempty"`
+	Exits      string `json:"exits,omitempty"`
+}
+
+func (v *routingView) validate() error {
+	if v == nil {
+		return nil
+	}
+	ok := func(x string, allowed ...string) bool {
+		if x == "" {
+			return true
+		}
+		for _, a := range allowed {
+			if x == a {
+				return true
+			}
+		}
+		return false
+	}
+	if !ok(v.Rules, "auto", "all") || !ok(v.Particles, "all", "focus", "off") || !ok(v.Exits, "auto", "node", "region", "source") {
+		return badRequest("invalid routingView")
+	}
+	return nil
 }

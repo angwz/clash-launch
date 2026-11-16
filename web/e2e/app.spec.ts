@@ -692,3 +692,61 @@ test("讲解图层：从分流规则旁的「?」打开，逐步切换，Esc 关
   await expect(dlg).toBeHidden();
   expect(problems).toEqual([]);
 });
+
+test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式（不联网：内联规则）", async ({ page, request, baseURL }) => {
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const src = await call<{ id: string }>("POST", "/api/v1/sources", { name: "分流 e2e 节点", kind: "batch", content: "- {name: 香港 01, type: ss, server: 192.0.2.61, port: 8388, cipher: aes-128-gcm, password: example-pw}\n- {name: 日本 02, type: ss, server: 192.0.2.62, port: 8388, cipher: aes-128-gcm, password: example-pw}\n" });
+  const groups = '[[custom_groups]]\nname = "PROXY"\ntype = "select"\nrule = [".*", "[]DIRECT"]\n';
+  const rulesets = '[[rulesets]]\ngroup = "PROXY"\nruleset = "[]DOMAIN-SUFFIX,example.com"\n[[rulesets]]\ngroup = "DIRECT"\nruleset = "[]MATCH"\n';
+  const rs = await call<{ id: string }>("POST", "/api/v1/rule-sources", { name: "分流 e2e 规则", kind: "toml", groupsText: groups, rulesetsText: rulesets });
+  const doc = [
+    "clash-launch/profile: v1",
+    "name: 分流 e2e",
+    'target: { pack: mihomo, preset: mihomo, core: "1.19.33" }',
+    "sources:",
+    `  - ref: ${src.id}`,
+    `rules: { ref: ${rs.id} }`,
+    "raw: |",
+    "  rule-providers:",
+    "    Ads: {type: inline, behavior: domain, payload: ['+.ads.example.net']}",
+    "  rules: !prepend",
+    "    - RULE-SET,Ads,REJECT",
+    "",
+  ].join("\n");
+  const p = await call<{ id: string }>("POST", "/api/v1/profiles", { doc, note: "" });
+  await login(page);
+  await page.goto(`/profiles/${p.id}?section=routing`);
+  await expect(page.getByRole("heading", { name: "分流", exact: true })).toBeVisible();
+  await expect(page.locator(".viewnote")).toContainText("3 条规则逐条显示");
+  const mobile = test.info().project.name === "mobile";
+  if (mobile) {
+    // 窄屏：列表模式，写明默认从哪里出去
+    await expect(page.locator("ol.list")).toContainText("PROXY → 🇭🇰 香港 01");
+  } else {
+    await expect(page.locator(".map [data-box='rule:0']")).toContainText("Ads");
+    await expect(page.locator(".map [data-box='group:PROXY']")).toBeVisible();
+    // 粒子模式保存到账号偏好
+    await page.getByRole("radio", { name: "聚焦" }).click();
+    await expect(page.getByRole("radio", { name: "聚焦" })).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("radio", { name: "全部", exact: true }).click();
+  }
+  // 示例来自规则集的真实条目；追踪给出逐步卡片
+  await page.getByRole("button", { name: "ads.example.net" }).click();
+  await expect(page.locator(".hops")).toContainText("第 1 条「Ads」命中");
+  await expect(page.locator(".hops")).toContainText("结束：已拦截");
+  const input = page.getByLabel("输入域名或 IP，例如 www.example.com");
+  await input.fill("www.example.com");
+  await page.getByRole("button", { name: "追踪", exact: true }).click();
+  await expect(page.locator(".hops")).toContainText("第 2 条「DOMAIN-SUFFIX,example.com」命中");
+  await expect(page.locator(".hops")).toContainText("交给 PROXY");
+  await expect(page.locator(".hops")).toContainText("命中：DOMAIN-SUFFIX,example.com");
+  await page.screenshot({ path: `test-results/shot-routing-${test.info().project.name}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // × 清空并结束追踪
+  await input.hover();
+  await page.getByRole("button", { name: "清空" }).click();
+  await expect(input).toHaveValue("");
+  await expect(page.locator(".hops")).toHaveCount(0);
+  expect(problems).toEqual([]);
+});

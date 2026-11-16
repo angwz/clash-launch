@@ -111,6 +111,7 @@ components:
         name: {type: string}
         kind: {type: string, enum: [node, builtin, provider]}
         region: {type: string}
+        regionName: {type: object, additionalProperties: {type: string}, description: 地区的中英文名（zh、en），取自地区表}
         source: {type: string}
         protocol: {type: string}
         via: {type: string}
@@ -348,6 +349,7 @@ components:
         sections: {type: array, maxItems: 64, items: {type: string}, description: 内核设置分节顺序（目录分节 ID）}
         fieldClick: {type: string, enum: [button, text, card], description: 「说明与建议」的点击范围：只有按钮、说明文字或整张卡片；省略为 card}
         autoCheck: {type: boolean, description: 自动保存后自动执行 mihomo -t 检查；省略为开}
+        routingView: {type: object, additionalProperties: false, description: 分流地图的显示偏好（routing 第 9 节）, properties: {rules: {type: string, enum: [auto, all]}, particles: {type: string, enum: [all, focus, off]}, candidates: {type: boolean}, exits: {type: string, enum: [auto, node, region, source]}}}
     NodeMode:
       type: object
       required: [default, locked, clientFetch]

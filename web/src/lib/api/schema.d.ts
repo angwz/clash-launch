@@ -3978,6 +3978,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profiles/{id}/routing/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 分流地图的数据（按最终配置）；规则内容未缓存时在后台拉取，pending 大于 0 时稍后再取 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoutingGraph"];
+                    };
+                };
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{id}/routing/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 追踪一个域名或 IP 的走向（每用户每分钟 60 次） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                        host: string;
+                        process?: string;
+                        /** @enum {string} */
+                        network?: "tcp" | "udp";
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            current: components["schemas"]["RoutingTrace"];
+                        };
+                    };
+                };
+                400: components["responses"]["Problem"];
+                404: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{id}/routing/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 常用网站体检：逐个追踪 catalog/routing/health.yaml 中的网站（计 1 次追踪） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        doc: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["RoutingHealthItem"][];
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles/{id}/render": {
         parameters: {
             query?: never;
@@ -4239,6 +4385,125 @@ export interface components {
                 [key: string]: string;
             };
         };
+        RoutingGraph: {
+            /** @enum {string} */
+            state: "follow" | "own";
+            editable: boolean;
+            /** @enum {string} */
+            readonlyReason?: "raw_override" | "no_rules";
+            rules: components["schemas"]["RoutingRule"][];
+            groups: components["schemas"]["RoutingGroup"][];
+            exits: components["schemas"]["RoutingExit"][];
+            /** @description 正在后台拉取的规则集个数 */
+            pending: number;
+            traceEnabled: boolean;
+            diagnostics: components["schemas"]["Diagnostic"][];
+        };
+        RoutingRule: {
+            index: number;
+            raw: string;
+            type: string;
+            target: string;
+            /** @enum {string} */
+            origin: "routing" | "rules" | "raw";
+            set?: components["schemas"]["RoutingRuleSet"];
+            flags: ("logic" | "sub-rule" | "process" | "no-resolve")[];
+        };
+        RoutingRuleSet: {
+            name: string;
+            behavior: string;
+            format: string;
+            url?: string;
+            count?: number;
+            samples?: {
+                host: string;
+                hit: number;
+            }[];
+            description?: {
+                source: string;
+                repo: string;
+                license: string;
+                checked: string;
+                text: {
+                    [key: string]: string;
+                };
+            };
+            stale?: boolean;
+        };
+        RoutingGroup: {
+            name: string;
+            type: string;
+            members: {
+                name: string;
+                /** @enum {string} */
+                kind: "group" | "node" | "builtin" | "provider";
+            }[];
+            use?: string[];
+            filter?: string;
+            params: {
+                url?: string;
+                interval?: number;
+                tolerance?: number;
+                lazy?: boolean;
+                strategy?: string;
+            };
+            /** @enum {string} */
+            origin: "routing" | "rules" | "raw";
+            lints: string[];
+        };
+        RoutingExit: {
+            name: string;
+            /** @enum {string} */
+            kind: "node" | "builtin" | "provider";
+            region?: string;
+            /** @description 地区的中英文名（zh、en），取自地区表 */
+            regionName?: {
+                [key: string]: string;
+            };
+            source?: string;
+            protocol?: string;
+            via?: string;
+            filter?: string;
+        };
+        RoutingTraceExit: {
+            /** @enum {string} */
+            kind: "node" | "builtin" | "provider" | "unknown";
+            name: string;
+            region?: string;
+            via?: string;
+        };
+        RoutingTrace: {
+            host: string;
+            ip?: string;
+            steps: {
+                index: number;
+                /** @enum {string} */
+                result: "miss" | "hit" | "needs-ip" | "unknown";
+                evidence?: string;
+                reason?: string;
+            }[];
+            hit: number;
+            chain: {
+                group: string;
+                type: string;
+                pick: string;
+                candidates: string[];
+            }[];
+            exit: components["schemas"]["RoutingTraceExit"];
+            needsIp?: {
+                at: number;
+                candidates: number[];
+            };
+            stale?: boolean;
+        };
+        RoutingHealthItem: {
+            host: string;
+            category: string;
+            hit: number;
+            rule: string;
+            exit: components["schemas"]["RoutingTraceExit"];
+            uncertain: boolean;
+        };
         User: {
             id: string;
             username: string;
@@ -4453,6 +4718,16 @@ export interface components {
             fieldClick?: "button" | "text" | "card";
             /** @description 自动保存后自动执行 mihomo -t 检查；省略为开 */
             autoCheck?: boolean;
+            /** @description 分流地图的显示偏好（routing 第 9 节） */
+            routingView?: {
+                /** @enum {string} */
+                rules?: "auto" | "all";
+                /** @enum {string} */
+                particles?: "all" | "focus" | "off";
+                candidates?: boolean;
+                /** @enum {string} */
+                exits?: "auto" | "node" | "region" | "source";
+            };
         };
         NodeMode: {
             /**

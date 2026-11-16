@@ -54,6 +54,17 @@ const dynamic: Record<string, string[]> = {
   // 讲解图层的五步（components/routing/ExplainLayer.svelte）
   "routing.explain.title_": ["1", "2", "3", "4", "5"],
   "routing.explain.body_": ["1", "2", "3", "4", "5"],
+  // 分流页（components/routing/）：偏好取值、组类型（只有官方四种）、无法判断的原因（internal/match 与 service）、体检类别（catalog/routing/health.yaml）
+  // 智能视图的原因（lib/routing/plan.ts）与内置出口的显示名（lib/routing/labels.ts）
+  "routing.why.": ["list", "rules", "folded", "columns", "columns_compact", "unused", "big_groups", "exits_node", "exits_region", "exits_source", "providers", "raw_override", "raw_rows"],
+  "routing.exit.": ["direct", "reject", "reject_drop", "pass", "compatible"],
+  "routing.seg_": ["sets", "manual"],
+  "routing.pref.rules_": ["auto", "all"],
+  "routing.pref.particles_": ["all", "focus", "off"],
+  "routing.type.": ["select", "url-test", "fallback", "load-balance"],
+  "routing.type_char.": ["select", "url-test", "fallback", "load-balance"],
+  "routing.reason.": ["logic-ruleset", "sub-rule", "needs-process", "needs-connection", "no-content", "geodata", "parse", "pass", "no-target"],
+  "routing.health.category.": ["ai", "search", "video", "social", "dev", "platform", "game", "shop", "cn", "ads"],
 };
 
 describe("messages", () => {

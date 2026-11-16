@@ -111,6 +111,7 @@ type Detector struct {
 	terms  []term
 	arrows []string
 	codes  map[string]bool
+	names  map[string][2]string // 代码 → 显示名（中文、英文）：取 regions.yaml 中第一个名字
 }
 
 // lowerCodes 是允许小写出现的常见代码（hk-01、jp 02）；其余代码只认大写，避免 in、is、no 这类英文单词。
@@ -128,7 +129,17 @@ func LoadDetector(fsys fs.FS, path string) (*Detector, error) {
 	if err := dec.Decode(&f); err != nil {
 		return nil, fmt.Errorf("node: 解析 %s: %w", path, err)
 	}
-	d := &Detector{arrows: f.Arrows, codes: map[string]bool{}}
+	d := &Detector{arrows: f.Arrows, codes: map[string]bool{}, names: map[string][2]string{}}
+	for _, r := range f.Regions {
+		var n [2]string
+		if len(r.ZH) > 0 {
+			n[0] = r.ZH[0]
+		}
+		if len(r.EN) > 0 {
+			n[1] = r.EN[0]
+		}
+		d.names[r.Code] = n
+	}
 	add := func(t term) {
 		t.runes = utf8.RuneCountInString(t.text)
 		d.terms = append(d.terms, t)
@@ -417,3 +428,13 @@ func (d *Decor) Pick(fingerprint, avoid string) string {
 
 // List 返回可用的装饰 emoji。
 func (d *Decor) List() []string { return slices.Clone(d.list) }
+
+// Name 返回地区代码的显示名（中文、英文），取地区表中的第一个名字（如「香港」、Hong Kong）；
+// 不认识的代码返回空字符串。
+func (d *Detector) Name(code string) (zh, en string) {
+	if d == nil {
+		return "", ""
+	}
+	n := d.names[code]
+	return n[0], n[1]
+}

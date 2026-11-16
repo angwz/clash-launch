@@ -1,0 +1,343 @@
+{
+  "state": "follow",
+  "editable": true,
+  "rules": [
+    {
+      "index": 0,
+      "raw": "RULE-SET,LocalAreaNetwork,🎯 全球直连",
+      "type": "RULE-SET",
+      "target": "🎯 全球直连",
+      "origin": "rules",
+      "set": {
+        "name": "LocalAreaNetwork",
+        "behavior": "classical",
+        "format": "text",
+        "url": "https://rules.example.com/Clash/LocalAreaNetwork.list"
+      },
+      "flags": []
+    },
+    {
+      "index": 1,
+      "raw": "RULE-SET,Reject,🛑 全球拦截",
+      "type": "RULE-SET",
+      "target": "🛑 全球拦截",
+      "origin": "rules",
+      "set": {
+        "name": "Reject",
+        "behavior": "domain",
+        "format": "yaml",
+        "url": "https://rules.example.com/clash-domain/Reject.yaml"
+      },
+      "flags": []
+    },
+    {
+      "index": 2,
+      "raw": "RULE-SET,Telegram,🚀 节点选择,no-resolve",
+      "type": "RULE-SET",
+      "target": "🚀 节点选择",
+      "origin": "rules",
+      "set": {
+        "name": "Telegram",
+        "behavior": "ipcidr",
+        "format": "yaml",
+        "url": "https://rules.example.com/clash-ipcidr/Telegram.yaml"
+      },
+      "flags": [
+        "no-resolve"
+      ]
+    },
+    {
+      "index": 3,
+      "raw": "GEOIP,CN,🎯 全球直连",
+      "type": "GEOIP",
+      "target": "🎯 全球直连",
+      "origin": "rules",
+      "flags": []
+    },
+    {
+      "index": 4,
+      "raw": "MATCH,🐟 漏网之鱼",
+      "type": "MATCH",
+      "target": "🐟 漏网之鱼",
+      "origin": "rules",
+      "flags": []
+    }
+  ],
+  "groups": [
+    {
+      "name": "🚀 节点选择",
+      "type": "select",
+      "members": [
+        {
+          "name": "♻️ 自动选择",
+          "kind": "group"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 广港 专线 新加坡 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 东京 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 香港 01 2",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "机场 B",
+          "kind": "provider"
+        }
+      ],
+      "use": [
+        "机场 B"
+      ],
+      "filter": ".*",
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "♻️ 自动选择",
+      "type": "url-test",
+      "members": [
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 广港 专线 新加坡 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 东京 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 香港 01 2",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "机场 B",
+          "kind": "provider"
+        }
+      ],
+      "use": [
+        "机场 B"
+      ],
+      "filter": ".*",
+      "params": {
+        "url": "http://www.gstatic.com/generate_204",
+        "interval": 300,
+        "tolerance": 50
+      },
+      "origin": "rules",
+      "lints": [
+        "group.lazy_stale",
+        "group.latency_only",
+        "group.http_probe"
+      ]
+    },
+    {
+      "name": "🇭🇰 香港",
+      "type": "fallback",
+      "members": [
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 广港 专线 新加坡 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 香港 01 2",
+          "kind": "node"
+        },
+        {
+          "name": "机场 B",
+          "kind": "provider"
+        }
+      ],
+      "use": [
+        "机场 B"
+      ],
+      "filter": "(港|HK)",
+      "params": {
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": 120
+      },
+      "origin": "rules",
+      "lints": [
+        "group.unused"
+      ]
+    },
+    {
+      "name": "🎯 全球直连",
+      "type": "select",
+      "members": [
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "🚀 节点选择",
+          "kind": "group"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🛑 全球拦截",
+      "type": "select",
+      "members": [
+        {
+          "name": "REJECT",
+          "kind": "builtin"
+        },
+        {
+          "name": "DIRECT",
+          "kind": "builtin"
+        }
+      ],
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    },
+    {
+      "name": "🐟 漏网之鱼",
+      "type": "select",
+      "members": [
+        {
+          "name": "🚀 节点选择",
+          "kind": "group"
+        },
+        {
+          "name": "🎯 全球直连",
+          "kind": "group"
+        },
+        {
+          "name": "🇭🇰 香港 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 广港 专线 新加坡 01",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 东京 02",
+          "kind": "node"
+        },
+        {
+          "name": "🇭🇰 香港 01 2",
+          "kind": "node"
+        },
+        {
+          "name": "🇯🇵 日本 02",
+          "kind": "node"
+        },
+        {
+          "name": "机场 B",
+          "kind": "provider"
+        }
+      ],
+      "use": [
+        "机场 B"
+      ],
+      "filter": ".*",
+      "params": {},
+      "origin": "rules",
+      "lints": []
+    }
+  ],
+  "exits": [
+    {
+      "name": "🇭🇰 香港 01",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "机场 A",
+      "protocol": "vmess"
+    },
+    {
+      "name": "🇭🇰 广港 专线 新加坡 01",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "机场 A",
+      "protocol": "trojan"
+    },
+    {
+      "name": "🇯🇵 日本 东京 02",
+      "kind": "node",
+      "region": "JP",
+      "regionName": {
+        "en": "Japan",
+        "zh": "日本"
+      },
+      "source": "机场 A",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇭🇰 香港 01 2",
+      "kind": "node",
+      "region": "HK",
+      "regionName": {
+        "en": "Hong Kong",
+        "zh": "香港"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "🇯🇵 日本 02",
+      "kind": "node",
+      "region": "JP",
+      "regionName": {
+        "en": "Japan",
+        "zh": "日本"
+      },
+      "source": "我的 VPS",
+      "protocol": "ss"
+    },
+    {
+      "name": "DIRECT",
+      "kind": "builtin"
+    },
+    {
+      "name": "REJECT",
+      "kind": "builtin"
+    },
+    {
+      "name": "机场 B",
+      "kind": "provider"
+    }
+  ],
+  "pending": 0,
+  "traceEnabled": false,
+  "diagnostics": []
+}
