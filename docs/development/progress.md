@@ -4,6 +4,23 @@
 
 ## 现在
 
+### 下次从这里开始（2026-11-16）
+
+- **状态**：生产部署后的需求第 1–3 批已完成并推送（R1、R2、R4–R9、R12，迁移到 0012），CI 四项与镜像全部通过，`ghcr.io/angwz/clash-launch:latest` 已含这些功能。之后只改了文档：需求清单扩充到 R46，本地有 10 个文档提交未推送（推送属于远端操作，等维护者说「推送」）。
+- **下一步**：按 [backlog](backlog.md) 的「建议顺序」第一档，从 **R18 最简 docker compose + R15 Clash Verge Rev 预设** 开始（两项都是 S，适合同一个对话）。需求、现状核实与方案都在 backlog 里，开工前先读对应条目；涉及内核版本的看 [mihomo-upgrade](mihomo-upgrade.md)。
+- **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
+- **本机环境要点**（Windows + Git Bash）：
+  - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
+  - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
+  - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 40 通过 22 跳过。
+  - `golangci-lint` 在存储层有 5 个旧的 nolintlint（backlog O4），不是新问题。
+- **新迁移**：下一个编号是 0013；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
+
+### 各批次记录
+
+以下按时间记录每批的实现与验证；当前状态以上一节为准。
+
 - **阶段**：M1、M2、M5 完成；M3 除 Docker 实测外完成；M4 第一阶段完成。核心路径（反馈 #14–#16）已完成，见「核心路径验收」；反馈 #17 的三项修正已完成（首次注册免令牌与简单口令、默认值显示、取消接管提示）。
 - **反馈 #21–#25（2026-11-13）**：规则源可粘贴文本（并修复粘贴文本被地址快照覆盖）；节点源只分订阅与手动节点，源列表显示位置序号、GROUPID 按需显示；输出排版向官方示例看齐（节点默认多行、条目间空行）；链式代理（[chains](../design/chains.md)）。验证：`go test ./...`、`-tags kernel`（含新的 chains golden）、前端 check / 41 项单元 / build / budget 53.4 KiB / e2e 14 通过 6 跳过。本机未装 staticcheck、golangci-lint，由 CI 检查。
 - **反馈 #26–#31（2026-11-14）**：管理页版本号改为 git describe 形式并显示提交与构建时间；预览按场景停靠或浮层显示并高亮当前字段；开关默认态改为文字；界面用词统一（[0004](../decisions/0004-web-frontend.md) #25）；字段「说明与建议」与 `guide` 建议值（7 个分区）；侧栏「帮助」含 7 篇教程与字段百科。验证：`go test ./...`、前端 check / 60 项单元 / build / budget 54.0 KiB / e2e 16 通过 6 跳过（含帮助页与预览新行为）。image 工作流的 git describe 已在 GitHub 上验证。
@@ -36,7 +53,7 @@
 - **需求第 1 批（2026-11-16）**：R1 配置可以删除（列表卡片、编辑器「更多」与命令面板，对话框列出会一起删除的内容）；R2 删除节点源、配置、配置链接或短链接时先收回授权、重新生成对方的配置，并在对话中给对方发系统通知（`kind = notice`）；R6 账号记录每页 10 条。验证：`go test ./...`（新增 `TestDeleteRevokesGrantsAndNotifies`）、`go vet`、`staticcheck`、`golangci-lint`（service 与 api 0 issues）；前端 check / 139 项单元 / build / 首屏 71.6 KiB / e2e 38 通过 20 跳过（新增「删除配置」桌面与手机）。系统通知的样式未截图检查。
 - **需求第 2 批（2026-11-16）**：R9 对外地址可写多个域名，按请求的 Host 选用并兼作白名单（链接、Cookie 的 Secure、HSTS、Origin 校验随之按域名决定；通行密钥只在主地址）；R8 登录设备定时退出（迁移 0011 新增 `sessions.logout_at`，只能早于自然到期，可取消，到点即失效并记审计；被定时的设备每页顶部提示）；R7 登录地点（同一迁移新增 `sessions.location`；ip2region IPv4 库进入 `tools.lock.json` 与镜像，约 11 MB；国家库与 ASN 库补充，IPv6 只有国家与运营商）。新增依赖 `lionsoul2014/ip2region/binding/golang`，未抬高 golang.org/x。验证：`go test ./...`（新增 `TestParsePublicURLs`、`TestPublicURLPerHost`、`TestScheduleLogout`、`TestPlaceRoundTrip`、`TestPlace`；本机数据上 114.114.114.114 → 中国 · 江苏省 · 南京市）、`go vet`、`staticcheck`；golangci-lint 在改动的包中只剩存储层 5 个旧的 nolintlint；前端 check / 140 项单元 / build / 首屏 72.0 KiB / e2e 39 通过 21 跳过（新增「定时退出」）。登录地点在本机只能以回环地址登录，界面上的显示未用真实公网地址验证。
 - **需求第 3 批（2026-11-16）**：R4 改用户名（需要当前密码，180 天一次，旧名保留 180 天）；R5 昵称（可含空格、不唯一，搜索按用户名前缀或昵称中的任一段，消息与联想中显示「昵称 @用户名」）；R12 人人可邀请（名额与注册时长门槛、收回邀请权、可用多次、作废、二维码；注册页显示邀请人；注册开放时也记下邀请关系；邀请人收到系统通知并互为联系人；只有管理员的邀请赋予受邀权限，决定 [0003](../decisions/0003-direct-fetch-and-invites.md) 已补修订）。迁移 0012。顺带修正：表格外层滚动框没有定位，表头里绝对定位的读屏文字会跑出滚动框、在手机上撑宽管理页。验证：`go test ./...`（新增 `TestNicknameAndRename`、`TestInvitesForEveryone`）、`go vet`、`staticcheck`；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 40 通过 22 跳过（新增「昵称与邀请」）。改用户名在 e2e 中未覆盖（会影响共用的管理员账号），由 API 测试覆盖。
-- **下一步**：按 [backlog](backlog.md) 的建议顺序，R10 足迹（依赖已就绪：邀请关系、改名记录、登录地点）、R11 在线指示灯、R3 浏览器返回。
+- **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求转为私有，镜像仍公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 
