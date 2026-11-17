@@ -6,7 +6,7 @@
 
 ### 下次从这里开始（2026-11-16）
 
-- **状态**：生产部署后的需求第 1–3 批已完成并推送（R1、R2、R4–R9、R12，迁移到 0012），CI 四项与镜像全部通过，`ghcr.io/angwz/clash-launch:latest` 已含这些功能。之后只改了文档：需求清单扩充到 R46，本地有 10 个文档提交未推送（推送属于远端操作，等维护者说「推送」）。
+- **状态**：生产部署后的需求第 1–3 批已完成并推送（R1、R2、R4–R9、R12，迁移到 0012），CI 四项与镜像全部通过，`ghcr.io/angwz/clash-launch:latest` 已含这些功能。之后只改了文档：需求清单扩充到 R46，文档提交已于同日推送，仓库恢复公开。
 - **下一步**：按 [backlog](backlog.md) 的「建议顺序」第一档，从 **R18 最简 docker compose + R15 Clash Verge Rev 预设** 开始（两项都是 S，适合同一个对话）。需求、现状核实与方案都在 backlog 里，开工前先读对应条目；涉及内核版本的看 [mihomo-upgrade](mihomo-upgrade.md)。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
@@ -55,7 +55,7 @@
 - **需求第 3 批（2026-11-16）**：R4 改用户名（需要当前密码，180 天一次，旧名保留 180 天）；R5 昵称（可含空格、不唯一，搜索按用户名前缀或昵称中的任一段，消息与联想中显示「昵称 @用户名」）；R12 人人可邀请（名额与注册时长门槛、收回邀请权、可用多次、作废、二维码；注册页显示邀请人；注册开放时也记下邀请关系；邀请人收到系统通知并互为联系人；只有管理员的邀请赋予受邀权限，决定 [0003](../decisions/0003-direct-fetch-and-invites.md) 已补修订）。迁移 0012。顺带修正：表格外层滚动框没有定位，表头里绝对定位的读屏文字会跑出滚动框、在手机上撑宽管理页。验证：`go test ./...`（新增 `TestNicknameAndRename`、`TestInvitesForEveryone`）、`go vet`、`staticcheck`；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 40 通过 22 跳过（新增「昵称与邀请」）。改用户名在 e2e 中未覆盖（会影响共用的管理员账号），由 API 测试覆盖。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
-- **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求转为私有，镜像仍公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
+- **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
 
 ## 里程碑
 
