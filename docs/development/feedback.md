@@ -130,3 +130,4 @@
 | 96 | 在 OpenClash、Clash Verge 之外，再支持官方客户端 Stash；写入需求清单 | 🕓 | [backlog](backlog.md) R15、R16 |
 | 97 | 配置导入导出：导出可选是否含节点、规则集，重点适配各客户端；导入可直接粘贴网上复制的 YAML 反向解析，提示无用内容并丢弃；加入需求清单 | 🕓 | [backlog](backlog.md) R17 |
 | 98 | 最简化 docker compose，让启动所需的配置最少，各类用户与系统都能直接使用；加入需求清单 | 🕓 | [backlog](backlog.md) R18 |
+| 99 | 头像、注销账户、全信息备份与还原；询问前端能否做到动态更新、实时响应 | 🕓 | [backlog](backlog.md) R19–R22 |
