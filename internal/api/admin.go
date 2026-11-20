@@ -32,7 +32,8 @@ func toAudit(e store.AuditEntry) auditDTO {
 // myAudit 返回与本人有关的审计记录（新的在前）。
 func (s *Server) myAudit(w http.ResponseWriter, r *http.Request, p *principal) {
 	if n, size, ok := pageNo(r); ok {
-		list, total, err := s.Svc.Store.Audit().Paged(r.Context(), p.User.ID, (n-1)*size, size)
+		n = capPage(n, size, auditCountCap)
+		list, total, err := s.Svc.Store.Audit().Paged(r.Context(), p.User.ID, (n-1)*size, size, auditCountCap)
 		if err != nil {
 			s.fail(w, err)
 			return
@@ -41,7 +42,7 @@ func (s *Server) myAudit(w http.ResponseWriter, r *http.Request, p *principal) {
 		for _, e := range list {
 			out = append(out, toAudit(e))
 		}
-		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: total, Page: n, Size: size})
+		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: min(total, auditCountCap), More: total > auditCountCap, Page: n, Size: size})
 		return
 	}
 	list, err := s.Svc.Store.Audit().List(r.Context(), p.User.ID, page(r))
@@ -156,7 +157,8 @@ func (s *Server) adminAudit(w http.ResponseWriter, r *http.Request, _ *principal
 	)
 	n, size, paged := pageNo(r)
 	if paged {
-		list, total, err = s.Svc.Store.Audit().PagedAll(r.Context(), (n-1)*size, size)
+		n = capPage(n, size, adminAuditCountCap)
+		list, total, err = s.Svc.Store.Audit().PagedAll(r.Context(), (n-1)*size, size, adminAuditCountCap)
 	} else {
 		list, err = s.Svc.Store.Audit().All(r.Context(), page(r))
 	}
@@ -179,7 +181,7 @@ func (s *Server) adminAudit(w http.ResponseWriter, r *http.Request, _ *principal
 		out = append(out, d)
 	}
 	if paged {
-		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: total, Page: n, Size: size})
+		writeJSON(w, http.StatusOK, pagedDTO[auditDTO]{Items: out, Total: min(total, adminAuditCountCap), More: total > adminAuditCountCap, Page: n, Size: size})
 		return
 	}
 	writeJSON(w, http.StatusOK, auditList(out))
@@ -187,10 +189,26 @@ func (s *Server) adminAudit(w http.ResponseWriter, r *http.Request, _ *principal
 
 // pagedDTO 是按页码分页的列表（反馈 #75）：总数与页码，供界面显示「第 n / m 页」。
 type pagedDTO[T any] struct {
-	Items []T `json:"items"`
-	Total int `json:"total"`
-	Page  int `json:"page"`
-	Size  int `json:"size"`
+	Items []T  `json:"items"`
+	Total int  `json:"total"`
+	More  bool `json:"more,omitempty"` // 总数只数到上限（R14d）：还有更多、但不能翻到
+	Page  int  `json:"page"`
+	Size  int  `json:"size"`
+}
+
+// 审计记录按页浏览时最多数到的条数（R14d）：个人 1000 页（每页 10 条），管理员 1000 页（每页 50 条）。
+// 超过的部分显示为「10,000+」，不能翻到；限制计数与 OFFSET 的代价，千万行上不再需要数秒。
+const (
+	auditCountCap      = 10_000
+	adminAuditCountCap = 50_000
+)
+
+// capPage 把页码限制在上限以内。
+func capPage(n, size, maxCount int) int {
+	if last := (maxCount + size - 1) / size; n > last {
+		return last
+	}
+	return n
 }
 
 // pageNo 读取 ?pageNo=（从 1 开始）与 limit；没有 pageNo 时返回 ok=false，接口按游标分页（兼容旧客户端）。

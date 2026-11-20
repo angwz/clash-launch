@@ -353,3 +353,24 @@ func TestPruneRequests(t *testing.T) {
 		t.Fatalf("按 IP 的汇总应保留，得到 %d %v", len(ips), err)
 	}
 }
+
+// R14d：按页浏览审计记录时，总数只数到上限加一，用于判断「还有更多」。
+func TestAuditPagedCountCap(t *testing.T) {
+	d := newDB(t)
+	ctx := context.Background()
+	for i := 0; i < 15; i++ {
+		if err := d.Audit().Add(ctx, &AuditEntry{OwnerID: "u1", Action: "session.login"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	list, n, err := d.Audit().Paged(ctx, "u1", 0, 10, 12)
+	if err != nil || len(list) != 10 || n != 13 {
+		t.Fatalf("上限 12 时应数到 13（表示还有更多），得到 %d 条、总数 %d、%v", len(list), n, err)
+	}
+	if _, n, _ := d.Audit().Paged(ctx, "u1", 10, 10, 100); n != 15 {
+		t.Fatalf("未超过上限时应为真实总数 15，得到 %d", n)
+	}
+	if _, n, _ := d.Audit().PagedAll(ctx, 0, 10, 5); n != 6 {
+		t.Fatalf("全站：上限 5 时应数到 6，得到 %d", n)
+	}
+}

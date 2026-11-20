@@ -85,3 +85,78 @@ func TestEventsStream(t *testing.T) {
 		t.Fatalf("未登录应被拒绝（401），得到 %v %v", resp, err)
 	}
 }
+
+// R22：「正在输入」只转发给互为联系人的人；陌生人收不到。
+func TestEventsTyping(t *testing.T) {
+	h := newHarness(t, nil)
+	admin, _ := h.setup()
+	admin.want(200, "PUT", "/api/v1/admin/registration", map[string]bool{"open": true})
+	reg := h.client()
+	reg.want(201, "POST", "/api/v1/register", registerBody(t, reg, "bobby", ""))
+	bob := h.client()
+	bob.login("bobby", "a long enough password")
+
+	ac, _, err := admin.dialEvents(t, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = ac.CloseNow() }()
+	bc, _, err := bob.dialEvents(t, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = bc.CloseNow() }()
+	readEvent(t, ac, "hello")
+	readEvent(t, bc, "hello")
+	typing := func() {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := ac.Write(ctx, websocket.MessageText, []byte(`{"type":"typing","to":"bobby"}`)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// 还不是联系人：不转发
+	typing()
+	ctx, cancel := context.WithTimeout(context.Background(), 700*time.Millisecond)
+	_, b, err := bc.Read(ctx)
+	cancel()
+	if err == nil {
+		t.Fatalf("陌生人不应收到「正在输入」，收到 %s", b)
+	}
+	// 读超时会关闭连接（coder/websocket 的约定），重新连接
+	bc, _, err = bob.dialEvents(t, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = bc.CloseNow() }()
+	readEvent(t, bc, "hello")
+
+	// 发过消息后互为联系人：转发，ID 为发送者的用户名
+	admin.want(201, "POST", "/api/v1/messages", map[string]any{"to": "bobby", "text": "在吗"})
+	typing()
+	if e := readEvent(t, bc, events.Typing); e.ID != "admin" {
+		t.Fatalf("typing 事件的 ID 应为 admin，得到 %q", e.ID)
+	}
+}
+
+// R14d：短链接列表的「最近请求」改为逐个短链接取最大时间；被请求过的有时间，没被请求过的没有。
+func TestShortLinkLastSeen(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+pid+"/links", map[string]string{}))
+	used := decode[shortDTO](t, c.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID, "code": "used1"}))
+	idle := decode[shortDTO](t, c.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID, "code": "idle1"}))
+	if r, _ := h.client().do("GET", strings.TrimPrefix(used.URL, h.http.URL), nil); r.StatusCode != http.StatusOK {
+		t.Fatalf("经短链接拉取：%d", r.StatusCode)
+	}
+	list := decode[list[shortDTO]](t, c.want(200, "GET", "/api/v1/short-links", nil))
+	got := map[string]*time.Time{}
+	for _, x := range list.Items {
+		got[x.ID] = x.Last
+	}
+	if got[used.ID] == nil || got[idle.ID] != nil {
+		t.Fatalf("最近请求：用过的应有时间、没用过的应为空，得到 used=%v idle=%v", got[used.ID], got[idle.ID])
+	}
+}

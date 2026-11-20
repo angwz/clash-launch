@@ -1211,18 +1211,19 @@ func (r audits) All(ctx context.Context, p Page) ([]AuditEntry, error) {
 	return r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE id < ? ORDER BY id DESC LIMIT ?", after, limitOf(p)))
 }
 
-func (r audits) Paged(ctx context.Context, owner string, offset, limit int) ([]AuditEntry, int, error) {
+func (r audits) Paged(ctx context.Context, owner string, offset, limit, maxCount int) ([]AuditEntry, int, error) {
 	var n int
-	if err := r.d.row(ctx, "SELECT COUNT(*) FROM audit WHERE owner_id=?", owner).Scan(&n); err != nil {
+	// 只数到 maxCount+1：千万行上完整的 COUNT(*) 要数秒（见 docs/development/benchmarks.md）
+	if err := r.d.row(ctx, "SELECT COUNT(*) FROM (SELECT 1 FROM audit WHERE owner_id=? LIMIT ?) t", owner, maxCount+1).Scan(&n); err != nil {
 		return nil, 0, err
 	}
 	out, err := r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=? ORDER BY id DESC LIMIT ? OFFSET ?", owner, limit, offset))
 	return out, n, err
 }
 
-func (r audits) PagedAll(ctx context.Context, offset, limit int) ([]AuditEntry, int, error) {
+func (r audits) PagedAll(ctx context.Context, offset, limit, maxCount int) ([]AuditEntry, int, error) {
 	var n int
-	if err := r.d.row(ctx, "SELECT COUNT(*) FROM audit").Scan(&n); err != nil {
+	if err := r.d.row(ctx, "SELECT COUNT(*) FROM (SELECT 1 FROM audit LIMIT ?) t", maxCount+1).Scan(&n); err != nil {
 		return nil, 0, err
 	}
 	out, err := r.scan(r.d.query(ctx, "SELECT id, owner_id, at, action, detail FROM audit ORDER BY id DESC LIMIT ? OFFSET ?", limit, offset))

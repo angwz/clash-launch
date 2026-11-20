@@ -32,6 +32,7 @@
   let items = $state<Entry[]>([]);
   let pageN = $state(1);
   let total = $state(0);
+  let more = $state(false); // 总数只数到上限（R14d）：显示为「10,000+」
   let loading = $state(false);
   const pages = $derived(Math.max(1, Math.ceil(total / SIZE)));
 
@@ -40,9 +41,10 @@
   async function go(n: number) {
     loading = true;
     try {
-      const r = await api.get<{ items: Entry[]; total: number; page: number }>(path, { query: { pageNo: n, limit: SIZE } });
+      const r = await api.get<{ items: Entry[]; total: number; more?: boolean; page: number }>(path, { query: { pageNo: n, limit: SIZE } });
       items = r.items;
       total = r.total;
+      more = !!r.more;
       pageN = r.page;
     } catch (e) {
       toasts.push("err", errorText(e));
@@ -92,7 +94,7 @@
       <nav class="pager" aria-label={t("audit.pager")}>
         <button class="btn sm ghost icon" type="button" disabled={loading || pageN <= 1} onclick={() => void go(1)} aria-label={t("audit.first")} title={t("audit.first")}><Icon name="chevron-up" size={14} /></button>
         <button class="btn sm" type="button" disabled={loading || pageN <= 1} onclick={() => void go(pageN - 1)}>{t("audit.prev")}</button>
-        <span class="muted" aria-live="polite">{t("audit.page_of", { n: pageN, m: pages, total: i18n.number(total) })}</span>
+        <span class="muted" aria-live="polite">{t("audit.page_of", { n: pageN, m: pages, total: i18n.number(total) + (more ? "+" : "") })}</span>
         <button class="btn sm" type="button" disabled={loading || pageN >= pages} onclick={() => void go(pageN + 1)}>{t("audit.next")}</button>
         <button class="btn sm ghost icon" type="button" disabled={loading || pageN >= pages} onclick={() => void go(pages)} aria-label={t("audit.last")} title={t("audit.last")}><Icon name="chevron-down" size={14} /></button>
       </nav>

@@ -43,6 +43,7 @@
 | [design/sharing.md](design/sharing.md) | 订阅分析、短链接、导入到客户端、站内消息：算法、安全与验证 |
 | [design/stats.md](design/stats.md) | 统计：记录什么、计数与去重规则、保存期限、谁能看、设置项按热度排序 |
 | [development/mihomo-upgrade.md](development/mihomo-upgrade.md) | 跟进 mihomo 新版本：版本固定的位置、字段差异提取、语义重新核验、完成标准 |
+| [development/benchmarks.md](development/benchmarks.md) | 千万行数据下热点查询的实测：怎么测、优化前后对比、还没解决的瓶颈 |
 
 ## 规范
 

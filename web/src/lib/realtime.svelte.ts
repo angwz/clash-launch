@@ -6,7 +6,7 @@
 // - 连不上（代理不支持升级、浏览器不支持）时页面照常靠 live() 的定时刷新，功能不受影响。
 // 同一浏览器的多个标签页各自一条连接（服务器按用户限制条数）；共用连接留待后续。
 
-export type Topic = "render" | "source" | "rules" | "message" | "sub" | "grant";
+export type Topic = "render" | "source" | "rules" | "message" | "sub" | "grant" | "typing";
 type Listener = (id: string | undefined) => void;
 
 const ALL = "*";
@@ -35,6 +35,11 @@ class Realtime {
     this.connected = false;
   }
 
+  /** 向服务器发一条消息（目前只有「正在输入」）；没连上时丢弃，不排队。 */
+  send(msg: { type: "typing"; to: string }): void {
+    if (this.#ws?.readyState === 1) this.#ws.send(JSON.stringify(msg));
+  }
+
   /** 订阅一组事件类型；返回取消函数。 */
   on(topics: readonly Topic[], fn: Listener): () => void {
     for (const t of topics) {
@@ -49,8 +54,9 @@ class Realtime {
 
   #emit(type: string, id?: string): void {
     if (type === "resync" || type === ALL) {
+      // 重读类的订阅者才需要补读；「正在输入」是瞬时信号，不补
       const seen = new Set<Listener>();
-      for (const set of this.#listeners.values()) for (const fn of set) if (!seen.has(fn)) (seen.add(fn), fn(undefined));
+      for (const [t, set] of this.#listeners) if (t !== "typing") for (const fn of set) if (!seen.has(fn)) (seen.add(fn), fn(undefined));
       return;
     }
     for (const fn of this.#listeners.get(type) ?? []) fn(id);

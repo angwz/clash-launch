@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -283,14 +284,25 @@ func (r messages) Thread(ctx context.Context, user, other string, p Page) ([]Mes
 			at, id = n, b
 		}
 	}
-	return r.list(r.d.query(ctx, "SELECT "+messageCols+" FROM messages WHERE "+
-		"((sender_id=? AND recipient_id=? AND sender_hidden=0) OR (sender_id=? AND recipient_id=? AND recipient_hidden=0)) "+
-		"AND (created_at < ? OR (created_at = ? AND id < ?)) ORDER BY created_at DESC, id DESC LIMIT ?",
-		user, other, other, user, at, at, id, limitOf(p)))
+	// 两个方向各取一页（各走 messages_pair 索引、已按时间有序），合并后再取一页；
+	// 比「OR 两个方向再整体排序」快得多（R14d，数据见 docs/development/benchmarks.md）。
+	// 每一半包在子查询里，SQLite 才允许在 UNION ALL 的分支中写 ORDER BY 与 LIMIT。
+	limit := limitOf(p)
+	half := "SELECT * FROM (SELECT " + messageCols + " FROM messages WHERE sender_id=? AND recipient_id=? AND %s=0 " +
+		"AND (created_at < ? OR (created_at = ? AND id < ?)) ORDER BY created_at DESC, id DESC LIMIT ?)"
+	q := "SELECT " + messageCols + " FROM (" + fmt.Sprintf(half, "sender_hidden") + " UNION ALL " + fmt.Sprintf(half, "recipient_hidden") +
+		") t ORDER BY created_at DESC, id DESC LIMIT ?"
+	return r.list(r.d.query(ctx, q, user, other, at, at, id, limit, other, user, at, at, id, limit, limit))
 }
 
 func (r messages) Recent(ctx context.Context, user string, limit int) ([]Message, error) {
-	return r.list(r.d.query(ctx, "SELECT "+messageCols+" FROM messages WHERE "+visibleTo+" ORDER BY created_at DESC, id DESC LIMIT ?", user, user, limit))
+	// 发出与收到的各取 limit 条再合并：各走 (sender_id, created_at)、(recipient_id, created_at) 索引（R14d）
+	q := "SELECT " + messageCols + " FROM (" +
+		"SELECT * FROM (SELECT " + messageCols + " FROM messages WHERE sender_id=? AND sender_hidden=0 ORDER BY created_at DESC, id DESC LIMIT ?)" +
+		" UNION ALL " +
+		"SELECT * FROM (SELECT " + messageCols + " FROM messages WHERE recipient_id=? AND recipient_hidden=0 ORDER BY created_at DESC, id DESC LIMIT ?)" +
+		") t ORDER BY created_at DESC, id DESC LIMIT ?"
+	return r.list(r.d.query(ctx, q, user, limit, user, limit, limit))
 }
 
 func (r messages) MarkRead(ctx context.Context, user, other string, at time.Time) error {

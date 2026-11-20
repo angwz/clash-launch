@@ -17,6 +17,7 @@
   import { prefs } from "../../lib/prefs.svelte";
   import { chat } from "../../lib/chat.svelte";
   import { toasts } from "../../lib/toast.svelte";
+  import { realtime } from "../../lib/realtime.svelte";
 
   interface Thread {
     userId: string;
@@ -66,6 +67,34 @@
   type Pending = { kind: "source"; mode: "share" | "grant"; id: string; name: string; sourceKind: string } | { kind: "short"; id: string; name: string };
 
   const peer = $derived(chat.peer);
+
+  // 正在输入（R22）：输入时最多每 2 秒告诉对方一次；对方的信号 4 秒内没有续上就消失，收到对方消息时也立即消失
+  let peerTyping = $state(false);
+  let typingTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastTypingSent = 0;
+  function onTyping() {
+    if (!peer || !text.trim() || Date.now() - lastTypingSent < 2_000) return;
+    lastTypingSent = Date.now();
+    realtime.send({ type: "typing", to: peer });
+  }
+  $effect(() =>
+    realtime.on(["typing"], (who) => {
+      if (!who || who.toLowerCase() !== peer.toLowerCase()) return;
+      peerTyping = true;
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => (peerTyping = false), 4_000);
+    }),
+  );
+  $effect(() =>
+    realtime.on(["message"], () => {
+      peerTyping = false;
+      clearTimeout(typingTimer);
+    }),
+  );
+  $effect(() => {
+    void peer; // 切换会话时清掉上一个人的状态
+    peerTyping = false;
+  });
 
   let threads = $state<Thread[] | null>(null);
   let deleted = $state<Deleted[]>([]);
@@ -399,6 +428,7 @@
         <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
         <span class="avatar" aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
         <strong class="peer">{other?.nickname || other?.username || peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
+        {#if peerTyping}<span class="typing" role="status">{t("messages.typing")}</span>{/if}
         {#if other && !deletedAt}
           <button class="btn sm ghost" type="button" onclick={() => void toggleBlock()}>{blocked ? t("messages.unblock") : t("messages.block")}</button>
           {#if threads?.some((x) => x.userId === other!.id)}
@@ -514,7 +544,7 @@
           <div class="row">
             <button class="btn ghost icon" type="button" aria-label={t("messages.emoji")} title={t("messages.emoji")} aria-expanded={panel === "emoji"} onclick={() => void togglePanel("emoji")}><Icon name="smile" size={17} /></button>
             <button class="btn ghost icon" type="button" aria-label={t("messages.attach")} title={t("messages.attach")} aria-expanded={panel === "attach"} onclick={() => void togglePanel("attach")}><Icon name="paperclip" size={17} /></button>
-            <textarea bind:this={input} class="textarea" rows="1" bind:value={text} onkeydown={onKey} placeholder={t("messages.placeholder")} aria-label={t("messages.placeholder")} maxlength="2000"></textarea>
+            <textarea bind:this={input} class="textarea" rows="1" bind:value={text} onkeydown={onKey} oninput={onTyping} placeholder={t("messages.placeholder")} aria-label={t("messages.placeholder")} maxlength="2000"></textarea>
             <button class="btn primary" type="button" disabled={sending || (!text.trim() && !attach)} onclick={() => void send()}><Icon name="send" size={15} />{t("messages.send")}</button>
           </div>
         </div>
@@ -683,6 +713,23 @@
   }
   .peer {
     flex: 1;
+  }
+  /* 正在输入：轻微明暗呼吸；减少动态效果时保持静止 */
+  .typing {
+    color: var(--accent-fg);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    animation: typing-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes typing-breathe {
+    50% {
+      opacity: 0.55;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .typing {
+      animation: none;
+    }
   }
   .back {
     display: none;

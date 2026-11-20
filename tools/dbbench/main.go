@@ -3,6 +3,7 @@
 // 用法：
 //
 //	go run ./tools/dbbench -dsn postgres://postgres:pw@127.0.0.1:55432/postgres?sslmode=disable [-requests 10000000] [-keep]
+//	go run ./tools/dbbench -dsn … -db cl_bench_<时间>   # 复用 -keep 保留的库：只执行新迁移并重新测量，不再灌数据
 //
 // 每次运行新建一个空库（cl_bench_<时间>），执行全部迁移后用 generate_series 灌数据，
 // 再对每条热点查询运行 3 次 EXPLAIN (ANALYZE, BUFFERS)，取执行时间的中位数，输出 Markdown 表格。
@@ -40,29 +41,35 @@ func main() {
 	dsn := flag.String("dsn", "", "可以建库的 PostgreSQL 地址")
 	requests := flag.Int("requests", 10_000_000, "订阅请求明细（sub_requests）的行数")
 	keep := flag.Bool("keep", false, "结束后保留测试库")
+	reuse := flag.String("db", "", "复用已灌好数据的库（-keep 保留的），跳过建库与灌数据")
 	flag.Parse()
 	if *dsn == "" {
 		fmt.Fprintln(os.Stderr, "需要 -dsn")
 		os.Exit(2)
 	}
-	if err := run(*dsn, *requests, *keep); err != nil {
+	if err := run(*dsn, *requests, *keep, *reuse); err != nil {
 		fmt.Fprintln(os.Stderr, "dbbench:", err)
 		os.Exit(1)
 	}
 }
 
-func run(base string, requests int, keep bool) error {
+func run(base string, requests int, keep bool, reuse string) error {
 	ctx := context.Background()
 	admin, err := sql.Open("pgx", base)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = admin.Close() }()
-	name := "cl_bench_" + time.Now().Format("20060102150405")
-	if _, err := admin.ExecContext(ctx, "CREATE DATABASE "+name); err != nil {
-		return fmt.Errorf("建库: %w", err)
+	name := reuse
+	if name == "" {
+		name = "cl_bench_" + time.Now().Format("20060102150405")
+		if _, err := admin.ExecContext(ctx, "CREATE DATABASE "+name); err != nil {
+			return fmt.Errorf("建库: %w", err)
+		}
+	} else if !benchDB.MatchString(name) {
+		return fmt.Errorf("-db 只接受本工具建的库（cl_bench_<时间>），得到 %q", name)
 	}
-	if !keep {
+	if !keep && reuse == "" {
 		defer func() { _, _ = admin.ExecContext(ctx, "DROP DATABASE IF EXISTS "+name+" WITH (FORCE)") }()
 	}
 	u, err := url.Parse(base)
@@ -97,7 +104,11 @@ func run(base string, requests int, keep bool) error {
 	}
 	defer func() { _ = db.Close() }()
 	now := time.Now().UnixMilli()
-	if err := seed(ctx, db, requests, now); err != nil {
+	if reuse == "" {
+		if err := seed(ctx, db, requests, now); err != nil {
+			return err
+		}
+	} else if _, err := db.ExecContext(ctx, "ANALYZE"); err != nil { // 新迁移建的索引需要最新的统计信息
 		return err
 	}
 
@@ -115,20 +126,22 @@ func run(base string, requests int, keep bool) error {
 			[]any{"u5000", now - 30*day, now + 1, 50_000}, "同上"},
 		{"链接请求记录第一页", "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id FROM sub_requests WHERE owner_id=$1 AND link_id=$2 AND (at < $3 OR (at = $3 AND id < $4)) ORDER BY at DESC, id DESC LIMIT $5",
 			[]any{"u1", "l1", now + 1, "~", 50}, "Stats.Requests（键集分页）"},
-		{"短链接最近访问", "SELECT short_id, MAX(at) FROM sub_requests WHERE owner_id=$1 AND short_id <> '' GROUP BY short_id",
-			[]any{"u1"}, "Stats.ShortLastSeen"},
-		{"清理 180 天前的明细（只计划，不执行）", "EXPLAIN SELECT 1 FROM sub_requests WHERE at < $1", []any{now - 180*day}, "目前没有清理（R14c 要加）"},
-		{"审计：个人第 1 页（含总数）", "SELECT COUNT(*) FROM audit WHERE owner_id=$1", []any{"u1"}, "Audit.Page 的 COUNT"},
+		{"短链接最近访问（50 个短链接）", "SELECT s.id, (SELECT MAX(q.at) FROM sub_requests q WHERE q.owner_id=$1 AND q.short_id=s.id AND q.short_id <> '') FROM (SELECT 's'||g AS id FROM generate_series(0, 49) g) s",
+			[]any{"u1"}, "Stats.LastByShort（逐个短链接取最大时间；库里没有 short_links，用 50 个编号代替）"},
+		{"清理一批过期明细（只计划，不执行）", "EXPLAIN DELETE FROM sub_requests WHERE id IN (SELECT id FROM sub_requests WHERE at < $1 ORDER BY at LIMIT 10000)", []any{now - 170*day}, "Stats.PruneRequests（每批 1 万行）"},
+		{"审计：个人总数（数到上限）", "SELECT COUNT(*) FROM (SELECT 1 FROM audit WHERE owner_id=$1 LIMIT $2) t", []any{"u1", 10_001}, "Audit.Paged 的计数（上限 1 万）"},
 		{"审计：个人第 1 页", "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=$1 ORDER BY id DESC LIMIT $2 OFFSET $3", []any{"u1", 10, 0}, "Audit.Page"},
 		{"审计：个人第 1000 页", "SELECT id, owner_id, at, action, detail FROM audit WHERE owner_id=$1 ORDER BY id DESC LIMIT $2 OFFSET $3", []any{"u1", 10, 9_990}, "Audit.Page（OFFSET）"},
-		{"审计：全站总数", "SELECT COUNT(*) FROM audit", nil, "Audit.PageAll 的 COUNT"},
-		{"审计：全站第 10000 页", "SELECT id, owner_id, at, action, detail FROM audit ORDER BY id DESC LIMIT $1 OFFSET $2", []any{50, 499_950}, "Audit.PageAll（OFFSET）"},
+		{"审计：全站总数（数到上限）", "SELECT COUNT(*) FROM (SELECT 1 FROM audit LIMIT $1) t", []any{50_001}, "Audit.PagedAll 的计数（上限 5 万）"},
+		{"审计：全站最后可达的第 1000 页", "SELECT id, owner_id, at, action, detail FROM audit ORDER BY id DESC LIMIT $1 OFFSET $2", []any{50, 49_950}, "Audit.PagedAll（OFFSET 上限 49950）"},
 		{"未读消息数", "SELECT COUNT(*) FROM messages m WHERE recipient_id=$1 AND recipient_hidden=0 AND read_at=0 AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.user_id=m.recipient_id AND c.peer_id=m.sender_id AND c.deleted_at <> 0)",
 			[]any{"u1"}, "Messages.Unread"},
 		{"与某人的未读数", "SELECT COUNT(*) FROM messages WHERE recipient_id=$1 AND sender_id=$2 AND recipient_hidden=0 AND read_at=0", []any{"u1", "u2"}, "Messages.UnreadFrom"},
-		{"会话第一页", "SELECT id FROM messages WHERE ((sender_id=$1 AND recipient_id=$2 AND sender_hidden=0) OR (sender_id=$2 AND recipient_id=$1 AND recipient_hidden=0)) AND (created_at < $3 OR (created_at = $3 AND id < $4)) ORDER BY created_at DESC, id DESC LIMIT $5",
-			[]any{"u1", "u2", now + 1, "~", 50}, "Messages.Thread"},
-		{"最近消息（会话列表预览）", "SELECT id FROM messages WHERE ((sender_id=$1 AND sender_hidden=0) OR (recipient_id=$1 AND recipient_hidden=0)) ORDER BY created_at DESC, id DESC LIMIT $2", []any{"u1", 20}, "Messages.Recent"},
+		{"会话第一页", "SELECT id FROM (SELECT * FROM (SELECT id, created_at FROM messages WHERE sender_id=$1 AND recipient_id=$2 AND sender_hidden=0 AND (created_at < $3 OR (created_at = $3 AND id < $4)) ORDER BY created_at DESC, id DESC LIMIT $5) " +
+			"UNION ALL SELECT * FROM (SELECT id, created_at FROM messages WHERE sender_id=$2 AND recipient_id=$1 AND recipient_hidden=0 AND (created_at < $3 OR (created_at = $3 AND id < $4)) ORDER BY created_at DESC, id DESC LIMIT $5)) t ORDER BY created_at DESC, id DESC LIMIT $5",
+			[]any{"u1", "u2", now + 1, "~", 50}, "Messages.Thread（两个方向各取一页再合并）"},
+		{"最近消息（会话列表预览）", "SELECT id FROM (SELECT * FROM (SELECT id, created_at FROM messages WHERE sender_id=$1 AND sender_hidden=0 ORDER BY created_at DESC, id DESC LIMIT $2) " +
+			"UNION ALL SELECT * FROM (SELECT id, created_at FROM messages WHERE recipient_id=$1 AND recipient_hidden=0 ORDER BY created_at DESC, id DESC LIMIT $2)) t ORDER BY created_at DESC, id DESC LIMIT $2", []any{"u1", 20}, "Messages.Recent（同上）"},
 		{"发送频率检查", "SELECT COUNT(*) FROM messages WHERE sender_id=$1 AND created_at>=$2", []any{"u1", now - 3_600_000}, "Messages.SentSince"},
 		{"用户搜索：用户名前缀或昵称任一段", "SELECT id FROM users WHERE username_norm LIKE $1 ESCAPE '!' OR nickname_norm LIKE $2 ESCAPE '!' ORDER BY CASE WHEN username_norm LIKE $1 ESCAPE '!' THEN 0 ELSE 1 END, username_norm LIMIT $3",
 			[]any{"user12%", "%a3f%", 10}, "Users.Search"},
@@ -213,6 +226,7 @@ func printCounts(ctx context.Context, db *sql.DB) error {
 }
 
 var (
+	benchDB  = regexp.MustCompile(`^cl_bench_[0-9]+$`)
 	execTime = regexp.MustCompile(`Execution Time: ([0-9.]+) ms`)
 	nodeLine = regexp.MustCompile(`^\s*(?:->\s*)?([A-Z][A-Za-z ]+?)(?: using (\S+))?(?: on (\S+))?\s+\(`)
 )

@@ -579,6 +579,7 @@
   "messages.threads": "会话",
   "messages.to": "收件人",
   "messages.to_placeholder": "输入用户名，开始新会话",
+  "messages.typing": "正在输入…",
   "messages.unblock": "取消屏蔽",
   "messages.unblocked": "已取消屏蔽{name}",
   "messages.unread_n": "{n}条未读",

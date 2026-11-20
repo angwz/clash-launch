@@ -19,10 +19,12 @@ import (
 //     防止别的网站借用户的登录状态建立连接（CSWSH）。
 //   - 事件只含类型与对象 ID，数据仍经 API 读取，权限只在 API 一处检查。
 //   - 长连接期间每 30 秒重新核对会话：注销、过期、定时退出或账号停用后立即关闭连接。
-//   - 浏览器不需要发消息：读取上限 1 KiB，只处理控制帧。
+//   - 浏览器只发一种消息：{"type":"typing","to":"<用户名>"}。只转发给互为联系人、且没有把对话放进回收站的人；
+//     每条连接每 2 秒最多转发一次；读取上限 1 KiB，其他内容忽略。
 const (
 	eventsCheckEvery = 30 * time.Second
 	eventsWriteWait  = 10 * time.Second
+	typingEvery      = 2 * time.Second
 )
 
 func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -51,7 +53,25 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request, p *princip
 	}
 	defer func() { _ = c.CloseNow() }()
 	c.SetReadLimit(1 << 10)
-	ctx := c.CloseRead(r.Context()) // 处理 ping/close 控制帧；对方关闭时 ctx 结束
+	// 读循环：处理控制帧与「正在输入」；对方关闭或读取出错时结束整个连接
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	go func() {
+		defer cancel()
+		var last time.Time
+		for {
+			_, b, err := c.Read(ctx)
+			if err != nil {
+				return
+			}
+			if time.Since(last) < typingEvery {
+				continue
+			}
+			if s.forwardTyping(ctx, p, b) {
+				last = time.Now()
+			}
+		}
+	}()
 
 	send := func(e events.Event) error {
 		b, err := json.Marshal(e)
@@ -91,4 +111,30 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request, p *princip
 			}
 		}
 	}
+}
+
+// forwardTyping 把「正在输入」转给对方；返回是否转发。只有双方互为联系人、且对方没有把对话放进回收站时才转发，
+// 不能借此打扰陌生人或探测账号是否存在（不论结果都不回应）。
+func (s *Server) forwardTyping(ctx context.Context, p *principal, b []byte) bool {
+	var m struct {
+		Type string `json:"type"`
+		To   string `json:"to"`
+	}
+	if json.Unmarshal(b, &m) != nil || m.Type != events.Typing || m.To == "" {
+		return false
+	}
+	peer, err := s.Svc.Store.Users().ByUsername(ctx, m.To)
+	if err != nil || peer.ID == p.User.ID {
+		return false
+	}
+	mine, err := s.Svc.Store.Contacts().Get(ctx, p.User.ID, peer.ID)
+	if err != nil || !mine.DeletedAt.IsZero() {
+		return false
+	}
+	theirs, err := s.Svc.Store.Contacts().Get(ctx, peer.ID, p.User.ID)
+	if err != nil || !theirs.DeletedAt.IsZero() {
+		return false
+	}
+	s.Svc.Events.Publish(peer.ID, events.Event{Type: events.Typing, ID: p.User.Username})
+	return true
 }

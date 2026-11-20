@@ -24,6 +24,7 @@ const (
 	Sub     = "sub"     // 订阅链接或短链接被客户端拉取（ID 为链接 ID）
 	Grant   = "grant"   // 授权建立或收回
 	Resync  = "resync"  // 连接落后、丢过事件：浏览器应重读全部数据
+	Typing  = "typing"  // 联系人正在输入（ID 为对方的用户名）；只转发、不保存
 )
 
 // Event 是推给浏览器的一条通知。

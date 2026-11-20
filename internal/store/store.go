@@ -357,8 +357,10 @@ type AuditRepo interface {
 	// All 供管理员查看全部记录（新的在前）。
 	All(ctx context.Context, p Page) ([]AuditEntry, error)
 	// Paged 按页返回本人的记录（新的在前）与总数；PagedAll 是管理员视图（反馈 #75：审计日志分页）。
-	Paged(ctx context.Context, owner string, offset, limit int) ([]AuditEntry, int, error)
-	PagedAll(ctx context.Context, offset, limit int) ([]AuditEntry, int, error)
+	// Paged 与 PagedAll 按页读取；总数最多数到 maxCount+1（R14d：大表上不做完整计数），
+	// 返回值大于 maxCount 表示还有更多。
+	Paged(ctx context.Context, owner string, offset, limit, maxCount int) ([]AuditEntry, int, error)
+	PagedAll(ctx context.Context, offset, limit, maxCount int) ([]AuditEntry, int, error)
 	// Prune 删除 before 之前的记录，返回删除的条数（保留期，第 14.7 节）。
 	Prune(ctx context.Context, before time.Time) (int64, error)
 }

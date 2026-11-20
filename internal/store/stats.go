@@ -228,7 +228,11 @@ func scanRequests(rows *sql.Rows) ([]SubRequest, error) {
 }
 
 func (r stats) LastByShort(ctx context.Context, owner string) (map[string]time.Time, error) {
-	rows, err := r.d.query(ctx, "SELECT short_id, MAX(at) FROM sub_requests WHERE owner_id=? AND short_id <> '' GROUP BY short_id", owner)
+	// 对指向本人链接的每个短链接各取一次最大时间（一次索引下探），而不是把全部经短链接的请求分组：
+	// 后者在千万行上要数秒（PostgreSQL 17 没有跳跃扫描，见 docs/development/benchmarks.md）。
+	// 短链接可能属于别人（授权给好友的），所以经 links 按链接所有者找。short_id <> '' 让部分索引 sub_requests_short 可用。
+	rows, err := r.d.query(ctx, "SELECT s.id, (SELECT MAX(q.at) FROM sub_requests q WHERE q.owner_id=? AND q.short_id=s.id AND q.short_id <> '') "+
+		"FROM short_links s JOIN links l ON l.id = s.link_id WHERE l.owner_id=?", owner, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -236,11 +240,13 @@ func (r stats) LastByShort(ctx context.Context, owner string) (map[string]time.T
 	out := map[string]time.Time{}
 	for rows.Next() {
 		var id string
-		var at int64
+		var at sql.NullInt64 // 从未被请求过的短链接为 NULL，不放进结果（与原来的分组写法一致）
 		if err := rows.Scan(&id, &at); err != nil {
 			return nil, err
 		}
-		out[id] = fromMS(at)
+		if at.Valid {
+			out[id] = fromMS(at.Int64)
+		}
 	}
 	return out, rows.Err()
 }

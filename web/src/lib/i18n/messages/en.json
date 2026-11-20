@@ -579,6 +579,7 @@
   "messages.threads": "Conversations",
   "messages.to": "Recipient",
   "messages.to_placeholder": "Username to start a conversation",
+  "messages.typing": "typing…",
   "messages.unblock": "Unblock",
   "messages.unblocked": "Unblocked {name}",
   "messages.unread_n": "{n} unread",
