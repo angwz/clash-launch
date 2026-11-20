@@ -58,6 +58,9 @@ docker compose pull && docker compose up -d
 | `CLASH_LAUNCH_LISTEN` | `:20230` | 监听地址 |
 | `CLASH_LAUNCH_DATA_DIR` | `/data` | 数据目录：数据库、主密钥、迁移前备份 |
 | `CLASH_LAUNCH_DATABASE_URL` | `sqlite:///data/clash-launch.db` | `postgres://…` 时使用 PostgreSQL |
+| `CLASH_LAUNCH_DB_MAX_CONNS` · `_DB_MAX_IDLE` | `20` · `5` | PostgreSQL 连接池：同时打开的连接上限与保持的空闲连接。上限加上备份、管理工具的连接，要低于数据库的 `max_connections`（默认 100） |
+| `CLASH_LAUNCH_DB_IDLE_MINUTES` | `5` | 空闲连接多久后关闭 |
+| `CLASH_LAUNCH_DB_STATEMENT_TIMEOUT` | `30` | 单条语句的最长执行时间（秒），防止慢查询长期占住连接；启动时的迁移不受限制。地址中写了 `statement_timeout` 时以地址为准 |
 | `CLASH_LAUNCH_PUBLIC_URL` | — | 对外地址；生成的订阅链接与 Cookie 的 `Secure` 以它为准。可写多个，逗号分隔，第一个为主地址（见 [多个域名](reverse-proxy.md#多个域名)）。未设置时根据请求推断 |
 | `CLASH_LAUNCH_MASTER_KEY` / `_FILE` | — | 主密钥；都没有时生成 `/data/master.key` |
 | `CLASH_LAUNCH_TRUSTED_PROXIES` | — | 受信任的反向代理网段，逗号分隔；只有来自这些地址的请求才采信 `X-Forwarded-For`/`-Proto` |
@@ -101,3 +104,11 @@ docker compose exec clash-launch /clash-launch backup /data/backups/manual.db
 - 升级时启动会自动执行迁移，执行前自动备份到 `/data/backups/`；不支持降级，降级需要恢复备份。数据库被更新的版本迁移过之后，旧版本程序会拒绝启动并提示原因（`ErrNewerSchema`），不会在不认识的表结构上运行。
 - 轮换主密钥：`/clash-launch keys rotate`（追加新密钥并重新加密全部数据）。
 - 迁到 PostgreSQL 或换机器：`db copy`，步骤与保证见 [data](data.md)。
+- 使用 PostgreSQL 时，应用内的 `backup` 命令不可用（它只处理 SQLite），改用数据库自带的工具，并同样备份主密钥：
+
+  ```sh
+  pg_dump --format=custom --file=clash-launch-$(date +%F).dump "$CLASH_LAUNCH_DATABASE_URL"   # 备份
+  pg_restore --clean --if-exists --dbname="$CLASH_LAUNCH_DATABASE_URL" clash-launch-2026-11-20.dump   # 还原到同版本
+  ```
+
+  PostgreSQL 上的迁移没有自动备份：升级前先执行一次 `pg_dump`。

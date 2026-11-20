@@ -30,12 +30,51 @@ type DB struct {
 	keys    *Keyring
 }
 
+// Pool 是 PostgreSQL 连接池与语句超时的设置（需求 R14a）；零值字段使用默认值。SQLite 只用一条连接，不受影响。
+type Pool struct {
+	MaxConns         int           // 同时打开的连接上限，默认 20（PostgreSQL 默认 max_connections 为 100，留给备份与管理工具）
+	MaxIdle          int           // 保持的空闲连接，默认 5
+	IdleTime         time.Duration // 空闲连接多久后关闭，默认 5 分钟
+	StatementTimeout time.Duration // 单条语句的最长执行时间，默认 30 秒；防止慢查询长期占住连接。迁移不受限制
+}
+
+func (p Pool) withDefaults() Pool {
+	if p.MaxConns <= 0 {
+		p.MaxConns = 20
+	}
+	if p.MaxIdle <= 0 {
+		p.MaxIdle = 5
+	}
+	if p.MaxIdle > p.MaxConns {
+		p.MaxIdle = p.MaxConns
+	}
+	if p.IdleTime <= 0 {
+		p.IdleTime = 5 * time.Minute
+	}
+	if p.StatementTimeout <= 0 {
+		p.StatementTimeout = 30 * time.Second
+	}
+	return p
+}
+
 // Open 按 DSN 打开数据库：sqlite:///data/clash-launch.db（或 sqlite:相对路径）、postgres://…。
-// 打开后不自动迁移；调用 Migrate。
+// 打开后不自动迁移；调用 Migrate。连接池使用默认设置，见 OpenPool。
 func Open(ctx context.Context, dsn string, keys *Keyring) (*DB, error) {
+	return OpenPool(ctx, dsn, keys, Pool{})
+}
+
+// OpenPool 与 Open 相同，可以指定 PostgreSQL 的连接池与语句超时。
+// DSN 中已写 statement_timeout 时以 DSN 为准。
+func OpenPool(ctx context.Context, dsn string, keys *Keyring, pool Pool) (*DB, error) {
 	dialect, driver, conn, err := parseDSN(dsn)
 	if err != nil {
 		return nil, err
+	}
+	pool = pool.withDefaults()
+	if dialect == "postgres" {
+		if conn, err = withStatementTimeout(conn, pool.StatementTimeout); err != nil {
+			return nil, err
+		}
 	}
 	db, err := sql.Open(driver, conn)
 	if err != nil {
@@ -43,6 +82,10 @@ func Open(ctx context.Context, dsn string, keys *Keyring) (*DB, error) {
 	}
 	if dialect == "sqlite" {
 		db.SetMaxOpenConns(1) // SQLite 单写者：串行化写入，避免 SQLITE_BUSY；读多写少的规模下足够
+	} else {
+		db.SetMaxOpenConns(pool.MaxConns)
+		db.SetMaxIdleConns(pool.MaxIdle)
+		db.SetConnMaxIdleTime(pool.IdleTime)
 	}
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
@@ -71,6 +114,20 @@ func parseDSN(dsn string) (dialect, driver, conn string, err error) {
 		return "postgres", "pgx", dsn, nil
 	}
 	return "", "", "", fmt.Errorf("store: 不支持的数据库地址（应以 sqlite: 或 postgres:// 开头）")
+}
+
+// withStatementTimeout 把语句超时作为连接参数写进 DSN（pgx 把未识别的参数作为会话设置发送）。
+func withStatementTimeout(dsn string, d time.Duration) (string, error) {
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return "", fmt.Errorf("store: 数据库地址无效: %w", err)
+	}
+	q := u.Query()
+	if q.Get("statement_timeout") == "" {
+		q.Set("statement_timeout", strconv.FormatInt(d.Milliseconds(), 10))
+		u.RawQuery = q.Encode()
+	}
+	return u.String(), nil
 }
 
 // Dialect 返回数据库类型。

@@ -95,6 +95,12 @@ func (d *DB) migrateTo(ctx context.Context, backupDir string, upto int) ([]int, 
 		}
 		err = d.Tx(ctx, func(s Store) error {
 			tx := s.(*DB)
+			if tx.dialect == "postgres" {
+				// 迁移可能搬移大表，不受连接上的语句超时限制；SET LOCAL 只作用于这个事务
+				if _, err := tx.q.ExecContext(ctx, "SET LOCAL statement_timeout = 0"); err != nil {
+					return fmt.Errorf("%s: %w", f, err)
+				}
+			}
 			for _, stmt := range splitSQL(string(body)) {
 				if _, err := tx.q.ExecContext(ctx, stmt); err != nil {
 					return fmt.Errorf("%s: %w", f, err)

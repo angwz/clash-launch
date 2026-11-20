@@ -20,6 +20,26 @@ export PATH="$PWD/.cache/toolchain/go/bin:$PATH" GOPATH="$PWD/.cache/gopath" GOC
 
 `staticcheck` 与 `golangci-lint` 用 `go install` 安装到 `GOPATH/bin`。
 
+### 本机 PostgreSQL（可选）
+
+存储与 API 测试设置 `CLASH_LAUNCH_TEST_POSTGRES` 时在 PostgreSQL 上运行（每个测试新建一个空库，与 CI 的 `postgres` 任务相同）。本机没有 PostgreSQL 时可以用 EnterpriseDB 的便携包，不装系统服务：
+
+```sh
+# 解压 postgresql-17.x-windows-x64-binaries.zip 到 .cache/toolchain/pg17
+# 包内不带 VC++ 运行库：没有安装 Visual C++ Redistributable 的机器，把 vcruntime140.dll、vcruntime140_1.dll、msvcp140.dll
+# 复制到 pgsql/bin（包内 pgAdmin 4/python 与 Edge 的安装目录里都有微软签名的副本）
+B=.cache/toolchain/pg17/pgsql/bin
+$B/initdb -D .cache/pgdata -U postgres --pwfile=<含示例密码的临时文件> -A scram-sha-256 -E UTF8 --locale=C
+printf "listen_addresses = '127.0.0.1'
+port = 55432
+" >> .cache/pgdata/postgresql.conf
+$B/pg_ctl -D .cache/pgdata -l .cache/pgdata/server.log start      # 停止：pg_ctl -D .cache/pgdata stop
+export CLASH_LAUNCH_TEST_POSTGRES="postgres://postgres:<密码>@127.0.0.1:55432/postgres?sslmode=disable"
+go test ./internal/store/... ./internal/api/
+```
+
+只监听 127.0.0.1；数据目录在被忽略的 `.cache/pgdata`，删掉即清除。
+
 ## 前端
 
 ```sh

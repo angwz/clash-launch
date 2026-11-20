@@ -55,9 +55,10 @@ type config struct {
 	AuditDays      int                   // 审计日志保留天数，默认 180；0 表示不清理
 	TraceOff       bool                  // CLASH_LAUNCH_TRACE=off：关闭分流追踪与体检（routing 第 6 节）
 	TraceCacheMB   int                   // 规则内容缓存上限，默认 256
+	DBPool         store.Pool            // PostgreSQL 连接池与语句超时（R14a）；0 表示默认
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "TRACE", "TRACE_CACHE_MB"}
+var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "TRACE", "TRACE_CACHE_MB", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -108,7 +109,7 @@ func loadConfig() (config, error) {
 	c.RuleHosts = hosts
 	// 配额默认值与审计保留期：非负整数；配额为 0 时使用内置默认（见 internal/service/quota.go）
 	nums := map[string]int{}
-	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180", "TRACE_CACHE_MB": "256"} {
+	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180", "TRACE_CACHE_MB": "256", "DB_MAX_CONNS": "0", "DB_MAX_IDLE": "0", "DB_IDLE_MINUTES": "0", "DB_STATEMENT_TIMEOUT": "0"} {
 		n, err := strconv.Atoi(get(k, def))
 		if err != nil || n < 0 {
 			return config{}, fmt.Errorf("CLASH_LAUNCH_%s 需要非负整数", k)
@@ -119,6 +120,7 @@ func loadConfig() (config, error) {
 	c.OpenQuota = service.QuotaDefaults{Sources: nums["OPEN_QUOTA_SOURCES"], Profiles: nums["OPEN_QUOTA_PROFILES"], Links: nums["OPEN_QUOTA_LINKS"], MinInterval: time.Duration(nums["OPEN_QUOTA_MIN_INTERVAL"]) * time.Minute, Storage: int64(nums["OPEN_QUOTA_STORAGE_MB"]) << 20}
 	c.AuditDays = nums["AUDIT_DAYS"]
 	c.TraceCacheMB = nums["TRACE_CACHE_MB"]
+	c.DBPool = store.Pool{MaxConns: nums["DB_MAX_CONNS"], MaxIdle: nums["DB_MAX_IDLE"], IdleTime: time.Duration(nums["DB_IDLE_MINUTES"]) * time.Minute, StatementTimeout: time.Duration(nums["DB_STATEMENT_TIMEOUT"]) * time.Second}
 	switch t := strings.ToLower(get("TRACE", "on")); t {
 	case "on":
 	case "off":
@@ -145,7 +147,7 @@ func openStore(ctx context.Context, c config, log *slog.Logger) (*store.DB, erro
 	if ks.Generated {
 		log.Warn("已生成新的主密钥：备份数据时必须同时备份它，丢失密钥就无法解密", "path", ks.Path)
 	}
-	db, err := store.Open(ctx, c.DatabaseURL, keys)
+	db, err := store.OpenPool(ctx, c.DatabaseURL, keys, c.DBPool)
 	if err != nil {
 		return nil, err
 	}
