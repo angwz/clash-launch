@@ -39,6 +39,27 @@
   const newer = $derived(!!field.since && cmpVersion(field.since, core) > 0);
   const effective = $derived(set ? editor.value(path) : field.default);
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  // 恢复默认之后（R52）：原来的按钮随「已设置」消失，看起来像内容丢了。改为在同一位置短暂显示
+  // 「已恢复默认 · 撤销」，撤销即写回原值；8 秒后或再次编辑时消失。
+  let restored = $state<{ value: unknown } | null>(null);
+  let restoredTimer: ReturnType<typeof setTimeout> | undefined;
+  function resetField() {
+    const before = structuredClone($state.snapshot(editor.value(path)));
+    editor.reset(path);
+    restored = { value: before };
+    clearTimeout(restoredTimer);
+    restoredTimer = setTimeout(() => (restored = null), 8000);
+  }
+  function undoReset() {
+    if (!restored) return;
+    editor.set(path, restored.value);
+    restored = null;
+    clearTimeout(restoredTimer);
+  }
+  $effect(() => {
+    if (set) restored = null; // 用户又填了值：提示不再有意义
+  });
+  $effect(() => () => clearTimeout(restoredTimer));
   let expanded = $state(false);
   // 展开说明计入设置项热度（反馈 #68）；收起不计
   function toggleGuide() {
@@ -172,7 +193,10 @@
       {#if field.replacement}<span class="subtle">{t("badge.replacement", { key: field.replacement })}</span>{/if}
       {#if set}
         <!-- 恢复默认独占最右端，与左端的「说明与建议」分开，降低误触（反馈 #34）；官方文档链接只在展开面板里 -->
-        <button type="button" class="link reset" onclick={() => editor.reset(path)}><Icon name="refresh" size={13} />{t("field.reset")}</button>
+        <button type="button" class="link reset" onclick={resetField}><Icon name="refresh" size={13} />{t("field.reset")}</button>
+      {:else if restored}
+        <span class="subtle restored" role="status">{t("field.reset_done")}</span>
+        <button type="button" class="link reset" onclick={undoReset}><Icon name="history" size={13} />{t("editor.undo")}</button>
       {/if}
     </div>
   </article>

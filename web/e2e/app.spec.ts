@@ -1002,3 +1002,31 @@ test("节点源：保存后返回列表，列表中可直接删除（R48、R50�
   await page.getByRole("button", { name: `删除节点源「${name}」` }).click();
   await expect(page.getByRole("link", { name })).toHaveCount(0);
 });
+
+test("字段：恢复默认后可在原位撤销；敏感字段不被浏览器自动填充（R52、R51）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { profile } = await seedProfile(request, baseURL!, "恢复默认");
+  await login(page);
+  await page.goto(`/profiles/${profile}?section=inbound`);
+  const card = page.locator("#f-mixed-port");
+  await expect(page.locator("#ctl-mixed-port")).toHaveValue("7890");
+  await card.getByRole("button", { name: "恢复默认" }).click();
+  await expect(card.getByRole("status")).toHaveText("已恢复默认");
+  await card.getByRole("button", { name: "撤销" }).click();
+  await expect(page.locator("#ctl-mixed-port")).toHaveValue("7890");
+  await expect(card.getByRole("button", { name: "恢复默认" })).toBeVisible();
+  await page.goto(`/profiles/${profile}?section=controller`);
+  await expect(page.locator("#ctl-secret")).toHaveAttribute("autocomplete", "new-password");
+});
+
+test("节点源：内容失焦后下方节点立即更新，不必先保存（R49）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const { source } = await seedProfile(request, baseURL!, "即时预览");
+  await login(page);
+  await page.goto(`/sources/${source}`);
+  const box = page.locator("#sd-content");
+  await box.fill("- {name: 预览专用 07, type: ss, server: 192.0.2.37, port: 8388, cipher: aes-128-gcm, password: example-pw}\n");
+  await page.getByRole("heading", { level: 1 }).click(); // 点到别处，触发失焦
+  await expect(page.getByText("预览专用 07")).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/sources/${source}$`)); // 没有保存、仍在原页
+});

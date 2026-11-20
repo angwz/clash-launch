@@ -184,6 +184,9 @@
   </select>
 {:else if kind === "int" || kind === "string"}
   <div class="text-wrap" class:wide={kind === "string"}>
+    <!-- 防止浏览器把登录账号密码填进配置字段（R51）：Chrome 对密码框忽略 autocomplete="off"，
+         会填入已保存的密码，并把它前面的文本框当作用户名一起填；new-password 表示「这不是登录密码」，
+         浏览器不再自动填充。data-* 属性让 1Password、LastPass、Bitwarden 等扩展同样跳过。 -->
     <input
       {id}
       class="input mono ltr ctl"
@@ -196,7 +199,11 @@
       onchange={commitText}
       onkeydown={onKey}
       {placeholder}
-      autocomplete="off"
+      autocomplete={field.sensitive ? "new-password" : "off"}
+      data-1p-ignore
+      data-lpignore="true"
+      data-bwignore
+      data-form-type="other"
       spellcheck="false"
     />
     {#if field.sensitive}
@@ -215,7 +222,7 @@
     bind:value={draft}
     onchange={commitText}
     onkeydown={onKey}
-    placeholder={kind === "yaml" ? t("field.yaml_placeholder") : placeholder}
+    placeholder={placeholder || (kind === "yaml" ? t("field.yaml_unset") : "")}
     spellcheck="false"
   ></textarea>
 {/if}

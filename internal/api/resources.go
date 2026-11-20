@@ -319,7 +319,46 @@ func (s *Server) sourceNodes(w http.ResponseWriter, r *http.Request, p *principa
 		s.fail(w, err)
 		return
 	}
+	var proc node.Processing
+	_ = json.Unmarshal(src.Processing, &proc)
+	s.writeNodes(w, r, p, src, src.Content, proc)
+}
+
+// nodesPreviewReq 是节点源编辑中、尚未保存的内容与整理设置（R49）。
+// content 只对手动节点有效；订阅始终用拉取快照，整理设置可以预览。
+type nodesPreviewReq struct {
+	Content    *string         `json:"content,omitempty"`
+	Processing json.RawMessage `json:"processing,omitempty"`
+}
+
+// previewSourceNodes 按编辑中的内容解析节点，不写存储：失焦即可看到结果，与保存后的解析完全一致（同一函数）。
+func (s *Server) previewSourceNodes(w http.ResponseWriter, r *http.Request, p *principal) {
+	src, err := s.Svc.Store.Sources().Get(r.Context(), p.User.ID, r.PathValue("id"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	var req nodesPreviewReq
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	var proc node.Processing
+	if len(req.Processing) > 0 {
+		if err := json.Unmarshal(req.Processing, &proc); err != nil {
+			s.fail(w, badRequest("invalid processing: %v", err))
+			return
+		}
+	}
 	content := src.Content
+	if req.Content != nil && src.Kind != "subscription" {
+		content = []byte(*req.Content)
+	}
+	s.writeNodes(w, r, p, src, content, proc)
+}
+
+// writeNodes 解析并整理节点，写出节点表格的数据；订阅忽略 content，使用拉取快照。
+func (s *Server) writeNodes(w http.ResponseWriter, r *http.Request, p *principal, src *store.Source, content []byte, proc node.Processing) {
 	if src.Kind == "subscription" {
 		snap, err := s.Svc.Store.Snapshots().Get(r.Context(), p.User.ID, service.SourceKey(src.ID))
 		if err != nil {
@@ -328,8 +367,6 @@ func (s *Server) sourceNodes(w http.ResponseWriter, r *http.Request, p *principa
 		}
 		content = snap.Content
 	}
-	var proc node.Processing
-	_ = json.Unmarshal(src.Processing, &proc)
 	var ds diag.List
 	nodes, format := node.Parse(content, src.ID, s.Svc.Catalog, &ds)
 	nodes = node.Process(nodes, proc, s.Svc.Tools, src.ID, &ds)

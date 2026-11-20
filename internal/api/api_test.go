@@ -847,3 +847,31 @@ func TestRuleURLChangeRefetches(t *testing.T) {
 		t.Fatalf("换地址后应改用地址 B 的内容：\n%s", y)
 	}
 }
+
+// R49：按编辑中的内容预览节点，不写存储；整理设置同样生效。
+func TestSourceNodesPreview(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	srcID := regexp.MustCompile(`sources:\n  - ref: (\S+)`).FindStringSubmatch(p.Doc)[1]
+	type nodesResp struct {
+		Nodes []nodeDTO `json:"nodes"`
+	}
+	names := func(r nodesResp) string {
+		var out []string
+		for _, n := range r.Nodes {
+			out = append(out, n.Name)
+		}
+		return strings.Join(out, ",")
+	}
+	draft := "- {name: 新加坡 03, type: ss, server: 192.0.2.3, port: 8388, cipher: aes-128-gcm, password: example-pw}\n- {name: 美国 04, type: ss, server: 192.0.2.4, port: 8388, cipher: aes-128-gcm, password: example-pw}\n"
+	got := decode[nodesResp](t, c.want(200, "POST", "/api/v1/sources/"+srcID+"/nodes/preview", map[string]any{"content": draft, "processing": map[string]string{"exclude": "美国"}}))
+	if n := names(got); !strings.Contains(n, "新加坡 03") || strings.Contains(n, "美国") {
+		t.Fatalf("预览应按草稿内容与整理设置解析，得到 %q", names(got))
+	}
+	saved := decode[nodesResp](t, c.want(200, "GET", "/api/v1/sources/"+srcID+"/nodes", nil))
+	if !strings.Contains(names(saved), "香港 01") || strings.Contains(names(saved), "新加坡") {
+		t.Fatalf("预览不应写入存储，保存的节点为 %q", names(saved))
+	}
+	c.want(400, "POST", "/api/v1/sources/"+srcID+"/nodes/preview", map[string]any{"processing": map[string]any{"include": 1}})
+}

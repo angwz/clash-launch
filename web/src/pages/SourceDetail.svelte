@@ -64,12 +64,38 @@
     }
   }
 
+  // 节点表格始终反映表单的当前状态（R49）：按编辑中、尚未保存的内容与整理设置解析，与保存后的结果一致
+  // （服务端同一函数）。内容在失焦时更新，整理设置停顿片刻后更新；定时刷新也走这里，不会把预览冲回已保存的状态。
+  let previewSeq = 0;
   async function loadNodes() {
-    const r = await api.get<{ nodes: Node[]; diagnostics: Diagnostic[]; format?: string }>("/api/v1/sources/" + params.id + "/nodes");
+    const seq = ++previewSeq;
+    const body: Record<string, unknown> = { processing: clean(proc) };
+    if (src && src.kind !== "subscription") body.content = content;
+    const r = await api.post<{ nodes: Node[]; diagnostics: Diagnostic[]; format?: string }>("/api/v1/sources/" + params.id + "/nodes/preview", body);
+    if (seq !== previewSeq) return; // 只采用最后一次请求的结果，避免慢请求覆盖新结果
     nodes = r.nodes;
     diags = r.diagnostics;
     format = r.format ?? "";
   }
+  function previewSoon() {
+    loadNodes().catch((e) => toasts.push("err", errorText(e)));
+  }
+  let procTimer: ReturnType<typeof setTimeout> | undefined;
+  let procSeen = "";
+  $effect(() => {
+    const key = JSON.stringify(clean(proc));
+    if (!src) return;
+    if (procSeen === "") {
+      procSeen = key; // 首次加载时 load() 已经取过节点
+      return;
+    }
+    if (key === procSeen) return;
+    procSeen = key;
+    clearTimeout(procTimer);
+    procTimer = setTimeout(previewSoon, 400);
+  });
+  // 计时器只在离开页面时清除：effect 因 src 刷新而重跑时不能取消尚未触发的预览
+  $effect(() => () => clearTimeout(procTimer));
 
   $effect(() => void load());
 
@@ -227,7 +253,8 @@
         {:else}
           <div>
             <label class="label" for="sd-content">{t("source.content")}</label>
-            <textarea id="sd-content" class="textarea mono ltr" rows="6" bind:value={content} spellcheck="false"></textarea>
+            <!-- 高度随内容增加（6–24 行），可拖动调整；失焦即更新下方节点（R49） -->
+            <textarea id="sd-content" class="textarea mono ltr content-box" rows={Math.min(24, Math.max(6, content.split("\n").length + 1))} bind:value={content} onchange={previewSoon} spellcheck="false"></textarea>
           </div>
         {/if}
       </section>
@@ -356,6 +383,11 @@
     gap: var(--space-4);
     align-content: start;
     padding: var(--space-5);
+  }
+  /* 只允许纵向拖动：横向拖动会撑破两栏布局 */
+  .content-box {
+    resize: vertical;
+    line-height: 1.55;
   }
   .box h2,
   .nodes h2 {

@@ -1070,6 +1070,15 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {format: {type: string}, nodes: {type: array, items: {$ref: '#/components/schemas/Node'}}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}}
+  /api/v1/sources/{id}/nodes/preview:
+    post:
+      tags: [sources]
+      summary: 按编辑中、尚未保存的内容与整理设置解析节点，不写存储
+      description: 与 GET …/nodes 使用同一解析与整理；content 只对手动节点生效，订阅始终使用拉取快照。
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, properties: {content: {type: string}, processing: {type: object}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {format: {type: string}, nodes: {type: array, items: {$ref: '#/components/schemas/Node'}}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}, '400': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/rule-sources:
     get:
       tags: [rule-sources]

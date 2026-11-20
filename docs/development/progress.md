@@ -6,8 +6,8 @@
 
 ### 下次从这里开始（2026-11-20）
 
-- **状态**：第 2 批已完成（R47 订阅随源的修改立即更新、R48 保存后返回列表、R50 节点源列表直接删除、R53 显示上次时间），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：按 [backlog](backlog.md) 的「实施顺序」继续，第 3 批是 R49 节点内容即时预览、R51 自动填充、R52 恢复默认；之后批 4 起是地基阶段。
+- **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
+- **下一步**：按 [backlog](backlog.md) 的「实施顺序」继续，批 4 起是地基阶段：R54 中英文间距 + R30 无障碍自动检查 + O4 旧 lint 清零。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
@@ -54,6 +54,7 @@
 - **需求第 2 批（2026-11-16）**：R9 对外地址可写多个域名，按请求的 Host 选用并兼作白名单（链接、Cookie 的 Secure、HSTS、Origin 校验随之按域名决定；通行密钥只在主地址）；R8 登录设备定时退出（迁移 0011 新增 `sessions.logout_at`，只能早于自然到期，可取消，到点即失效并记审计；被定时的设备每页顶部提示）；R7 登录地点（同一迁移新增 `sessions.location`；ip2region IPv4 库进入 `tools.lock.json` 与镜像，约 11 MB；国家库与 ASN 库补充，IPv6 只有国家与运营商）。新增依赖 `lionsoul2014/ip2region/binding/golang`，未抬高 golang.org/x。验证：`go test ./...`（新增 `TestParsePublicURLs`、`TestPublicURLPerHost`、`TestScheduleLogout`、`TestPlaceRoundTrip`、`TestPlace`；本机数据上 114.114.114.114 → 中国 · 江苏省 · 南京市）、`go vet`、`staticcheck`；golangci-lint 在改动的包中只剩存储层 5 个旧的 nolintlint；前端 check / 140 项单元 / build / 首屏 72.0 KiB / e2e 39 通过 21 跳过（新增「定时退出」）。登录地点在本机只能以回环地址登录，界面上的显示未用真实公网地址验证。
 - **需求第 3 批（2026-11-16）**：R4 改用户名（需要当前密码，180 天一次，旧名保留 180 天）；R5 昵称（可含空格、不唯一，搜索按用户名前缀或昵称中的任一段，消息与联想中显示「昵称 @用户名」）；R12 人人可邀请（名额与注册时长门槛、收回邀请权、可用多次、作废、二维码；注册页显示邀请人；注册开放时也记下邀请关系；邀请人收到系统通知并互为联系人；只有管理员的邀请赋予受邀权限，决定 [0003](../decisions/0003-direct-fetch-and-invites.md) 已补修订）。迁移 0012。顺带修正：表格外层滚动框没有定位，表头里绝对定位的读屏文字会跑出滚动框、在手机上撑宽管理页。验证：`go test ./...`（新增 `TestNicknameAndRename`、`TestInvitesForEveryone`）、`go vet`、`staticcheck`；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 40 通过 22 跳过（新增「昵称与邀请」）。改用户名在 e2e 中未覆盖（会影响共用的管理员账号），由 API 测试覆盖。
 - **实施顺序第 2 批（2026-11-20）**：R47 保存规则源、节点源后立即重新生成用到它的配置（含被授权方），订阅链接随之更新；地址变了时丢弃旧地址的快照并立即拉取（此前改了地址而未拉取时，新地址下会继续下发旧地址的内容）；`rerenderUsing` 改为翻页、不再只取前 200 个配置；规则源缓存键带长度前缀并计入名称。R48 规则源与节点源保存后返回列表；R50 节点源列表直接删除；R53 订阅统计与配置链接页显示上次请求，首次放在悬停提示或副标题。验证：`go test ./...`（新增 `TestSubscriptionFollowsSourceEdits`，已确认在旧代码上失败；`TestRuleURLChangeRefetches`）、`go test -tags kernel`、`go vet`、`staticcheck`、golangci-lint（service、api 0 issues）；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 41 通过 23 跳过（新增「节点源：保存后返回列表…」）。维护者报告的现象未在生产站点上复现，以测试复现为准。
+- **实施顺序第 3 批（2026-11-20）**：R49 节点源详情的节点表格始终反映表单当前状态（新接口 `…/nodes/preview`，不写存储，与保存后同一解析函数；只采用最后一次请求的结果），内容框随内容增高；R51 配置的敏感字段用 `autocomplete="new-password"` 并加密码管理扩展的忽略标记；R52 恢复默认后原位显示「已恢复默认 · 撤销」，YAML 字段的占位文字显示默认值或「由内核决定」。验证：`go test ./...`（新增 `TestSourceNodesPreview`，契约与隔离测试覆盖新路由）、`go vet`、golangci-lint（api 0 issues）；前端 check / 140 项单元 / build / 首屏 72.9 KiB / e2e 43 通过 25 跳过（新增两项）。R51 只验证了属性，真实 Chrome 中已保存密码时的表现需在维护者浏览器上确认。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
