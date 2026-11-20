@@ -7,7 +7,7 @@
 ### 下次从这里开始（2026-11-16）
 
 - **状态**：生产部署后的需求第 1–3 批已完成并推送（R1、R2、R4–R9、R12，迁移到 0012），CI 四项与镜像全部通过，`ghcr.io/angwz/clash-launch:latest` 已含这些功能。之后只改了文档：需求清单扩充到 R46，文档提交已于同日推送，仓库恢复公开。
-- **下一步**：按 [backlog](backlog.md) 的「建议顺序」第一档，从 **R18 最简 docker compose + R15 Clash Verge Rev 预设** 开始（两项都是 S，适合同一个对话）。需求、现状核实与方案都在 backlog 里，开工前先读对应条目；涉及内核版本的看 [mihomo-upgrade](mihomo-upgrade.md)。
+- **下一步**：按 [backlog](backlog.md) 的「建议顺序」第一档，从 **R18 最简 docker compose + R15 Clash Verge Rev 预设** 开始（两项都是 S，适合同一个对话），随后是 R47（订阅仍是旧配置，P1）与 R48–R53 界面缺陷（2026-11-20 登记）。需求、现状核实与方案都在 backlog 里，开工前先读对应条目；涉及内核版本的看 [mihomo-upgrade](mihomo-upgrade.md)。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
