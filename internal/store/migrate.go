@@ -201,7 +201,7 @@ func Copy(ctx context.Context, src, dst *DB) ([]CopyStats, error) {
 	var stats []CopyStats
 	for _, t := range Tables {
 		var n int
-		if err := dst.root.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+t).Scan(&n); err != nil { //nolint:gosec // 表名来自常量列表 Tables
+		if err := dst.root.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+t).Scan(&n); err != nil { // 表名来自常量列表 Tables
 			return stats, err
 		}
 		if n > 0 {
@@ -263,7 +263,7 @@ func appliedVersions(ctx context.Context, d *DB) (string, error) {
 // columnsOf 返回表的列名（按表定义顺序）。走 d.q：在事务中时用事务自己的连接
 // （SQLite 只有一个连接，绕开事务另取连接会一直等待）。
 func columnsOf(ctx context.Context, d *DB, table string) ([]string, error) {
-	rows, err := d.q.QueryContext(ctx, "SELECT * FROM "+table+" WHERE 1=0") //nolint:gosec // 表名来自常量列表 Tables
+	rows, err := d.q.QueryContext(ctx, "SELECT * FROM "+table+" WHERE 1=0") // 表名来自常量列表 Tables
 	if err != nil {
 		return nil, err
 	}

@@ -182,7 +182,7 @@ func (e *emitter) root(m *yaml.Node) error {
 		k, v := m.Content[i], m.Content[i+1]
 		// 连续的顶层简单键（标量或空集合）挨着写，映射与列表分节前后空一行：
 		// 官方示例把 mixed-port、mode 这类开关聚在一起，大块之间用空行分开。
-		if i > 0 && !(isLeaf(v) && isLeaf(m.Content[i-1])) {
+		if i > 0 && (!isLeaf(v) || !isLeaf(m.Content[i-1])) {
 			e.b.WriteByte('\n')
 		}
 		flowItems := e.flowProxies && k.Value == "proxies" && v.Kind == yaml.SequenceNode

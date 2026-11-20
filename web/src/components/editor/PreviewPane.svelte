@@ -41,7 +41,9 @@
 </script>
 
 <div class="pane">
-  <div class="tabs" role="tablist" aria-label={t("preview.title")}>
+  <!-- tablist 只包含三个标签页；右侧的状态与格式按钮在 tablist 之外（R30，ARIA 要求 tablist 的子元素都是 tab） -->
+  <div class="tabs">
+    <div class="tablist" role="tablist" aria-label={t("preview.title")}>
     <button role="tab" type="button" aria-selected={tab === "yaml"} onclick={() => (tab = "yaml")}>{t("preview.yaml")}</button>
     <button role="tab" type="button" aria-selected={tab === "diff"} onclick={() => (tab = "diff")}>
       {t("preview.diff")}{#if changed}<span class="n">{changed}</span>{/if}
@@ -49,6 +51,7 @@
     <button role="tab" type="button" aria-selected={tab === "diag"} onclick={() => (tab = "diag")}>
       {t("preview.diagnostics")}{#if diags.length}<span class="n" class:err={editor.counts.errors > 0}>{diags.length}</span>{/if}
     </button>
+    </div>
     <span class="spacer"></span>
     {#if editor.previewing}<span class="busy" aria-live="polite">{t("preview.updating")}</span>{/if}
     {#if tab === "yaml" && p}
@@ -132,6 +135,11 @@
     flex: none;
     border-block-end: 1px solid var(--border);
     background: var(--bg-raised);
+  }
+  .tablist {
+    display: flex;
+    align-items: center;
+    gap: 2px;
   }
   .tabs [role="tab"] {
     display: inline-flex;

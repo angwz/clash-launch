@@ -52,7 +52,7 @@ func TestNoPlaintextAtRest(t *testing.T) {
 
 	// 直接读数据库：每张表的每一列
 	for _, table := range append(Tables, "schema_migrations") {
-		rows, err := d.root.QueryContext(ctx, "SELECT * FROM "+table) //nolint:gosec // 表名来自常量列表
+		rows, err := d.root.QueryContext(ctx, "SELECT * FROM "+table)
 		if err != nil {
 			t.Fatal(err)
 		}

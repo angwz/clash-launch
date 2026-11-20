@@ -7,14 +7,14 @@
 ### 下次从这里开始（2026-11-20）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：按 [backlog](backlog.md) 的「实施顺序」继续，批 4 起是地基阶段：R54 中英文间距 + R30 无障碍自动检查 + O4 旧 lint 清零。
+- **下一步**：批 4 剩 R54 中英文间距与 R30 的三处配色，都是视觉改动，样例已交维护者确认，确认后再改；不阻塞的话继续批 5（R14a PostgreSQL 部署 + R14b 千万行基准）。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
   - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 40 通过 22 跳过。
-  - `golangci-lint` 在存储层有 5 个旧的 nolintlint（backlog O4），不是新问题。
+  - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
 - **新迁移**：下一个编号是 0013；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
 ### 各批次记录
@@ -55,6 +55,7 @@
 - **需求第 3 批（2026-11-16）**：R4 改用户名（需要当前密码，180 天一次，旧名保留 180 天）；R5 昵称（可含空格、不唯一，搜索按用户名前缀或昵称中的任一段，消息与联想中显示「昵称 @用户名」）；R12 人人可邀请（名额与注册时长门槛、收回邀请权、可用多次、作废、二维码；注册页显示邀请人；注册开放时也记下邀请关系；邀请人收到系统通知并互为联系人；只有管理员的邀请赋予受邀权限，决定 [0003](../decisions/0003-direct-fetch-and-invites.md) 已补修订）。迁移 0012。顺带修正：表格外层滚动框没有定位，表头里绝对定位的读屏文字会跑出滚动框、在手机上撑宽管理页。验证：`go test ./...`（新增 `TestNicknameAndRename`、`TestInvitesForEveryone`）、`go vet`、`staticcheck`；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 40 通过 22 跳过（新增「昵称与邀请」）。改用户名在 e2e 中未覆盖（会影响共用的管理员账号），由 API 测试覆盖。
 - **实施顺序第 2 批（2026-11-20）**：R47 保存规则源、节点源后立即重新生成用到它的配置（含被授权方），订阅链接随之更新；地址变了时丢弃旧地址的快照并立即拉取（此前改了地址而未拉取时，新地址下会继续下发旧地址的内容）；`rerenderUsing` 改为翻页、不再只取前 200 个配置；规则源缓存键带长度前缀并计入名称。R48 规则源与节点源保存后返回列表；R50 节点源列表直接删除；R53 订阅统计与配置链接页显示上次请求，首次放在悬停提示或副标题。验证：`go test ./...`（新增 `TestSubscriptionFollowsSourceEdits`，已确认在旧代码上失败；`TestRuleURLChangeRefetches`）、`go test -tags kernel`、`go vet`、`staticcheck`、golangci-lint（service、api 0 issues）；前端 check / 140 项单元 / build / 首屏 72.8 KiB / e2e 41 通过 23 跳过（新增「节点源：保存后返回列表…」）。维护者报告的现象未在生产站点上复现，以测试复现为准。
 - **实施顺序第 3 批（2026-11-20）**：R49 节点源详情的节点表格始终反映表单当前状态（新接口 `…/nodes/preview`，不写存储，与保存后同一解析函数；只采用最后一次请求的结果），内容框随内容增高；R51 配置的敏感字段用 `autocomplete="new-password"` 并加密码管理扩展的忽略标记；R52 恢复默认后原位显示「已恢复默认 · 撤销」，YAML 字段的占位文字显示默认值或「由内核决定」。验证：`go test ./...`（新增 `TestSourceNodesPreview`，契约与隔离测试覆盖新路由）、`go vet`、golangci-lint（api 0 issues）；前端 check / 140 项单元 / build / 首屏 72.9 KiB / e2e 43 通过 25 跳过（新增两项）。R51 只验证了属性，真实 Chrome 中已保存密码时的表现需在维护者浏览器上确认。
+- **实施顺序第 4 批（进行中，2026-11-20）**：O4 golangci-lint 全仓清零。R30 接入 axe（`@axe-core/playwright` 4.14.0 与 `axe-core` 4.14.0，固定为发布一个月以上的版本）：17 个页面的亮色与暗色按 WCAG 2.1 A/AA 检查；修复预览标签页 tablist 内混入普通按钮、窄屏搜索按钮在文字隐藏后没有名称（改为只在视觉上隐藏）、管理页可滚动表格不能用键盘聚焦；YAML 预览行号改为伪元素（外观不变）。剩余三处配色待确认、暂列豁免。验证：前端 check / 140 项单元 / build / 首屏 72.9 KiB / e2e 44 通过 26 跳过（含新的无障碍检查）；`go test ./...`、golangci-lint 0 issues。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

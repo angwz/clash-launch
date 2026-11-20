@@ -26,7 +26,8 @@
         {@const op = ops?.[i] ?? " "}
         {@const m = !!mark && i >= mark.start && i < mark.end}
         <tr data-i={i} class:add={op === "+"} class:del={op === "-"} class:mark={m} class:partial={m && !mark?.exact}>
-          <td class="ln" aria-hidden="true">{op === " " ? i + 1 : op}</td>
+          <!-- 行号与差异符号是装饰：用伪元素显示，不进入可访问文本，复制时也不会带上（R30） -->
+          <td class="ln" aria-hidden="true" data-ln={op === " " ? i + 1 : op}></td>
           <td class="code">{#each highlightLine(line) as tok, j (j)}<span class={"t-" + tok.k}>{tok.s}</span>{/each}{#if line === ""}&#8203;{/if}</td>
         </tr>
       {/each}
@@ -60,6 +61,9 @@
     vertical-align: top;
     font-variant-numeric: tabular-nums;
     opacity: 0.75;
+  }
+  .ln::before {
+    content: attr(data-ln);
   }
   .code {
     padding-inline: var(--space-2) var(--space-4);

@@ -135,7 +135,9 @@
   <span class="muted">{t("admin.user_total", { n: total })}</span>
 </div>
 <div class="wrap">
-  <div class="table-wrap">
+  <!-- 可横向滚动：允许键盘聚焦后用方向键滚动（R30）。这是 WCAG 对可滚动区域的推荐做法，与 svelte 的通用规则冲突，按 WCAG 处理 -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <div class="table-wrap" tabindex="0" role="region" aria-label={t("admin.users")}>
   <table class="table flush">
     <thead>
       <tr>

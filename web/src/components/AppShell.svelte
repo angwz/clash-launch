@@ -510,11 +510,20 @@
 
   @media (max-width: 1023px) {
     .search {
+      position: relative; /* 约束下面隐藏的文字 */
       min-inline-size: 0;
     }
-    .search-label,
     .search .kbd {
       display: none;
+    }
+    /* 窄屏只隐藏文字的外观，读屏仍能读到按钮名称（R30）；与 .visually-hidden 相同 */
+    .search-label {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
   }
 

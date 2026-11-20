@@ -21,7 +21,7 @@ func (d *DB) encryptLegacy(ctx context.Context) (int, error) {
 	err := d.Tx(ctx, func(st Store) error {
 		x := st.(*DB)
 		for _, j := range jobs {
-			rows, err := x.query(ctx, "SELECT "+j.pk+", "+j.col+" FROM "+j.table+" WHERE "+j.enc+" IS NULL AND "+j.col+" <> ?", j.empty) //nolint:gosec // 表名与列名来自上面的常量
+			rows, err := x.query(ctx, "SELECT "+j.pk+", "+j.col+" FROM "+j.table+" WHERE "+j.enc+" IS NULL AND "+j.col+" <> ?", j.empty) // 表名与列名来自上面的常量
 			if err != nil {
 				return err
 			}
@@ -41,7 +41,7 @@ func (d *DB) encryptLegacy(ctx context.Context) (int, error) {
 				if err != nil {
 					return err
 				}
-				if _, err := x.exec(ctx, "UPDATE "+j.table+" SET "+j.enc+"=?, "+j.col+"=? WHERE "+j.pk+"=?", blob, j.empty, it.id); err != nil { //nolint:gosec // 同上
+				if _, err := x.exec(ctx, "UPDATE "+j.table+" SET "+j.enc+"=?, "+j.col+"=? WHERE "+j.pk+"=?", blob, j.empty, it.id); err != nil { // 表名与列名同上
 					return fmt.Errorf("加密 %s.%s %s: %w", j.table, j.col, it.id, err)
 				}
 				n++
