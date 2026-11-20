@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/angwz/clash-launch/internal/events"
 	"net/http"
 	"strconv"
 	"strings"
@@ -417,9 +418,15 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	// 已读回执（R22）：只在确有未读时通知对方，避免两边打开的会话互相触发重读
+	unread, _ := s.Svc.Store.Messages().UnreadFrom(ctx, p.User.ID, other.ID)
 	if err := s.Svc.Store.Messages().MarkRead(ctx, p.User.ID, other.ID, time.Now()); err != nil {
 		s.fail(w, err)
 		return
+	}
+	if unread > 0 {
+		s.Svc.Events.Publish(other.ID, events.Event{Type: events.Message, ID: p.User.ID})
+		s.Svc.Events.Publish(p.User.ID, events.Event{Type: events.Message, ID: other.ID}) // 自己其他标签页的未读数
 	}
 	out := list[messageDTO]{Items: []messageDTO{}}
 	for i := range items {

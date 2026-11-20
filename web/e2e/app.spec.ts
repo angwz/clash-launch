@@ -1030,3 +1030,20 @@ test("节点源：内容失焦后下方节点立即更新，不必先保存（R4
   await expect(page.getByText("预览专用 07")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/sources/${source}$`)); // 没有保存、仍在原页
 });
+
+test("实时通道：客户端拉取订阅后，配置链接页立即更新，不等定时刷新（R22）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const problems = watch(page);
+  const { profile } = await seedProfile(request, baseURL!, "实时");
+  const call = await apiAs(request, baseURL!);
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${profile}/links`, { note: "实时" });
+  await login(page);
+  await page.goto(`/profiles/${profile}/links`);
+  const total = page.locator(".moment").filter({ hasText: "累计被请求" }).locator("strong");
+  await expect(total).toHaveText("0");
+  await page.waitForTimeout(500); // 等实时通道连上（hello）
+  await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
+  // 定时刷新是 30 秒一次：5 秒内更新只能来自实时通道
+  await expect(total).toHaveText("1", { timeout: 5_000 });
+  expect(problems).toEqual([]);
+});

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/angwz/clash-launch/internal/events"
 	"io"
 	"log/slog"
 	"net/http"
@@ -98,7 +99,7 @@ func newHarness(t *testing.T, checker *kernel.Checker) *harness {
 	guard, _ := source.ParseAllowlist("127.0.0.1")
 	fetcher, _ := source.New(source.Config{Guard: guard})
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PoWBits: 4}
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PoWBits: 4, Events: events.New(8)}
 	h := &harness{t: t, db: db, svc: svc}
 	h.http = httptest.NewServer(nil)
 	t.Cleanup(h.http.Close)

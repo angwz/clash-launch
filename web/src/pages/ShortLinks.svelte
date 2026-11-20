@@ -91,7 +91,7 @@
   });
   let poll: Live | undefined;
   $effect(() => {
-    const l = live(loadList, 30_000);
+    const l = live(loadList, 30_000, ["sub", "grant"]);
     poll = l;
     return l.stop;
   });

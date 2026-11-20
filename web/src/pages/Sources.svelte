@@ -70,7 +70,7 @@
   }
   $effect(() => void load());
   // 自动刷新（反馈 #73）：后台拉取会改变订阅的状态；页面可见时每 30 秒刷新
-  $effect(() => live(async () => (items = await listAll<Source>("/api/v1/sources")), 30_000).stop);
+  $effect(() => live(async () => (items = await listAll<Source>("/api/v1/sources")), 30_000, ["source", "grant"]).stop);
 
   function status(s: Source): { tone: "ok" | "err" | "warn" | "muted"; label: string } {
     if (s.kind !== "subscription") return { tone: "muted", label: t("source.static") };

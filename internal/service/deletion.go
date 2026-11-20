@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/angwz/clash-launch/internal/events"
 
 	"github.com/angwz/clash-launch/internal/store"
 )
@@ -135,6 +136,8 @@ func (s *Service) revokeAll(ctx context.Context, u *store.User, gs []store.Grant
 		if err := s.Store.Grants().Revoke(ctx, u.ID, g.ID, now); err != nil {
 			return err
 		}
+		s.push(g.OwnerID, events.Grant, g.ID)
+		s.push(g.GranteeID, events.Grant, g.ID)
 		s.audit(ctx, u.ID, "grant.revoke", map[string]string{"kind": g.Kind, "reason": "deleted"})
 	}
 	return nil
@@ -158,6 +161,9 @@ func (s *Service) notifyDeleted(ctx context.Context, owner *store.User, grantee,
 	raw, err := json.Marshal(MessageBody{Notice: &Notice{Code: "grant_deleted", Target: target, Name: name}})
 	if err == nil {
 		err = s.Store.Messages().Create(ctx, &store.Message{SenderID: owner.ID, RecipientID: grantee, Kind: "notice", Body: raw, CreatedAt: s.now()})
+	}
+	if err == nil {
+		s.push(grantee, events.Message, owner.ID)
 	}
 	if err != nil && s.Log != nil {
 		s.Log.Warn("deletion notice not sent", "owner", owner.ID, "grantee", grantee, "err", err.Error())

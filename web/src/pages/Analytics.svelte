@@ -110,7 +110,7 @@
     history.replaceState(history.state, "", location.pathname + (p.size ? "?" + p : ""));
     load().catch((e) => (error = errorText(e)));
   });
-  $effect(() => live(load, 60_000).stop);
+  $effect(() => live(load, 60_000, ["sub"]).stop);
 
   const a = $derived(data?.analytics);
   const dayInts = $derived((a?.days ?? []).map((d) => Number(d.replaceAll("-", ""))));

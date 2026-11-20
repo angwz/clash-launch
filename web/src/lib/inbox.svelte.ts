@@ -14,7 +14,7 @@ class Inbox {
   start(): void {
     if (this.#stop) return;
     void this.refresh().catch(() => undefined);
-    this.#stop = live(() => this.refresh(), 60_000).stop;
+    this.#stop = live(() => this.refresh(), 60_000, ["message"]).stop;
   }
 
   stop(): void {

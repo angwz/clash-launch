@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/angwz/clash-launch/internal/events"
 	"strings"
 	"time"
 
@@ -42,6 +43,8 @@ func (s *Service) RevokeGrant(ctx context.Context, u *store.User, id string) err
 	if err := s.Store.Grants().Revoke(ctx, u.ID, id, s.now()); err != nil {
 		return err
 	}
+	s.push(g.OwnerID, events.Grant, g.ID)
+	s.push(g.GranteeID, events.Grant, g.ID)
 	switch g.Kind {
 	case "short":
 		if sl, err := s.Store.ShortLinks().Get(ctx, g.OwnerID, g.TargetID); err == nil && !sl.Disabled {

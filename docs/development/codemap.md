@@ -59,6 +59,7 @@
 | 状态 emoji | `web/src/components/Emoji.svelte`、`web/src/assets/emoji/`（来源与许可见其中 README） | 前端 check、e2e | [feedback](feedback.md) #44 |
 | 配置模板与新建配置 | `internal/store/sql.go`（`templates`）、`internal/api/templates.go`、`web/src/lib/profiles.ts`、`web/src/pages/Profiles.svelte`、`web/src/components/editor/SaveTemplateDialog.svelte` | `TestTemplates`、`TestOwnerIsolationAllRoutes`、`profiles.test.ts`、e2e「存为模板」 | [feedback](feedback.md) #51、#52 |
 | 设置页（个人偏好） | `web/src/pages/Settings.svelte`、`web/src/lib/nav.ts`、`web/src/lib/prefs.svelte.ts`、`internal/api/prefs.go` | `TestPrefsFieldClick`、e2e「点击范围」「调整菜单顺序」 | [feedback](feedback.md) #57 |
+| 实时更新（WebSocket） | `internal/events`、`internal/api/events.go`、`Service.push` 的调用处、`web/src/lib/realtime.svelte.ts`、`web/src/lib/live.ts` | `TestHubRoutesPerUser`、`TestEventsStream`、`realtime.test.ts`、e2e「实时通道…」 | [reverse-proxy](../guide/reverse-proxy.md)（Nginx 转发升级请求） |
 | 统计与请求记录 | `internal/store/stats.go`、`internal/service/stats.go`、`internal/api/stats.go`、`web/src/lib/stats.svelte.ts`、`web/src/components/stats/`、`web/src/components/links/LinkStats.svelte`、`web/src/components/admin/StatsPanel.svelte` | `TestStats`、`TestStatsFlow`、`field-order.test.ts`、e2e「统计」 | [stats](../design/stats.md) |
 | 订阅分析、短链接、导入客户端、站内消息、授权与回收站 | `internal/geo`（含 `place.go`：登录地点）、`internal/store/{social,contacts}.go`、`internal/service/{analytics,social,grants,deletion,reserved}.go`、`internal/api/{social,subscribe}.go`、`web/src/pages/{Analytics,ShortLinks,Messages}.svelte`、`web/src/lib/{clients,inbox.svelte,regions}.ts`、`web/src/components/links/ImportMenu.svelte`、`web/src/components/stats/HeatGrid.svelte` | `TestAnalyze`、`TestSocialRepos`、`TestShortLinksAnalyticsMessages`、`TestGrantsContactsRootShort`、`TestDeleteRevokesGrantsAndNotifies`、`TestReservedCoversFrontendRoutes`、`TestLookup`、e2e「短链接与订阅分析」「站内消息」 | [sharing](../design/sharing.md) |
 | 密码、令牌 | `internal/auth/auth.go` | 经 API 测试 | — |
@@ -124,4 +125,5 @@
 | 前端控制台出现 CSP 违规 | 内联样式或第三方库插入 `<style>`；参考 `lib/cm.ts` 的处理 |
 | 订阅链接返回 503 | 该方案还没有成功的渲染结果：看 `renders` 表与方案页的诊断 |
 | 改了规则源或节点源，订阅没变 | 保存应调用 `SourceSaved`、`RuleSourceSaved`；重新生成失败时订阅保留上一次成功的结果，原因在配置页诊断 |
+| 页面没有即时更新 | 浏览器开发者工具里 `/api/v1/events` 是否连上（101）；服务端是否在变化处调用 `Service.push`；页面的 `live()` 是否传了对应的事件类型（`web/src/lib/realtime.svelte.ts`） |
 | 无障碍检查失败 | `web/e2e/a11y.spec.ts` 输出的选择器与规则名；行号这类装饰内容用伪元素显示，不进入可访问文本 |

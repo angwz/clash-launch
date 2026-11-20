@@ -19,6 +19,7 @@ tags:
   - {name: links}
   - {name: admin}
   - {name: account}
+  - {name: events, description: 实时通道（需求 R22）}
   - {name: health}
 components:
   securitySchemes:
@@ -1070,6 +1071,16 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {format: {type: string}, nodes: {type: array, items: {$ref: '#/components/schemas/Node'}}, diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}}}}}}}
+  /api/v1/events:
+    get:
+      tags: [events]
+      summary: 实时通道（WebSocket）
+      description: |
+        升级为 WebSocket 后，服务器推送当前用户的数据变化事件 {type, id}：render、source、rules、message、sub、grant；
+        连接建立时先发 hello，丢过事件时发 resync。事件不含数据本身，收到后经对应接口重读。
+        握手需要会话 Cookie 与同源的 Origin；每个用户最多 16 条连接；会话失效后服务器关闭连接（1008）。
+      security: [{session: []}]
+      responses: {'101': {description: 已升级为 WebSocket}, '401': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/sources/{id}/nodes/preview:
     post:
       tags: [sources]

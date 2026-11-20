@@ -58,7 +58,7 @@
         listAll<Link>(base),
         api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + params.id + "/stats"),
       ]);
-    }, 30_000);
+    }, 30_000, ["sub", "render"]);
     poll = l;
     return l.stop;
   });

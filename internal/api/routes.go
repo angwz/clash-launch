@@ -90,6 +90,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/catalog/{pack}/messages", s.catalogMessages},
 		{"GET", "/api/v1/diagnostics", s.diagnostics},
 
+		{"GET", "/api/v1/events", a(s.eventsStream)},
 		{"GET", "/api/v1/sources", a(s.listSources)},
 		{"POST", "/api/v1/sources", a(s.createSource)},
 		{"GET", "/api/v1/sources/{id}", a(s.getSource)},

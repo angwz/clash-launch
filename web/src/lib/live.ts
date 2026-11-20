@@ -7,7 +7,9 @@
 //
 // 用法：在 $effect 中调用并返回清理函数：
 //   $effect(() => live(load, 30_000).stop);
-// 不用 WebSocket / SSE：这些数据不需要秒级实时，轮询简单可靠，也不需要额外的长连接与代理配置。
+// 实时通道（R22）：传入 topics 时，对应事件到达立即刷新；定时刷新保留为兜底（通道连不上时照常工作）。
+
+import { realtime, type Topic } from "./realtime.svelte";
 
 export interface Live {
   /** 稍后刷新一次（默认 1.5 秒后），用于自己刚做完操作 */
@@ -15,14 +17,18 @@ export interface Live {
   stop: () => void;
 }
 
-export function live(load: () => Promise<unknown>, interval: number): Live {
+export function live(load: () => Promise<unknown>, interval: number, topics: readonly Topic[] = []): Live {
   let running = false;
+  let again = false; // 刷新进行中又来了事件：结束后再刷新一次，不丢最后的变化
   let last = Date.now();
   let timer: ReturnType<typeof setInterval> | undefined;
   let once: ReturnType<typeof setTimeout> | undefined;
 
   const run = async () => {
-    if (running) return;
+    if (running) {
+      again = true;
+      return;
+    }
     running = true;
     last = Date.now();
     try {
@@ -31,6 +37,10 @@ export function live(load: () => Promise<unknown>, interval: number): Live {
       /* 静默：下一轮再试 */
     } finally {
       running = false;
+      if (again) {
+        again = false;
+        void run();
+      }
     }
   };
   const visible = () => typeof document === "undefined" || document.visibilityState === "visible";
@@ -43,6 +53,8 @@ export function live(load: () => Promise<unknown>, interval: number): Live {
   };
 
   timer = setInterval(tick, interval);
+  // 页面隐藏时也接收事件，但只在可见时刷新；切回时 wake() 会补上
+  const off = topics.length ? realtime.on(topics, tick) : undefined;
   document.addEventListener("visibilitychange", wake);
   window.addEventListener("focus", wake);
 
@@ -57,6 +69,7 @@ export function live(load: () => Promise<unknown>, interval: number): Live {
       timer = undefined;
       document.removeEventListener("visibilitychange", wake);
       window.removeEventListener("focus", wake);
+      off?.();
     },
   };
 }

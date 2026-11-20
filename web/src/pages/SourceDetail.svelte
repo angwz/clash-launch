@@ -104,7 +104,7 @@
     src = await api.get<Source>("/api/v1/sources/" + params.id);
     await loadNodes();
   }
-  $effect(() => live(refreshView, 30_000).stop);
+  $effect(() => live(refreshView, 30_000, ["source"]).stop);
   let refreshing = $state(false);
 
   async function save() {

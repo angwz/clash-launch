@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/angwz/clash-launch/internal/events"
 	"log/slog"
 	"net/url"
 	"sort"
@@ -72,6 +73,9 @@ type Service struct {
 	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。
 	Notifier Notifier
 
+	// Events 把数据变化实时推给浏览器（需求 R22）；nil 时不推送，页面靠定时刷新。
+	Events *events.Hub
+
 	// Trace 是分流追踪的配置（routing 第 6 节）
 	Trace TraceConfig
 
@@ -96,6 +100,11 @@ func (s *Service) lock(id string) func() {
 }
 
 // SourceKey 与 RuleKey 是快照的键。
+// push 发布一条实时事件；只通知「什么变了」，数据由浏览器经 API 重读（见 internal/events）。
+func (s *Service) push(user, typ, id string) {
+	s.Events.Publish(user, events.Event{Type: typ, ID: id})
+}
+
 func SourceKey(id string) string             { return "src/" + id }
 func RuleKey(id, part string) string         { return "rs/" + id + "/" + part }
 func (s *Service) staleAfter() time.Duration { return or(s.Policy.StaleAfter, 7*24*time.Hour) }
@@ -142,6 +151,7 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 		return nil, err
 	}
 	s.Log.Info("refresh source", "owner", owner, "source", id, "ok", snap.LastError == "", "error", snap.LastError)
+	s.push(owner, events.Source, id)
 	s.rerenderGrantees(ctx, owner, id) // 被授权使用这个节点源的人（反馈 #75）
 	s.rerenderUsing(ctx, owner, usesSource(id))
 	return stored, nil
@@ -187,6 +197,7 @@ func (s *Service) fetchRuleSource(ctx context.Context, owner, id string) (fetchE
 			return nil, err
 		}
 	}
+	s.push(owner, events.Rules, id)
 	return firstErr, nil
 }
 
@@ -240,6 +251,7 @@ func (s *Service) SourceSaved(ctx context.Context, u *store.User, prevURL string
 			}
 		}
 	}
+	s.push(u.ID, events.Source, src.ID)
 	s.rerenderGrantees(ctx, u.ID, src.ID)
 	s.rerenderUsing(ctx, u.ID, usesSource(src.ID))
 	return nil
@@ -265,6 +277,7 @@ func (s *Service) RuleSourceSaved(ctx context.Context, u *store.User, prev, rs *
 			return err
 		}
 	}
+	s.push(u.ID, events.Rules, rs.ID)
 	s.rerenderUsing(ctx, u.ID, usesRules(rs.ID))
 	return nil
 }
@@ -518,6 +531,7 @@ func (s *Service) RenderProfile(ctx context.Context, owner, id string) (*store.R
 	if err := s.Store.Renders().Put(ctx, owner, r); err != nil {
 		return nil, nil, err
 	}
+	s.push(owner, events.Render, id)
 	return r, res, nil
 }
 

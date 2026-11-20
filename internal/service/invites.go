@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/angwz/clash-launch/internal/events"
 	"strconv"
 	"time"
 
@@ -203,6 +204,9 @@ func (s *Service) notifyInviter(ctx context.Context, invitee *store.User) {
 	raw, err := json.Marshal(MessageBody{Notice: &Notice{Code: "invite_joined", Name: invitee.Username}})
 	if err == nil {
 		err = s.Store.Messages().Create(ctx, &store.Message{SenderID: invitee.ID, RecipientID: invitee.InvitedBy, Kind: "notice", Body: raw, CreatedAt: s.now()})
+	}
+	if err == nil {
+		s.push(invitee.InvitedBy, events.Message, invitee.ID)
 	}
 	if err != nil && s.Log != nil {
 		s.Log.Warn("invite notice not sent", "inviter", invitee.InvitedBy, "err", err.Error())

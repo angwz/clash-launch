@@ -13,7 +13,7 @@ cl.example.com {
 }
 ```
 
-Caddy 自动申请证书并设置 `X-Forwarded-*`。服务与 Caddy 在同一台机器上时，`CLASH_LAUNCH_TRUSTED_PROXIES=127.0.0.1`。
+Caddy 自动申请证书并设置 `X-Forwarded-*`，实时通道（WebSocket）无需额外配置。服务与 Caddy 在同一台机器上时，`CLASH_LAUNCH_TRUSTED_PROXIES=127.0.0.1`。
 
 ## Nginx
 
@@ -36,6 +36,18 @@ server {
         proxy_read_timeout 60s;
     }
 
+    # 实时通道（WebSocket）：转发升级请求。服务每 30 秒发一次心跳，上面的 60 秒读超时足够
+    location = /api/v1/events {
+        proxy_pass http://127.0.0.1:20230;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
     # 访问日志中不记录订阅令牌（服务自身的日志只记前 6 个字符）
     location ~ ^/(s|p|r)/ {
         access_log off;
@@ -52,6 +64,8 @@ server {
     return 301 https://$host$request_uri;
 }
 ```
+
+实时通道没有转发升级请求时，页面照常靠定时刷新工作，只是变化要过一会儿才出现。
 
 服务运行在 compose 中、Nginx 在宿主机上时，代理的来源地址是 compose 网络的网关，把该网段（如 `172.16.0.0/12`）加入 `CLASH_LAUNCH_TRUSTED_PROXIES`。
 

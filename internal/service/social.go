@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/angwz/clash-launch/internal/events"
 	"regexp"
 	"strings"
 	"time"
@@ -244,7 +245,11 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 		}
 		return nil, err
 	}
+	s.push(from.ID, events.Message, rcpt.ID)
+	s.push(rcpt.ID, events.Message, from.ID)
 	if grant != nil {
+		s.push(from.ID, events.Grant, grant.ID)
+		s.push(rcpt.ID, events.Grant, grant.ID)
 		s.audit(ctx, from.ID, "grant.create", map[string]string{"to": rcpt.Username, "kind": grant.Kind, "name": body.Attach.Name})
 		if grant.Kind == "source" {
 			s.rerenderUsing(ctx, rcpt.ID, usesSource(grant.TargetID))

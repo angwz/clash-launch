@@ -20,6 +20,7 @@
   import { stats } from "../lib/stats.svelte";
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
+  import { realtime } from "../lib/realtime.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -27,6 +28,7 @@
     shell.init();
     stats.start();
     inbox.start(); // 未读消息角标（反馈 #74）
+    realtime.start(); // 实时通道（R22）
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
@@ -41,6 +43,7 @@
 
   async function logout() {
     inbox.stop();
+    realtime.stop();
     chat.close();
     await session.logout();
     router.go("/login");

@@ -137,8 +137,8 @@
     attach = null;
     loadThread().catch((e) => toasts.push("err", errorText(e)));
   });
-  $effect(() => live(loadThreads, 30_000).stop);
-  $effect(() => (peer ? live(() => loadThread(), 15_000).stop : undefined));
+  $effect(() => live(loadThreads, 30_000, ["message", "grant"]).stop);
+  $effect(() => (peer ? live(() => loadThread(), 15_000, ["message", "grant"]).stop : undefined));
 
   function open(name: string) {
     to = "";

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/angwz/clash-launch/internal/events"
 	"net/http"
 	"net/netip"
 	"net/url"
@@ -247,6 +248,9 @@ func (s *Server) recordSub(r *http.Request, l *store.Link, w *statusWriter, kind
 	addr := s.clientIP(r)
 	g := s.Svc.Geo.Lookup(addr) // 归属地（反馈 #74）；没有地理数据时为空
 	q := store.SubRequest{At: time.Now(), IP: addr.String(), UA: r.UserAgent(), Status: w.status, Bytes: w.bytes, Kind: kind, Country: g.Country, ASN: g.ASN, Org: g.Org, ShortID: shortID}
+	if l != nil { // 令牌无效的探测请求没有对应的链接
+		defer s.Svc.Events.Publish(l.OwnerID, events.Event{Type: events.Sub, ID: l.ID}) // 订阅分析的实时更新（R22）
+	}
 	if q.Status == 0 {
 		q.Status = http.StatusOK
 	}
