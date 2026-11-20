@@ -80,7 +80,8 @@
 <div class="lstats">
   <div class="summary">
     <span><strong>{i18n.number(stat.total)}</strong> {t("links.requests_total")}</span>
-    {#if stat.first}<span class="muted">{t("links.first_request", { when: i18n.date(stat.first) })}</span>{/if}
+    <!-- 显示上次请求：判断链接是否仍在被使用时比首次更有用（R53）；首次放进悬停提示 -->
+    {#if stat.last}<span class="muted" title={stat.first ? t("links.first_request", { when: i18n.date(stat.first) }) : undefined}>{t("links.last_request", { when: i18n.relative(stat.last) })}</span>{/if}
     <span class="muted">{t("links.ip_count", { n: stat.ips.length })}</span>
     <button type="button" class="linkish" aria-expanded={open} onclick={toggle}>
       {t("links.details")}<Icon name={open ? "chevron-down" : "chevron-right"} size={13} />

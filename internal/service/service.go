@@ -143,26 +143,31 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 	}
 	s.Log.Info("refresh source", "owner", owner, "source", id, "ok", snap.LastError == "", "error", snap.LastError)
 	s.rerenderGrantees(ctx, owner, id) // 被授权使用这个节点源的人（反馈 #75）
-	s.rerenderUsing(ctx, owner, func(p *profile.Profile) bool {
-		for _, r := range p.Sources {
-			if r.Ref == id {
-				return true
-			}
-		}
-		return false
-	})
+	s.rerenderUsing(ctx, owner, usesSource(id))
 	return stored, nil
 }
 
 // RefreshRuleSource 拉取规则源的 URL（toml 一对或 ini），更新快照，并重新渲染引用它的方案。
+// 返回的错误是第一个拉取失败（快照已记录）或存储错误。
 func (s *Service) RefreshRuleSource(ctx context.Context, owner, id string) error {
-	rs, err := s.Store.RuleSources().Get(ctx, owner, id)
+	fetchErr, err := s.fetchRuleSource(ctx, owner, id)
 	if err != nil {
 		return err
 	}
+	s.rerenderUsing(ctx, owner, usesRules(id))
+	return fetchErr
+}
+
+// fetchRuleSource 拉取规则源的各个地址并更新快照，不重新渲染。
+// fetchErr 是第一个拉取失败（已记录在快照中，配置诊断会显示）；err 是读写存储的错误。
+func (s *Service) fetchRuleSource(ctx context.Context, owner, id string) (fetchErr, err error) {
+	rs, err := s.Store.RuleSources().Get(ctx, owner, id)
+	if err != nil {
+		return nil, err
+	}
 	usr, err := s.Store.Users().ByID(ctx, owner)
 	if err != nil {
-		return fmt.Errorf("读取规则源所有者 %s: %w", owner, err)
+		return nil, fmt.Errorf("读取规则源所有者 %s: %w", owner, err)
 	}
 	hosts := s.RuleHostsFor(usr) // 普通用户只能从允许的站点拉取（反馈 #72）
 	parts := map[string]string{"groups": rs.GroupsURL, "rulesets": rs.RulesetsURL, "ini": rs.INIURL}
@@ -179,28 +184,89 @@ func (s *Service) RefreshRuleSource(ctx context.Context, owner, id string) error
 		}
 		snap := source.Update(toSourceSnap(prev), resp, err, err == nil && len(bytes.TrimSpace(resp.Body)) > 0, "empty", s.now())
 		if err := s.Store.Snapshots().Put(ctx, owner, fromSourceSnap(RuleKey(id, part), owner, snap)); err != nil {
+			return nil, err
+		}
+	}
+	return firstErr, nil
+}
+
+// rerenderUsing 重新生成 owner 名下用到某项输入的全部配置。按 ID 翻页，不设总数上限。
+// 列出失败只记日志：调用方（拉取、保存）本身已经成功；重新生成失败时订阅继续提供上一次成功的结果，
+// 失败原因在配置页的诊断中。
+func (s *Service) rerenderUsing(ctx context.Context, owner string, uses func(*profile.Profile) bool) {
+	pg := store.Page{Limit: 200}
+	for {
+		ps, err := s.Store.Profiles().List(ctx, owner, pg)
+		if err != nil {
+			s.Log.Warn("list profiles for rerender", "owner", owner, "error", err)
+			return
+		}
+		for _, p := range ps {
+			var l diag.List
+			doc, err := profile.Parse(p.Doc, &l)
+			if err != nil || !uses(doc) {
+				continue
+			}
+			if _, _, err := s.RenderProfile(ctx, owner, p.ID); err != nil {
+				s.Log.Warn("render after input change", "profile", p.ID, "error", err)
+			}
+		}
+		if len(ps) < pg.Limit {
+			return
+		}
+		pg.After = ps[len(ps)-1].ID
+	}
+}
+
+func usesRules(id string) func(*profile.Profile) bool {
+	return func(p *profile.Profile) bool { return p.Rules != nil && p.Rules.Ref == id }
+}
+
+// SourceSaved 在节点源保存后调用（需求 R47）：订阅地址变了就丢弃旧地址的快照并立即拉取，
+// 否则新地址下仍会下发旧地址的节点；随后重新生成自己与被授权者用到它的配置。
+// 手动拉取的次数已用完时不拉取、等定时任务，此时配置诊断显示「尚未拉取」，而不是旧地址的内容。
+func (s *Service) SourceSaved(ctx context.Context, u *store.User, prevURL string, src *store.Source) error {
+	if src.Kind == string(engine.KindSubscription) && src.URL != prevURL {
+		if err := s.Store.Snapshots().Delete(ctx, u.ID, SourceKey(src.ID)); err != nil {
+			return fmt.Errorf("清除节点源 %s 旧地址的快照: %w", src.ID, err)
+		}
+		if src.URL != "" && s.CheckRefresh(u) == nil {
+			_, err := s.RefreshSource(ctx, u.ID, src.ID)
+			if err == nil {
+				return nil // RefreshSource 已重新生成
+			}
+			if !errors.Is(err, ErrClientFetch) {
+				return err
+			}
+		}
+	}
+	s.rerenderGrantees(ctx, u.ID, src.ID)
+	s.rerenderUsing(ctx, u.ID, usesSource(src.ID))
+	return nil
+}
+
+// RuleSourceSaved 在规则源保存后调用（需求 R47）：地址变了的部分丢弃旧快照并立即拉取，
+// 随后重新生成引用它的配置。粘贴的文本直接生效，不需要拉取。
+func (s *Service) RuleSourceSaved(ctx context.Context, u *store.User, prev, rs *store.RuleSource) error {
+	changed := false
+	for _, c := range []struct{ part, old, cur string }{
+		{"groups", prev.GroupsURL, rs.GroupsURL}, {"rulesets", prev.RulesetsURL, rs.RulesetsURL}, {"ini", prev.INIURL, rs.INIURL},
+	} {
+		if c.old == c.cur {
+			continue
+		}
+		changed = true
+		if err := s.Store.Snapshots().Delete(ctx, u.ID, RuleKey(rs.ID, c.part)); err != nil {
+			return fmt.Errorf("清除规则源 %s 旧地址的快照: %w", rs.ID, err)
+		}
+	}
+	if changed && s.CheckRefresh(u) == nil {
+		if _, err := s.fetchRuleSource(ctx, u.ID, rs.ID); err != nil {
 			return err
 		}
 	}
-	s.rerenderUsing(ctx, owner, func(p *profile.Profile) bool { return p.Rules != nil && p.Rules.Ref == id })
-	return firstErr
-}
-
-func (s *Service) rerenderUsing(ctx context.Context, owner string, uses func(*profile.Profile) bool) {
-	ps, err := s.Store.Profiles().List(ctx, owner, store.Page{Limit: 200})
-	if err != nil {
-		return
-	}
-	for _, p := range ps {
-		var l diag.List
-		doc, err := profile.Parse(p.Doc, &l)
-		if err != nil || !uses(doc) {
-			continue
-		}
-		if _, _, err := s.RenderProfile(ctx, owner, p.ID); err != nil {
-			s.Log.Warn("render after refresh", "profile", p.ID, "error", err)
-		}
-	}
+	s.rerenderUsing(ctx, u.ID, usesRules(rs.ID))
+	return nil
 }
 
 func toSourceSnap(s *store.Snapshot) *source.Snapshot {
@@ -317,8 +383,13 @@ func (s *Service) assemble(ctx context.Context, owner string, p *profile.Profile
 		} else if err != nil {
 			return in, nil, latest, nil, ds, err
 		} else {
-			h := sha256.Sum256(append(append(append([]byte{}, ri.Groups...), ri.Rulesets...), ri.INI...))
-			hashes = append(hashes, "rules:"+hex.EncodeToString(h[:]))
+			// 各部分带长度前缀：内容在 groups 与 rulesets 之间挪动时缓存键也会变；名称也计入（引擎输入包含它）
+			h := sha256.New()
+			for _, part := range [][]byte{[]byte(ri.Name), ri.Groups, ri.Rulesets, ri.INI} {
+				_, _ = fmt.Fprintf(h, "%d:", len(part)) // hash.Hash 的写入不会失败
+				_, _ = h.Write(part)
+			}
+			hashes = append(hashes, "rules:"+hex.EncodeToString(h.Sum(nil)))
 			if ri.Updated.After(latest) {
 				latest = ri.Updated
 			}

@@ -2762,6 +2762,7 @@ export interface paths {
                 404: components["responses"]["Problem"];
             };
         };
+        /** @description 保存后重新生成用到它的配置（含被授权方），订阅链接随之更新；订阅地址变了时丢弃旧地址的快照并立即拉取（手动拉取次数用完时等定时任务）。 */
         put: {
             parameters: {
                 query?: never;
@@ -2988,6 +2989,7 @@ export interface paths {
                 404: components["responses"]["Problem"];
             };
         };
+        /** @description 保存后重新生成引用它的配置，订阅链接随之更新；地址变了的部分丢弃旧快照并立即拉取。 */
         put: {
             parameters: {
                 query?: never;

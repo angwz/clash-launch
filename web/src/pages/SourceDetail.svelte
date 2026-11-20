@@ -90,7 +90,8 @@
       else body.content = content;
       src = await api.put<Source>("/api/v1/sources/" + src.id, body, { ifMatch: src.version });
       toasts.push("ok", t("common.saved"));
-      await loadNodes();
+      // 与规则源一致：保存成功后返回列表（R48）
+      router.go("/sources");
     } catch (e) {
       toasts.push("err", errorText(e));
     } finally {

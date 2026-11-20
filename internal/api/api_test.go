@@ -774,3 +774,76 @@ func TestStatsFlow(t *testing.T) {
 	bob.want(404, "GET", "/api/v1/profiles/"+pid+"/links/"+l.ID+"/requests", nil)
 	bob.want(404, "GET", "/api/v1/admin/stats", nil)
 }
+
+// R47：保存规则源或节点源后，订阅链接立即返回新内容，不必等下一次拉取或再保存一次配置。
+func TestSubscriptionFollowsSourceEdits(t *testing.T) {
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+pid+"/links", map[string]string{}))
+	anon := h.client()
+	sub := func() string {
+		t.Helper()
+		resp, body := anon.do("GET", strings.TrimPrefix(l.URL, h.http.URL), nil)
+		if resp.StatusCode != 200 {
+			t.Fatalf("订阅：%d %s", resp.StatusCode, body)
+		}
+		return string(body)
+	}
+	if y := sub(); !strings.Contains(y, "PROXY") || strings.Contains(y, "Streaming") {
+		t.Fatalf("初始订阅不符合预期：\n%s", y)
+	}
+
+	ruleID := regexp.MustCompile(`rules: \{ref: ([^}]+)\}`).FindStringSubmatch(p.Doc)[1]
+	cur := decode[ruleSourceDTO](t, c.want(200, "GET", "/api/v1/rule-sources/"+ruleID, nil))
+	groups := groupsToml + "[[custom_groups]]\nname = \"Streaming\"\ntype = \"select\"\nrule = [\"[]PROXY\", \"[]DIRECT\"]\n"
+	rulesets := strings.Replace(rulesetsToml, "group = \"PROXY\"", "group = \"Streaming\"\nruleset = \"[]DOMAIN-SUFFIX,example.com\"\n[[rulesets]]\ngroup = \"PROXY\"", 1)
+	c.want(200, "PUT", "/api/v1/rule-sources/"+ruleID, map[string]any{"name": cur.Name, "kind": "toml", "groupsText": groups, "rulesetsText": rulesets},
+		"If-Match", fmt.Sprintf(`"v%d"`, cur.Version))
+	if y := sub(); !strings.Contains(y, "Streaming") || !strings.Contains(y, "DOMAIN-SUFFIX,example.com,Streaming") {
+		t.Fatalf("改了规则源后订阅仍是旧配置：\n%s", y)
+	}
+
+	srcID := regexp.MustCompile(`sources:\n  - ref: (\S+)`).FindStringSubmatch(p.Doc)[1]
+	src := decode[sourceDTO](t, c.want(200, "GET", "/api/v1/sources/"+srcID, nil))
+	c.want(200, "PUT", "/api/v1/sources/"+srcID, map[string]any{
+		"name": src.Name, "kind": "batch",
+		"content": "- {name: 新加坡 03, type: ss, server: 192.0.2.3, port: 8388, cipher: aes-128-gcm, password: example-pw}\n",
+	}, "If-Match", fmt.Sprintf(`"v%d"`, src.Version))
+	if y := sub(); !strings.Contains(y, "新加坡 03") || strings.Contains(y, "香港 01") {
+		t.Fatalf("改了节点源后订阅仍是旧节点：\n%s", y)
+	}
+}
+
+// R47：规则源换了地址时，旧地址的快照立即作废并从新地址拉取，不会在新地址下继续下发旧内容。
+func TestRuleURLChangeRefetches(t *testing.T) {
+	serve := func(geo string) *httptest.Server {
+		body := strings.Replace(rulesetsToml, "GEOIP,CN", "GEOIP,"+geo, 1)
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(body)) }))
+	}
+	a, b := serve("JP"), serve("US")
+	defer a.Close()
+	defer b.Close()
+	h := newHarness(t, nil)
+	c, pid := h.setup()
+	p := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	rs := decode[ruleSourceDTO](t, c.want(201, "POST", "/api/v1/rule-sources", map[string]any{"name": "远程", "kind": "toml", "groupsText": groupsToml, "rulesetsUrl": a.URL + "/r.toml"}))
+	c.want(200, "POST", "/api/v1/rule-sources/"+rs.ID+"/refresh", nil)
+	doc := regexp.MustCompile(`rules: \{ref: [^}]+\}`).ReplaceAllString(p.Doc, "rules: {ref: "+rs.ID+"}")
+	cur := decode[profileDTO](t, c.want(200, "GET", "/api/v1/profiles/"+pid, nil))
+	c.want(200, "PUT", "/api/v1/profiles/"+pid, map[string]string{"doc": doc}, "If-Match", fmt.Sprintf(`"v%d"`, cur.Version))
+	l := decode[linkDTO](t, c.want(201, "POST", "/api/v1/profiles/"+pid+"/links", map[string]string{}))
+	sub := func() string {
+		_, body := h.client().do("GET", strings.TrimPrefix(l.URL, h.http.URL), nil)
+		return string(body)
+	}
+	if y := sub(); !strings.Contains(y, "GEOIP,JP") {
+		t.Fatalf("应使用地址 A 的内容：\n%s", y)
+	}
+	got := decode[ruleSourceDTO](t, c.want(200, "GET", "/api/v1/rule-sources/"+rs.ID, nil))
+	c.want(200, "PUT", "/api/v1/rule-sources/"+rs.ID, map[string]any{"name": "远程", "kind": "toml", "groupsText": groupsToml, "rulesetsUrl": b.URL + "/r.toml"},
+		"If-Match", fmt.Sprintf(`"v%d"`, got.Version))
+	if y := sub(); !strings.Contains(y, "GEOIP,US") || strings.Contains(y, "GEOIP,JP") {
+		t.Fatalf("换地址后应改用地址 B 的内容：\n%s", y)
+	}
+}

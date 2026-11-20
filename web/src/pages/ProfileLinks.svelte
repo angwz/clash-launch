@@ -30,11 +30,12 @@
   const statOf = (id: string) => ps?.links.find((x) => x.id === id);
   const totalAll = $derived((ps?.links ?? []).reduce((a, b) => a + b.total, 0));
   const firstEver = $derived((ps?.links ?? []).map((x) => x.first).filter((x): x is string => !!x).sort()[0]);
+  // 时间线的第二格显示最近一次被订阅（R53）：比首次更能说明配置仍在被使用；首次保留为副标题
+  const lastEver = $derived((ps?.links ?? []).map((x) => x.last).filter((x): x is string => !!x).sort().at(-1));
   // 里程碑：1、10、100、1000……
   const nextMilestone = $derived(10 ** Math.max(0, Math.floor(Math.log10(Math.max(1, totalAll))) + 1));
   const DAY = 86_400_000;
   const daysSince = (iso: string) => Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / DAY) + 1);
-  const daysBetween = (a: string, b: string) => Math.max(0, Math.floor((new Date(b).getTime() - new Date(a).getTime()) / DAY));
 
   async function load() {
     try {
@@ -129,8 +130,8 @@
         <div><span class="muted">{t("links.born")}</span><strong>{i18n.date(ps.createdAt)}</strong><span class="muted">{t("links.days_running", { n: daysSince(ps.createdAt) })}</span></div>
       </div>
       <div class="moment">
-        <Emoji name={firstEver ? "party" : "mailbox"} size={22} />
-        <div><span class="muted">{t("links.first_sub")}</span><strong>{firstEver ? i18n.date(firstEver) : t("links.not_yet")}</strong>{#if firstEver}<span class="muted">{t("links.after_born", { n: daysBetween(ps.createdAt, firstEver) })}</span>{/if}</div>
+        <Emoji name={lastEver ? "party" : "mailbox"} size={22} />
+        <div><span class="muted">{t("links.last_sub")}</span><strong title={lastEver ? i18n.date(lastEver) : undefined}>{lastEver ? i18n.relative(lastEver) : t("links.not_yet")}</strong>{#if firstEver}<span class="muted">{t("links.first_request", { when: i18n.date(firstEver) })}</span>{/if}</div>
       </div>
       <div class="moment">
         <Emoji name={totalAll >= 100 ? "trophy" : "sparkles"} size={22} />

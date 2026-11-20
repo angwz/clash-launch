@@ -28,6 +28,8 @@
       const { id: _id, version, createdAt: _c, updatedAt: _u, ...body } = rs;
       rs = await api.put<RuleSource>("/api/v1/rule-sources/" + rs.id, body, { ifMatch: version });
       toasts.push("ok", t("common.saved"));
+      // 保存成功后返回列表（R48）；失败时留在原页，便于修改后重试
+      router.go("/rules");
     } catch (e) {
       toasts.push("err", errorText(e));
     } finally {

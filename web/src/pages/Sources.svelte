@@ -36,6 +36,17 @@
       toasts.push("err", errorText(e));
     }
   }
+  // 列表中直接删除（R50）：与详情页同一确认与接口；服务端先收回授权、通知对方（R2）
+  async function remove(s: GSource) {
+    if (!confirm(t("source.delete_confirm", { name: s.name }))) return;
+    try {
+      await api.del("/api/v1/sources/" + s.id);
+      toasts.push("ok", t("sources.deleted", { name: s.name }));
+      await load();
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
   // 订阅只由客户端拉取（反馈 #71）：不显示拉取状态与「立即拉取」
   let clientFetch = $state(false);
   $effect(() => {
@@ -171,6 +182,8 @@
                 <button class="btn ghost icon sm" type="button" aria-label={t("share.grant_x", { name: s.name })} title={t("messages.grant_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "grant" })}><Icon name="shield" size={14} /></button>
                 <!-- 编辑：带文字的按钮，比只有箭头更容易发现和点中（反馈 #78） -->
                 <a class="btn sm" href={"/sources/" + s.id}><Icon name="edit" size={14} />{t("common.edit")}</a>
+                <!-- 删除放在最右端、与编辑隔开，样式与配置列表一致（R50） -->
+                <button class="btn sm ghost danger" type="button" aria-label={t("sources.delete_named", { name: s.name })} title={t("common.delete")} onclick={() => void remove(s)}><Icon name="trash" size={14} /></button>
               </td>
             </tr>
           {/each}

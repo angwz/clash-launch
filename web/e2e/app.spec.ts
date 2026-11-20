@@ -391,7 +391,7 @@ test("统计：配置链接页显示足迹与请求记录，管理页显示全�
   await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.2.3" } });
   await login(page);
   await page.goto(`/profiles/${profile}/links`);
-  await expect(page.getByText("第一次被订阅")).toBeVisible();
+  await expect(page.getByText("最近一次被订阅")).toBeVisible();
   await page.getByRole("button", { name: "请求记录" }).first().click();
   await expect(page.locator(".lstats table").first()).toContainText("clash-verge");
   await page.getByRole("tab", { name: "逐条记录" }).click();
@@ -985,4 +985,20 @@ test("昵称与邀请：设置昵称；账户页生成可用多次的邀请，�
   await expect(panel.locator("tbody tr").first()).toContainText("已作废");
   await page.getByLabel("昵称", { exact: true }).fill("");
   await page.locator("section").filter({ hasText: "昵称与用户名" }).getByRole("button", { name: "保存" }).click();
+});
+
+test("节点源：保存后返回列表，列表中可直接删除（R48、R50）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const call = await apiAs(request, baseURL!);
+  const name = "可删除的节点 " + Date.now();
+  const src = await call<{ id: string }>("POST", "/api/v1/sources", {
+    name, kind: "batch", content: "- {name: 测试 01, type: ss, server: 192.0.2.31, port: 8388, cipher: aes-128-gcm, password: example-pw}\n",
+  });
+  await login(page);
+  await page.goto(`/sources/${src.id}`);
+  await page.getByRole("button", { name: "保存" }).click();
+  await expect(page).toHaveURL(/\/sources$/);
+  page.once("dialog", (d) => void d.accept());
+  await page.getByRole("button", { name: `删除节点源「${name}」` }).click();
+  await expect(page.getByRole("link", { name })).toHaveCount(0);
 });

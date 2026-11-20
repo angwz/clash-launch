@@ -244,7 +244,7 @@ func (s *Server) updateSource(w http.ResponseWriter, r *http.Request, p *princip
 		s.fail(w, err)
 		return
 	}
-	before := int64(len(src.Content))
+	before, prevURL := int64(len(src.Content)), src.URL
 	if err := s.applySource(p, req, src); err != nil {
 		s.fail(w, err)
 		return
@@ -257,6 +257,11 @@ func (s *Server) updateSource(w http.ResponseWriter, r *http.Request, p *princip
 	if err := s.Svc.Store.Sources().Update(r.Context(), p.User.ID, src); err != nil {
 		s.fail(w, err)
 		return
+	}
+	// 保存已成功：重新生成用到它的配置，订阅链接随之更新（R47）。这一步出错时只记日志，
+	// 不把已经成功的保存报告为失败；订阅继续提供上一次成功的结果。
+	if err := s.Svc.SourceSaved(r.Context(), p.User, prevURL, src); err != nil {
+		s.Svc.Log.Warn("rerender after source save", "source", src.ID, "error", err)
 	}
 	w.Header().Set("ETag", etag(src.Version))
 	writeJSON(w, http.StatusOK, s.toSource(r, p.User, src))
@@ -459,6 +464,7 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
+	prev := *x
 	if err := s.applyRule(req, x); err != nil {
 		s.fail(w, err)
 		return
@@ -475,6 +481,10 @@ func (s *Server) updateRule(w http.ResponseWriter, r *http.Request, p *principal
 	if err := s.Svc.Store.RuleSources().Update(r.Context(), p.User.ID, x); err != nil {
 		s.fail(w, err)
 		return
+	}
+	// 同节点源：保存成功后重新生成引用它的配置（R47），出错只记日志
+	if err := s.Svc.RuleSourceSaved(r.Context(), p.User, &prev, x); err != nil {
+		s.Svc.Log.Warn("rerender after rule source save", "rule_source", x.ID, "error", err)
 	}
 	w.Header().Set("ETag", etag(x.Version))
 	writeJSON(w, http.StatusOK, toRule(x))
