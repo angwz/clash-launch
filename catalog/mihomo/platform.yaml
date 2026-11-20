@@ -4,19 +4,19 @@ fields:
     type: object
     importance: expert
     doc: general
-    zh: [iptables, "由内核自行配置 iptables 透明代理（仅 Linux）。"]
+    zh: [iptables, "由内核自行配置iptables透明代理（仅Linux）。"]
     en: [iptables, "Let the core configure iptables transparent proxying (Linux only)."]
     fields:
-      - {key: enable, type: bool, default: false, importance: expert, zh: [启用, "启用自动 iptables。"], en: [Enable, "Enable automatic iptables."]}
+      - {key: enable, type: bool, default: false, importance: expert, zh: [启用, "启用自动iptables。"], en: [Enable, "Enable automatic iptables."]}
       - {key: inbound-interface, type: string, default: lo, importance: expert, zh: [入站网卡, "接收被重定向流量的网卡。"], en: [Inbound interface, "Interface receiving redirected traffic."]}
       - {key: bypass, type: list, items: {type: string}, importance: expert, zh: [绕过, "不做重定向的网段。"], en: [Bypass, "CIDRs that are not redirected."]}
-      - {key: dns-redirect, type: bool, default: true, importance: expert, zh: [DNS 重定向, "同时重定向 DNS 请求。"], en: [DNS redirect, "Also redirect DNS queries."]}
+      - {key: dns-redirect, type: bool, default: true, importance: expert, zh: [DNS重定向, "同时重定向DNS请求。"], en: [DNS redirect, "Also redirect DNS queries."]}
   - key: clash-for-android
     type: object
     importance: expert
     doc: general
-    zh: [Clash for Android, "只对 Clash for Android 系客户端生效的设置。"]
+    zh: [Clash for Android, "只对Clash for Android系客户端生效的设置。"]
     en: [Clash for Android, "Settings honoured only by Clash for Android style clients."]
     fields:
-      - {key: append-system-dns, type: bool, importance: expert, zh: [追加系统 DNS, "把系统 DNS 追加到 nameserver。"], en: [Append system DNS, "Append the system DNS to nameserver."]}
+      - {key: append-system-dns, type: bool, importance: expert, zh: [追加系统DNS, "把系统DNS追加到nameserver。"], en: [Append system DNS, "Append the system DNS to nameserver."]}
       - {key: ui-subtitle-pattern, type: string, importance: expert, zh: [副标题规则, "界面中节点副标题的匹配规则。"], en: [Subtitle pattern, "Pattern for proxy subtitles in the UI."]}

@@ -107,6 +107,14 @@ describe("messages", () => {
     expect(unused).toEqual([]);
   });
 
+  // R54：中英文之间的细缝交给 CSS text-autospace，文案里不手写空格，避免「空格 + 细缝」叠加、各处宽窄不一
+  it("中文消息里中文与英文、数字之间不手写空格", () => {
+    const cjk = "[" + String.fromCharCode(0x4e00) + "-" + String.fromCharCode(0x9fff) + "]";
+    const re = new RegExp(cjk + " [A-Za-z0-9{]|[A-Za-z0-9}] " + cjk);
+    const bad = Object.entries(zh).filter(([, v]) => re.test(v)).map(([k]) => k);
+    expect(bad).toEqual([]);
+  });
+
   it("每条消息都是合法的 ICU MessageFormat", () => {
     for (const [lang, msgs] of [["en", en], ["zh-CN", zh]] as const) {
       for (const [k, v] of Object.entries(msgs)) {

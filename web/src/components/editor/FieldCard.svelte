@@ -145,6 +145,7 @@
           {#if field.stability === "deprecated"}<span class="badge err"><Emoji name="prohibited" size={12} />{t("badge.deprecated")}</span>{/if}
           {#if field.since}<span class="badge" class:warn={newer} title={newer ? t("badge.since_newer", { core }) : undefined}>{t("badge.since", { v: field.since })}</span>{/if}
           {#if raw}<span class="badge raw" title={t("raw.badge_hint")}><Icon name="bolt" size={12} />{t("raw.badge")}</span>{/if}
+          {#if inactive}<span class="badge">{t("field.inactive_tag")}</span>{/if}
         </div>
         {#if catalog.summary(field)}<p class="summary">{catalog.summary(field)}</p>{/if}
       </div>
@@ -222,12 +223,10 @@
       opacity var(--dur) var(--ease),
       border-color var(--dur-fast) var(--ease);
   }
+  /* 总开关未开启：不再整体变淡（文字对比度会低于 WCAG AA，R30），改为与页面同色的底（卡片显得下沉）加「暂不生效」标签；
+     不用 --bg-sunken：其上的灰色小字只有 4.38:1 */
   .inactive {
-    opacity: 0.5;
-  }
-  .inactive:hover,
-  .inactive:focus-within {
-    opacity: 0.8;
+    background: var(--bg);
   }
   /* 已设置标记：竖条从中间展开 */
   .card::before {

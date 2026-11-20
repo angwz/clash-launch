@@ -16,5 +16,5 @@ fields:
     values: {type: list, items: {type: string}}
     importance: expert
     doc: sub-rule
-    zh: [子规则, "命名的规则集合，由 SUB-RULE 规则分叉进入。"]
+    zh: [子规则, "命名的规则集合，由SUB-RULE规则分叉进入。"]
     en: [Sub-rules, "Named rule sets entered through SUB-RULE."]

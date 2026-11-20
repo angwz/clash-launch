@@ -33,7 +33,7 @@ npm run e2e                 # Playwright：真实二进制 + 临时数据目录�
 npm run gen:api             # api/openapi.yaml 改动后重新生成 src/lib/api/schema.d.ts
 ```
 
-端到端测试默认用本机已安装的 Edge（`E2E_CHANNEL=msedge`），不下载浏览器；设为 `chrome` 或空字符串可改用其他浏览器。其中 `e2e/a11y.spec.ts` 用 axe 在亮色与暗色下检查主要页面的 WCAG 2.1 A/AA 问题，有任何新问题即失败；尚待决定的配色单独列在文件开头的 `PENDING_CONTRAST`。前端改动后需要重新 `npm run build` 再构建 Go 二进制，嵌入的才是新版本。
+端到端测试默认用本机已安装的 Edge（`E2E_CHANNEL=msedge`），不下载浏览器；设为 `chrome` 或空字符串可改用其他浏览器。其中 `e2e/a11y.spec.ts` 用 axe 在亮色与暗色下检查主要页面的 WCAG 2.1 A/AA 问题，有任何问题即失败，没有豁免。前端改动后需要重新 `npm run build` 再构建 Go 二进制，嵌入的才是新版本。
 
 ## 内核与地理数据
 

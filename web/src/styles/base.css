@@ -23,6 +23,21 @@ html {
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  /* 中文与英文、数字之间的细缝由浏览器排版（R54），文案里不再手写空格；用户内容按原样保存也能受益。
+     Safari 默认关闭，需要显式开启；不支持的浏览器显示为紧贴。 */
+  text-autospace: normal;
+}
+
+/* 代码、配置值与输入框保持逐字显示：这里的空格与否本身有意义 */
+code,
+kbd,
+pre,
+samp,
+.mono,
+input,
+textarea,
+select {
+  text-autospace: no-autospace;
 }
 
 body {

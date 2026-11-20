@@ -5,9 +5,9 @@
 fragments:
   g-head:
     - {key: name, type: string, importance: core, doc: "proxy-groups#name", zh: [名称, "策略组名称；规则与其他组用它引用本组。"], en: [Name, "Group name used by rules and other groups."]}
-    - {key: type, type: string, importance: core, doc: "proxy-groups#type", zh: [类型, "select、url-test、fallback 或 load-balance。"], en: [Type, "select, url-test, fallback or load-balance."]}
+    - {key: type, type: string, importance: core, doc: "proxy-groups#type", zh: [类型, "select、url-test、fallback或load-balance。"], en: [Type, "select, url-test, fallback or load-balance."]}
     - {key: proxies, type: list, items: {type: string}, importance: core, doc: "proxy-groups#proxies", zh: [成员, "组内的节点与其他策略组，按顺序排列。"], en: [Members, "Proxies and other groups in this group, in order."]}
-    - {key: use, type: list, items: {type: string}, importance: recommended, doc: "proxy-groups#use", zh: [引用提供者, "把这些 proxy-provider 的节点加入本组。"], en: [Use providers, "Add the proxies of these proxy-providers."]}
+    - {key: use, type: list, items: {type: string}, importance: recommended, doc: "proxy-groups#use", zh: [引用提供者, "把这些proxy-provider的节点加入本组。"], en: [Use providers, "Add the proxies of these proxy-providers."]}
   g-probe:
     - {key: url, type: string, importance: recommended, doc: "proxy-groups#url", examples: [{value: "https://www.gstatic.com/generate_204", en: Common probe URL, zh: 常用测速地址}],
        zh: [测速地址, "健康检查请求的地址。"], en: [Probe URL, "URL requested by health checks."]}
@@ -16,13 +16,13 @@ fragments:
     - {key: lazy, type: bool, importance: optional, doc: "proxy-groups#lazy", zh: [懒惰测速, "组未被使用时不进行健康检查（默认开启）。"], en: [Lazy, "Skip health checks while the group is unused (on by default)."]}
     - {key: timeout, type: int, importance: expert, doc: "proxy-groups#timeout", zh: [测速超时, "健康检查的超时毫秒数。"], en: [Timeout, "Health check timeout in milliseconds."]}
     - {key: max-failed-times, type: int, importance: expert, doc: "proxy-groups#max-failed-times", zh: [失败次数, "连续失败多少次后强制重新测速。"], en: [Max failures, "Consecutive failures before forcing a re-check."]}
-    - {key: expected-status, type: string, importance: expert, doc: "proxy-groups#expected-status", zh: [期望状态码, "健康检查视为成功的 HTTP 状态码，如 204 或 200/302。"], en: [Expected status, "HTTP status codes counted as healthy, such as 204 or 200/302."]}
+    - {key: expected-status, type: string, importance: expert, doc: "proxy-groups#expected-status", zh: [期望状态码, "健康检查视为成功的HTTP状态码，如204或200/302。"], en: [Expected status, "HTTP status codes counted as healthy, such as 204 or 200/302."]}
     - {key: empty-fallback, type: string, importance: optional, since: "1.19.27", doc: "proxy-groups#empty-fallback",
-       zh: [空组回退, "组内没有可用成员时使用的节点；默认 COMPATIBLE，不能填策略组。"], en: [Empty fallback, "Proxy used when the group has no members; defaults to COMPATIBLE and may not be a group."]}
-    - {key: disable-udp, type: bool, importance: optional, doc: "proxy-groups#disable-udp", zh: [禁用 UDP, "本组不转发 UDP。"], en: [Disable UDP, "Do not relay UDP through this group."]}
-    - {key: include-all, type: bool, importance: optional, doc: "proxy-groups#include-all", zh: [包含全部, "引入全部节点与全部 provider。"], en: [Include all, "Include every proxy and every provider."]}
-    - {key: include-all-proxies, type: bool, importance: optional, doc: "proxy-groups#include-all-proxies", zh: [包含全部节点, "引入全部节点（不含 provider）。"], en: [Include all proxies, "Include every proxy (not providers)."]}
-    - {key: include-all-providers, type: bool, importance: optional, doc: "proxy-groups#include-all-providers", zh: [包含全部提供者, "引入全部 provider。"], en: [Include all providers, "Include every provider."]}
+       zh: [空组回退, "组内没有可用成员时使用的节点；默认COMPATIBLE，不能填策略组。"], en: [Empty fallback, "Proxy used when the group has no members; defaults to COMPATIBLE and may not be a group."]}
+    - {key: disable-udp, type: bool, importance: optional, doc: "proxy-groups#disable-udp", zh: [禁用UDP, "本组不转发UDP。"], en: [Disable UDP, "Do not relay UDP through this group."]}
+    - {key: include-all, type: bool, importance: optional, doc: "proxy-groups#include-all", zh: [包含全部, "引入全部节点与全部provider。"], en: [Include all, "Include every proxy and every provider."]}
+    - {key: include-all-proxies, type: bool, importance: optional, doc: "proxy-groups#include-all-proxies", zh: [包含全部节点, "引入全部节点（不含provider）。"], en: [Include all proxies, "Include every proxy (not providers)."]}
+    - {key: include-all-providers, type: bool, importance: optional, doc: "proxy-groups#include-all-providers", zh: [包含全部提供者, "引入全部provider。"], en: [Include all providers, "Include every provider."]}
     - {key: filter, type: string, importance: recommended, doc: "proxy-groups#filter", zh: [筛选, "只保留名称匹配该正则的节点；多个正则用反引号分隔。"], en: [Filter, "Keep proxies whose names match this regex; separate several with backticks."]}
     - {key: exclude-filter, type: string, importance: optional, doc: "proxy-groups#exclude-filter", zh: [排除, "去掉名称匹配该正则的节点。"], en: [Exclude filter, "Drop proxies whose names match this regex."]}
     - {key: exclude-type, type: string, importance: optional, doc: "proxy-groups#exclude-type", zh: [排除协议, "去掉这些协议的节点，用 | 分隔。"], en: [Exclude types, "Drop proxies of these protocols, separated by |."]}
@@ -79,5 +79,5 @@ fields:
               doc: "proxy-groups/load-balance#strategy"
               zh: [均衡策略, "选择节点的方式。"]
               en: [Strategy, "How a proxy is chosen."]
-            - {key: hash-key, type: string, importance: expert, doc: "proxy-groups/load-balance#hash-key", zh: [哈希键, "consistent-hashing 使用的哈希依据。"], en: [Hash key, "What consistent-hashing hashes on."]}
+            - {key: hash-key, type: string, importance: expert, doc: "proxy-groups/load-balance#hash-key", zh: [哈希键, "consistent-hashing使用的哈希依据。"], en: [Hash key, "What consistent-hashing hashes on."]}
             - {include: g-tail}

@@ -7,12 +7,12 @@ fragments:
     - {key: type, type: string, importance: core, doc: "proxies#type",
        zh: [协议, "节点的协议类型。"], en: [Type, "Protocol type of the proxy."]}
     - {key: server, type: string, importance: core, doc: "proxies#server",
-       zh: [服务器, "服务器的域名或 IP 地址。"], en: [Server, "Server hostname or IP address."]}
+       zh: [服务器, "服务器的域名或IP地址。"], en: [Server, "Server hostname or IP address."]}
     - {key: port, type: int, importance: core, doc: "proxies#port", ui: {widget: port},
        zh: [端口, "服务器端口。"], en: [Port, "Server port."]}
   udp:
     - {key: udp, type: bool, importance: recommended, doc: "proxies#udp",
-       zh: [UDP, "是否允许经此节点转发 UDP。"], en: [UDP, "Allow UDP relay through this proxy."]}
+       zh: [UDP, "是否允许经此节点转发UDP。"], en: [UDP, "Allow UDP relay through this proxy."]}
   dial:
     - key: ip-version
       type: enum
@@ -24,16 +24,16 @@ fragments:
         - {value: ipv6-prefer, en: Prefer IPv6, zh: 优先 IPv6}
       importance: optional
       doc: "proxies#ip-version"
-      zh: [IP 版本, "连接服务器时使用的 IP 版本。"]
+      zh: [IP版本, "连接服务器时使用的IP版本。"]
       en: [IP version, "IP version used to reach the server."]
     - {key: interface-name, type: string, importance: expert, doc: "proxies#interface-name",
        zh: [出口网卡, "经指定网卡连接该节点。"], en: [Interface, "Reach this proxy through the given interface."]}
     - {key: routing-mark, type: int, importance: expert, doc: "proxies#routing-mark",
-       zh: [路由标记, "连接该节点时使用的 fwmark（仅 Linux）。"], en: [Routing mark, "fwmark used to reach this proxy (Linux only)."]}
+       zh: [路由标记, "连接该节点时使用的fwmark（仅Linux）。"], en: [Routing mark, "fwmark used to reach this proxy (Linux only)."]}
     - {key: tfo, type: bool, importance: expert, doc: "proxies#tfo",
-       zh: [TFO, "启用 TCP Fast Open。"], en: [TFO, "Enable TCP Fast Open."]}
+       zh: [TFO, "启用TCP Fast Open。"], en: [TFO, "Enable TCP Fast Open."]}
     - {key: mptcp, type: bool, importance: expert, doc: "proxies#mptcp",
-       zh: [MPTCP, "启用多路径 TCP。"], en: [MPTCP, "Enable Multipath TCP."]}
+       zh: [MPTCP, "启用多路径TCP。"], en: [MPTCP, "Enable Multipath TCP."]}
     - {key: dialer-proxy, type: string, importance: optional, doc: "proxies#dialer-proxy", related: [proxies],
        zh: [前置代理, "先经过这个节点或策略组再连接本节点（链式代理）。"], en: [Dialer proxy, "Reach this proxy through another proxy or group (chaining)."]}
   smux:
@@ -41,7 +41,7 @@ fragments:
       type: object
       importance: expert
       doc: "proxies#smux"
-      zh: [多路复用, "sing-mux 多路复用；服务端也需要支持。"]
+      zh: [多路复用, "sing-mux多路复用；服务端也需要支持。"]
       en: [Multiplexing, "sing-mux multiplexing; the server must support it too."]
       fields:
         - {key: enabled, type: bool, importance: expert, doc: "proxies#smuxenabled", zh: [启用, "启用多路复用。"], en: [Enable, "Enable multiplexing."]}
@@ -55,45 +55,45 @@ fragments:
           doc: "proxies#smuxprotocol"
           zh: [复用协议, "多路复用使用的协议。"]
           en: [Protocol, "Multiplexing protocol."]
-        - {key: max-connections, type: int, importance: expert, doc: "proxies#smuxmax-connections", zh: [最大连接, "最大底层连接数；与 max-streams 冲突。"], en: [Max connections, "Maximum underlying connections; conflicts with max-streams."]}
+        - {key: max-connections, type: int, importance: expert, doc: "proxies#smuxmax-connections", zh: [最大连接, "最大底层连接数；与max-streams冲突。"], en: [Max connections, "Maximum underlying connections; conflicts with max-streams."]}
         - {key: min-streams, type: int, importance: expert, doc: "proxies#smuxmin-streams", zh: [最少流, "开新连接前单连接的最少流数。"], en: [Min streams, "Streams per connection before opening a new one."]}
         - {key: max-streams, type: int, importance: expert, doc: "proxies#smuxmax-streams", zh: [最多流, "开新连接前单连接的最多流数。"], en: [Max streams, "Maximum streams per connection before opening a new one."]}
-        - {key: padding, type: bool, importance: expert, doc: "proxies#smuxpadding", zh: [填充, "启用填充；需要较新的 sing-box 服务端。"], en: [Padding, "Enable padding; needs a recent sing-box server."]}
+        - {key: padding, type: bool, importance: expert, doc: "proxies#smuxpadding", zh: [填充, "启用填充；需要较新的sing-box服务端。"], en: [Padding, "Enable padding; needs a recent sing-box server."]}
         - {key: statistic, type: bool, importance: expert, doc: "proxies#smuxstatistic", zh: [显示底层连接, "在面板中显示底层连接。"], en: [Show connections, "Show underlying connections in dashboards."]}
-        - {key: only-tcp, type: bool, importance: expert, doc: "proxies#smuxonly-tcp", zh: [仅 TCP, "UDP 不经过多路复用。"], en: [TCP only, "UDP bypasses multiplexing."]}
+        - {key: only-tcp, type: bool, importance: expert, doc: "proxies#smuxonly-tcp", zh: [仅TCP, "UDP不经过多路复用。"], en: [TCP only, "UDP bypasses multiplexing."]}
         - key: brutal-opts
           type: object
           importance: expert
           doc: "proxies#smuxbrutal-opts"
-          zh: [TCP Brutal, "启用 TCP Brutal 拥塞控制。"]
+          zh: [TCP Brutal, "启用TCP Brutal拥塞控制。"]
           en: [TCP Brutal, "Enable TCP Brutal congestion control."]
           fields:
-            - {key: enabled, type: bool, importance: expert, doc: "proxies#smuxbrutal-optsenabled", zh: [启用, "启用 TCP Brutal。"], en: [Enable, "Enable TCP Brutal."]}
-            - {key: up, type: string, importance: expert, doc: "proxies#smuxbrutal-optsupdown", zh: [上行, "上行带宽，如 50 Mbps。"], en: [Upload, "Upload bandwidth, e.g. 50 Mbps."]}
-            - {key: down, type: string, importance: expert, doc: "proxies#smuxbrutal-optsupdown", zh: [下行, "下行带宽，如 100 Mbps。"], en: [Download, "Download bandwidth, e.g. 100 Mbps."]}
+            - {key: enabled, type: bool, importance: expert, doc: "proxies#smuxbrutal-optsenabled", zh: [启用, "启用TCP Brutal。"], en: [Enable, "Enable TCP Brutal."]}
+            - {key: up, type: string, importance: expert, doc: "proxies#smuxbrutal-optsupdown", zh: [上行, "上行带宽，如50 Mbps。"], en: [Upload, "Upload bandwidth, e.g. 50 Mbps."]}
+            - {key: down, type: string, importance: expert, doc: "proxies#smuxbrutal-optsupdown", zh: [下行, "下行带宽，如100 Mbps。"], en: [Download, "Download bandwidth, e.g. 100 Mbps."]}
 
   # —— TLS ——
   tls-switch:
-    - {key: tls, type: bool, importance: core, doc: "proxies/tls#tls_1", zh: [TLS, "启用 TLS。"], en: [TLS, "Enable TLS."]}
+    - {key: tls, type: bool, importance: core, doc: "proxies/tls#tls_1", zh: [TLS, "启用TLS。"], en: [TLS, "Enable TLS."]}
   sni:
-    - {key: sni, type: string, importance: recommended, doc: "proxies/tls#sniservername", zh: [SNI, "TLS 握手中的服务器名称。"], en: [SNI, "Server name sent in the TLS handshake."]}
+    - {key: sni, type: string, importance: recommended, doc: "proxies/tls#sniservername", zh: [SNI, "TLS握手中的服务器名称。"], en: [SNI, "Server name sent in the TLS handshake."]}
   servername:
-    - {key: servername, type: string, importance: recommended, doc: "proxies/tls#sniservername", zh: [SNI, "TLS 握手中的服务器名称（此协议使用 servername 键）。"], en: [SNI, "Server name sent in the TLS handshake (this protocol uses the servername key)."]}
+    - {key: servername, type: string, importance: recommended, doc: "proxies/tls#sniservername", zh: [SNI, "TLS握手中的服务器名称（此协议使用servername键）。"], en: [SNI, "Server name sent in the TLS handshake (this protocol uses the servername key)."]}
   alpn:
-    - {key: alpn, type: list, items: {type: string}, importance: optional, doc: "proxies/tls#alpn", zh: [ALPN, "TLS 应用层协议协商列表。"], en: [ALPN, "TLS application protocol negotiation list."]}
+    - {key: alpn, type: list, items: {type: string}, importance: optional, doc: "proxies/tls#alpn", zh: [ALPN, "TLS应用层协议协商列表。"], en: [ALPN, "TLS application protocol negotiation list."]}
   tls-verify:
-    - {key: fingerprint, type: string, importance: expert, doc: "proxies/tls#fingerprint", zh: [证书指纹, "固定服务器证书的 SHA-256 指纹（证书锁定）。"], en: [Certificate pin, "SHA-256 fingerprint of the server certificate (pinning)."]}
-    - {key: certificate, type: string, importance: expert, doc: "proxies/tls#certificate", zh: [客户端证书, "mTLS 客户端证书（PEM 或路径），需与 private-key 同时填写。"], en: [Client certificate, "mTLS client certificate (PEM or path); set together with private-key."]}
-    - {key: private-key, type: string, importance: expert, sensitive: true, doc: "proxies/tls#private-key", zh: [客户端私钥, "mTLS 客户端私钥（PEM 或路径）。"], en: [Client key, "mTLS client private key (PEM or path)."]}
+    - {key: fingerprint, type: string, importance: expert, doc: "proxies/tls#fingerprint", zh: [证书指纹, "固定服务器证书的SHA-256指纹（证书锁定）。"], en: [Certificate pin, "SHA-256 fingerprint of the server certificate (pinning)."]}
+    - {key: certificate, type: string, importance: expert, doc: "proxies/tls#certificate", zh: [客户端证书, "mTLS客户端证书（PEM或路径），需与private-key同时填写。"], en: [Client certificate, "mTLS client certificate (PEM or path); set together with private-key."]}
+    - {key: private-key, type: string, importance: expert, sensitive: true, doc: "proxies/tls#private-key", zh: [客户端私钥, "mTLS客户端私钥（PEM或路径）。"], en: [Client key, "mTLS client private key (PEM or path)."]}
     - key: client-fingerprint
       type: string
       importance: optional
       doc: "proxies/tls#client-fingerprint"
       examples: [{value: chrome, en: Look like Chrome, zh: 模拟 Chrome}]
-      zh: [客户端指纹, "模拟浏览器的 TLS 指纹，如 chrome、firefox、safari、random。"]
+      zh: [客户端指纹, "模拟浏览器的TLS指纹，如chrome、firefox、safari、random。"]
       en: [Client fingerprint, "Mimic a browser TLS fingerprint such as chrome, firefox, safari or random."]
     - {key: skip-cert-verify, type: bool, importance: optional, doc: "proxies/tls#skip-cert-verify", zh: [跳过证书校验, "不校验服务器证书；有被中间人攻击的风险。"], en: [Skip verification, "Do not verify the server certificate; exposes you to man-in-the-middle attacks."]}
-    - {key: name-cert-verify, type: string, importance: expert, doc: "proxies/tls#name-cert-verify", zh: [校验名称, "只修改证书 DNSName 的校验目标，不改变 SNI。"], en: [Verify name, "Change only the certificate DNSName checked, not the SNI."]}
+    - {key: name-cert-verify, type: string, importance: expert, doc: "proxies/tls#name-cert-verify", zh: [校验名称, "只修改证书DNSName的校验目标，不改变SNI。"], en: [Verify name, "Change only the certificate DNSName checked, not the SNI."]}
   tls-ext:
     - key: ech-opts
       type: object
@@ -102,55 +102,55 @@ fragments:
       zh: [ECH, "加密客户端问候（Encrypted Client Hello）。"]
       en: [ECH, "Encrypted Client Hello."]
       fields:
-        - {key: enable, type: bool, importance: expert, doc: "proxies/tls#ech-optsenable", zh: [启用, "启用 ECH（必须手动开启）。"], en: [Enable, "Enable ECH (must be turned on explicitly)."]}
-        - {key: config, type: string, importance: expert, doc: "proxies/tls#ech-optsconfig", zh: [ECH 配置, "base64 编码的 ECH 参数；留空时通过 DNS 获取。"], en: [ECH config, "Base64 ECH parameters; fetched over DNS when empty."]}
-        - {key: query-server-name, type: string, importance: expert, doc: "proxies/tls#ech-optsquery-server-name", zh: [查询域名, "通过 DNS 获取 ECH 参数时使用的域名。"], en: [Query name, "Domain used to fetch ECH parameters over DNS."]}
+        - {key: enable, type: bool, importance: expert, doc: "proxies/tls#ech-optsenable", zh: [启用, "启用ECH（必须手动开启）。"], en: [Enable, "Enable ECH (must be turned on explicitly)."]}
+        - {key: config, type: string, importance: expert, doc: "proxies/tls#ech-optsconfig", zh: [ECH配置, "base64编码的ECH参数；留空时通过DNS获取。"], en: [ECH config, "Base64 ECH parameters; fetched over DNS when empty."]}
+        - {key: query-server-name, type: string, importance: expert, doc: "proxies/tls#ech-optsquery-server-name", zh: [查询域名, "通过DNS获取ECH参数时使用的域名。"], en: [Query name, "Domain used to fetch ECH parameters over DNS."]}
     - key: reality-opts
       type: object
       importance: recommended
       doc: "proxies/tls#reality-opts"
-      zh: [REALITY, "REALITY 参数；填写后启用 REALITY。"]
+      zh: [REALITY, "REALITY参数；填写后启用REALITY。"]
       en: [REALITY, "REALITY parameters; filling them enables REALITY."]
       fields:
-        - {key: public-key, type: string, importance: core, doc: "proxies/tls#reality-optspublic-key", zh: [公钥, "服务端的 REALITY 公钥。"], en: [Public key, "Server REALITY public key."]}
-        - {key: short-id, type: string, importance: recommended, doc: "proxies/tls#reality-optsshort-id", zh: [Short ID, "服务端允许的 short-id 之一。"], en: [Short ID, "One of the server's short IDs."]}
-        - {key: support-x25519mlkem768, type: bool, importance: expert, doc: "proxies/tls#reality-optssupport-x25519mlkem768", zh: [后量子密钥交换, "启用 X25519MLKEM768。"], en: [Post-quantum key exchange, "Enable X25519MLKEM768."]}
+        - {key: public-key, type: string, importance: core, doc: "proxies/tls#reality-optspublic-key", zh: [公钥, "服务端的REALITY公钥。"], en: [Public key, "Server REALITY public key."]}
+        - {key: short-id, type: string, importance: recommended, doc: "proxies/tls#reality-optsshort-id", zh: [Short ID, "服务端允许的short-id之一。"], en: [Short ID, "One of the server's short IDs."]}
+        - {key: support-x25519mlkem768, type: bool, importance: expert, doc: "proxies/tls#reality-optssupport-x25519mlkem768", zh: [后量子密钥交换, "启用X25519MLKEM768。"], en: [Post-quantum key exchange, "Enable X25519MLKEM768."]}
     - key: shadow-tls-opts
       type: object
       importance: expert
       stability: experimental
       doc: proxies/tls
-      zh: [ShadowTLS, "在 TLS 之上使用 ShadowTLS；需要 tls: true，以 servername（或 sni）作为 ShadowTLS 的 SNI。"]
+      zh: [ShadowTLS, "在TLS之上使用ShadowTLS；需要tls: true，以servername（或sni）作为ShadowTLS的SNI。"]
       en: [ShadowTLS, "Use ShadowTLS on top of TLS; needs tls: true and uses servername (or sni) as the ShadowTLS SNI."]
       fields:
-        - {key: version, type: int, importance: recommended, zh: [版本, "ShadowTLS 协议版本 1、2 或 3；留空时为 2。"], en: [Version, "ShadowTLS protocol version 1, 2 or 3; 2 when empty."]}
-        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "ShadowTLS 密码。"], en: [Password, "ShadowTLS password."]}
+        - {key: version, type: int, importance: recommended, zh: [版本, "ShadowTLS协议版本1、2或3；留空时为2。"], en: [Version, "ShadowTLS protocol version 1, 2 or 3; 2 when empty."]}
+        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "ShadowTLS密码。"], en: [Password, "ShadowTLS password."]}
     - key: restls-opts
       type: object
       importance: expert
       stability: experimental
       doc: proxies/tls
-      zh: [Restls, "在 TLS 之上使用 Restls；需要 tls: true，以 servername（或 sni）作为 Restls 的 SNI。"]
+      zh: [Restls, "在TLS之上使用Restls；需要tls: true，以servername（或sni）作为Restls的SNI。"]
       en: [Restls, "Use Restls on top of TLS; needs tls: true and uses servername (or sni) as the Restls SNI."]
       fields:
-        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Restls 密码。"], en: [Password, "Restls password."]}
+        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Restls密码。"], en: [Password, "Restls password."]}
         - key: version-hint
           type: enum
           importance: recommended
           enum: [{value: tls12, en: TLS 1.2, zh: TLS 1.2}, {value: tls13, en: TLS 1.3, zh: TLS 1.3}]
-          zh: [TLS 版本提示, "伪装服务器使用的 TLS 版本。"]
+          zh: [TLS版本提示, "伪装服务器使用的TLS版本。"]
           en: [TLS version hint, "TLS version used by the camouflage server."]
-        - {key: restls-script, type: string, importance: expert, zh: [Restls 脚本, "控制报文长度与时序的 Restls 脚本；留空使用默认。"], en: [Restls script, "Restls script controlling record lengths and timing; default when empty."]}
+        - {key: restls-script, type: string, importance: expert, zh: [Restls脚本, "控制报文长度与时序的Restls脚本；留空使用默认。"], en: [Restls script, "Restls script controlling record lengths and timing; default when empty."]}
     - key: jls-opts
       type: object
       importance: expert
       stability: experimental
       doc: proxies/tls
-      zh: [JLS, "在 TLS 之上使用 JLS；需要 tls: true，以 servername（或 sni）作为 JLS 的 SNI。"]
+      zh: [JLS, "在TLS之上使用JLS；需要tls: true，以servername（或sni）作为JLS的SNI。"]
       en: [JLS, "Use JLS on top of TLS; needs tls: true and uses servername (or sni) as the JLS SNI."]
       fields:
-        - {key: username, type: string, importance: core, zh: [用户名, "JLS 用户名。"], en: [Username, "JLS username."]}
-        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "JLS 密码。"], en: [Password, "JLS password."]}
+        - {key: username, type: string, importance: core, zh: [用户名, "JLS用户名。"], en: [Username, "JLS username."]}
+        - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "JLS密码。"], en: [Password, "JLS password."]}
 
   # —— 传输 ——
   network:
@@ -159,31 +159,31 @@ fragments:
       importance: core
       doc: proxies/transport
       examples: [{value: ws, en: WebSocket, zh: WebSocket}, {value: grpc, en: gRPC, zh: gRPC}]
-      zh: [传输方式, "底层传输：tcp、ws、http、h2、grpc 等，取值依协议而定。"]
+      zh: [传输方式, "底层传输：tcp、ws、http、h2、grpc等，取值依协议而定。"]
       en: [Network, "Underlying transport such as tcp, ws, http, h2 or grpc, depending on the protocol."]
   ws-opts:
     - key: ws-opts
       type: object
       importance: recommended
       doc: "proxies/transport#ws-opts"
-      zh: [WebSocket, "network 为 ws 时的参数。"]
+      zh: [WebSocket, "network为ws时的参数。"]
       en: [WebSocket, "Options when network is ws."]
       fields:
-        - {key: path, type: string, importance: core, doc: "proxies/transport#ws-optspath", zh: [路径, "WebSocket 请求路径。"], en: [Path, "WebSocket request path."]}
-        - {key: headers, type: map, values: {type: string}, importance: recommended, doc: "proxies/transport#ws-optsheaders", zh: [请求头, "附加请求头，常用 Host。"], en: [Headers, "Extra request headers, typically Host."]}
-        - {key: max-early-data, type: int, importance: expert, doc: proxies/transport, zh: [早期数据, "0-RTT 早期数据的最大字节数。"], en: [Early data, "Maximum bytes of 0-RTT early data."]}
+        - {key: path, type: string, importance: core, doc: "proxies/transport#ws-optspath", zh: [路径, "WebSocket请求路径。"], en: [Path, "WebSocket request path."]}
+        - {key: headers, type: map, values: {type: string}, importance: recommended, doc: "proxies/transport#ws-optsheaders", zh: [请求头, "附加请求头，常用Host。"], en: [Headers, "Extra request headers, typically Host."]}
+        - {key: max-early-data, type: int, importance: expert, doc: proxies/transport, zh: [早期数据, "0-RTT早期数据的最大字节数。"], en: [Early data, "Maximum bytes of 0-RTT early data."]}
         - {key: early-data-header-name, type: string, importance: expert, doc: proxies/transport, zh: [早期数据头, "携带早期数据的请求头名称。"], en: [Early data header, "Header that carries early data."]}
-        - {key: v2ray-http-upgrade, type: bool, importance: expert, doc: proxies/transport, zh: [HTTPUpgrade, "使用 v2ray 的 HTTPUpgrade 代替 WebSocket。"], en: [HTTPUpgrade, "Use v2ray HTTPUpgrade instead of WebSocket."]}
-        - {key: v2ray-http-upgrade-fast-open, type: bool, importance: expert, doc: proxies/transport, zh: [HTTPUpgrade 快速打开, "不等待升级响应即发送数据。"], en: [HTTPUpgrade fast open, "Send data without waiting for the upgrade response."]}
+        - {key: v2ray-http-upgrade, type: bool, importance: expert, doc: proxies/transport, zh: [HTTPUpgrade, "使用v2ray的HTTPUpgrade代替WebSocket。"], en: [HTTPUpgrade, "Use v2ray HTTPUpgrade instead of WebSocket."]}
+        - {key: v2ray-http-upgrade-fast-open, type: bool, importance: expert, doc: proxies/transport, zh: [HTTPUpgrade快速打开, "不等待升级响应即发送数据。"], en: [HTTPUpgrade fast open, "Send data without waiting for the upgrade response."]}
   http-opts:
     - key: http-opts
       type: object
       importance: optional
       doc: "proxies/transport#http-opts"
-      zh: [HTTP 伪装, "network 为 http 时的参数。"]
+      zh: [HTTP伪装, "network为http时的参数。"]
       en: [HTTP, "Options when network is http."]
       fields:
-        - {key: method, type: string, importance: optional, doc: "proxies/transport#http-optsmethod", zh: [方法, "HTTP 请求方法。"], en: [Method, "HTTP request method."]}
+        - {key: method, type: string, importance: optional, doc: "proxies/transport#http-optsmethod", zh: [方法, "HTTP请求方法。"], en: [Method, "HTTP request method."]}
         - {key: path, type: list, items: {type: string}, importance: optional, doc: "proxies/transport#http-optspath", zh: [路径, "请求路径列表。"], en: [Path, "Request paths."]}
         - {key: headers, type: map, values: {type: list, items: {type: string}}, importance: optional, doc: "proxies/transport#http-optsheaders", zh: [请求头, "请求头，每个值是列表。"], en: [Headers, "Request headers; each value is a list."]}
   h2-opts:
@@ -191,7 +191,7 @@ fragments:
       type: object
       importance: optional
       doc: "proxies/transport#h2-opts"
-      zh: [HTTP/2, "network 为 h2 时的参数。"]
+      zh: [HTTP/2, "network为h2时的参数。"]
       en: [HTTP/2, "Options when network is h2."]
       fields:
         - {key: host, type: list, items: {type: string}, importance: optional, doc: "proxies/transport#h2-optshost", zh: [主机, "主机名列表。"], en: [Host, "Host names."]}
@@ -201,12 +201,12 @@ fragments:
       type: object
       importance: optional
       doc: "proxies/transport#grpc-opts"
-      zh: [gRPC, "network 为 grpc 时的参数。"]
+      zh: [gRPC, "network为grpc时的参数。"]
       en: [gRPC, "Options when network is grpc."]
       fields:
-        - {key: grpc-service-name, type: string, importance: core, doc: "proxies/transport#grpc-optsgrpc-service-name", zh: [服务名, "gRPC 服务名。"], en: [Service name, "gRPC service name."]}
-        - {key: grpc-user-agent, type: string, importance: expert, doc: "proxies/transport#grpc-optsgrpc-user-agent", zh: [User-Agent, "gRPC 请求的 User-Agent。"], en: [User-Agent, "User-Agent of gRPC requests."]}
-        - {key: ping-interval, type: int, importance: expert, doc: "proxies/transport#grpc-optsping-interval", zh: [心跳间隔, "HTTP/2 PING 间隔秒数。"], en: [Ping interval, "HTTP/2 PING interval in seconds."]}
+        - {key: grpc-service-name, type: string, importance: core, doc: "proxies/transport#grpc-optsgrpc-service-name", zh: [服务名, "gRPC服务名。"], en: [Service name, "gRPC service name."]}
+        - {key: grpc-user-agent, type: string, importance: expert, doc: "proxies/transport#grpc-optsgrpc-user-agent", zh: [User-Agent, "gRPC请求的User-Agent。"], en: [User-Agent, "User-Agent of gRPC requests."]}
+        - {key: ping-interval, type: int, importance: expert, doc: "proxies/transport#grpc-optsping-interval", zh: [心跳间隔, "HTTP/2 PING间隔秒数。"], en: [Ping interval, "HTTP/2 PING interval in seconds."]}
         - {key: max-connections, type: int, importance: expert, doc: "proxies/transport#grpc-optsmax-connections", zh: [最大连接, "底层连接上限。"], en: [Max connections, "Maximum underlying connections."]}
         - {key: min-streams, type: int, importance: expert, doc: "proxies/transport#grpc-optsmin-streams", zh: [最少流, "开新连接前的最少流数。"], en: [Min streams, "Streams before opening a new connection."]}
         - {key: max-streams, type: int, importance: expert, doc: "proxies/transport#grpc-optsmax-streams", zh: [最多流, "单连接的最多流数。"], en: [Max streams, "Maximum streams per connection."]}
@@ -214,7 +214,7 @@ fragments:
   # 取值与默认值依据 transport/xhttp/config.go（mihomo v1.19.33）。
   xhttp-core:
     - {key: path, type: string, default: /, importance: core, zh: [路径, "请求路径；不以 / 开头时自动补上。"], en: [Path, "Request path; a leading / is added when missing."]}
-    - {key: host, type: string, importance: optional, zh: [主机, "Host 请求头；留空使用服务器地址。"], en: [Host, "Host header; the server address when empty."]}
+    - {key: host, type: string, importance: optional, zh: [主机, "Host请求头；留空使用服务器地址。"], en: [Host, "Host header; the server address when empty."]}
     - key: mode
       type: enum
       default: auto
@@ -224,14 +224,14 @@ fragments:
         - {value: stream-one, en: Stream one, zh: 单流（stream-one）}
         - {value: stream-up, en: Stream up, zh: 上行流（stream-up）}
         - {value: packet-up, en: Packet up, zh: 上行分包（packet-up）}
-      zh: [模式, "auto 时：使用 REALITY 且设置了 download-settings 为 stream-up，只使用 REALITY 为 stream-one，否则为 packet-up。"]
+      zh: [模式, "auto时：使用REALITY且设置了download-settings为stream-up，只使用REALITY为stream-one，否则为packet-up。"]
       en: [Mode, "auto picks stream-up with REALITY plus download-settings, stream-one with REALITY alone, and packet-up otherwise."]
     - {key: headers, type: map, values: {type: string}, importance: optional, zh: [请求头, "附加请求头。"], en: [Headers, "Extra request headers."]}
-    - {key: no-grpc-header, type: bool, default: false, importance: expert, zh: [不带 gRPC 头, "stream-up/stream-one 时不发送 gRPC 风格的 Content-Type。"], en: [No gRPC header, "Do not send the gRPC-style Content-Type in stream-up/stream-one."]}
-    - {key: x-padding-bytes, type: string, importance: expert, zh: [填充长度, "每个请求的填充字节数范围，如 100-1000。"], en: [Padding bytes, "Padding size range per request, e.g. 100-1000."]}
-    - {key: x-padding-obfs-mode, type: bool, default: false, importance: expert, zh: [填充混淆模式, "启用后按 x-padding-key、header、placement、method 放置填充。"], en: [Padding obfs mode, "Place padding according to x-padding-key, header, placement and method."]}
-    - {key: x-padding-key, type: string, importance: expert, zh: [填充键名, "放置填充时使用的键名，如 x_padding。"], en: [Padding key, "Key name used for padding, e.g. x_padding."]}
-    - {key: x-padding-header, type: string, importance: expert, zh: [填充请求头, "放在请求头时使用的头名称，如 Referer。"], en: [Padding header, "Header name used when padding goes into a header, e.g. Referer."]}
+    - {key: no-grpc-header, type: bool, default: false, importance: expert, zh: [不带gRPC头, "stream-up/stream-one时不发送gRPC风格的Content-Type。"], en: [No gRPC header, "Do not send the gRPC-style Content-Type in stream-up/stream-one."]}
+    - {key: x-padding-bytes, type: string, importance: expert, zh: [填充长度, "每个请求的填充字节数范围，如100-1000。"], en: [Padding bytes, "Padding size range per request, e.g. 100-1000."]}
+    - {key: x-padding-obfs-mode, type: bool, default: false, importance: expert, zh: [填充混淆模式, "启用后按x-padding-key、header、placement、method放置填充。"], en: [Padding obfs mode, "Place padding according to x-padding-key, header, placement and method."]}
+    - {key: x-padding-key, type: string, importance: expert, zh: [填充键名, "放置填充时使用的键名，如x_padding。"], en: [Padding key, "Key name used for padding, e.g. x_padding."]}
+    - {key: x-padding-header, type: string, importance: expert, zh: [填充请求头, "放在请求头时使用的头名称，如Referer。"], en: [Padding header, "Header name used when padding goes into a header, e.g. Referer."]}
     - key: x-padding-placement
       type: enum
       importance: expert
@@ -259,7 +259,7 @@ fragments:
         - {value: PUT, en: PUT, zh: PUT}
         - {value: PATCH, en: PATCH, zh: PATCH}
         - {value: DELETE, en: DELETE, zh: DELETE}
-      zh: [上行方法, "上行请求使用的 HTTP 方法。"]
+      zh: [上行方法, "上行请求使用的HTTP方法。"]
       en: [Uplink method, "HTTP method of uplink requests."]
     - key: session-placement
       type: enum
@@ -270,11 +270,11 @@ fragments:
         - {value: query, en: Query, zh: 查询串}
         - {value: cookie, en: Cookie, zh: Cookie}
         - {value: header, en: Header, zh: 请求头}
-      zh: [会话 ID 位置, "会话 ID 放在哪里。"]
+      zh: [会话ID位置, "会话ID放在哪里。"]
       en: [Session placement, "Where the session ID goes."]
-    - {key: session-key, type: string, importance: expert, zh: [会话 ID 键名, "放在查询串、Cookie 或请求头时使用的键名。"], en: [Session key, "Key used when the session ID goes into a query, cookie or header."]}
-    - {key: session-table, type: string, importance: expert, zh: [会话 ID 字符表, "生成会话 ID 的字符表：留空为 32 位十六进制，uuid 为 UUID，也可写 hex、base36、Base62、number 等预设或自定义 ASCII 字符。"], en: [Session table, "Characters for session IDs: 32 hex digits when empty, uuid for a UUID, a preset such as hex, base36, Base62 or number, or custom ASCII characters."]}
-    - {key: session-length, type: string, default: 16-32, importance: expert, zh: [会话 ID 长度, "使用字符表时的长度范围。"], en: [Session length, "Length range when a session table is used."]}
+    - {key: session-key, type: string, importance: expert, zh: [会话ID键名, "放在查询串、Cookie或请求头时使用的键名。"], en: [Session key, "Key used when the session ID goes into a query, cookie or header."]}
+    - {key: session-table, type: string, importance: expert, zh: [会话ID字符表, "生成会话ID的字符表：留空为32位十六进制，uuid为UUID，也可写hex、base36、Base62、number等预设或自定义ASCII字符。"], en: [Session table, "Characters for session IDs: 32 hex digits when empty, uuid for a UUID, a preset such as hex, base36, Base62 or number, or custom ASCII characters."]}
+    - {key: session-length, type: string, default: 16-32, importance: expert, zh: [会话ID长度, "使用字符表时的长度范围。"], en: [Session length, "Length range when a session table is used."]}
     - key: seq-placement
       type: enum
       default: path
@@ -284,9 +284,9 @@ fragments:
         - {value: query, en: Query, zh: 查询串}
         - {value: cookie, en: Cookie, zh: Cookie}
         - {value: header, en: Header, zh: 请求头}
-      zh: [序号位置, "packet-up 的包序号放在哪里。"]
+      zh: [序号位置, "packet-up的包序号放在哪里。"]
       en: [Sequence placement, "Where packet-up sequence numbers go."]
-    - {key: seq-key, type: string, importance: expert, zh: [序号键名, "放在查询串、Cookie 或请求头时使用的键名。"], en: [Sequence key, "Key used when the sequence goes into a query, cookie or header."]}
+    - {key: seq-key, type: string, importance: expert, zh: [序号键名, "放在查询串、Cookie或请求头时使用的键名。"], en: [Sequence key, "Key used when the sequence goes into a query, cookie or header."]}
     - key: uplink-data-placement
       type: enum
       default: body
@@ -295,32 +295,32 @@ fragments:
         - {value: body, en: Body, zh: 请求体}
         - {value: cookie, en: Cookie, zh: Cookie}
         - {value: header, en: Header, zh: 请求头}
-      zh: [上行数据位置, "上行数据放在请求体、Cookie 还是请求头。"]
+      zh: [上行数据位置, "上行数据放在请求体、Cookie还是请求头。"]
       en: [Uplink data placement, "Whether uplink data goes into the body, a cookie or a header."]
-    - {key: uplink-data-key, type: string, importance: expert, zh: [上行数据键名, "上行数据放在 Cookie 或请求头时使用的键名。"], en: [Uplink data key, "Key used when uplink data goes into a cookie or header."]}
-    - {key: uplink-chunk-size, type: string, importance: expert, zh: [上行分块大小, "上行数据不在请求体时每块的大小；0 为默认。"], en: [Uplink chunk size, "Chunk size when uplink data is not in the body; 0 for the default."]}
-    - {key: sc-max-each-post-bytes, type: string, default: "1000000", importance: expert, zh: [单次上行上限, "packet-up 每个 POST 的最大字节数（可写范围）。"], en: [Max bytes per post, "Maximum bytes per packet-up POST (a range is allowed)."]}
-    - {key: sc-min-posts-interval-ms, type: string, default: "30", importance: expert, zh: [上行最小间隔, "packet-up 两次 POST 之间的最小毫秒数（可写范围）。"], en: [Min post interval, "Minimum milliseconds between packet-up POSTs (a range is allowed)."]}
+    - {key: uplink-data-key, type: string, importance: expert, zh: [上行数据键名, "上行数据放在Cookie或请求头时使用的键名。"], en: [Uplink data key, "Key used when uplink data goes into a cookie or header."]}
+    - {key: uplink-chunk-size, type: string, importance: expert, zh: [上行分块大小, "上行数据不在请求体时每块的大小；0为默认。"], en: [Uplink chunk size, "Chunk size when uplink data is not in the body; 0 for the default."]}
+    - {key: sc-max-each-post-bytes, type: string, default: "1000000", importance: expert, zh: [单次上行上限, "packet-up每个POST的最大字节数（可写范围）。"], en: [Max bytes per post, "Maximum bytes per packet-up POST (a range is allowed)."]}
+    - {key: sc-min-posts-interval-ms, type: string, default: "30", importance: expert, zh: [上行最小间隔, "packet-up两次POST之间的最小毫秒数（可写范围）。"], en: [Min post interval, "Minimum milliseconds between packet-up POSTs (a range is allowed)."]}
   xhttp-reuse:
     - key: reuse-settings
       type: object
       importance: expert
-      zh: [连接复用（XMUX）, "多个请求复用底层 HTTP 连接的方式；数值可写范围，如 16-32。"]
+      zh: [连接复用（XMUX）, "多个请求复用底层HTTP连接的方式；数值可写范围，如16-32。"]
       en: [Connection reuse (XMUX), "How requests share underlying HTTP connections; values accept ranges such as 16-32."]
       fields:
         - {key: max-concurrency, type: string, importance: expert, zh: [最大并发, "每条连接同时承载的最多请求数。"], en: [Max concurrency, "Maximum concurrent requests per connection."]}
-        - {key: max-connections, type: string, importance: expert, zh: [最大连接数, "最多打开的连接数；0 不限制。"], en: [Max connections, "Maximum open connections; 0 means unlimited."]}
-        - {key: c-max-reuse-times, type: string, importance: expert, zh: [最大复用次数, "一条连接最多被复用的次数；0 不限制。"], en: [Max reuse times, "Times a connection may be reused; 0 means unlimited."]}
+        - {key: max-connections, type: string, importance: expert, zh: [最大连接数, "最多打开的连接数；0不限制。"], en: [Max connections, "Maximum open connections; 0 means unlimited."]}
+        - {key: c-max-reuse-times, type: string, importance: expert, zh: [最大复用次数, "一条连接最多被复用的次数；0不限制。"], en: [Max reuse times, "Times a connection may be reused; 0 means unlimited."]}
         - {key: h-max-request-times, type: string, importance: expert, zh: [最大请求数, "一条连接上累计发送的最多请求数。"], en: [Max requests, "Total requests sent over one connection."]}
         - {key: h-max-reusable-secs, type: string, importance: expert, zh: [最长复用时间, "连接可被复用的最长秒数。"], en: [Max reusable seconds, "Seconds a connection may be reused."]}
-        - {key: h-keep-alive-period, type: int, importance: expert, zh: [保活间隔, "HTTP 连接的保活秒数；0 为默认。"], en: [Keep-alive period, "HTTP keep-alive seconds; 0 for the default."]}
+        - {key: h-keep-alive-period, type: int, importance: expert, zh: [保活间隔, "HTTP连接的保活秒数；0为默认。"], en: [Keep-alive period, "HTTP keep-alive seconds; 0 for the default."]}
   xhttp-opts:
     - key: xhttp-opts
       type: object
       importance: optional
       stability: experimental
       doc: proxies/transport
-      zh: [XHTTP, "network 为 xhttp 时的参数。"]
+      zh: [XHTTP, "network为xhttp时的参数。"]
       en: [XHTTP, "Options when network is xhttp."]
       fields:
         - {include: xhttp-core}
@@ -328,7 +328,7 @@ fragments:
         - key: download-settings
           type: object
           importance: expert
-          zh: [下行分离, "让下行走另一条连接（可以是不同的服务器与 TLS 设置）；未填写的项沿用本节点。"]
+          zh: [下行分离, "让下行走另一条连接（可以是不同的服务器与TLS设置）；未填写的项沿用本节点。"]
           en: [Download settings, "Carry downlink over a separate connection, optionally to another server with its own TLS; unset items follow this proxy."]
           fields:
             - {include: xhttp-core, keys: [path, host, headers]}
@@ -349,7 +349,7 @@ fragments:
     - {key: congestion, type: bool, default: false, importance: optional, zh: [拥塞控制, "启用拥塞控制。"], en: [Congestion control, "Enable congestion control."]}
     - {key: write-buffer, type: int, importance: expert, zh: [写缓冲, "写缓冲区大小（字节）。"], en: [Write buffer, "Write buffer size in bytes."]}
     - {key: read-buffer, type: int, importance: expert, zh: [读缓冲, "读缓冲区大小（字节）。"], en: [Read buffer, "Read buffer size in bytes."]}
-    - {key: seed, type: string, importance: optional, sensitive: true, zh: [种子, "填写后启用 AES-GCM 认证；留空使用默认认证。"], en: [Seed, "Enables AES-GCM authentication when set; default authentication when empty."]}
+    - {key: seed, type: string, importance: optional, sensitive: true, zh: [种子, "填写后启用AES-GCM认证；留空使用默认认证。"], en: [Seed, "Enables AES-GCM authentication when set; default authentication when empty."]}
     - key: header
       type: enum
       importance: optional
@@ -368,7 +368,7 @@ fragments:
       importance: optional
       stability: experimental
       doc: proxies/vmess
-      zh: [mKCP, "network 为 mkcp 时的参数。"]
+      zh: [mKCP, "network为mkcp时的参数。"]
       en: [mKCP, "Options when network is mkcp."]
       fields:
         - {include: kcp-params}
@@ -378,14 +378,14 @@ fragments:
       importance: optional
       stability: experimental
       doc: proxies/vmess
-      zh: [mekya, "network 为 mekya 时的参数：经 HTTP 轮询承载 mKCP。"]
+      zh: [mekya, "network为mekya时的参数：经HTTP轮询承载mKCP。"]
       en: [mekya, "Options when network is mekya: mKCP carried over HTTP polling."]
       fields:
-        - {key: url, type: string, importance: core, zh: [地址, "mekya 服务端的 URL，如 https://server:443/mekya。"], en: [URL, "mekya server URL such as https://server:443/mekya."]}
+        - {key: url, type: string, importance: core, zh: [地址, "mekya服务端的URL，如https://server:443/mekya。"], en: [URL, "mekya server URL such as https://server:443/mekya."]}
         - {key: max-write-delay, type: int, importance: optional, zh: [最大聚合等待, "首包后的最大聚合等待时间（毫秒）。"], en: [Max write delay, "Maximum aggregation wait after the first packet, in milliseconds."]}
-        - {key: max-request-size, type: int, importance: optional, zh: [单次请求上限, "单次 HTTP 请求的最大负载（字节）。"], en: [Max request size, "Maximum payload per HTTP request in bytes."]}
+        - {key: max-request-size, type: int, importance: optional, zh: [单次请求上限, "单次HTTP请求的最大负载（字节）。"], en: [Max request size, "Maximum payload per HTTP request in bytes."]}
         - {key: polling-interval-initial, type: int, importance: optional, zh: [轮询间隔, "空轮询的间隔（毫秒）。"], en: [Polling interval, "Interval of empty polls in milliseconds."]}
-        - {key: h2-pool-size, type: int, importance: optional, zh: [HTTP/2 连接池, "HTTP/2 连接池大小。"], en: [HTTP/2 pool size, "HTTP/2 connection pool size."]}
+        - {key: h2-pool-size, type: int, importance: optional, zh: [HTTP/2连接池, "HTTP/2连接池大小。"], en: [HTTP/2 pool size, "HTTP/2 connection pool size."]}
         - {key: max-write-size, type: int, importance: expert, zh: [最大写入, "服务端参数，客户端忽略。"], en: [Max write size, "Server-side parameter; ignored by the client."]}
         - {key: max-write-duration-ms, type: int, importance: expert, zh: [最长写入时间, "服务端参数，客户端忽略。"], en: [Max write duration, "Server-side parameter; ignored by the client."]}
         - {key: max-simultaneous-write-connection, type: int, importance: expert, zh: [同时写入连接数, "服务端参数，客户端忽略。"], en: [Simultaneous writers, "Server-side parameter; ignored by the client."]}
@@ -393,7 +393,7 @@ fragments:
         - key: kcp
           type: object
           importance: optional
-          zh: [mKCP 参数, "mekya 内部的 mKCP 参数。"]
+          zh: [mKCP参数, "mekya内部的mKCP参数。"]
           en: [mKCP parameters, "mKCP parameters inside mekya."]
           fields:
             - {include: kcp-params}
@@ -407,15 +407,15 @@ fragments:
       importance: expert
       stability: experimental
       doc: proxies/vmess
-      zh: [tlsmirror, "填写 primary-key 后启用 tlsmirror（需 tls: true）；载体使用本节点的 servername、alpn、证书与指纹设置，servername 为空时用 server。"]
+      zh: [tlsmirror, "填写primary-key后启用tlsmirror（需tls: true）；载体使用本节点的servername、alpn、证书与指纹设置，servername为空时用server。"]
       en: [tlsmirror, "Setting primary-key enables tlsmirror (needs tls: true); the carrier uses this proxy's servername, alpn, certificate and fingerprint settings, and server when servername is empty."]
       fields:
-        - {key: primary-key, type: string, importance: core, sensitive: true, zh: [主密钥, "32 字节主密钥的 base64 编码；必填。"], en: [Primary key, "Base64 of the 32-byte primary key; required."]}
+        - {key: primary-key, type: string, importance: core, sensitive: true, zh: [主密钥, "32字节主密钥的base64编码；必填。"], en: [Primary key, "Base64 of the 32-byte primary key; required."]}
         - {include: tlsmirror-common}
         - key: embedded-traffic-generator
           type: object
           importance: expert
-          zh: [载体流量生成, "生成额外的 HTTP 载体流量，协议由 alpn 决定。"]
+          zh: [载体流量生成, "生成额外的HTTP载体流量，协议由alpn决定。"]
           en: [Carrier traffic, "Generate extra HTTP carrier traffic; the protocol follows alpn."]
           fields:
             - key: steps
@@ -429,7 +429,7 @@ fragments:
                   - {key: name, type: string, importance: expert, zh: [名称, "步骤名称。"], en: [Name, "Step name."]}
                   - {key: host, type: string, importance: expert, zh: [主机, "请求的主机名。"], en: [Host, "Request host."]}
                   - {key: path, type: string, importance: expert, zh: [路径, "请求路径。"], en: [Path, "Request path."]}
-                  - {key: method, type: string, importance: expert, zh: [方法, "HTTP 方法。"], en: [Method, "HTTP method."]}
+                  - {key: method, type: string, importance: expert, zh: [方法, "HTTP方法。"], en: [Method, "HTTP method."]}
                   - key: headers
                     type: list
                     importance: expert
@@ -460,9 +460,9 @@ fragments:
                     en: [Wait time, "Wait before the next step."]
                     fields:
                       - {include: tlsmirror-time}
-                  - {key: h2-do-not-wait-for-download-finish, type: bool, default: false, importance: expert, zh: [不等待下载, "HTTP/2 下不等待响应体读完。"], en: [Skip download wait, "Do not wait for the response body over HTTP/2."]}
+                  - {key: h2-do-not-wait-for-download-finish, type: bool, default: false, importance: expert, zh: [不等待下载, "HTTP/2下不等待响应体读完。"], en: [Skip download wait, "Do not wait for the response body over HTTP/2."]}
   tlsmirror-common:
-    - {key: explicit-nonce-ciphersuites, type: list, items: {type: int}, importance: expert, zh: [显式 nonce 套件, "TLS 1.2 载体中使用显式 nonce 的加密套件编号。"], en: [Explicit-nonce suites, "Cipher suite IDs that use explicit nonces on a TLS 1.2 carrier."]}
+    - {key: explicit-nonce-ciphersuites, type: list, items: {type: int}, importance: expert, zh: [显式nonce套件, "TLS 1.2载体中使用显式nonce的加密套件编号。"], en: [Explicit-nonce suites, "Cipher suite IDs that use explicit nonces on a TLS 1.2 carrier."]}
     - key: defer-instance-derived-write-time
       type: object
       importance: expert
@@ -480,9 +480,9 @@ fragments:
     - key: connection-enrolment
       type: object
       importance: expert
-      zh: [连接登记, "启用与 v2ray 兼容的连接登记确认。"]
+      zh: [连接登记, "启用与v2ray兼容的连接登记确认。"]
       en: [Connection enrolment, "Enable v2ray-compatible connection enrolment."]
       fields:
-        - {key: primary-ingress-outbound, type: string, importance: expert, zh: [入向控制出站, "v2ray 兼容字段：与对端路由中的控制出站 tag 一致。"], en: [Ingress outbound, "v2ray-compatible field: match the control outbound tag in the peer routing."]}
-        - {key: primary-egress-outbound, type: string, importance: expert, zh: [出向控制出站, "v2ray 的控制出站 tag；mihomo 的 VMess 出站保持为空。"], en: [Egress outbound, "v2ray control outbound tag; leave empty for mihomo VMess outbounds."]}
+        - {key: primary-ingress-outbound, type: string, importance: expert, zh: [入向控制出站, "v2ray兼容字段：与对端路由中的控制出站tag一致。"], en: [Ingress outbound, "v2ray-compatible field: match the control outbound tag in the peer routing."]}
+        - {key: primary-egress-outbound, type: string, importance: expert, zh: [出向控制出站, "v2ray的控制出站tag；mihomo的VMess出站保持为空。"], en: [Egress outbound, "v2ray control outbound tag; leave empty for mihomo VMess outbounds."]}
     - {key: sequence-watermarking-enabled, type: bool, default: false, importance: expert, zh: [序列水印, "启用序列水印。"], en: [Sequence watermarking, "Enable sequence watermarking."]}

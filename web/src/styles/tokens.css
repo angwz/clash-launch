@@ -107,7 +107,7 @@
   --syn-string: #1d6b3e;
   --syn-number: #a1460a;
   --syn-bool: #9a2f86;
-  --syn-comment: #73737e;
+  --syn-comment: #70707b; /* 4.69:1 */
   --syn-tag: #8a4b00;
   --syn-punct: #6e6e7a;
 }
@@ -132,8 +132,8 @@
   --scrollbar-hover: rgb(255 255 255 / 0.3);
   --ring: #8d8af0;
 
-  --accent: #6f6be6;
-  --accent-hover: #807cf0;
+  --accent: #6763df; /* 白字对比度 4.74:1（WCAG AA，R30） */
+  --accent-hover: #5f5bd6; /* 悬停加深而不是变浅，白字 5.31:1 */
   --accent-soft: #23223f;
   --accent-fg: #aeacf7;
 
@@ -185,8 +185,8 @@
     --scrollbar: rgb(255 255 255 / 0.16);
     --scrollbar-hover: rgb(255 255 255 / 0.3);
     --ring: #8d8af0;
-    --accent: #6f6be6;
-    --accent-hover: #807cf0;
+    --accent: #6763df; /* 白字对比度 4.74:1（WCAG AA，R30） */
+    --accent-hover: #5f5bd6; /* 悬停加深而不是变浅，白字 5.31:1 */
     --accent-soft: #23223f;
     --accent-fg: #aeacf7;
     --ok: #5cc98a;

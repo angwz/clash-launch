@@ -4,7 +4,7 @@ fields:
     type: object
     importance: recommended
     doc: sniff
-    zh: [域名嗅探, "从 TLS、HTTP、QUIC 流量中识别域名，供规则匹配使用。"]
+    zh: [域名嗅探, "从TLS、HTTP、QUIC流量中识别域名，供规则匹配使用。"]
     en: [Sniffer, "Recover domain names from TLS, HTTP and QUIC traffic for rule matching."]
     # 开启 enable 时填入的推荐值：官方示例中 sniff 的端口设置（含示例里注释给出的 TLS、QUIC 端口）。
     recommended:
@@ -13,24 +13,24 @@ fields:
         TLS: {ports: [443, 8443]}
         QUIC: {ports: [443]}
     fields:
-      - {key: enable, guide: {basis: practice, zh: "从流量内容（HTTP 的 Host、TLS 与 QUIC 的 SNI）中识别出访问的域名，让只拿到 IP 的连接也能按域名规则分流。使用 TUN、redir-host，或有应用自带 DNS 时建议开启；开启时会按官方示例填入一组常用值。", en: "Recovers the domain from traffic (HTTP Host, TLS and QUIC SNI) so IP-only connections can still match domain rules. Recommended with TUN, redir-host or apps doing their own DNS; enabling fills common values from the official example."}, type: bool, default: false, importance: recommended, doc: "sniff#enable", zh: [启用, "启用域名嗅探。"], en: [Enable, "Enable sniffing."]}
+      - {key: enable, guide: {basis: practice, zh: "从流量内容（HTTP的Host、TLS与QUIC的SNI）中识别出访问的域名，让只拿到IP的连接也能按域名规则分流。使用TUN、redir-host，或有应用自带DNS时建议开启；开启时会按官方示例填入一组常用值。", en: "Recovers the domain from traffic (HTTP Host, TLS and QUIC SNI) so IP-only connections can still match domain rules. Recommended with TUN, redir-host or apps doing their own DNS; enabling fills common values from the official example."}, type: bool, default: false, importance: recommended, doc: "sniff#enable", zh: [启用, "启用域名嗅探。"], en: [Enable, "Enable sniffing."]}
       - {key: force-dns-mapping, type: bool, default: true, importance: optional, doc: "sniff#force-dns-mapping",
-         zh: [强制嗅探映射, "对 redir-host 类型识别的流量强制嗅探。"], en: [Force DNS mapping, "Always sniff traffic identified through redir-host mapping."]}
+         zh: [强制嗅探映射, "对redir-host类型识别的流量强制嗅探。"], en: [Force DNS mapping, "Always sniff traffic identified through redir-host mapping."]}
       - {key: parse-pure-ip, type: bool, default: true, importance: optional, doc: "sniff#parse-pure-ip",
-         zh: [嗅探纯 IP, "对没有域名的流量强制嗅探。"], en: [Parse pure IP, "Sniff traffic that has no domain name."]}
-      - {key: override-destination, guide: {basis: official, zh: "用嗅探到的域名作为实际连接目标，默认开启。关闭时域名只用于匹配规则，连接仍然发往原来的 IP。", en: "Uses the sniffed domain as the actual destination; on by default. When off, the domain is used only for rule matching and the connection still goes to the original IP."}, type: bool, default: true, importance: optional, doc: "sniff#override-destination",
+         zh: [嗅探纯IP, "对没有域名的流量强制嗅探。"], en: [Parse pure IP, "Sniff traffic that has no domain name."]}
+      - {key: override-destination, guide: {basis: official, zh: "用嗅探到的域名作为实际连接目标，默认开启。关闭时域名只用于匹配规则，连接仍然发往原来的IP。", en: "Uses the sniffed domain as the actual destination; on by default. When off, the domain is used only for rule matching and the connection still goes to the original IP."}, type: bool, default: true, importance: optional, doc: "sniff#override-destination",
          zh: [覆盖目标, "用嗅探到的域名作为实际连接目标。"], en: [Override destination, "Connect to the sniffed domain instead of the original target."]}
       - key: sniff
         type: map
         values:
           type: object
           fields:
-            - {key: ports, type: list, items: {type: anyOf, of: [{type: int}, {type: string}]}, importance: optional, zh: [端口, "需要嗅探的端口（数字）或端口范围（如 8080-8880）。"], en: [Ports, "Ports (numbers) or port ranges such as 8080-8880."]}
-            - {key: override-destination, type: bool, importance: optional, zh: [覆盖目标, "覆盖全局的 override-destination。"], en: [Override destination, "Overrides the global override-destination."]}
+            - {key: ports, type: list, items: {type: anyOf, of: [{type: int}, {type: string}]}, importance: optional, zh: [端口, "需要嗅探的端口（数字）或端口范围（如8080-8880）。"], en: [Ports, "Ports (numbers) or port ranges such as 8080-8880."]}
+            - {key: override-destination, type: bool, importance: optional, zh: [覆盖目标, "覆盖全局的override-destination。"], en: [Override destination, "Overrides the global override-destination."]}
         importance: recommended
         doc: "sniff#sniff"
         examples: [{value: {TLS: {ports: [443, 8443]}, HTTP: {ports: [80, 8080-8880]}}, en: Sniff TLS and HTTP, zh: 嗅探 TLS 与 HTTP}]
-        zh: [嗅探协议, "按协议（TLS、HTTP、QUIC）设置嗅探端口；TLS 与 QUIC 默认 443，HTTP 默认 80。"]
+        zh: [嗅探协议, "按协议（TLS、HTTP、QUIC）设置嗅探端口；TLS与QUIC默认443，HTTP默认80。"]
         en: [Protocols, "Per-protocol (TLS, HTTP, QUIC) sniffing ports; TLS and QUIC default to 443, HTTP to 80."]
       - {key: force-domain, guide: {basis: official, zh: "强制嗅探的域名，支持通配。", en: "Domains that are always sniffed (wildcards allowed)."}, type: list, items: {type: string}, importance: optional, doc: "sniff#force-domain",
          zh: [强制嗅探域名, "这些域名总是进行嗅探。"], en: [Force domains, "Always sniff these domains."]}
@@ -41,6 +41,6 @@ fields:
       - {key: skip-domain, guide: {basis: official, zh: "不进行嗅探的域名，支持通配。嗅探后出现问题的应用（例如某些智能家居）可以加在这里。", en: "Domains excluded from sniffing (wildcards allowed). Add apps that misbehave when sniffed, such as some smart-home services."}, type: list, items: {type: string}, importance: optional, doc: "sniff#skip-domain",
          zh: [跳过域名, "嗅探结果为这些域名时不采用。"], en: [Skip domains, "Ignore sniffing results for these domains."]}
       - {key: sniffing, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: sniffer.sniff, doc: sniff,
-         zh: [嗅探协议（旧）, "已弃用；配置 sniff 后无效。"], en: [Protocols (legacy), "Deprecated; ignored when sniff is set."]}
+         zh: [嗅探协议（旧）, "已弃用；配置sniff后无效。"], en: [Protocols (legacy), "Deprecated; ignored when sniff is set."]}
       - {key: port-whitelist, type: list, items: {type: string}, importance: expert, stability: deprecated, replacement: sniffer.sniff, doc: sniff,
-         zh: [端口白名单（旧）, "已弃用；配置 sniff 后无效。"], en: [Port allowlist (legacy), "Deprecated; ignored when sniff is set."]}
+         zh: [端口白名单（旧）, "已弃用；配置sniff后无效。"], en: [Port allowlist (legacy), "Deprecated; ignored when sniff is set."]}

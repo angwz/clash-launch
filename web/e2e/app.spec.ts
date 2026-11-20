@@ -3,7 +3,7 @@ import { apiAs, createUser, login, seedProfile, step, totp } from "./helpers";
 
 // 三个安全问题使用默认选择的内置问题 0、1、2
 async function fillAnswers(page: Page, answers = ["Beijing", "Mochi", "Sunrise School"]) {
-  for (let i = 0; i < 3; i++) await page.getByLabel(`第 ${i + 1} 个问题的答案`).fill(answers[i]!);
+  for (let i = 0; i < 3; i++) await page.getByLabel(`第${i + 1}个问题的答案`).fill(answers[i]!);
 }
 
 // 收集页面错误与 CSP 违规：任何一条都让测试失败（第 14.2 节的 CSP 不放宽）。
@@ -245,7 +245,7 @@ test("两步验证：扫码启用、显示恢复码；之后登录需要验证�
   await expect(page.getByText("恢复码", { exact: true })).toBeVisible();
   await expect(page.locator(".code-list li")).toHaveCount(10);
   await page.getByRole("button", { name: "我已保存" }).click();
-  await expect(page.getByText(/已启用 · 剩余 10 个恢复码/)).toBeVisible();
+  await expect(page.getByText(/已启用 · 剩余10个恢复码/)).toBeVisible();
   await ctx.close();
 
   const ctx2 = await browser.newContext();
@@ -479,7 +479,7 @@ test("短链接与订阅分析：生成短链接、访问计入统计，分析�
   // 短链接直接在根路径下（反馈 #75）
   for (const ua of ["mihomo/1.19.33", "clash-verge/v2.2.3", "FlClash/0.8"]) await request.get("/" + code, { headers: { "User-Agent": ua } });
   await page.reload();
-  await expect(page.locator(".item").first()).toContainText("3 次请求");
+  await expect(page.locator(".item").first()).toContainText("3次请求");
   await expect(page.locator(".item").first()).toContainText("上次请求"); // 默认折叠，只显示次数与上次请求时间（反馈 #78）
   await expect(page.locator(".item").first().locator(".detail")).toHaveCount(0);
   await page.waitForTimeout(300);
@@ -494,7 +494,7 @@ test("短链接与订阅分析：生成短链接、访问计入统计，分析�
   await expect(page).toHaveURL(/\/analytics\?short=/);
   await expect(page.locator(".tile").first()).toContainText("3");
   await expect(page.locator(".heat .cell:not(.zero)")).not.toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "IP 明细" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "IP明细" })).toBeVisible();
   await page.screenshot({ path: "test-results/shot-analytics.png", fullPage: true });
 });
 
@@ -581,9 +581,9 @@ test("管理：审计日志分页", async ({ page, request, baseURL }) => {
   await login(page);
   await page.goto("/admin");
   const pager = page.getByRole("navigation", { name: "审计日志分页" });
-  await expect(pager).toContainText("第 1 /");
+  await expect(pager).toContainText("第1 /");
   await pager.getByRole("button", { name: "下一页" }).click();
-  await expect(pager).toContainText("第 2 /");
+  await expect(pager).toContainText("第2 /");
 });
 
 test("删除配置：从列表卡片、编辑器的「更多」或命令面板删除，订阅链接随之失效", async ({ page, request, baseURL }) => {
@@ -596,7 +596,7 @@ test("删除配置：从列表卡片、编辑器的「更多」或命令面板�
   // 列表：卡片右端的删除按钮 → 对话框列出会一起删除的内容 → 确认
   await page.getByRole("button", { name: `删除配置「删除甲${suffix}」` }).click();
   const dialog = page.getByRole("dialog", { name: "删除配置" });
-  await expect(dialog).toContainText("1 条订阅链接");
+  await expect(dialog).toContainText("1条订阅链接");
   await dialog.getByRole("button", { name: "删除", exact: true }).click();
   await expect(page.getByRole("link", { name: "删除甲" + suffix })).toHaveCount(0);
   expect((await request.get(new URL(link.url).pathname)).status()).toBe(404);
@@ -630,7 +630,7 @@ test("节点页：显示节点概况，直接分享或授权给好友；注册�
   await dlg.getByPlaceholder("输入对方的用户名").fill(bob);
   await expect(dlg.locator('input[name="share-mode"][value="grant"]')).toBeChecked();
   await dlg.getByRole("button", { name: "发送" }).click();
-  await expect(page.getByText("已授权给 " + bob)).toBeVisible();
+  await expect(page.getByText("已授权给" + bob)).toBeVisible();
   await page.screenshot({ path: "test-results/shot-sources-share.png" });
 
   // 注册：先只显示一个安全问题，答了才出现下一个；不答也能注册
@@ -639,11 +639,11 @@ test("节点页：显示节点概况，直接分享或授权给好友；注册�
   const ctx = await browser.newContext();
   const p2 = await ctx.newPage();
   await p2.goto("/register");
-  await expect(p2.getByLabel("第 1 个问题的答案")).toBeVisible();
-  await expect(p2.getByLabel("第 2 个问题的答案")).toHaveCount(0);
-  await p2.getByLabel("第 1 个问题的答案").fill("Beijing");
-  await expect(p2.getByLabel("第 2 个问题的答案")).toBeVisible();
-  await p2.getByLabel("第 1 个问题的答案").fill("");
+  await expect(p2.getByLabel("第1个问题的答案")).toBeVisible();
+  await expect(p2.getByLabel("第2个问题的答案")).toHaveCount(0);
+  await p2.getByLabel("第1个问题的答案").fill("Beijing");
+  await expect(p2.getByLabel("第2个问题的答案")).toBeVisible();
+  await p2.getByLabel("第1个问题的答案").fill("");
   await p2.screenshot({ path: "test-results/shot-register.png" });
   await admin("PUT", "/api/v1/admin/registration", { open: false });
   await ctx.close();
@@ -750,7 +750,7 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
   await login(page);
   await page.goto(`/profiles/${p.id}?section=routing`);
   await expect(page.getByRole("heading", { name: "分流", exact: true })).toBeVisible();
-  await expect(page.locator(".viewnote")).toContainText("3 条规则逐条显示");
+  await expect(page.locator(".viewnote")).toContainText("3条规则逐条显示");
   const mobile = test.info().project.name === "mobile";
   if (mobile) {
     // 窄屏：列表模式，写明默认从哪里出去
@@ -765,13 +765,13 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
   }
   // 示例来自规则集的真实条目；追踪给出逐步卡片
   await page.getByRole("button", { name: "ads.example.net" }).click();
-  await expect(page.locator(".hops")).toContainText("第 1 条「Ads」命中");
+  await expect(page.locator(".hops")).toContainText("第1条「Ads」命中");
   await expect(page.locator(".hops")).toContainText("结束：已拦截");
-  const input = page.getByLabel("输入域名或 IP，例如 www.example.com");
+  const input = page.getByLabel("输入域名或IP，例如www.example.com");
   await input.fill("www.example.com");
   await page.getByRole("button", { name: "追踪", exact: true }).click();
-  await expect(page.locator(".hops")).toContainText("第 2 条「DOMAIN-SUFFIX,example.com」命中");
-  await expect(page.locator(".hops")).toContainText("交给 PROXY");
+  await expect(page.locator(".hops")).toContainText("第2条「DOMAIN-SUFFIX,example.com」命中");
+  await expect(page.locator(".hops")).toContainText("交给PROXY");
   await expect(page.locator(".hops")).toContainText("命中：DOMAIN-SUFFIX,example.com");
   // 追踪后地图滚到可见（粒子动画在地图上，反馈 #88）
   await expect(page.locator(".routing .card").first()).toBeInViewport();
@@ -783,13 +783,13 @@ test("分流：地图与列表、追踪的逐步卡片、清空、粒子模式�
     const top = await scrolled();
     await page.getByRole("button", { name: "重置视图" }).click();
     // 重置不移动页面，也不把光标放到追踪框（反馈 #89）
-    await expect(page.getByLabel("输入域名或 IP，例如 www.example.com")).not.toBeFocused();
+    await expect(page.getByLabel("输入域名或IP，例如www.example.com")).not.toBeFocused();
     // 内容变短时浏览器会把滚动位置往回收，但不会往下跳
     expect(await scrolled()).toBeLessThanOrEqual(top + 1);
     await expect(page.locator(".routing .card").first()).toBeInViewport();
     await expect(page.locator(".detail")).toHaveCount(0);
     await expect(page.locator(".hops")).toHaveCount(0);
-    await page.getByLabel("输入域名或 IP，例如 www.example.com").fill("www.example.com");
+    await page.getByLabel("输入域名或IP，例如www.example.com").fill("www.example.com");
     await page.getByRole("button", { name: "追踪", exact: true }).click();
     await expect(page.locator(".hops")).toBeVisible();
   }
@@ -839,13 +839,13 @@ test("分流编辑：拖动改走向、合并与拆出、改组类型、拒绝�
 
   // 合并：B 拖到合集中间 → 并入合集；取消
   await dragTo("rule:2", "bundle:0");
-  await expect(bar).toContainText("B：并入合集 A");
+  await expect(bar).toContainText("B：并入合集A");
   await page.getByRole("button", { name: "取消" }).click();
   await expect(bar).toHaveCount(0);
   // 拆出：选中合集，在详情里拆出 A-classic
   await box("bundle:0").click();
   await page.getByRole("button", { name: "拆出" }).last().click();
-  await expect(bar).toContainText("A-classic：离开合集 A");
+  await expect(bar).toContainText("A-classic：离开合集A");
   await page.getByRole("button", { name: "取消" }).click();
 
   // 循环：ALT 引用 PROXY，把 ALT 加入 PROXY 会成环，被拒绝
@@ -901,20 +901,20 @@ test("分流：规则源更新后提示并能采纳；从追踪固定期望", as
 
   await login(page);
   await page.goto(`/profiles/${p.id}?section=routing`);
-  await expect(page.getByText("规则源有 1 处更新还没有处理。")).toBeVisible();
+  await expect(page.getByText("规则源有1处更新还没有处理。")).toBeVisible();
   await page.getByRole("button", { name: "查看" }).click();
   const dlg = page.getByRole("dialog", { name: "规则源的更新" });
-  await expect(dlg).toContainText("新增规则 DOMAIN,new.example.org");
-  await dlg.getByRole("button", { name: "采纳勾选的 1 处，其余忽略" }).click();
+  await expect(dlg).toContainText("新增规则DOMAIN,new.example.org");
+  await dlg.getByRole("button", { name: "采纳勾选的1处，其余忽略" }).click();
   const bar = page.getByRole("region", { name: "未应用的改动" });
-  await expect(bar).toContainText("新增 DOMAIN,new.example.org → PROXY");
+  await expect(bar).toContainText("新增DOMAIN,new.example.org → PROXY");
   await expect(bar).toContainText("处理了规则源的更新");
 
   // 固定期望：追踪 www.example.com，命中交给 PROXY
-  await page.getByLabel("输入域名或 IP，例如 www.example.com").fill("www.example.com");
+  await page.getByLabel("输入域名或IP，例如www.example.com").fill("www.example.com");
   await page.getByRole("button", { name: "追踪", exact: true }).click();
-  await page.getByRole("button", { name: "固定为期望：始终经过 PROXY" }).click();
-  await expect(bar).toContainText("期望：www.example.com 经过 PROXY");
+  await page.getByRole("button", { name: "固定为期望：始终经过PROXY" }).click();
+  await expect(bar).toContainText("期望：www.example.com经过PROXY");
   // 应用前对比与检查（反馈 #88）：e2e 服务器没有 mihomo，检查说明无法预先检查，仍可应用
   await page.getByRole("button", { name: "应用", exact: true }).click();
   const review = page.getByRole("dialog", { name: "应用前对比与检查" });
@@ -922,7 +922,7 @@ test("分流：规则源更新后提示并能采纳；从追踪固定期望", as
   await expect(review).toContainText("无法预先检查");
   await review.getByRole("button", { name: "确认应用" }).click();
   await expect(bar).toHaveCount(0);
-  await expect(page.getByText("规则源有 1 处更新还没有处理。")).toHaveCount(0);
+  await expect(page.getByText("规则源有1处更新还没有处理。")).toHaveCount(0);
   await expect(page.locator(".checks")).toContainText("✓");
   await expect(page.getByText("已自动保存")).toBeVisible();
   const saved = await call<{ doc: string }>("GET", `/api/v1/profiles/${p.id}`);
@@ -942,7 +942,7 @@ test("定时退出：其他设备一起定时，对方页面顶部提示；可�
   await page.goto("/account");
   await page.getByRole("button", { name: "其他设备定时退出" }).click();
   const dialog = page.getByRole("dialog", { name: "其他设备定时退出" });
-  await expect(dialog.getByRole("radio", { name: /1 小时后/ })).toBeChecked();
+  await expect(dialog.getByRole("radio", { name: /1小时后/ })).toBeChecked();
   await dialog.getByRole("button", { name: "定时退出" }).click();
   const current = page.locator(".sessions li").filter({ hasText: "当前设备" });
   await expect(current).not.toContainText("将于");
@@ -967,7 +967,7 @@ test("昵称与邀请：设置昵称；账户页生成可用多次的邀请，�
   await expect(page.getByText("昵称已保存")).toBeVisible();
 
   const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "邀请朋友" }) });
-  await panel.getByLabel("可用次数").selectOption({ label: "可用 5 次" });
+  await panel.getByLabel("可用次数").selectOption({ label: "可用5次" });
   await panel.getByRole("button", { name: "生成邀请" }).click();
   const url = (await panel.locator("code.url").textContent())!;
   await panel.getByRole("button", { name: "二维码" }).click();

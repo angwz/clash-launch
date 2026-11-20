@@ -377,6 +377,7 @@
   "field.examples": "Examples",
   "field.hide": "Hide",
   "field.inactive_hint": "The section switch (enable) is off; this setting has no effect yet",
+  "field.inactive_tag": "Inactive",
   "field.less": "Less",
   "field.more": "Details & advice",
   "field.off": "off",

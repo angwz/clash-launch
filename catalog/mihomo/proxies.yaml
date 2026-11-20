@@ -239,7 +239,7 @@ fields:
             - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
         - value: dns
           doc: proxies/dns
-          zh: [DNS 出站]
+          zh: [DNS出站]
           en: [DNS outbound]
           fields:
             - {include: head, keys: [name, type, server, port]}

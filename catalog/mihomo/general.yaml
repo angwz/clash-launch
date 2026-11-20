@@ -2,34 +2,34 @@
 # 源码中没有显式默认值的字段不写 default（交给内核零值）。
 fields:
   # —— 入站端口 ——
-  - {key: port, guide: {basis: practice, zh: "单独的 HTTP 代理端口。已经设置 mixed-port 时通常不需要。", en: "A dedicated HTTP proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
-     zh: [HTTP 端口, "HTTP(S) 代理入站端口；一般用 mixed-port 代替。"], en: [HTTP port, "HTTP(S) proxy inbound port; mixed-port usually replaces it."]}
-  - {key: socks-port, guide: {basis: practice, zh: "单独的 SOCKS 代理端口。已经设置 mixed-port 时通常不需要。", en: "A dedicated SOCKS proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
-     zh: [SOCKS 端口, "SOCKS4/4a/5 代理入站端口。"], en: [SOCKS port, "SOCKS4/4a/5 proxy inbound port."]}
+  - {key: port, guide: {basis: practice, zh: "单独的HTTP代理端口。已经设置mixed-port时通常不需要。", en: "A dedicated HTTP proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
+     zh: [HTTP端口, "HTTP(S) 代理入站端口；一般用mixed-port代替。"], en: [HTTP port, "HTTP(S) proxy inbound port; mixed-port usually replaces it."]}
+  - {key: socks-port, guide: {basis: practice, zh: "单独的SOCKS代理端口。已经设置mixed-port时通常不需要。", en: "A dedicated SOCKS proxy port. Usually unnecessary once mixed-port is set."}, type: int, importance: optional, doc: inbound/port, ui: {widget: port},
+     zh: [SOCKS端口, "SOCKS4/4a/5代理入站端口。"], en: [SOCKS port, "SOCKS4/4a/5 proxy inbound port."]}
   - key: mixed-port
-    guide: {suggest: 7890, basis: practice, zh: "大多数场景只需要这一个端口：浏览器、系统代理和各种软件都填它即可。7890 是最常见的取值；修改后记得同步修改系统代理或软件里的端口。", en: "Most setups need only this port: point browsers, the system proxy and apps at it. 7890 is the common choice; update the system proxy and apps if you change it."}
+    guide: {suggest: 7890, basis: practice, zh: "大多数场景只需要这一个端口：浏览器、系统代理和各种软件都填它即可。7890是最常见的取值；修改后记得同步修改系统代理或软件里的端口。", en: "Most setups need only this port: point browsers, the system proxy and apps at it. 7890 is the common choice; update the system proxy and apps if you change it."}
     type: int
     importance: core
     doc: inbound/port
     ui: {widget: port}
     examples: [{value: 7890, en: Common default, zh: 常用取值}]
-    zh: [混合端口, "一个端口同时接受 HTTP(S) 与 SOCKS 代理请求。"]
+    zh: [混合端口, "一个端口同时接受HTTP(S) 与SOCKS代理请求。"]
     en: [Mixed port, "One port that accepts both HTTP(S) and SOCKS proxy requests."]
     detail:
       zh: 大多数场景只需要这一个入站端口。
       en: Most setups need only this inbound port.
   - {key: redir-port, type: int, importance: expert, doc: inbound/port, ui: {widget: port},
-     zh: [透明代理端口, "Linux/macOS 上 TCP 重定向（REDIRECT）透明代理的入站端口。"], en: [Redirect port, "Inbound port for TCP REDIRECT transparent proxying on Linux and macOS."]}
+     zh: [透明代理端口, "Linux/macOS上TCP重定向（REDIRECT）透明代理的入站端口。"], en: [Redirect port, "Inbound port for TCP REDIRECT transparent proxying on Linux and macOS."]}
   - {key: tproxy-port, type: int, importance: expert, doc: inbound/port, ui: {widget: port},
-     zh: [TProxy 端口, "Linux TProxy 透明代理（TCP 与 UDP）的入站端口。"], en: [TProxy port, "Inbound port for Linux TProxy transparent proxying (TCP and UDP)."]}
+     zh: [TProxy端口, "Linux TProxy透明代理（TCP与UDP）的入站端口。"], en: [TProxy port, "Inbound port for Linux TProxy transparent proxying (TCP and UDP)."]}
   - {key: inbound-tfo, type: bool, importance: expert, doc: general,
-     zh: [入站 TFO, "入站端口启用 TCP Fast Open。"], en: [Inbound TFO, "Enable TCP Fast Open on inbound listeners."]}
+     zh: [入站TFO, "入站端口启用TCP Fast Open。"], en: [Inbound TFO, "Enable TCP Fast Open on inbound listeners."]}
   - {key: inbound-mptcp, type: bool, importance: expert, doc: general,
-     zh: [入站 MPTCP, "入站端口启用多路径 TCP。"], en: [Inbound MPTCP, "Enable Multipath TCP on inbound listeners."]}
+     zh: [入站MPTCP, "入站端口启用多路径TCP。"], en: [Inbound MPTCP, "Enable Multipath TCP on inbound listeners."]}
 
   # —— 局域网访问 ——
   - key: allow-lan
-    guide: {basis: practice, zh: "关闭时代理端口只监听 127.0.0.1，只有本机能用；开启后局域网里的手机、电视等设备也能把代理指向本机。开启后任何能连到本机的设备都能使用代理，建议配合 authentication 或 lan-allowed-ips 限制来源，在公共网络中不要开启。", en: "When off, proxy ports listen on 127.0.0.1 only; when on, phones and TVs on the LAN can use this machine as a proxy. Anyone who can reach the machine can then use it, so restrict access with authentication or lan-allowed-ips, and avoid it on public networks."}
+    guide: {basis: practice, zh: "关闭时代理端口只监听127.0.0.1，只有本机能用；开启后局域网里的手机、电视等设备也能把代理指向本机。开启后任何能连到本机的设备都能使用代理，建议配合authentication或lan-allowed-ips限制来源，在公共网络中不要开启。", en: "When off, proxy ports listen on 127.0.0.1 only; when on, phones and TVs on the LAN can use this machine as a proxy. Anyone who can reach the machine can then use it, so restrict access with authentication or lan-allowed-ips, and avoid it on public networks."}
     type: bool
     default: false
     importance: recommended
@@ -39,28 +39,28 @@ fields:
     detail:
       zh: 开启后请配合 authentication 或 lan-allowed-ips 限制来源，避免在公共网络中暴露代理。
       en: When enabled, restrict access with authentication or lan-allowed-ips so the proxy is not exposed on untrusted networks.
-  - {key: bind-address, guide: {basis: official, zh: "allow-lan 开启时代理端口监听的地址：* 表示全部地址，也可以填某张网卡的 IPv4 或 IPv6 地址，只让这张网卡可用。allow-lan 关闭时始终只监听 127.0.0.1。", en: "Address the proxy ports bind to when allow-lan is on: * for all, or one interface address. With allow-lan off they always bind to 127.0.0.1."}, type: string, default: "*", importance: optional, doc: general,
-     zh: [绑定地址, "allow-lan 开启时监听的地址；* 表示全部地址。"], en: [Bind address, "Address to listen on when allow-lan is on; * means all addresses."]}
+  - {key: bind-address, guide: {basis: official, zh: "allow-lan开启时代理端口监听的地址：* 表示全部地址，也可以填某张网卡的IPv4或IPv6地址，只让这张网卡可用。allow-lan关闭时始终只监听127.0.0.1。", en: "Address the proxy ports bind to when allow-lan is on: * for all, or one interface address. With allow-lan off they always bind to 127.0.0.1."}, type: string, default: "*", importance: optional, doc: general,
+     zh: [绑定地址, "allow-lan开启时监听的地址；* 表示全部地址。"], en: [Bind address, "Address to listen on when allow-lan is on; * means all addresses."]}
   - key: authentication
-    guide: {basis: practice, zh: "为 HTTP、SOCKS 与 mixed 端口设置用户名和密码，格式 user:pass。开启 allow-lan 时建议设置，防止局域网中的其他人随意使用代理。", en: "Username and password (user:pass) for the HTTP, SOCKS and mixed ports. Recommended with allow-lan so others on the network cannot use the proxy freely."}
+    guide: {basis: practice, zh: "为HTTP、SOCKS与mixed端口设置用户名和密码，格式user:pass。开启allow-lan时建议设置，防止局域网中的其他人随意使用代理。", en: "Username and password (user:pass) for the HTTP, SOCKS and mixed ports. Recommended with allow-lan so others on the network cannot use the proxy freely."}
     type: list
     items: {type: string}
     importance: optional
     sensitive: true
     doc: general
     examples: [{value: ["user:pass"], en: user:password pairs, zh: 用户名:密码}]
-    zh: [入站认证, "HTTP 与 SOCKS 入站的用户名与密码，格式为 用户名:密码。"]
+    zh: [入站认证, "HTTP与SOCKS入站的用户名与密码，格式为 用户名:密码。"]
     en: [Authentication, "Usernames and passwords for HTTP and SOCKS inbounds, as user:password."]
   - {key: skip-auth-prefixes, type: list, items: {type: string}, importance: optional, doc: general,
      zh: [免认证网段, "来自这些网段的连接跳过入站认证。"], en: [Skip-auth prefixes, "Connections from these CIDRs bypass inbound authentication."]}
-  - {key: lan-allowed-ips, guide: {basis: official, zh: "允许连接代理端口的 IP 段，只在 allow-lan 开启时生效，默认允许全部。可以只填自己的局域网网段。", en: "IP ranges allowed to connect when allow-lan is on; all by default. You can limit it to your own LAN subnet."}, type: list, items: {type: string}, default: [0.0.0.0/0, "::/0"], importance: optional, doc: general,
-     zh: [允许的来源, "allow-lan 开启时允许连接的来源网段（白名单）。"], en: [Allowed source IPs, "Source CIDRs allowed to connect when allow-lan is on (allowlist)."]}
-  - {key: lan-disallowed-ips, guide: {basis: official, zh: "禁止连接的 IP 段。黑名单优先于 lan-allowed-ips，可以用来从允许的网段中排除个别地址。", en: "IP ranges denied access. Takes precedence over lan-allowed-ips, so it can carve exceptions out of an allowed range."}, type: list, items: {type: string}, importance: optional, doc: general,
+  - {key: lan-allowed-ips, guide: {basis: official, zh: "允许连接代理端口的IP段，只在allow-lan开启时生效，默认允许全部。可以只填自己的局域网网段。", en: "IP ranges allowed to connect when allow-lan is on; all by default. You can limit it to your own LAN subnet."}, type: list, items: {type: string}, default: [0.0.0.0/0, "::/0"], importance: optional, doc: general,
+     zh: [允许的来源, "allow-lan开启时允许连接的来源网段（白名单）。"], en: [Allowed source IPs, "Source CIDRs allowed to connect when allow-lan is on (allowlist)."]}
+  - {key: lan-disallowed-ips, guide: {basis: official, zh: "禁止连接的IP段。黑名单优先于lan-allowed-ips，可以用来从允许的网段中排除个别地址。", en: "IP ranges denied access. Takes precedence over lan-allowed-ips, so it can carve exceptions out of an allowed range."}, type: list, items: {type: string}, importance: optional, doc: general,
      zh: [禁止的来源, "禁止连接的来源网段；优先级高于白名单。"], en: [Disallowed source IPs, "Source CIDRs that may not connect; takes precedence over the allowlist."]}
 
   # —— 运行模式 ——
   - key: find-process-mode
-    guide: {basis: official, zh: "按进程分流（PROCESS-NAME 等规则）需要它。电脑上保持默认 strict，由内核自行判断；官方推荐在路由器上设为 off，因为路由器转发的是其他设备的流量，找不到对应进程，开着只会浪费性能。", en: "Needed for process rules such as PROCESS-NAME. Keep the default strict on desktops; the docs recommend off on routers, which forward other devices' traffic and cannot see their processes."}
+    guide: {basis: official, zh: "按进程分流（PROCESS-NAME等规则）需要它。电脑上保持默认strict，由内核自行判断；官方推荐在路由器上设为off，因为路由器转发的是其他设备的流量，找不到对应进程，开着只会浪费性能。", en: "Needed for process rules such as PROCESS-NAME. Keep the default strict on desktops; the docs recommend off on routers, which forward other devices' traffic and cannot see their processes."}
     type: enum
     enum:
       - {value: always, en: Always match processes, zh: 总是匹配进程}
@@ -69,10 +69,10 @@ fields:
     default: strict
     importance: optional
     doc: general
-    zh: [进程匹配, "是否查找连接所属的进程，供 PROCESS-NAME 等规则使用。"]
+    zh: [进程匹配, "是否查找连接所属的进程，供PROCESS-NAME等规则使用。"]
     en: [Process lookup, "Whether to look up the owning process of connections for PROCESS-NAME and similar rules."]
   - key: mode
-    guide: {suggest: rule, basis: practice, zh: "日常用 rule：按分流规则自动决定直连还是走代理。global 把所有流量交给 GLOBAL 组中选中的节点，适合临时排查；direct 全部直连，相当于暂时关闭代理。", en: "Use rule day to day: routing rules decide direct or proxy. global sends everything through the proxy picked in the GLOBAL group, handy for troubleshooting; direct bypasses the proxy entirely."}
+    guide: {suggest: rule, basis: practice, zh: "日常用rule：按分流规则自动决定直连还是走代理。global把所有流量交给GLOBAL组中选中的节点，适合临时排查；direct全部直连，相当于暂时关闭代理。", en: "Use rule day to day: routing rules decide direct or proxy. global sends everything through the proxy picked in the GLOBAL group, handy for troubleshooting; direct bypasses the proxy entirely."}
     type: enum
     enum:
       - {value: rule, en: Route by rules, zh: 按规则分流}
@@ -89,29 +89,29 @@ fields:
 
   # —— 地理数据 ——
   - key: geox-url
-    guide: {basis: official, zh: "自定义 geoip、geosite、mmdb、asn 数据的下载地址。默认地址在 GitHub，所在网络访问 GitHub 困难时可以换成镜像。", en: "Custom download URLs for geoip, geosite, mmdb and asn data. Defaults point at GitHub; switch to a mirror if GitHub is hard to reach."}
+    guide: {basis: official, zh: "自定义geoip、geosite、mmdb、asn数据的下载地址。默认地址在GitHub，所在网络访问GitHub困难时可以换成镜像。", en: "Custom download URLs for geoip, geosite, mmdb and asn data. Defaults point at GitHub; switch to a mirror if GitHub is hard to reach."}
     type: object
     importance: optional
     doc: general
-    zh: [地理数据地址, "GeoIP、GeoSite、MMDB 与 ASN 数据库的下载地址。"]
+    zh: [地理数据地址, "GeoIP、GeoSite、MMDB与ASN数据库的下载地址。"]
     en: [Geodata URLs, "Download URLs for the GeoIP, GeoSite, MMDB and ASN databases."]
     fields:
       - {key: geoip, type: string, importance: optional, default: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
-         zh: [GeoIP.dat, "geodata-mode 下使用的 GeoIP 数据地址。"], en: [GeoIP.dat, "GeoIP data URL used in geodata mode."]}
+         zh: [GeoIP.dat, "geodata-mode下使用的GeoIP数据地址。"], en: [GeoIP.dat, "GeoIP data URL used in geodata mode."]}
       - {key: geosite, type: string, importance: optional, default: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
-         zh: [GeoSite.dat, "GEOSITE 规则使用的域名分类数据地址。"], en: [GeoSite.dat, "Domain category data URL used by GEOSITE rules."]}
+         zh: [GeoSite.dat, "GEOSITE规则使用的域名分类数据地址。"], en: [GeoSite.dat, "Domain category data URL used by GEOSITE rules."]}
       - {key: mmdb, type: string, importance: optional, default: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb",
-         zh: [MMDB, "默认模式下 GEOIP 规则使用的 IP 数据库地址。"], en: [MMDB, "IP database URL used by GEOIP rules in the default mode."]}
+         zh: [MMDB, "默认模式下GEOIP规则使用的IP数据库地址。"], en: [MMDB, "IP database URL used by GEOIP rules in the default mode."]}
       - {key: asn, type: string, importance: optional, default: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
-         zh: [ASN, "IP-ASN 规则使用的自治系统数据库地址。"], en: [ASN, "Autonomous system database URL used by IP-ASN rules."]}
-  - {key: geo-auto-update, guide: {basis: practice, zh: "定期自动更新 GEOIP、GEOSITE 等地理数据，间隔由 geo-update-interval 决定（单位：小时）。长期运行的设备建议开启，避免规则随时间变得不准。", en: "Periodically refreshes GEOIP and GEOSITE data, every geo-update-interval hours. Worth enabling on long-running devices so rules stay accurate."}, type: bool, default: false, importance: optional, doc: general,
-     zh: [自动更新地理数据, "按 geo-update-interval 定期更新地理数据库。"], en: [Auto-update geodata, "Refresh geodata databases every geo-update-interval."]}
+         zh: [ASN, "IP-ASN规则使用的自治系统数据库地址。"], en: [ASN, "Autonomous system database URL used by IP-ASN rules."]}
+  - {key: geo-auto-update, guide: {basis: practice, zh: "定期自动更新GEOIP、GEOSITE等地理数据，间隔由geo-update-interval决定（单位：小时）。长期运行的设备建议开启，避免规则随时间变得不准。", en: "Periodically refreshes GEOIP and GEOSITE data, every geo-update-interval hours. Worth enabling on long-running devices so rules stay accurate."}, type: bool, default: false, importance: optional, doc: general,
+     zh: [自动更新地理数据, "按geo-update-interval定期更新地理数据库。"], en: [Auto-update geodata, "Refresh geodata databases every geo-update-interval."]}
   - {key: geo-update-interval, type: int, default: 24, importance: optional, doc: general,
      zh: [更新间隔, "地理数据库的自动更新间隔，单位为小时。"], en: [Update interval, "Geodata auto-update interval, in hours."]}
-  - {key: geodata-mode, guide: {basis: official, zh: "GEOIP 规则使用的数据格式：关闭时用 mmdb（默认），开启时用 dat。一般保持默认。", en: "Data format for GEOIP rules: mmdb when off (default), dat when on. Keep the default unless you need dat."}, type: bool, default: false, importance: optional, doc: general,
-     zh: [geodata 模式, "GEOIP 改用 GeoIP.dat 而不是 MMDB。"], en: [Geodata mode, "Use GeoIP.dat instead of MMDB for GEOIP."]}
+  - {key: geodata-mode, guide: {basis: official, zh: "GEOIP规则使用的数据格式：关闭时用mmdb（默认），开启时用dat。一般保持默认。", en: "Data format for GEOIP rules: mmdb when off (default), dat when on. Keep the default unless you need dat."}, type: bool, default: false, importance: optional, doc: general,
+     zh: [geodata模式, "GEOIP改用GeoIP.dat而不是MMDB。"], en: [Geodata mode, "Use GeoIP.dat instead of MMDB for GEOIP."]}
   - key: geodata-loader
-    guide: {basis: official, zh: "memconservative（默认）针对小内存设备优化，standard 是标准加载器。路由器等内存紧张的设备保持默认。", en: "memconservative (default) is optimised for low-memory devices; standard is the regular loader. Keep the default on routers."}
+    guide: {basis: official, zh: "memconservative（默认）针对小内存设备优化，standard是标准加载器。路由器等内存紧张的设备保持默认。", en: "memconservative (default) is optimised for low-memory devices; standard is the regular loader. Keep the default on routers."}
     type: enum
     enum:
       - {value: standard, en: Load fully into memory, zh: 完整载入内存}
@@ -119,7 +119,7 @@ fields:
     default: memconservative
     importance: expert
     doc: general
-    zh: [geodata 加载方式, "GeoIP.dat 与 GeoSite.dat 的加载方式。"]
+    zh: [geodata加载方式, "GeoIP.dat与GeoSite.dat的加载方式。"]
     en: [Geodata loader, "How GeoIP.dat and GeoSite.dat are loaded."]
   - key: geosite-matcher
     type: enum
@@ -128,12 +128,12 @@ fields:
       - {value: mph, en: Minimal perfect hash from V2Ray, zh: 来自 V2Ray 的最小完美哈希}
     importance: expert
     doc: general
-    zh: [GeoSite 匹配器, "GEOSITE 规则使用的匹配实现。"]
+    zh: [GeoSite匹配器, "GEOSITE规则使用的匹配实现。"]
     en: [GeoSite matcher, "Matcher implementation used by GEOSITE rules."]
 
   # —— 日志与 IPv6 ——
   - key: log-level
-    guide: {basis: practice, zh: "保持默认 info 即可。排查问题时临时调到 debug（输出最多，日志增长很快），稳定运行的设备可以调到 warning 减少日志量。日志只输出到控制台与控制面板。", en: "Keep the default info. Switch to debug only while troubleshooting (very verbose); warning suits a stable device. Logs go only to the console and the controller."}
+    guide: {basis: practice, zh: "保持默认info即可。排查问题时临时调到debug（输出最多，日志增长很快），稳定运行的设备可以调到warning减少日志量。日志只输出到控制台与控制面板。", en: "Keep the default info. Switch to debug only while troubleshooting (very verbose); warning suits a stable device. Logs go only to the console and the controller."}
     type: enum
     enum:
       - {value: silent, en: No logs, zh: 不输出日志}
@@ -147,12 +147,12 @@ fields:
     zh: [日志级别, "内核日志的详细程度。"]
     en: [Log level, "Verbosity of the core log."]
   - key: ipv6
-    guide: {basis: official, zh: "决定内核是否接受 IPv6 流量，默认开启。所在网络没有 IPv6，或节点不支持 IPv6 导致部分网站打不开时，可以关闭。DNS 分区里另有一个 ipv6 开关，控制是否返回 IPv6 地址。", en: "Whether the core accepts IPv6 traffic; on by default. Turn it off if your network lacks IPv6 or nodes cannot carry it. The DNS section has a separate ipv6 switch for AAAA answers."}
+    guide: {basis: official, zh: "决定内核是否接受IPv6流量，默认开启。所在网络没有IPv6，或节点不支持IPv6导致部分网站打不开时，可以关闭。DNS分区里另有一个ipv6开关，控制是否返回IPv6地址。", en: "Whether the core accepts IPv6 traffic; on by default. Turn it off if your network lacks IPv6 or nodes cannot carry it. The DNS section has a separate ipv6 switch for AAAA answers."}
     type: bool
     default: true
     importance: recommended
     doc: general#ipv6
-    zh: [IPv6, "IPv6 总开关；关闭后阻断所有 IPv6 连接并屏蔽 AAAA 查询。"]
+    zh: [IPv6, "IPv6总开关；关闭后阻断所有IPv6连接并屏蔽AAAA查询。"]
     en: [IPv6, "Master switch for IPv6; when off, IPv6 connections and AAAA queries are blocked."]
 
   # —— TLS 与外部控制 ——
@@ -160,11 +160,11 @@ fields:
     type: object
     importance: expert
     doc: general#tls
-    zh: [TLS 证书, "external-controller-tls 与部分入站使用的证书。"]
+    zh: [TLS证书, "external-controller-tls与部分入站使用的证书。"]
     en: [TLS certificate, "Certificate used by external-controller-tls and some inbounds."]
     fields:
-      - {key: certificate, type: string, importance: expert, zh: [证书, "PEM 格式的证书内容或文件路径。"], en: [Certificate, "PEM certificate content or file path."]}
-      - {key: private-key, type: string, importance: expert, sensitive: true, zh: [私钥, "PEM 格式的私钥内容或文件路径。"], en: [Private key, "PEM private key content or file path."]}
+      - {key: certificate, type: string, importance: expert, zh: [证书, "PEM格式的证书内容或文件路径。"], en: [Certificate, "PEM certificate content or file path."]}
+      - {key: private-key, type: string, importance: expert, sensitive: true, zh: [私钥, "PEM格式的私钥内容或文件路径。"], en: [Private key, "PEM private key content or file path."]}
       - key: client-auth-type
         type: enum
         enum:
@@ -174,70 +174,70 @@ fields:
           - {value: verify-if-given, en: Verify if provided, zh: 提供时校验}
           - {value: require-and-verify, en: Require and verify, zh: 要求并校验}
         importance: expert
-        zh: [mTLS 模式, "客户端证书（双向 TLS）的校验方式。"]
+        zh: [mTLS模式, "客户端证书（双向TLS）的校验方式。"]
         en: [mTLS mode, "How client certificates (mutual TLS) are verified."]
-      - {key: client-auth-cert, type: string, importance: expert, zh: [客户端 CA, "校验客户端证书使用的证书。"], en: [Client CA, "Certificate used to verify client certificates."]}
-      - {key: ech-key, type: string, importance: expert, sensitive: true, zh: [ECH 密钥, "启用 ECH 时的密钥；可由 mihomo generate ech-keypair 生成。"], en: [ECH key, "Key for Encrypted Client Hello; generate with mihomo generate ech-keypair."]}
+      - {key: client-auth-cert, type: string, importance: expert, zh: [客户端CA, "校验客户端证书使用的证书。"], en: [Client CA, "Certificate used to verify client certificates."]}
+      - {key: ech-key, type: string, importance: expert, sensitive: true, zh: [ECH密钥, "启用ECH时的密钥；可由mihomo generate ech-keypair生成。"], en: [ECH key, "Key for Encrypted Client Hello; generate with mihomo generate ech-keypair."]}
       - {key: custom-certifactes, type: list, items: {type: string}, importance: expert,
-         zh: [附加信任证书, "额外信任的 CA 证书（PEM）。键名中的拼写与内核一致。"], en: [Extra trusted CAs, "Additional trusted CA certificates (PEM). The key spelling matches the core."]}
+         zh: [附加信任证书, "额外信任的CA证书（PEM）。键名中的拼写与内核一致。"], en: [Extra trusted CAs, "Additional trusted CA certificates (PEM). The key spelling matches the core."]}
   - key: external-controller
-    guide: {basis: practice, zh: "控制面板（RESTful API）的监听地址，图形界面和网页面板通过它切换节点、查看连接。127.0.0.1:9090 只允许本机访问；改成 0.0.0.0 会让局域网都能访问，这时务必设置 secret。", en: "Listen address of the controller API used by GUIs and web dashboards. 127.0.0.1:9090 allows only this machine; 0.0.0.0 exposes it to the LAN, so always set secret then."}
+    guide: {basis: practice, zh: "控制面板（RESTful API）的监听地址，图形界面和网页面板通过它切换节点、查看连接。127.0.0.1:9090只允许本机访问；改成0.0.0.0会让局域网都能访问，这时务必设置secret。", en: "Listen address of the controller API used by GUIs and web dashboards. 127.0.0.1:9090 allows only this machine; 0.0.0.0 exposes it to the LAN, so always set secret then."}
     type: string
     importance: recommended
     doc: general#api
     examples: [{value: "127.0.0.1:9090", en: Local only, zh: 仅本机}]
-    zh: [控制接口, "RESTful API 的监听地址，面板通过它管理内核。"]
+    zh: [控制接口, "RESTful API的监听地址，面板通过它管理内核。"]
     en: [External controller, "Listen address of the RESTful API used by dashboards."]
     detail:
       zh: 监听 0.0.0.0 时务必设置 secret，否则局域网内任何人都能控制内核。
       en: When listening on 0.0.0.0, always set secret; otherwise anyone on the network can control the core.
-  - {key: external-controller-tls, guide: {basis: official, zh: "HTTPS 版本的控制面板地址，需要在 tls 中配置证书与私钥。", en: "HTTPS listen address for the controller; requires a certificate and key under tls."}, type: string, importance: optional, doc: general#api,
-     zh: [HTTPS 控制接口, "RESTful API 的 HTTPS 监听地址，需要配置 tls。"], en: [HTTPS controller, "HTTPS listen address of the RESTful API; requires tls."]}
-  - {key: secret, guide: {basis: official, zh: "访问控制面板 API 的密钥。官方说明：通过 Unix socket、Windows 命名管道和外部 DoH 访问时不验证 secret，需要自行保证这些入口的安全。控制面板对局域网开放时一定要设置。", en: "Key for the controller API. Per the docs, Unix sockets, Windows named pipes and the external DoH server skip it, so secure those yourself. Always set it when the API is reachable from the LAN."}, type: string, importance: recommended, sensitive: true, doc: general#api,
-     zh: [接口密钥, "访问 RESTful API 时需要的 Bearer 密钥。"], en: [API secret, "Bearer secret required by the RESTful API."]}
+  - {key: external-controller-tls, guide: {basis: official, zh: "HTTPS版本的控制面板地址，需要在tls中配置证书与私钥。", en: "HTTPS listen address for the controller; requires a certificate and key under tls."}, type: string, importance: optional, doc: general#api,
+     zh: [HTTPS控制接口, "RESTful API的HTTPS监听地址，需要配置tls。"], en: [HTTPS controller, "HTTPS listen address of the RESTful API; requires tls."]}
+  - {key: secret, guide: {basis: official, zh: "访问控制面板API的密钥。官方说明：通过Unix socket、Windows命名管道和外部DoH访问时不验证secret，需要自行保证这些入口的安全。控制面板对局域网开放时一定要设置。", en: "Key for the controller API. Per the docs, Unix sockets, Windows named pipes and the external DoH server skip it, so secure those yourself. Always set it when the API is reachable from the LAN."}, type: string, importance: recommended, sensitive: true, doc: general#api,
+     zh: [接口密钥, "访问RESTful API时需要的Bearer密钥。"], en: [API secret, "Bearer secret required by the RESTful API."]}
   - key: external-controller-cors
     type: object
     importance: expert
     doc: general#api
-    zh: [跨域设置, "RESTful API 的 CORS 响应头。"]
+    zh: [跨域设置, "RESTful API的CORS响应头。"]
     en: [CORS, "CORS headers of the RESTful API."]
     fields:
       - {key: allow-origins, type: list, items: {type: string}, default: ["*"], importance: expert, zh: [允许的来源, "允许跨域访问的来源。"], en: [Allowed origins, "Origins allowed to make cross-origin requests."]}
-      - {key: allow-private-network, type: bool, default: true, importance: expert, zh: [允许私有网络, "发送 Access-Control-Allow-Private-Network。"], en: [Allow private network, "Send Access-Control-Allow-Private-Network."]}
+      - {key: allow-private-network, type: bool, default: true, importance: expert, zh: [允许私有网络, "发送Access-Control-Allow-Private-Network。"], en: [Allow private network, "Send Access-Control-Allow-Private-Network."]}
   - {key: external-controller-unix, type: string, importance: expert, doc: general#api,
-     zh: [Unix 套接字接口, "RESTful API 的 Unix 套接字路径；该入口不校验 secret。"], en: [Unix socket API, "Unix socket path for the RESTful API; this entry does not check secret."]}
+     zh: [Unix套接字接口, "RESTful API的Unix套接字路径；该入口不校验secret。"], en: [Unix socket API, "Unix socket path for the RESTful API; this entry does not check secret."]}
   - {key: external-controller-pipe, type: string, importance: expert, doc: general#api,
-     zh: [命名管道接口, "Windows 命名管道形式的 RESTful API；该入口不校验 secret。"], en: [Named pipe API, "RESTful API over a Windows named pipe; this entry does not check secret."]}
+     zh: [命名管道接口, "Windows命名管道形式的RESTful API；该入口不校验secret。"], en: [Named pipe API, "RESTful API over a Windows named pipe; this entry does not check secret."]}
   - {key: external-controller-routing-mark, type: int, importance: expert, doc: general#api,
-     zh: [接口路由标记, "为控制接口的监听套接字设置 routing-mark（仅 Linux）。"], en: [API routing mark, "routing-mark for the controller listening sockets (Linux only)."]}
-  - {key: tcp-concurrent, guide: {basis: practice, zh: "域名解析出多个 IP 时同时发起连接，用最先成功的那个，可以减少某个 IP 不通时的等待；代价是多发几次连接。一般保持默认关闭。", en: "Dials every resolved IP at once and keeps the first to succeed, cutting waits when one IP is down at the cost of extra connections. The default off is fine for most."}, type: bool, default: false, importance: expert, doc: general#tcp,
-     zh: [TCP 并发, "同时连接域名解析出的全部 IP，使用最先握手成功的一个。"], en: [TCP concurrent, "Dial all resolved IPs at once and keep the first to complete the handshake."]}
-  - {key: external-ui, guide: {basis: official, zh: "把网页面板（如 metacubexd）挂到控制面板地址的 /ui 路径下。可以填绝对路径或相对工作目录的路径；不在工作目录内时需要设置 SAFE_PATHS 环境变量。", en: "Serves a web dashboard (such as metacubexd) at /ui on the controller. Absolute or working-directory-relative path; paths outside the working directory need the SAFE_PATHS environment variable."}, type: string, importance: optional, doc: general#api,
-     zh: [面板目录, "面板静态文件所在目录，经 /ui 访问。"], en: [Dashboard folder, "Folder holding dashboard files, served at /ui."]}
+     zh: [接口路由标记, "为控制接口的监听套接字设置routing-mark（仅Linux）。"], en: [API routing mark, "routing-mark for the controller listening sockets (Linux only)."]}
+  - {key: tcp-concurrent, guide: {basis: practice, zh: "域名解析出多个IP时同时发起连接，用最先成功的那个，可以减少某个IP不通时的等待；代价是多发几次连接。一般保持默认关闭。", en: "Dials every resolved IP at once and keeps the first to succeed, cutting waits when one IP is down at the cost of extra connections. The default off is fine for most."}, type: bool, default: false, importance: expert, doc: general#tcp,
+     zh: [TCP并发, "同时连接域名解析出的全部IP，使用最先握手成功的一个。"], en: [TCP concurrent, "Dial all resolved IPs at once and keep the first to complete the handshake."]}
+  - {key: external-ui, guide: {basis: official, zh: "把网页面板（如metacubexd）挂到控制面板地址的 /ui路径下。可以填绝对路径或相对工作目录的路径；不在工作目录内时需要设置SAFE_PATHS环境变量。", en: "Serves a web dashboard (such as metacubexd) at /ui on the controller. Absolute or working-directory-relative path; paths outside the working directory need the SAFE_PATHS environment variable."}, type: string, importance: optional, doc: general#api,
+     zh: [面板目录, "面板静态文件所在目录，经 /ui访问。"], en: [Dashboard folder, "Folder holding dashboard files, served at /ui."]}
   - {key: external-ui-name, type: string, importance: optional, doc: general#api,
-     zh: [面板子目录, "external-ui 下的子目录名。"], en: [Dashboard name, "Subfolder name under external-ui."]}
+     zh: [面板子目录, "external-ui下的子目录名。"], en: [Dashboard name, "Subfolder name under external-ui."]}
   - {key: external-ui-url, type: string, importance: optional, doc: general#api, default: "https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
-     zh: [面板下载地址, "面板压缩包（zip 或 tgz）的下载地址。"], en: [Dashboard URL, "Download URL of the dashboard archive (zip or tgz)."]}
+     zh: [面板下载地址, "面板压缩包（zip或tgz）的下载地址。"], en: [Dashboard URL, "Download URL of the dashboard archive (zip or tgz)."]}
   - {key: external-doh-server, type: string, importance: expert, doc: general#api,
-     zh: [DoH 服务路径, "在 RESTful API 端口上提供 DoH 服务的路径；该入口不校验 secret。"], en: [DoH server path, "Path of a DoH server on the API port; this entry does not check secret."]}
+     zh: [DoH服务路径, "在RESTful API端口上提供DoH服务的路径；该入口不校验secret。"], en: [DoH server path, "Path of a DoH server on the API port; this entry does not check secret."]}
 
   # —— 出站与连接 ——
   - {key: interface-name, type: string, importance: optional, doc: general#outbound-interface,
      zh: [出口网卡, "指定出站流量使用的网卡。"], en: [Outbound interface, "Network interface used for outbound traffic."]}
-  - {key: disable-keep-alive, guide: {basis: official, zh: "Keep Alive 这组设置用来减少移动设备耗电。官方说明在 Android 上会被强制设为 true。一般无需修改。", en: "The keep-alive settings exist to reduce battery drain on mobile devices. The docs note it is forced to true on Android. Usually leave it alone."}, type: bool, importance: expert, doc: general#tcp-keep-alive,
-     zh: [关闭 Keep-Alive, "关闭 TCP Keep-Alive；Android 上强制关闭。"], en: [Disable keep-alive, "Disable TCP keep-alive; always disabled on Android."]}
+  - {key: disable-keep-alive, guide: {basis: official, zh: "Keep Alive这组设置用来减少移动设备耗电。官方说明在Android上会被强制设为true。一般无需修改。", en: "The keep-alive settings exist to reduce battery drain on mobile devices. The docs note it is forced to true on Android. Usually leave it alone."}, type: bool, importance: expert, doc: general#tcp-keep-alive,
+     zh: [关闭Keep-Alive, "关闭TCP Keep-Alive；Android上强制关闭。"], en: [Disable keep-alive, "Disable TCP keep-alive; always disabled on Android."]}
   - {key: keep-alive-idle, type: int, importance: expert, doc: general#tcp-keep-alive,
-     zh: [Keep-Alive 空闲, "连接空闲多少秒后开始发送 Keep-Alive。"], en: [Keep-alive idle, "Seconds of idleness before keep-alive probes start."]}
+     zh: [Keep-Alive空闲, "连接空闲多少秒后开始发送Keep-Alive。"], en: [Keep-alive idle, "Seconds of idleness before keep-alive probes start."]}
   - {key: keep-alive-interval, type: int, importance: expert, doc: general#tcp-keep-alive,
-     zh: [Keep-Alive 间隔, "Keep-Alive 探测的间隔秒数。"], en: [Keep-alive interval, "Seconds between keep-alive probes."]}
+     zh: [Keep-Alive间隔, "Keep-Alive探测的间隔秒数。"], en: [Keep-alive interval, "Seconds between keep-alive probes."]}
   - {key: routing-mark, type: int, importance: optional, doc: general#routing-mark,
-     zh: [路由标记, "出站连接的 fwmark（仅 Linux）。"], en: [Routing mark, "fwmark for outbound connections (Linux only)."]}
+     zh: [路由标记, "出站连接的fwmark（仅Linux）。"], en: [Routing mark, "fwmark for outbound connections (Linux only)."]}
   - {key: global-client-fingerprint, type: string, importance: expert, stability: deprecated, removed: "1.19.27", replacement: "proxies[].client-fingerprint", doc: general,
-     zh: [全局指纹, "已移除；请在每个节点上设置 client-fingerprint。"], en: [Global fingerprint, "Removed; set client-fingerprint on each proxy instead."]}
-  - {key: global-ua, guide: {basis: practice, zh: "下载外部资源时使用的 User-Agent，默认 clash.meta。只有资源服务器按 UA 区别对待客户端时才需要修改。", en: "User-Agent for external downloads, clash.meta by default. Change it only when a server treats clients differently by UA."}, type: string, importance: expert, doc: general#ua,
-     zh: [全局 UA, "内核下载资源时使用的 User-Agent；默认为 clash.meta/版本号。"], en: [Global UA, "User-Agent the core uses for downloads; defaults to clash.meta/<version>."]}
-  - {key: etag-support, guide: {basis: practice, zh: "下载规则集、地理数据等外部资源时用 ETag 判断内容是否变化，没变就不重新下载，节省流量。保持默认开启。", en: "Uses ETag when downloading rule sets and geodata so unchanged files are not fetched again. Keep the default on."}, type: bool, default: true, importance: expert, doc: general#etag,
-     zh: [ETag 缓存, "下载资源时使用 ETag 避免重复下载。"], en: [ETag support, "Use ETag to avoid re-downloading unchanged resources."]}
+     zh: [全局指纹, "已移除；请在每个节点上设置client-fingerprint。"], en: [Global fingerprint, "Removed; set client-fingerprint on each proxy instead."]}
+  - {key: global-ua, guide: {basis: practice, zh: "下载外部资源时使用的User-Agent，默认clash.meta。只有资源服务器按UA区别对待客户端时才需要修改。", en: "User-Agent for external downloads, clash.meta by default. Change it only when a server treats clients differently by UA."}, type: string, importance: expert, doc: general#ua,
+     zh: [全局UA, "内核下载资源时使用的User-Agent；默认为clash.meta/版本号。"], en: [Global UA, "User-Agent the core uses for downloads; defaults to clash.meta/<version>."]}
+  - {key: etag-support, guide: {basis: practice, zh: "下载规则集、地理数据等外部资源时用ETag判断内容是否变化，没变就不重新下载，节省流量。保持默认开启。", en: "Uses ETag when downloading rule sets and geodata so unchanged files are not fetched again. Keep the default on."}, type: bool, default: true, importance: expert, doc: general#etag,
+     zh: [ETag缓存, "下载资源时使用ETag避免重复下载。"], en: [ETag support, "Use ETag to avoid re-downloading unchanged resources."]}
 
   # —— 其他分节 ——
   - key: experimental
@@ -249,11 +249,11 @@ fields:
     en: [Experimental, "Switches for specific issues; most users should leave them alone."]
     fields:
       - {key: quic-go-disable-gso, type: bool, importance: expert, stability: experimental, doc: "experimental#quic-go-disable-gso",
-         zh: [禁用 QUIC GSO, "关闭 quic-go 的 GSO；仅在遇到相关问题时临时开启。"], en: [Disable QUIC GSO, "Turn off quic-go GSO; enable only temporarily when it causes problems."]}
+         zh: [禁用QUIC GSO, "关闭quic-go的GSO；仅在遇到相关问题时临时开启。"], en: [Disable QUIC GSO, "Turn off quic-go GSO; enable only temporarily when it causes problems."]}
       - {key: quic-go-disable-ecn, type: bool, default: true, importance: expert, stability: experimental, doc: "experimental#quic-go-disable-ecn",
-         zh: [禁用 QUIC ECN, "关闭 quic-go 的 ECN；默认关闭，因为部分平台无法自动回退。"], en: [Disable QUIC ECN, "Turn off quic-go ECN; off by default because some platforms cannot fall back."]}
+         zh: [禁用QUIC ECN, "关闭quic-go的ECN；默认关闭，因为部分平台无法自动回退。"], en: [Disable QUIC ECN, "Turn off quic-go ECN; off by default because some platforms cannot fall back."]}
       - {key: dialer-ip4p-convert, type: bool, importance: expert, stability: experimental, doc: "experimental#dialer-ip4p-convert",
-         zh: [IP4P 转换, "连接时把 IP4P 地址转换为真实的 IPv4 地址与端口。"], en: [IP4P conversion, "Convert IP4P addresses to the real IPv4 address and port when dialing."]}
+         zh: [IP4P转换, "连接时把IP4P地址转换为真实的IPv4地址与端口。"], en: [IP4P conversion, "Convert IP4P addresses to the real IPv4 address and port when dialing."]}
       - {key: fingerprints, type: list, items: {type: string}, importance: expert, stability: experimental, doc: experimental,
          zh: [证书指纹, "实验性的证书指纹列表。"], en: [Fingerprints, "Experimental list of certificate fingerprints."]}
   - key: hosts
@@ -262,17 +262,17 @@ fields:
     importance: optional
     doc: dns/hosts
     examples: [{value: {"*.example.com": 192.0.2.1}, en: Wildcard host, zh: 通配主机}]
-    zh: [Hosts, "类似 /etc/hosts 的静态解析；值可以是 IP、IP 列表或一个域名别名。"]
+    zh: [Hosts, "类似 /etc/hosts的静态解析；值可以是IP、IP列表或一个域名别名。"]
     en: [Hosts, "Static resolution like /etc/hosts; values are an IP, a list of IPs, or one domain alias."]
   - key: profile
     type: object
     importance: optional
     doc: general
-    zh: [状态持久化, "是否在重启后保留策略组选择与 fake-ip 映射。"]
+    zh: [状态持久化, "是否在重启后保留策略组选择与fake-ip映射。"]
     en: [Persistence, "Whether group selections and fake-ip mappings survive restarts."]
     fields:
-      - {key: store-selected, type: bool, default: true, importance: optional, zh: [保存选择, "记住 select 组的手动选择。"], en: [Store selection, "Remember manual choices in select groups."]}
-      - {key: store-fake-ip, type: bool, importance: optional, zh: [保存 fake-ip, "持久化 fake-ip 映射。"], en: [Store fake-ip, "Persist fake-ip mappings."]}
+      - {key: store-selected, type: bool, default: true, importance: optional, zh: [保存选择, "记住select组的手动选择。"], en: [Store selection, "Remember manual choices in select groups."]}
+      - {key: store-fake-ip, type: bool, importance: optional, zh: [保存fake-ip, "持久化fake-ip映射。"], en: [Store fake-ip, "Persist fake-ip mappings."]}
   - key: tunnels
     type: list
     items:
@@ -281,7 +281,7 @@ fields:
         - {type: string}
         - type: object
           fields:
-            - {key: network, type: list, items: {type: string}, importance: core, zh: [网络, "tcp、udp 或二者。"], en: [Network, "tcp, udp, or both."]}
+            - {key: network, type: list, items: {type: string}, importance: core, zh: [网络, "tcp、udp或二者。"], en: [Network, "tcp, udp, or both."]}
             - {key: address, type: string, importance: core, zh: [本地地址, "本地监听地址与端口。"], en: [Local address, "Local listen address and port."]}
             - {key: target, type: string, importance: core, zh: [目标, "转发到的目标地址与端口。"], en: [Target, "Destination address and port."]}
             - {key: proxy, type: string, importance: core, zh: [代理, "转发使用的节点或策略组。"], en: [Proxy, "Proxy or group used for forwarding."]}
@@ -294,12 +294,12 @@ fields:
     type: object
     importance: optional
     doc: ntp
-    zh: [时间同步, "内置 NTP 客户端，可修正系统时间偏差导致的握手失败。"]
+    zh: [时间同步, "内置NTP客户端，可修正系统时间偏差导致的握手失败。"]
     en: [NTP, "Built-in NTP client that fixes handshake failures caused by clock drift."]
     fields:
-      - {key: enable, type: bool, default: false, importance: optional, doc: "ntp#enable", zh: [启用, "启用 NTP 同步。"], en: [Enable, "Enable NTP synchronisation."]}
+      - {key: enable, type: bool, default: false, importance: optional, doc: "ntp#enable", zh: [启用, "启用NTP同步。"], en: [Enable, "Enable NTP synchronisation."]}
       - {key: write-to-system, type: bool, default: false, importance: expert, doc: "ntp#write-to-system", zh: [写入系统, "把同步结果写入系统时间（需要权限）。"], en: [Write to system, "Apply the synced time to the system clock (needs privileges)."]}
-      - {key: server, type: string, default: time.apple.com, importance: optional, doc: "ntp#server", zh: [服务器, "NTP 服务器地址。"], en: [Server, "NTP server address."]}
-      - {key: port, type: int, default: 123, importance: expert, doc: "ntp#port", zh: [端口, "NTP 服务器端口。"], en: [Port, "NTP server port."]}
+      - {key: server, type: string, default: time.apple.com, importance: optional, doc: "ntp#server", zh: [服务器, "NTP服务器地址。"], en: [Server, "NTP server address."]}
+      - {key: port, type: int, default: 123, importance: expert, doc: "ntp#port", zh: [端口, "NTP服务器端口。"], en: [Port, "NTP server port."]}
       - {key: interval, type: int, default: 30, importance: expert, doc: "ntp#interval", zh: [间隔, "同步间隔，单位为分钟。"], en: [Interval, "Sync interval in minutes."]}
-      - {key: dialer-proxy, type: string, importance: expert, doc: "ntp#dialer-proxy", zh: [经由代理, "通过指定的节点或策略组访问 NTP 服务器。"], en: [Dialer proxy, "Reach the NTP server through this proxy or group."]}
+      - {key: dialer-proxy, type: string, importance: expert, doc: "ntp#dialer-proxy", zh: [经由代理, "通过指定的节点或策略组访问NTP服务器。"], en: [Dialer proxy, "Reach the NTP server through this proxy or group."]}
