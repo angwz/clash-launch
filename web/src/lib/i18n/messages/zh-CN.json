@@ -184,6 +184,7 @@
   "analytics.region": "地区",
   "analytics.regions": "来源地区",
   "analytics.requests": "请求次数",
+  "analytics.retention": "请求明细保留{n}天，更早的只计入每日总数；所选时间范围的前段可能不完整。",
   "analytics.short": "短链接",
   "analytics.subtitle": "你的配置链接与短链接被谁、从哪里、在什么时候请求。时间按「设置 → 时区」显示。",
   "analytics.success": "成功率",

@@ -326,7 +326,8 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends})
+	// 明细保留期（R14c）：所选范围超过它时，前端提示前段不完整
+	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends, "retentionDays": int(s.Svc.RequestRetention.Hours() / 24)})
 }
 
 // —— 站内消息 ——

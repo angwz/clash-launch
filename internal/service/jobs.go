@@ -25,6 +25,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 	defer t.Stop()
 	s.tick(ctx)
 	s.PruneAudit(ctx)
+	s.PruneRequests(ctx)
 	s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
 	lastPrune := s.now()
 	for {
@@ -36,6 +37,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 			s.FlushStats(ctx)
 			if s.now().Sub(lastPrune) >= 24*time.Hour { // 审计日志每天清理一次
 				s.PruneAudit(ctx)
+				s.PruneRequests(ctx)
 				s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
 				lastPrune = s.now()
 			}

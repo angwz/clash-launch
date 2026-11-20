@@ -68,6 +68,8 @@ type Service struct {
 	OpenQuotaDefaults QuotaDefaults
 	// AuditRetention 是审计日志的保留期；0 表示不清理。
 	AuditRetention time.Duration
+	// RequestRetention 是订阅请求明细的保留期；0 表示不清理（需求 R14c）。按天的汇总永久保留。
+	RequestRetention time.Duration
 	// Mailer 发送用户本人配置的提醒邮件；nil 时邮件提醒不可用。
 	Mailer *source.Mailer
 	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。

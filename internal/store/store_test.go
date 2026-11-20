@@ -322,3 +322,34 @@ func TestStats(t *testing.T) {
 		t.Errorf("令牌无效的来源：%+v %v", bad, err)
 	}
 }
+
+// R14c：过期的请求明细按批删除，较新的明细与按 IP 的汇总保留。
+func TestPruneRequests(t *testing.T) {
+	d := newDB(t)
+	ctx := context.Background()
+	st := d.Stats()
+	cut := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	old := pruneBatch + 7 // 超过一批，覆盖循环
+	rs := make([]SubRequest, 0, old+3)
+	for i := 0; i < old; i++ {
+		rs = append(rs, SubRequest{LinkID: "l1", OwnerID: "u1", At: cut.Add(-time.Duration(i+1) * time.Minute), IP: "192.0.2.1", Status: 200, Kind: "config"})
+	}
+	for i := 0; i < 3; i++ {
+		rs = append(rs, SubRequest{LinkID: "l1", OwnerID: "u1", At: cut.Add(time.Duration(i) * time.Minute), IP: "192.0.2.2", Status: 200, Kind: "config"})
+	}
+	if err := st.AddRequests(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
+	n, err := st.PruneRequests(ctx, cut)
+	if err != nil || n != int64(old) {
+		t.Fatalf("应删除 %d 行，得到 %d %v", old, n, err)
+	}
+	left, _, err := st.Range(ctx, "u1", cut.Add(-365*24*time.Hour), cut.Add(time.Hour), 100)
+	if err != nil || len(left) != 3 {
+		t.Fatalf("应剩 3 条较新的明细，得到 %d %v", len(left), err)
+	}
+	ips, err := st.IPs(ctx, "u1", "l1")
+	if err != nil || len(ips) != 2 {
+		t.Fatalf("按 IP 的汇总应保留，得到 %d %v", len(ips), err)
+	}
+}

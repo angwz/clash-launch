@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -76,6 +77,9 @@ type StatsRepo interface {
 	Requests(ctx context.Context, owner, linkID string, p Page) ([]SubRequest, error)
 	// IPs 返回某条链接的 IP 汇总；owner 为空且 linkID 为空时返回令牌无效的请求来源（管理员）。
 	IPs(ctx context.Context, owner, linkID string) ([]SubIP, error)
+	// PruneRequests 删除 before 之前的请求明细，返回删除的行数。按批删除，每批一个短事务，
+	// 不长时间锁表；按天、按链接与按 IP 的汇总（stat_counts、sub_ips）不受影响（需求 R14c）。
+	PruneRequests(ctx context.Context, before time.Time) (int64, error)
 	// Range 返回某个用户在 [from, to) 内的全部请求记录（时间正序），最多 limit 条；用于订阅分析（反馈 #74）。
 	// 第二个返回值表示是否因超过 limit 而截断（此时返回的是区间内最新的 limit 条）。
 	Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error)
@@ -239,6 +243,28 @@ func (r stats) LastByShort(ctx context.Context, owner string) (map[string]time.T
 		out[id] = fromMS(at)
 	}
 	return out, rows.Err()
+}
+
+// pruneBatch 是每批删除的行数：足够大以减少往返，又不至于让单个事务持锁过久。
+const pruneBatch = 10_000
+
+func (r stats) PruneRequests(ctx context.Context, before time.Time) (int64, error) {
+	var total int64
+	for {
+		// 子查询按 at 取一批 ID（走 sub_requests_at 索引），两种数据库都支持这种写法
+		res, err := r.d.exec(ctx, "DELETE FROM sub_requests WHERE id IN (SELECT id FROM sub_requests WHERE at < ? ORDER BY at LIMIT ?)", ms(before), pruneBatch)
+		if err != nil {
+			return total, fmt.Errorf("store: 清理订阅请求明细: %w", err)
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return total, err
+		}
+		total += n
+		if n < pruneBatch || ctx.Err() != nil {
+			return total, ctx.Err()
+		}
+	}
 }
 
 func (r stats) Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error) {

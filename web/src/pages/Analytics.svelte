@@ -84,6 +84,7 @@
     friends: Record<string, string>;
     links: Record<string, { profileId: string; profileName: string; note: string }>;
     shorts: Record<string, string>;
+    retentionDays?: number; // 请求明细保留天数（R14c）；0 或缺省表示不清理
   }
 
   const q = new URLSearchParams(location.search);
@@ -92,6 +93,7 @@
   let short = $state(q.get("short") ?? "");
   let friend = $state(q.get("friend") ?? "");
   let data = $state<Data | null>(null);
+  const retention = $derived(data?.retentionDays ?? 0);
   let error = $state("");
   let ipLimit = $state(20);
 
@@ -170,6 +172,7 @@
     </div>
   {:else}
     {#if a.truncated}<p class="hint warn-note">{t("analytics.truncated")}</p>{/if}
+    {#if retention > 0 && days > retention}<p class="hint warn-note">{t("analytics.retention", { n: retention })}</p>{/if}
 
     <dl class="tiles">
       <div class="tile panel">

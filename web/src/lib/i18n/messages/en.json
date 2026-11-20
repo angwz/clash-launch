@@ -184,6 +184,7 @@
   "analytics.region": "Region",
   "analytics.regions": "Regions",
   "analytics.requests": "Requests",
+  "analytics.retention": "Request details are kept for {n} days; older requests only count toward daily totals, so the start of this range may be incomplete.",
   "analytics.short": "Short link",
   "analytics.subtitle": "Who requested your config links and short links, from where and when. Times use Settings → Time zone.",
   "analytics.success": "Success rate",

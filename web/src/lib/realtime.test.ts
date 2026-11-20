@@ -16,7 +16,8 @@ class FakeWS {
   }
 }
 
-describe("realtime", () => {
+// 每个用例重新导入 .svelte.ts 模块（需要现场编译），机器繁忙时可能超过默认的 5 秒
+describe("realtime", { timeout: 30_000 }, () => {
   beforeEach(() => {
     vi.useFakeTimers();
     FakeWS.all = [];
