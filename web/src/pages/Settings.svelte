@@ -42,6 +42,15 @@
     }
   }
 
+  // 关闭动效（R11）：默认跟随系统，不写入偏好
+  async function setMotionOff(off: boolean) {
+    try {
+      await prefs.save({ ...prefs.data, motion: off ? "off" : undefined });
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   // 时区（反馈 #72）：保存在账号中，换设备一致；界面时间与配置文件头时间都按它显示
   let now = $state(new Date().toISOString());
   $effect(() => {
@@ -99,6 +108,13 @@
       </div>
     </div>
     <p class="hint">{t("account.local_hint")}</p>
+    <label class="choice">
+      <input id="st-motion" type="checkbox" checked={prefs.data.motion === "off"} onchange={(e) => void setMotionOff(e.currentTarget.checked)} />
+      <span>
+        <strong>{t("settings.motion_off")}</strong>
+        <span class="muted">{t("settings.motion_off_hint")}</span>
+      </span>
+    </label>
   </section>
 
   <section class="panel box" aria-labelledby="st-time">

@@ -73,6 +73,8 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/admin/registration", s.adminOnly(s.getRegistration)},
 		{"PUT", "/api/v1/admin/registration", s.adminOnly(s.putRegistration)},
 		{"PUT", "/api/v1/admin/node-mode", s.adminOnly(s.putNodeMode)},
+		{"GET", "/api/v1/admin/pulse", s.adminOnly(s.getPulseSettings)},
+		{"PUT", "/api/v1/admin/pulse", s.adminOnly(s.putPulseSettings)},
 		{"GET", "/api/v1/admin/invites", s.adminOnly(s.listInvites)},
 		{"POST", "/api/v1/admin/invites", s.adminOnly(s.createInvite)},
 		{"DELETE", "/api/v1/admin/invites/{id}", s.adminOnly(s.deleteInvite)},
@@ -91,6 +93,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/diagnostics", s.diagnostics},
 
 		{"GET", "/api/v1/events", a(s.eventsStream)},
+		{"GET", "/api/v1/pulse", a(s.pulse)},
 		{"GET", "/api/v1/sources", a(s.listSources)},
 		{"POST", "/api/v1/sources", a(s.createSource)},
 		{"GET", "/api/v1/sources/{id}", a(s.getSource)},

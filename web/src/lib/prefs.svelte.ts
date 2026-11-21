@@ -16,6 +16,8 @@ export interface PrefsData {
   inbox?: "off";
   autoAdd?: boolean;
   blocked?: string[];
+  /** off：关闭界面动效（R11），与系统的「减少动态效果」相同；省略表示跟随系统 */
+  motion?: "off";
 }
 
 export type FieldClickMode = "button" | "text" | "card";

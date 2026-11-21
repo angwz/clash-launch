@@ -646,6 +646,11 @@ func TestPrefs(t *testing.T) {
 	}
 	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"nav": []string{"a", "a"}})
 	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"theme": "dark"})
+	// 关闭动效（R11）：只接受 off
+	if b := string(c.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"motion": "off"})); !strings.Contains(b, `"motion":"off"`) {
+		t.Errorf("motion：%s", b)
+	}
+	c.want(400, "PUT", "/api/v1/account/prefs", map[string]any{"motion": "slow"})
 }
 
 // 配置模板（反馈 #51）：创建、默认标记唯一、校验、按用户隔离、删除。

@@ -164,6 +164,38 @@ describe("realtime", { timeout: 30_000 }, () => {
     realtime.stop();
   });
 
+  it("实时通道连不上时轮询 /api/v1/pulse：成功就算可达，连上后停止轮询", async () => {
+    let fail = false;
+    const fetchMock = vi.fn(() =>
+      fail ? Promise.reject(new Error("offline")) : Promise.resolve({ ok: true, json: () => Promise.resolve({ version: "v1", unread: 0, kernel: false, online: 2 }) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { realtime } = await import("./realtime.svelte");
+    realtime.start();
+    FakeWS.all[0]!.close(1006); // 代理不支持升级：一直连不上
+    expect(realtime.reachable).toBe(false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(realtime.reachable).toBe(true);
+    expect(realtime.connected).toBe(false);
+    expect(realtime.kernel).toBe(false);
+    expect(realtime.online).toBe(2);
+    expect(realtime.serverVersion).toBe("v1");
+
+    fail = true; // 服务器也不可达
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(realtime.reachable).toBe(false);
+
+    const ws = FakeWS.all.at(-1)!;
+    ws.deliver({ type: "hello", version: "v1" });
+    expect(realtime.reachable).toBe(true);
+    expect(realtime.kernel).toBe(true);
+    const calls = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(20_000); // 超过轮询间隔，但不到心跳判定断线的时间
+    expect(fetchMock.mock.calls.length).toBe(calls); // 连上后不再轮询
+    realtime.stop();
+  });
+
   it("多个标签页共用一条连接：主标签页转发事件、代发消息，关闭后由下一个接手", async () => {
     const locks = new FakeLocks();
     vi.stubGlobal("BroadcastChannel", FakeChannel);

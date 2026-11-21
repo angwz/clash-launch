@@ -32,6 +32,11 @@
     realtime.start(); // 实时通道（R22）
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
+  // 关闭动效（R11）：根元素加 data-motion="off"，base.css 据此压掉所有动画与过渡
+  $effect(() => {
+    if (prefs.data.motion === "off") document.documentElement.dataset.motion = "off";
+    else delete document.documentElement.dataset.motion;
+  });
 
   const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 

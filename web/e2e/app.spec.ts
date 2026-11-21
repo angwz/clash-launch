@@ -1048,6 +1048,29 @@ test("实时通道：客户端拉取订阅后，配置链接页立即更新，�
   expect(problems).toEqual([]);
 });
 
+test("关闭动效与在线人数设置（R11）", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/settings");
+  const motion = page.getByLabel("关闭动效");
+  await motion.check();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "off");
+  await page.reload(); // 偏好存在服务端：重新打开仍然生效
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "off");
+  await page.getByLabel("关闭动效").uncheck();
+  await expect(page.locator("html")).not.toHaveAttribute("data-motion", "off");
+
+  await page.goto("/admin");
+  const sw = page.getByRole("switch", { name: "向普通用户显示在线人数" });
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await sw.click(); // 恢复默认，不影响其他用例
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  expect(problems).toEqual([]);
+});
+
 test("在线指示灯与多标签页共用一条实时连接（R11、R22）", async ({ page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "与桌面相同");
   const problems = watch(page);
@@ -1060,21 +1083,23 @@ test("在线指示灯与多标签页共用一条实时连接（R11、R22）", as
   await login(page);
   await page.goto(`/profiles/${profile}/links`);
 
-  // 连上后灯常亮、随操作起伏或因未读而呼吸（前面的用例可能留下未读），不是「正在连接」或「断线」
+  // 连上后灯常亮、随操作起伏或因未读而呼吸（前面的用例可能留下未读），不是「正在连接」或「断线」；
+  // 端到端环境没有 mihomo，服务端内核检查不可用，灯降级为琥珀色并在说明里写明原因
   const pulse = page.locator(".sidebar-foot .pulse");
-  await expect(pulse).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 5_000 });
+  await expect(pulse).toHaveAttribute("data-state", /^(idle|active|unread|degraded)$/, { timeout: 5_000 });
   await pulse.hover();
   const tip = page.getByRole("tooltip");
   await expect(tip).toContainText("往返延迟");
   await expect(tip).toContainText(/\d+ ms/);
   await expect(tip).toContainText("在线人数"); // 管理员能看到在线人数
+  await expect(tip).toContainText("内核不可用");
   await page.mouse.move(600, 400);
   await expect(tip).toBeHidden();
 
   // 第二个标签页：不新建连接，事件经主标签页转发
   const second = await page.context().newPage();
   await second.goto(`/profiles/${profile}/links`);
-  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 5_000 });
+  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread|degraded)$/, { timeout: 5_000 });
   const totals = [page, second].map((p) => p.locator(".moment").filter({ hasText: "累计被请求" }).locator("strong"));
   for (const x of totals) await expect(x).toHaveText("0");
   await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
@@ -1084,7 +1109,7 @@ test("在线指示灯与多标签页共用一条实时连接（R11、R22）", as
   // 主标签页关闭：第二个标签页接手连接，之后的事件照常到达
   await page.close();
   await expect.poll(() => secondSockets, { timeout: 10_000 }).toBe(1);
-  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 10_000 });
+  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread|degraded)$/, { timeout: 10_000 });
   await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
   await expect(totals[1]!).toHaveText("2", { timeout: 5_000 });
   expect(problems).toEqual([]);

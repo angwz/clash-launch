@@ -4,7 +4,8 @@
 // - 断线后按 1、2、4…最长 30 秒（带随机抖动）重连；重连成功时通知所有订阅者重读一次，补上断线期间的变化；
 // - 服务器以 1008 关闭表示会话已结束：不再重连，交给下一次 API 请求走正常的登录失效流程；
 // - 心跳：每 30 秒 ping 一次并测往返延迟；连续两次 10 秒内没有回应就断开重连（在线指示灯 R11 据此熄灭）；
-// - 连不上（代理不支持升级、浏览器不支持）时页面照常靠 live() 的定时刷新，功能不受影响。
+// - 连不上（代理不支持升级、浏览器不支持）时页面照常靠 live() 的定时刷新，功能不受影响；指示灯改为每 15 秒
+//   轮询 GET /api/v1/pulse（标签页隐藏时暂停），轮询成功就不算断线。
 //
 // 多个标签页共用一条连接：用 Web Locks 选出一个「主标签页」持有连接，它把收到的事件经 BroadcastChannel
 // 转给其他标签页，其他标签页要发的消息也经它代发。主标签页关闭时锁自动释放，排队的下一个标签页接手并重连。
@@ -19,6 +20,7 @@ export interface RealtimeEvent {
   state?: string;
   online?: number;
   version?: string;
+  kernel?: string;
 }
 type Listener = (id: string | undefined, e?: RealtimeEvent) => void;
 type Outgoing = { type: "typing"; to: string };
@@ -26,7 +28,7 @@ type Outgoing = { type: "typing"; to: string };
 /** 标签页之间的消息。 */
 type TabMsg =
   | { k: "event"; e: RealtimeEvent }
-  | { k: "state"; connected: boolean; rtt?: number; online?: number; version?: string }
+  | { k: "state"; connected: boolean; polled: boolean; rtt?: number; online?: number; version?: string; kernel?: boolean }
   | { k: "send"; msg: Outgoing }
   | { k: "ping" }
   | { k: "query" }
@@ -36,6 +38,16 @@ const ALL = "*";
 const CHANNEL = "clash-launch-realtime";
 const PING_EVERY = 30_000;
 const PONG_WAIT = 10_000;
+// 断开后多久开始轮询、之后的间隔。首次轮询早于指示灯的断线判定（5 秒），实时通道不可用而服务器正常时不会误熄
+const POLL_AFTER = 2_000;
+const POLL_EVERY = 15_000;
+
+interface PulseData {
+  version: string;
+  online?: number;
+  unread: number;
+  kernel: boolean;
+}
 
 interface LockManager {
   request(name: string, opts: { signal: AbortSignal }, cb: () => Promise<void>): Promise<unknown>;
@@ -51,6 +63,15 @@ class Realtime {
   /** 服务器版本：页面第一次连上时的版本与最新的版本，不同时提示刷新（R11） */
   pageVersion = $state<string | undefined>(undefined);
   serverVersion = $state<string | undefined>(undefined);
+  /** 服务端的内核检查是否可用；未知时为 undefined。不可用时指示灯降级（R11） */
+  kernel = $state<boolean | undefined>(undefined);
+  /** 实时通道断开期间，最近一次轮询是否成功 */
+  polled = $state(false);
+
+  /** 服务器是否可达：实时通道已连接，或轮询成功 */
+  get reachable(): boolean {
+    return this.connected || this.polled;
+  }
 
   #ws: WebSocket | undefined;
   #listeners = new Map<string, Set<Listener>>();
@@ -66,6 +87,7 @@ class Realtime {
   #pending = new Map<string, number>(); // ping ID → 发出时间
   #missed = 0;
   #seq = 0;
+  #pollTimer: ReturnType<typeof setTimeout> | undefined;
 
   start(): void {
     if (this.#wanted || typeof WebSocket === "undefined") return;
@@ -96,6 +118,7 @@ class Realtime {
     this.#leader = false;
     clearTimeout(this.#timer);
     clearInterval(this.#pingTimer);
+    this.#stopPolling();
     this.#ws?.close(1000);
     this.#ws = undefined;
     this.#abort?.abort();
@@ -105,6 +128,7 @@ class Realtime {
     this.#channel = undefined;
     this.#pending.clear();
     this.connected = false;
+    this.polled = false;
   }
 
   /** 向服务器发一条消息（目前只有「正在输入」）；没连上时丢弃，不排队。 */
@@ -145,6 +169,8 @@ class Realtime {
   #handle(e: RealtimeEvent): void {
     if (e.type === "hello") {
       this.connected = true;
+      this.polled = false;
+      this.kernel = e.kernel !== "unavailable";
       this.#noteVersion(e.version);
       if (e.online) this.online = e.online;
       // 重连成功或换了主标签页：断线期间可能错过事件，让所有页面重读一次
@@ -171,6 +197,8 @@ class Realtime {
         if (this.#leader) break;
         if (m.connected && !this.connected) this.#everConnected = true; // 加入时主标签页已连接：之后的 hello 才算重连
         this.connected = m.connected;
+        this.polled = m.polled;
+        this.kernel = m.kernel;
         this.rtt = m.rtt;
         this.online = m.online;
         this.#noteVersion(m.version);
@@ -199,7 +227,7 @@ class Realtime {
   }
 
   #broadcastState(): void {
-    this.#post({ k: "state", connected: this.connected, rtt: this.rtt, online: this.online, version: this.serverVersion });
+    this.#post({ k: "state", connected: this.connected, polled: this.polled, rtt: this.rtt, online: this.online, version: this.serverVersion, kernel: this.kernel });
   }
 
   #becomeLeader(): void {
@@ -231,6 +259,7 @@ class Realtime {
       ws = new WebSocket(url);
     } catch {
       this.#schedule();
+      this.#startPolling();
       return;
     }
     this.#ws = ws;
@@ -256,6 +285,7 @@ class Realtime {
       if (e.type === "hello") {
         this.#retry = 0;
         this.#missed = 0;
+        this.#stopPolling();
         clearInterval(this.#pingTimer);
         this.#pingTimer = setInterval(() => this.#ping(), PING_EVERY);
       }
@@ -278,8 +308,49 @@ class Realtime {
         this.#wanted = false;
       }
       this.#broadcastState();
-      if (this.#wanted) this.#schedule();
+      if (this.#wanted) {
+        this.#schedule();
+        this.#startPolling();
+      }
     };
+  }
+
+  // —— 轮询兜底（只有持有连接的标签页轮询，结果随 state 广播给其他标签页）——
+
+  #startPolling(): void {
+    if (this.#pollTimer !== undefined) return;
+    this.#pollTimer = setTimeout(() => void this.#poll(), POLL_AFTER);
+  }
+
+  #stopPolling(): void {
+    clearTimeout(this.#pollTimer);
+    this.#pollTimer = undefined;
+  }
+
+  async #poll(): Promise<void> {
+    if (!this.#wanted || this.connected) return this.#stopPolling();
+    // 标签页隐藏时不发请求，到点再看
+    if (typeof document === "undefined" || !document.hidden) {
+      const t0 = performance.now();
+      try {
+        const r = await fetch("/api/v1/pulse", { credentials: "same-origin", headers: { Accept: "application/json" } });
+        if (!r.ok) throw new Error(String(r.status));
+        const p = (await r.json()) as PulseData;
+        if (this.connected) return this.#stopPolling(); // 等待期间实时通道已恢复，以它为准
+        this.polled = true;
+        this.rtt = Math.round(performance.now() - t0);
+        this.online = p.online;
+        this.kernel = p.kernel;
+        this.#noteVersion(p.version);
+      } catch {
+        // 401（会话结束）也按不可达处理：交给下一次 API 请求走登录失效流程
+        if (this.connected) return this.#stopPolling();
+        this.polled = false;
+        this.rtt = undefined;
+      }
+      this.#broadcastState();
+    }
+    this.#pollTimer = this.#wanted && !this.connected ? setTimeout(() => void this.#poll(), POLL_EVERY) : undefined;
   }
 
   #schedule(): void {

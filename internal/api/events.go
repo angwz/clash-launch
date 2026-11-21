@@ -23,7 +23,7 @@ import (
 //   - 浏览器只发两种消息，读取上限 1 KiB，其他内容忽略：
 //     {"type":"typing","to":"<用户名>"}：只转发给互为联系人、且双方都没有把对话放进回收站的人，每条连接每 2 秒最多一次；
 //     {"type":"ping","id":"<任意短串>"}：回 pong（带回 id，供浏览器测往返延迟），每条连接每秒最多一次。
-//   - 在线人数目前只告诉管理员（管理员可设置是否向普通用户显示，见 backlog R11）。
+//   - 在线人数总是告诉管理员；是否告诉普通用户由管理员设置（GET/PUT /api/v1/admin/pulse，R11）。
 const (
 	eventsCheckEvery = 30 * time.Second
 	eventsWriteWait  = 10 * time.Second
@@ -57,16 +57,12 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request, p *princip
 	}
 	defer func() { _ = c.CloseNow() }()
 	c.SetReadLimit(1 << 10)
-	online := func() int {
-		if p.User.Role == "admin" {
-			return s.Svc.Events.Online()
-		}
-		return 0
-	}
 	// 读循环：处理控制帧、「正在输入」与 ping；对方关闭或读取出错时结束整个连接。
 	// 回应经 replies 交给写循环发送，写操作只在一个 goroutine 里进行。
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+	// 在线人数：管理员总能看到；普通用户看不看由管理员设置（R11）
+	online := func() int { return s.Svc.OnlineFor(ctx, p.User) }
 	replies := make(chan events.Event, 4)
 	go func() {
 		defer cancel()
@@ -111,7 +107,11 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request, p *princip
 		defer cancel()
 		return c.Write(wctx, websocket.MessageText, b)
 	}
-	if send(events.Event{Type: events.Hello, Version: version.Version, Online: online()}) != nil {
+	hello := events.Event{Type: events.Hello, Version: version.Version, Online: online()}
+	if s.Svc.Kernel == nil {
+		hello.Kernel = "unavailable"
+	}
+	if send(hello) != nil {
 		return
 	}
 	tick := time.NewTicker(eventsCheckEvery)

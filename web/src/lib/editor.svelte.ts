@@ -9,6 +9,7 @@ import type { Routing } from "./routing/draft";
 import type { CheckState } from "./shell.svelte";
 import { toasts } from "./toast.svelte";
 import { prefs } from "./prefs.svelte";
+import { pulse } from "./pulse.svelte";
 import { stats } from "./stats.svelte";
 
 // 停止编辑后多久自动保存（毫秒）
@@ -202,11 +203,13 @@ export class EditorState {
     this.previewing = true;
     if (kernel) this.check = "running";
     try {
-      const res = await api.post<Preview>(
+      const req = api.post<Preview>(
         "/api/v1/profiles/" + this.profile.id + "/preview",
         { doc: this.text },
         { query: { check: kernel ? "true" : undefined }, signal: ac.signal },
       );
+      // 内核检查算「工作中」（指示灯脉动，R11）；单纯的草稿预览很频繁，不算
+      const res = await (kernel ? pulse.track(req) : req);
       this.preview = res;
       this.error = "";
       if (kernel) {
@@ -214,6 +217,8 @@ export class EditorState {
         this.check = s === "passed" ? "passed" : s === "failed" || s === "timeout" ? "failed" : s === "unavailable" ? "unavailable" : "idle";
         // 主动检查通过时庆祝一下（反馈 #44）
         if (manual && this.check === "passed") toasts.push("ok", t("check.celebrate"), { emoji: "party", key: "check" });
+        // 指示灯：检查通过一闪确认，未通过闪一下警示色；内核不可用由指示灯的降级状态表达
+        if (this.check === "passed" || this.check === "failed") pulse.finish(this.check === "passed");
       }
     } catch (e) {
       // 被新的请求取代：内核检查被中止时恢复为未检查，否则检查按钮会一直停在「检查中」而不可点击（反馈 #53）
@@ -228,7 +233,10 @@ export class EditorState {
         return;
       }
       this.error = errorText(e);
-      if (kernel) this.check = "error";
+      if (kernel) {
+        this.check = "error";
+        pulse.finish(false);
+      }
     } finally {
       if (this.#abort === ac) this.previewing = false;
     }
@@ -253,7 +261,7 @@ export class EditorState {
       const req = api.put<Profile>("/api/v1/profiles/" + id, { doc: text, autosave: true }, { ifMatch: this.profile.version });
       inflight.set(id, req);
       void req.finally(() => inflight.get(id) === req && inflight.delete(id)).catch(() => undefined);
-      const p = await req;
+      const p = await pulse.track(req);
       // 服务端保存后重新渲染；保留本地文档对象，只更新版本与状态。
       this.profile = p;
       this.savedText = text;
@@ -263,6 +271,8 @@ export class EditorState {
       }
       // 内核检查进行中时不发预览：内容相同，发了反而会中止检查
       // 保存后自动做内核检查（反馈 #64，可在设置中关闭）
+      // 指示灯：保存后紧接着检查时由检查报告结果，一轮只闪一次；关闭了自动检查时由保存报告
+      if (prefs.data.autoCheck === false) pulse.finish(true);
       if (this.check !== "running") void this.runPreview(prefs.data.autoCheck !== false);
       return true;
     } catch (e) {
@@ -276,6 +286,7 @@ export class EditorState {
       }
       if (e instanceof ApiError && e.status === 422) toasts.push("err", t("editor.invalid", { detail: e.detail }));
       else toasts.push("err", errorText(e));
+      pulse.finish(false);
       return false;
     } finally {
       this.saving = false;

@@ -2085,6 +2085,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/pulse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 在线指示灯设置：是否向普通用户显示在线人数（默认否；管理员总能看到） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PulseSettings"];
+                    };
+                };
+            };
+        };
+        /** 设定是否向普通用户显示在线人数（记入审计 admin.pulse_online） */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PulseSettings"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PulseSettings"];
+                    };
+                };
+                400: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/invites": {
         parameters: {
             query?: never;
@@ -2887,6 +2948,96 @@ export interface paths {
                         };
                     };
                 };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 实时通道（WebSocket）
+         * @description 升级为 WebSocket 后，服务器推送当前用户的数据变化事件 {type, id}：render、source、rules、message、sub、grant；
+         *     联系人的 typing（id 为对方用户名）与 presence（state 为 on 或 off，只在互为联系人时推送，断开 15 秒后才算下线）。
+         *     连接建立时先发 hello（version 为服务器版本；服务端内核检查不可用时 kernel 为 unavailable），丢过事件时发 resync。事件不含数据本身，收到后经对应接口重读。
+         *     浏览器可发 {"type":"typing","to":"<用户名>"}（每 2 秒最多一次）与 {"type":"ping","id":"<不超过 32 字节>"}（每秒最多一次，回 pong 并带回 id）。
+         *     hello 与 pong 的 online 是在线人数：总是发给管理员，是否发给普通用户见 /api/v1/admin/pulse。
+         *     握手需要会话 Cookie 与同源的 Origin；每个用户最多 16 条连接；会话失效后服务器关闭连接（1008）。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 已升级为 WebSocket */
+                101: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Problem"];
+                403: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pulse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 在线指示灯的数据；实时通道连不上时浏览器每 15 秒轮询（标签页隐藏时暂停）
+         * @description version 为服务器版本；online 为在线人数（按实时通道的连接去重，只发给有权看的人）；unread 为未读消息数；kernel 为服务端内核检查是否可用。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: string;
+                            online?: number;
+                            unread: number;
+                            kernel: boolean;
+                        };
+                    };
+                };
+                401: components["responses"]["Problem"];
             };
         };
         put?: never;
@@ -5337,6 +5488,11 @@ export interface components {
             fieldClick?: "button" | "text" | "card";
             /** @description 自动保存后自动执行 mihomo -t 检查；省略为开 */
             autoCheck?: boolean;
+            /**
+             * @description off 关闭界面动效（与系统的减少动态效果相同）；省略为跟随系统
+             * @enum {string}
+             */
+            motion?: "off";
             /** @description 分流地图的显示偏好（routing 第 9 节） */
             routingView?: {
                 /** @enum {string} */
@@ -5347,6 +5503,10 @@ export interface components {
                 /** @enum {string} */
                 exits?: "auto" | "node" | "region" | "source";
             };
+        };
+        PulseSettings: {
+            /** @description 是否向普通用户显示在线人数 */
+            showOnline: boolean;
         };
         NodeMode: {
             /**

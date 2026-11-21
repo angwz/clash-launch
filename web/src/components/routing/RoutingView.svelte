@@ -21,6 +21,7 @@
   import { errorText } from "../../lib/errors";
   import { t } from "../../lib/i18n/i18n.svelte";
   import { prefs } from "../../lib/prefs.svelte";
+  import { reducedMotion } from "../../lib/motion";
   import { ProfileDoc } from "../../lib/profile-doc";
   import { addCheck, addMember, applyUpstream, changes, merge, metaChanges, move, removeCheck, setTarget, setType, type GroupType, type Routing } from "../../lib/routing/draft";
   import { builtinLabel } from "../../lib/routing/labels";
@@ -60,7 +61,8 @@
   });
   const draftText = () => (draft && pending ? stringify(draft, { lineWidth: 0 }) : undefined);
 
-  const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 系统要求减少动态效果，或账户设置关闭了动效（R11）
+  const reduce = $derived(prefs.data.motion === "off" || reducedMotion());
   const rv = $derived<RoutingPrefs>((prefs.data as { routingView?: RoutingPrefs }).routingView ?? {});
   const particles = $derived<ParticleMode>(reduce ? "off" : (rv.particles ?? "all"));
   const plan = $derived(graph ? planView(graph, width, rv) : null);

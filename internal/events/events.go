@@ -40,6 +40,7 @@ type Event struct {
 	State   string `json:"state,omitempty"`   // presence：on | off
 	Online  int    `json:"online,omitempty"`  // hello、pong：在线人数（只发给有权看的人）
 	Version string `json:"version,omitempty"` // hello：服务器版本
+	Kernel  string `json:"kernel,omitempty"`  // hello：服务端内核检查不可用时为 unavailable（指示灯降级）
 }
 
 // ErrTooMany 表示这个用户的连接数已达上限。

@@ -383,6 +383,15 @@ samp {
 .enter {
   animation: enter var(--dur) var(--ease) both;
 }
+/* 账户设置关闭动效（R11）：所有动画与过渡瞬时完成；比系统的「减少动态效果」更彻底，只保留状态本身 */
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
 
 /* 滚动条（反馈 #42）：细、半透明、无轨道，悬停时加深；颜色随主题。
    标准属性在 Chromium 121+ 与 Firefox 生效；Safari 回退到 webkit 伪元素。 */

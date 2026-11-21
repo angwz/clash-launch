@@ -28,6 +28,8 @@ type prefsDTO struct {
 	Blocked []string `json:"blocked,omitempty"`
 	// RoutingView：分流地图的显示偏好（routing 第 9 节）；省略的字段表示默认。
 	RoutingView *routingView `json:"routingView,omitempty"`
+	// Motion：off 关闭界面动效（R11），与系统的「减少动态效果」效果相同；省略表示跟随系统。
+	Motion string `json:"motion,omitempty"`
 }
 
 // fieldClick 兼容早期保存的布尔值（反馈 #50 的第一版）：false 读作 button，true 读作默认。
@@ -64,6 +66,9 @@ func (p prefsDTO) validate() error {
 	}
 	if err := p.RoutingView.validate(); err != nil {
 		return err
+	}
+	if p.Motion != "" && p.Motion != "off" {
+		return badRequest("motion must be empty or off")
 	}
 	if p.Inbox != "" && p.Inbox != "off" {
 		return badRequest("inbox must be empty or off")

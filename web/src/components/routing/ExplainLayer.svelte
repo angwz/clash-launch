@@ -4,12 +4,13 @@
   // 系统「减少动态效果」时不画。图中的规则与网址是示意；接入分流地图后（第 2 步）改用用户自己的规则集与组名。
   import Dialog from "../Dialog.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
+  import { reducedMotion } from "../../lib/motion";
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
   const STEPS = ["1", "2", "3", "4", "5"] as const;
   let step = $state(0);
-  const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce = reducedMotion();
 
   // 每次打开都从第一步开始
   $effect(() => {

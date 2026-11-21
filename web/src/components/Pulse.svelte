@@ -1,21 +1,26 @@
 <script lang="ts">
-  // 在线指示灯（需求 R11 第一步）：一颗约 8 px 的圆点，用明暗与光晕表达与服务器的连接和发生的事。
+  // 在线指示灯（需求 R11）：一颗约 8 px 的圆点，用明暗与光晕表达与服务器的连接和发生的事。
   //
   // 多个状态同时成立时取优先级最高的（见 docs/development/backlog.md「R11 在线指示灯」）：
-  //   断线 > 新版本 > 降级 > 未读消息（呼吸）> 一次性事件（启动、被拉取、恢复）> 操作中 > 静止。
-  // 一次性事件叠加在持续状态之上播放一次，不改变持续状态。
+  //   断线 > 新版本 > 降级 > 未读消息（呼吸）> 一次性事件 > 工作中（脉动）> 操作中 > 静止。
+  // 一次性事件（启动、被拉取、恢复、保存或检查完成、失败）叠加在持续状态之上播放一次，不改变持续状态。
+  // 夜间（用户时区 23:00–6:00）整体更暗、呼吸更慢，叠加在所有状态之上。
   //
-  // 约束：闪烁每秒不超过 3 次（WCAG 2.3.1）；动画只改 opacity 与 transform；系统要求减少动态效果时
-  // 只保留常亮与熄灭；断线时形状也变（空心），不只靠颜色；读屏软件只播报断线与恢复。
+  // 约束：闪烁每秒不超过 3 次（WCAG 2.3.1）；动画只改 opacity 与 transform，标签页隐藏时暂停；
+  // 系统要求减少动态效果或账户设置关闭动效时只保留常亮与熄灭；断线时形状也变（空心），不只靠颜色；
+  // 读屏软件只播报断线与恢复。
   // 灯本身不响应点击：悬停、键盘聚焦或在手机上轻点时显示说明，3 秒后自动收起（仅轻点）。
   import { onMount } from "svelte";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { realtime } from "../lib/realtime.svelte";
   import { inbox } from "../lib/inbox.svelte";
+  import { pulse } from "../lib/pulse.svelte";
 
   let { id }: { id: string } = $props();
 
-  // 断线判定：连接断开超过 5 秒才熄灭，刷新、网络抖动造成的短暂重连不闪烁
+  type Flash = "start" | "pull" | "recover" | "ok" | "fail";
+
+  // 断线判定：服务器不可达（实时通道断开且轮询也失败）超过 5 秒才熄灭，刷新、网络抖动造成的短暂重连不闪烁
   const DOWN_AFTER = 5_000;
   let down = $state(false);
   let everUp = $state(false);
@@ -23,12 +28,12 @@
   let announce = $state(""); // 读屏播报
 
   // 一次性事件：每次触发换一个序号，{#key} 重建元素让动画从头播放
-  let flash = $state<{ kind: "start" | "pull" | "recover"; seq: number } | null>(null);
+  let flash = $state<{ kind: Flash; seq: number } | null>(null);
   let seq = 0;
-  const play = (kind: "start" | "pull" | "recover") => (flash = { kind, seq: ++seq });
+  const play = (kind: Flash) => (flash = { kind, seq: ++seq });
 
   $effect(() => {
-    if (realtime.connected) {
+    if (realtime.reachable) {
       clearTimeout(downTimer);
       if (!everUp) play("start");
       else if (down) {
@@ -54,9 +59,22 @@
     }),
   );
 
+  // 保存或检查完成、失败（pulse.finish）：跳过挂载前已有的结果，只播放之后发生的
+  let seenOutcome = pulse.outcome?.seq ?? 0;
+  $effect(() => {
+    const o = pulse.outcome;
+    if (!o || o.seq === seenOutcome) return;
+    seenOutcome = o.seq;
+    play(o.ok ? "ok" : "fail");
+  });
+
   // 操作中：移动、点击、按键、滚动时亮度上扬，停止约 1.5 秒后回落
   let active = $state(false);
   let activeTimer: ReturnType<typeof setTimeout> | undefined;
+  // 夜间：按账户时区（未设置时用浏览器时区）每分钟判断一次
+  let night = $state(false);
+  // 标签页隐藏时暂停动画，不在后台消耗合成线程
+  let hidden = $state(false);
   onMount(() => {
     const poke = () => {
       if (!active) active = true;
@@ -66,18 +84,53 @@
     const opts = { passive: true, capture: true } as const;
     const kinds = ["pointermove", "pointerdown", "keydown", "wheel", "scroll"] as const;
     for (const k of kinds) window.addEventListener(k, poke, opts);
+    const vis = () => (hidden = document.hidden);
+    document.addEventListener("visibilitychange", vis);
+    vis();
+    const nightTimer = setInterval(() => (night = isNight(i18n.timeZone)), 60_000);
     return () => {
       for (const k of kinds) window.removeEventListener(k, poke, opts);
+      document.removeEventListener("visibilitychange", vis);
+      clearInterval(nightTimer);
       clearTimeout(activeTimer);
       clearTimeout(downTimer);
       clearTimeout(tipTimer);
     };
   });
+  // 时区改了（账户设置）立即重新判断，不等下一分钟
+  $effect(() => {
+    night = isNight(i18n.timeZone);
+  });
+
+  function isNight(tz: string | undefined): boolean {
+    let h: number;
+    try {
+      h = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: tz }).format(new Date()));
+    } catch {
+      h = new Date().getHours(); // 时区名无效：退回浏览器时区
+    }
+    return h >= 23 || h < 6;
+  }
 
   const newVersion = $derived(!!realtime.pageVersion && !!realtime.serverVersion && realtime.pageVersion !== realtime.serverVersion);
   const slow = $derived((realtime.rtt ?? 0) > 1_500);
-  const mode = $derived<"down" | "starting" | "update" | "slow" | "unread" | "active" | "idle">(
-    down ? "down" : !everUp ? "starting" : newVersion ? "update" : slow ? "slow" : inbox.unread > 0 ? "unread" : active ? "active" : "idle",
+  const noKernel = $derived(realtime.kernel === false);
+  const mode = $derived<"down" | "starting" | "update" | "degraded" | "unread" | "working" | "active" | "idle">(
+    down
+      ? "down"
+      : !everUp
+        ? "starting"
+        : newVersion
+          ? "update"
+          : slow || noKernel
+            ? "degraded"
+            : inbox.unread > 0
+              ? "unread"
+              : pulse.working > 0
+                ? "working"
+                : active
+                  ? "active"
+                  : "idle",
   );
 
   const label = $derived(
@@ -85,8 +138,9 @@
       down: t("pulse.state_down"),
       starting: t("pulse.state_starting"),
       update: t("pulse.state_update"),
-      slow: t("pulse.state_slow"),
+      degraded: slow ? t("pulse.state_slow") : t("pulse.state_kernel"),
       unread: t("pulse.state_unread", { n: inbox.unread }),
+      working: t("pulse.state_working"),
       active: t("pulse.state_idle"),
       idle: t("pulse.state_idle"),
     }[mode],
@@ -102,7 +156,7 @@
     if (!tip) realtime.ping();
     if (el) {
       const r = el.getBoundingClientRect();
-      const x = "left: " + Math.max(8, Math.min(r.left - 6, innerWidth - 248)) + "px;";
+      const x = "left: " + Math.max(8, Math.min(r.left - 6, innerWidth - 288)) + "px;";
       // 靠近顶端（顶栏里的灯）时向下展开，否则向上
       tipStyle = r.top < innerHeight / 2 ? x + " top: " + (r.bottom + 8) + "px;" : x + " bottom: " + (innerHeight - r.top + 8) + "px;";
     }
@@ -121,6 +175,8 @@
 <span
   bind:this={el}
   class="pulse"
+  class:night
+  class:paused={hidden}
   data-state={mode}
   role="img"
   tabindex="0"
@@ -132,19 +188,23 @@
   onblur={hide}
   ontouchstart={() => show(true)}
 >
-  <span class="halo" aria-hidden="true"></span>
-  <span class="core" aria-hidden="true"></span>
-  {#if flash && mode !== "down"}
-    {#key flash.seq}<span class="flash" data-kind={flash.kind} aria-hidden="true"></span>{/key}
-  {/if}
+  <span class="light" aria-hidden="true">
+    <span class="halo"></span>
+    <span class="core"></span>
+    {#if flash && mode !== "down"}
+      {#key flash.seq}<span class="flash" data-kind={flash.kind}></span>{/key}
+    {/if}
+  </span>
   {#if tip}
     <span class="tip" id={id + "-tip"} role="tooltip" style={tipStyle}>
       <strong>{label}</strong>
       {#if mode === "update"}<span>{t("pulse.update_hint")}</span>{/if}
-      {#if mode === "slow"}<span>{t("pulse.slow_hint")}</span>{/if}
+      {#if mode === "degraded" && slow}<span>{t("pulse.slow_hint")}</span>{/if}
+      {#if noKernel}<span>{t("pulse.kernel_hint")}</span>{/if}
+      {#if realtime.polled && !realtime.connected}<span>{t("pulse.polling_hint")}</span>{/if}
       <span class="rows">
-        {#if realtime.online !== undefined}<span>{t("pulse.online")}</span><span>{i18n.number(realtime.online)}</span>{/if}
-        <span>{t("pulse.rtt")}</span><span>{realtime.rtt !== undefined && realtime.connected ? realtime.rtt + " ms" : "—"}</span>
+        {#if realtime.online}<span>{t("pulse.online")}</span><span>{i18n.number(realtime.online)}</span>{/if}
+        <span>{t("pulse.rtt")}</span><span>{realtime.rtt !== undefined && realtime.reachable ? realtime.rtt + " ms" : "—"}</span>
         <span>{t("pulse.last_pull")}</span><span>{lastPull ? i18n.relative(new Date(lastPull).toISOString()) : t("pulse.not_yet")}</span>
         <span>{t("pulse.unread")}</span><span>{i18n.number(inbox.unread)}</span>
       </span>
@@ -167,10 +227,19 @@
     cursor: default;
     -webkit-tap-highlight-color: transparent;
   }
-  .pulse > span:not(.tip) {
+  /* 灯体（柔光、灯芯、闪光）叠在同一格里；夜间整体调暗只作用于灯体，不影响说明 */
+  .light {
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+  }
+  .light > span {
     grid-area: 1 / 1;
     border-radius: 50%;
-    pointer-events: none;
+  }
+  .night .light {
+    opacity: 0.6;
   }
   .core {
     inline-size: 8px;
@@ -204,6 +273,9 @@
     background: var(--c);
     opacity: 0;
   }
+  .flash[data-kind="fail"] {
+    background: var(--err);
+  }
 
   [data-state="active"] .core {
     opacity: 1;
@@ -214,7 +286,7 @@
   [data-state="update"] {
     --c: var(--info);
   }
-  [data-state="slow"] {
+  [data-state="degraded"] {
     --c: var(--warn);
   }
   /* 断线：灯芯熄灭，只留一圈细边框（空心），不只靠颜色表达 */
@@ -234,12 +306,23 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* 未读：约 5 秒一个周期的呼吸 */
+    /* 未读：约 5 秒一个周期的呼吸；夜间放慢到 8 秒 */
     [data-state="unread"] .core {
       animation: breathe 5s ease-in-out infinite;
     }
     [data-state="unread"] .halo {
       animation: breathe-halo 5s ease-in-out infinite;
+    }
+    .night[data-state="unread"] .core,
+    .night[data-state="unread"] .halo {
+      animation-duration: 8s;
+    }
+    /* 工作中：比呼吸快、幅度小的脉动（约 1.6 秒一个周期） */
+    [data-state="working"] .core {
+      animation: work 1.6s ease-in-out infinite;
+    }
+    [data-state="working"] .halo {
+      animation: work-halo 1.6s ease-in-out infinite;
     }
     /* 启动：连闪三下（每秒 2.5 次）后渐亮 */
     .flash[data-kind="start"] {
@@ -249,6 +332,16 @@
     .flash[data-kind="pull"],
     .flash[data-kind="recover"] {
       animation: blink 0.4s ease-in-out 2;
+    }
+    /* 保存或检查完成：一闪确认；失败：一闪警示色（略慢，便于看清颜色） */
+    .flash[data-kind="ok"] {
+      animation: blink 0.5s ease-in-out 1;
+    }
+    .flash[data-kind="fail"] {
+      animation: blink 0.7s ease-in-out 1;
+    }
+    .paused .light > span {
+      animation-play-state: paused;
     }
   }
   @keyframes breathe {
@@ -271,6 +364,26 @@
       transform: scale(2.2);
     }
   }
+  @keyframes work {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes work-halo {
+    0%,
+    100% {
+      opacity: calc(var(--pulse-glow, 0.22) * 0.6);
+      transform: scale(1.8);
+    }
+    50% {
+      opacity: calc(var(--pulse-glow, 0.22) * 1.4);
+      transform: scale(2.3);
+    }
+  }
   @keyframes blink {
     0%,
     100% {
@@ -289,6 +402,7 @@
     display: grid;
     gap: 6px;
     min-inline-size: 200px;
+    max-inline-size: 280px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);

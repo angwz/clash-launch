@@ -62,6 +62,25 @@
     }
   }
 
+  // 是否向普通用户显示在线人数（R11）
+  let showOnline = $state<boolean | null>(null);
+  $effect(() => {
+    if (!session.isAdmin) return;
+    api
+      .get<{ showOnline: boolean }>("/api/v1/admin/pulse")
+      .then((r) => (showOnline = r.showOnline))
+      .catch((e) => (error = errorText(e)));
+  });
+  async function toggleOnline() {
+    try {
+      const r = await api.put<{ showOnline: boolean }>("/api/v1/admin/pulse", { showOnline: !showOnline });
+      showOnline = r.showOnline;
+      toasts.push("ok", r.showOnline ? t("admin.pulse_online_on") : t("admin.pulse_online_off"));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   async function toggle() {
     try {
       const r = await api.put<{ open: boolean }>("/api/v1/admin/registration", { open: !open });
@@ -121,6 +140,18 @@
         {/if}
       </div>
       <p class="hint">{t("mode.explain")}</p>
+    </section>
+
+    <section class="panel box" aria-labelledby="a-online">
+      <div class="row">
+        <div>
+          <h2 id="a-online">{t("admin.pulse_online")}</h2>
+          <p class="muted">{t("admin.pulse_online_desc")}</p>
+        </div>
+        {#if showOnline !== null}
+          <button class="switch" type="button" role="switch" aria-checked={showOnline} aria-labelledby="a-online" onclick={() => void toggleOnline()}><span class="knob"></span></button>
+        {/if}
+      </div>
     </section>
 
     <section class="panel box" aria-labelledby="a-ipol">
