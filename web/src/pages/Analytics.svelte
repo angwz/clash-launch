@@ -64,7 +64,6 @@
   interface Data {
     analytics: {
       zone: string;
-      truncated: boolean;
       totals: { requests: number; ok: number; fail: number; ips: number; countries: number; clients: number };
       days: string[];
       daily: number[];
@@ -171,7 +170,6 @@
       <p class="muted">{t("analytics.empty_hint")}</p>
     </div>
   {:else}
-    {#if a.truncated}<p class="hint warn-note">{t("analytics.truncated")}</p>{/if}
     {#if retention > 0 && days > retention}<p class="hint warn-note">{t("analytics.retention", { n: retention })}</p>{/if}
 
     <dl class="tiles">

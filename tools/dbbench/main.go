@@ -6,7 +6,7 @@
 //	go run ./tools/dbbench -dsn … -db cl_bench_<时间>   # 复用 -keep 保留的库：只执行新迁移并重新测量，不再灌数据
 //
 // 每次运行新建一个空库（cl_bench_<时间>），执行全部迁移后用 generate_series 灌数据，
-// 再对每条热点查询运行 3 次 EXPLAIN (ANALYZE, BUFFERS)，取执行时间的中位数，输出 Markdown 表格。
+// 再对每条热点查询取执行计划，并真实执行 3 次（读完全部行），取耗时的中位数，输出 Markdown 表格。
 // 查询语句与 internal/store 中的写法保持一致（占位符换成 $n）；store 改了 SQL 时同步这里。
 //
 // 数据只用文档地址（192.0.2.0/24）与明显虚构的名称；不读写任何真实数据。
@@ -27,6 +27,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/store"
 )
 
@@ -96,7 +97,7 @@ func run(base string, requests int, keep bool, reuse string) error {
 	if _, err := st.Migrate(ctx, ""); err != nil {
 		return fmt.Errorf("迁移: %w", err)
 	}
-	_ = st.Close()
+	defer func() { _ = st.Close() }()
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -120,10 +121,11 @@ func run(base string, requests int, keep bool, reuse string) error {
 	}
 	day := int64(86_400_000)
 	qs := []query{
-		{"订阅分析：重度用户近 30 天明细", "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id FROM sub_requests WHERE owner_id=$1 AND at>=$2 AND at<$3 ORDER BY at DESC, id DESC LIMIT $4",
-			[]any{"u1", now - 30*day, now + 1, 50_000}, "Stats.RequestsBetween（analytics.go 读进内存聚合，上限 5 万行）"},
-		{"订阅分析：普通用户近 30 天明细", "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id FROM sub_requests WHERE owner_id=$1 AND at>=$2 AND at<$3 ORDER BY at DESC, id DESC LIMIT $4",
-			[]any{"u5000", now - 30*day, now + 1, 50_000}, "同上"},
+		{"订阅分析：重度用户近 30 天（约 33 万行）", analyticsSQL, []any{"u1", now - 30*day, now + 1}, "Stats.EachRequest（流式读出，Go 侧汇总）"},
+		{"订阅分析：重度用户全部 180 天（200 万行）", analyticsSQL, []any{"u1", now - 180*day, now + 1}, "同上"},
+		{"订阅分析：普通用户近 30 天", analyticsSQL, []any{"u5000", now - 30*day, now + 1}, "同上"},
+		{"订阅分析：最近 100 条请求", "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id FROM sub_requests WHERE owner_id=$1 AND at>=$2 AND at<$3 ORDER BY at DESC, id DESC LIMIT $4",
+			[]any{"u1", now - 30*day, now + 1, 100}, "Stats.LatestRequests"},
 		{"链接请求记录第一页", "SELECT id, link_id, owner_id, at, ip, ua, client, status, bytes, kind, country, asn, org, short_id FROM sub_requests WHERE owner_id=$1 AND link_id=$2 AND (at < $3 OR (at = $3 AND id < $4)) ORDER BY at DESC, id DESC LIMIT $5",
 			[]any{"u1", "l1", now + 1, "~", 50}, "Stats.Requests（键集分页）"},
 		{"短链接最近访问（50 个短链接）", "SELECT s.id, (SELECT MAX(q.at) FROM sub_requests q WHERE q.owner_id=$1 AND q.short_id=s.id AND q.short_id <> '') FROM (SELECT 's'||g AS id FROM generate_series(0, 49) g) s",
@@ -159,6 +161,36 @@ func run(base string, requests int, keep bool, reuse string) error {
 			t = "—"
 		}
 		fmt.Printf("| %s | %s | %s | %s |\n", q.name, t, plan, q.note)
+	}
+	// 端到端：与 /api/v1/analytics 相同的调用（store 流式读出 → service.Analyzer 汇总 → 最近 100 条），
+	// 计入 database/sql 扫描与 Go 侧汇总，是页面实际等待的服务端时间
+	fmt.Println("\n| 订阅分析端到端 | 请求数 | 中位耗时 |")
+	fmt.Println("| --- | ---: | ---: |")
+	for _, c := range []struct {
+		name, owner string
+		days        int64
+	}{{"重度用户近 30 天", "u1", 30}, {"重度用户全部 180 天", "u1", 180}, {"普通用户近 30 天", "u5000", 30}} {
+		from, to := time.UnixMilli(now-c.days*day), time.UnixMilli(now+1)
+		var times []float64
+		var total int
+		for i := 0; i < 3; i++ {
+			start := time.Now()
+			z := service.NewAnalyzer(from, to, time.UTC, nil)
+			if err := st.Stats().EachRequest(ctx, c.owner, from, to, store.RequestFilter{}, func(q *store.SubRequest) error {
+				z.Add(q)
+				return nil
+			}); err != nil {
+				return err
+			}
+			recent, err := st.Stats().LatestRequests(ctx, c.owner, from, to, store.RequestFilter{}, service.RecentRequests)
+			if err != nil {
+				return err
+			}
+			total = z.Result(recent).Totals.Requests
+			times = append(times, float64(time.Since(start).Microseconds())/1000)
+		}
+		sort.Float64s(times)
+		fmt.Printf("| %s | %d | %.1f ms |\n", c.name, total, times[1])
 	}
 	if keep {
 		fmt.Printf("\n测试库已保留：%s\n", name)
@@ -225,51 +257,43 @@ func printCounts(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
+// analyticsSQL 与 store.stats.EachRequest 一致（无筛选条件时）。
+const analyticsSQL = "SELECT at, id, status, ip, country, asn, org, client, kind, link_id, short_id FROM sub_requests WHERE owner_id=$1 AND at>=$2 AND at<$3 ORDER BY at, id"
+
 var (
 	benchDB  = regexp.MustCompile(`^cl_bench_[0-9]+$`)
-	execTime = regexp.MustCompile(`Execution Time: ([0-9.]+) ms`)
 	nodeLine = regexp.MustCompile(`^\s*(?:->\s*)?([A-Z][A-Za-z ]+?)(?: using (\S+))?(?: on (\S+))?\s+\(`)
 )
 
-// measure 运行 3 次 EXPLAIN (ANALYZE, BUFFERS)，返回执行时间的中位数与计划的主要节点。
+// measure 取一次执行计划的主要节点，再真实执行 3 次，返回耗时的中位数。
 // 语句本身以 EXPLAIN 开头时只取计划、不执行（用于删除类语句），耗时返回 -1。
 func measure(ctx context.Context, db *sql.DB, q query) (float64, string, error) {
 	planOnly := strings.HasPrefix(q.sql, "EXPLAIN ")
-	stmt := "EXPLAIN (ANALYZE, BUFFERS) " + q.sql //nolint:gosec // 语句来自本文件中的常量列表
-	if planOnly {
-		stmt = q.sql
+	stmt := q.sql
+	if !planOnly {
+		stmt = "EXPLAIN " + q.sql
 	}
-	var times []float64
+	// 计划只看一次，不带 ANALYZE：逐行计时在返回大量行的查询上开销很大（Windows 上可达实际耗时的十倍以上）
+	rows, err := db.QueryContext(ctx, stmt, q.args...)
+	if err != nil {
+		return 0, "", err
+	}
 	var plan []string
-	for i := 0; i < 3; i++ {
-		rows, err := db.QueryContext(ctx, stmt, q.args...)
-		if err != nil {
+	for rows.Next() {
+		var line string
+		if err := rows.Scan(&line); err != nil {
+			_ = rows.Close()
 			return 0, "", err
 		}
-		plan = plan[:0]
-		for rows.Next() {
-			var line string
-			if err := rows.Scan(&line); err != nil {
-				_ = rows.Close()
-				return 0, "", err
+		if m := nodeLine.FindStringSubmatch(line); m != nil {
+			n := strings.TrimSpace(m[1])
+			if m[2] != "" {
+				n += " · " + m[2]
 			}
-			if m := execTime.FindStringSubmatch(line); m != nil {
-				v, _ := strconv.ParseFloat(m[1], 64)
-				times = append(times, v)
-			}
-			if m := nodeLine.FindStringSubmatch(line); m != nil {
-				n := strings.TrimSpace(m[1])
-				if m[2] != "" {
-					n += " · " + m[2]
-				}
-				plan = append(plan, n)
-			}
-		}
-		_ = rows.Close()
-		if planOnly {
-			break
+			plan = append(plan, n)
 		}
 	}
+	_ = rows.Close()
 	if len(plan) > 4 {
 		plan = plan[:4]
 	}
@@ -277,6 +301,38 @@ func measure(ctx context.Context, db *sql.DB, q query) (float64, string, error) 
 	if planOnly {
 		return -1, desc, nil
 	}
+	// 耗时是真实执行并把全部结果读到客户端的墙钟时间（应用实际等待的时间），3 次取中位数
+	var times []float64
+	for i := 0; i < 3; i++ {
+		start := time.Now()
+		if err := drain(ctx, db, q); err != nil {
+			return 0, "", err
+		}
+		times = append(times, float64(time.Since(start).Microseconds())/1000)
+	}
 	sort.Float64s(times)
 	return times[len(times)/2], desc, nil
+}
+
+// drain 执行查询并读完全部行。
+func drain(ctx context.Context, db *sql.DB, q query) error {
+	rows, err := db.QueryContext(ctx, q.sql, q.args...)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	vals := make([]any, len(cols))
+	for i := range vals {
+		vals[i] = new(sql.RawBytes)
+	}
+	for rows.Next() {
+		if err := rows.Scan(vals...); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
 }

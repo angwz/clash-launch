@@ -8,21 +8,28 @@ import (
 	"github.com/angwz/clash-launch/internal/store"
 )
 
-// 订阅分析（反馈 #74）：把一段时间内的请求记录汇总成图表与表格需要的数据。纯函数，便于测试。
+// 订阅分析（反馈 #74）：把一段时间内的请求记录汇总成图表与表格需要的数据。
+//
+// 汇总是流式的（需求 R14c）：存储层按时间正序逐条交给 Analyzer.Add，这里只保留各维度的计数，
+// 不保留请求本身，所以没有条数上限。内存与「不同的 IP、国家、客户端……的个数」成正比，
+// 另外每个 IP（每位好友）最多保留 gapSamples 个最近的成功请求时间，用来求拉取间隔。
+// 不读时钟、不依赖 map 迭代顺序：相同输入得到相同结果。
 //
 // 时间按用户的时区分桶（每天、星期 × 小时），未设置时按调用方传入的浏览器时区或 UTC。
-// 「拉取间隔」取同一 IP 相邻两次成功请求间隔的中位数，忽略 10 秒内的重复（客户端重试、并发）。
+// 「拉取间隔」取同一 IP 最近相邻两次成功请求间隔的中位数，忽略 10 秒内的重复（客户端重试、并发）。
 // 「新出现的 IP」：在统计区间内第一次出现、且时间在最近 24 小时内的 IP（区间不足一天时不判断）。
 
-// AnalyticsMaxRows 是一次分析最多读取的请求数；超过时只分析最新的这些条，并在结果中注明。
-const AnalyticsMaxRows = 50_000
+// gapSamples 是求拉取间隔时每个 IP 最多使用的最近成功请求数。
+const gapSamples = 1000
+
+// RecentRequests 是「最近的请求」列表的条数，由调用方另外查询（需要 UA 等完整列）。
+const RecentRequests = 100
 
 // Analytics 是分析结果。
 type Analytics struct {
 	From      time.Time    `json:"from"`
 	To        time.Time    `json:"to"`
 	Zone      string       `json:"zone"`
-	Truncated bool         `json:"truncated"`
 	Totals    AnTotals     `json:"totals"`
 	Days      []string     `json:"days"`  // YYYY-MM-DD（所选时区）
 	Daily     []int        `json:"daily"` // 与 Days 对齐
@@ -37,7 +44,7 @@ type Analytics struct {
 	Recent    []AnRequest  `json:"recent"`
 	NewIPs    int          `json:"newIps"`
 	Peak      *AnPeakCount `json:"peak,omitempty"`
-	// Friends 是好友经由授权短链接的使用情况（反馈 #75），由调用方填入
+	// Friends 是好友经由授权短链接的使用情况（反馈 #75）
 	Friends []AnFriend `json:"friends"`
 }
 
@@ -94,99 +101,221 @@ type AnRequest struct {
 	ShortID string    `json:"shortId,omitempty"`
 }
 
-// Analyze 汇总请求。rs 按时间正序；[from, to) 是统计区间；loc 是分桶用的时区。
-func Analyze(rs []store.SubRequest, from, to time.Time, loc *time.Location, truncated bool) *Analytics {
-	a := &Analytics{From: from, To: to, Zone: loc.String(), Truncated: truncated}
+// AnFriend 是一位好友通过授权的短链接使用你的配置的情况（反馈 #75）。
+type AnFriend struct {
+	UserID    string    `json:"userId"`
+	Requests  int       `json:"requests"`
+	OK        int       `json:"ok"`
+	Fail      int       `json:"fail"`
+	IPs       int       `json:"ips"`
+	Countries []string  `json:"countries"` // 出现过的国家（按次数降序）
+	Orgs      []string  `json:"orgs"`      // 出现过的运营商（按次数降序，最多 5 个）
+	Clients   []string  `json:"clients"`   // 出现过的客户端（按次数降序）
+	Shorts    []string  `json:"shorts"`    // 经由的短链接 ID
+	Daily     []int     `json:"daily"`     // 与 Analytics.Days 对齐（区间起点是所选时区的零点，按 24 小时切分）
+	First     time.Time `json:"first"`
+	Last      time.Time `json:"last"`
+	Interval  int64     `json:"interval"` // 典型拉取间隔（秒），0 表示样本不足
+}
+
+// Analyzer 流式汇总请求。用法：NewAnalyzer → 按时间正序多次 Add → Result。
+type Analyzer struct {
+	from, to  time.Time
+	loc       *time.Location
+	granteeOf map[string]string // 短链接 ID → 好友 ID
+	a         *Analytics
+	dayIdx    map[int]int // 所选时区的 YYYYMMDD → Days 下标
+
+	countries, orgs, clients, kinds, links, shorts map[string]int
+	orgLabel                                       map[string]string
+	ips                                            map[string]*ipAcc
+	friends                                        map[string]*friendAcc
+	friendOrder                                    []string
+	friendDays                                     int
+}
+
+type ipAcc struct {
+	x     AnIP
+	times tail
+}
+
+type friendAcc struct {
+	f                        AnFriend
+	ips                      map[string]bool
+	countries, orgs, clients map[string]int
+	shorts                   map[string]bool
+	times                    tail
+}
+
+// tail 保留最近 gapSamples+1 个时间（摊还 O(1)：满两倍时把后一半挪到前面）。
+type tail struct{ ts []time.Time }
+
+func (t *tail) add(x time.Time) {
+	if len(t.ts) == 2*(gapSamples+1) {
+		t.ts = t.ts[:copy(t.ts, t.ts[gapSamples+1:])]
+	}
+	t.ts = append(t.ts, x)
+}
+
+func (t *tail) last() []time.Time {
+	if n := len(t.ts) - (gapSamples + 1); n > 0 {
+		return t.ts[n:]
+	}
+	return t.ts
+}
+
+// NewAnalyzer 准备汇总 [from, to) 内的请求；loc 是分桶用的时区，granteeOf 是为好友生成的短链接 → 好友。
+func NewAnalyzer(from, to time.Time, loc *time.Location, granteeOf map[string]string) *Analyzer {
+	z := &Analyzer{
+		from: from, to: to, loc: loc, granteeOf: granteeOf,
+		a:         &Analytics{From: from, To: to, Zone: loc.String()},
+		dayIdx:    map[int]int{},
+		countries: map[string]int{}, orgs: map[string]int{}, clients: map[string]int{}, kinds: map[string]int{}, links: map[string]int{}, shorts: map[string]int{},
+		orgLabel: map[string]string{}, ips: map[string]*ipAcc{}, friends: map[string]*friendAcc{},
+		friendDays: max(int(to.Sub(from).Hours()/24+0.5), 1),
+	}
 	// 按所选时区逐日列出区间内的日期
-	idx := map[string]int{}
+	addDay := func(t time.Time) {
+		if k := dayKey(t); !hasKey(z.dayIdx, k) {
+			z.dayIdx[k] = len(z.a.Days)
+			z.a.Days = append(z.a.Days, t.Format("2006-01-02"))
+		}
+	}
 	for d := from.In(loc); d.Before(to); d = d.AddDate(0, 0, 1) {
-		k := d.Format("2006-01-02")
-		if _, ok := idx[k]; !ok {
-			idx[k] = len(a.Days)
-			a.Days = append(a.Days, k)
-		}
+		addDay(d)
 	}
-	if k := to.Add(-time.Millisecond).In(loc).Format("2006-01-02"); len(a.Days) == 0 || a.Days[len(a.Days)-1] != k {
-		idx[k] = len(a.Days)
-		a.Days = append(a.Days, k)
-	}
-	a.Daily = make([]int, len(a.Days))
+	addDay(to.Add(-time.Millisecond).In(loc))
+	z.a.Daily = make([]int, len(z.a.Days))
+	return z
+}
 
-	countries, orgs, clients, kinds, links, shorts := map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
-	orgLabel := map[string]string{}
-	ips := map[string]*AnIP{}
-	times := map[string][]time.Time{}
-	for _, q := range rs {
-		a.Totals.Requests++
-		if q.Status < 400 {
-			a.Totals.OK++
-		} else {
-			a.Totals.Fail++
-		}
-		t := q.At.In(loc)
-		if i, ok := idx[t.Format("2006-01-02")]; ok {
-			a.Daily[i]++
-		}
-		a.Heat[(int(t.Weekday())+6)%7][t.Hour()]++
-		if q.Country != "" {
-			countries[q.Country]++
-		}
-		if q.ASN != "" {
-			orgs[q.ASN]++
-			orgLabel[q.ASN] = q.Org
-		}
-		if q.Client != "" {
-			clients[q.Client]++
-		}
-		kind := q.Kind
-		if q.ShortID != "" && kind == "config" {
-			kind = "short"
-		}
-		kinds[kind]++
-		links[q.LinkID]++
-		if q.ShortID != "" {
-			shorts[q.ShortID]++
-		}
-		x := ips[q.IP]
-		if x == nil {
-			x = &AnIP{IP: q.IP, First: q.At}
-			ips[q.IP] = x
-		}
-		x.Count++
-		if q.Status < 400 {
-			x.OK++
-			times[q.IP] = append(times[q.IP], q.At)
-		} else {
-			x.Fail++
-		}
-		x.Last = q.At
-		// 归属地与客户端取最近一次非空的值
-		if q.Country != "" {
-			x.Country = q.Country
-		}
-		if q.ASN != "" {
-			x.ASN, x.Org = q.ASN, q.Org
-		}
-		if q.Client != "" {
-			x.Client = q.Client
-		}
+func hasKey(m map[int]int, k int) bool {
+	_, ok := m[k]
+	return ok
+}
+
+func dayKey(t time.Time) int {
+	y, m, d := t.Date()
+	return y*10000 + int(m)*100 + d
+}
+
+// Add 汇总一条请求。调用方可以在返回后复用 q。
+func (z *Analyzer) Add(q *store.SubRequest) {
+	a := z.a
+	ok := q.Status < 400
+	a.Totals.Requests++
+	if ok {
+		a.Totals.OK++
+	} else {
+		a.Totals.Fail++
 	}
-	a.Totals.IPs, a.Totals.Countries, a.Totals.Clients = len(ips), len(countries), len(clients)
-	a.Countries, a.Clients, a.Kinds, a.Links, a.Shorts = rank(countries, 30), rank(clients, 20), rank(kinds, 10), rank(links, 50), rank(shorts, 50)
-	a.Orgs = rank(orgs, 20)
+	t := q.At.In(z.loc)
+	if i, found := z.dayIdx[dayKey(t)]; found {
+		a.Daily[i]++
+	}
+	a.Heat[(int(t.Weekday())+6)%7][t.Hour()]++
+	if q.Country != "" {
+		z.countries[q.Country]++
+	}
+	if q.ASN != "" {
+		z.orgs[q.ASN]++
+		z.orgLabel[q.ASN] = q.Org
+	}
+	if q.Client != "" {
+		z.clients[q.Client]++
+	}
+	kind := q.Kind
+	if q.ShortID != "" && kind == "config" {
+		kind = "short"
+	}
+	z.kinds[kind]++
+	z.links[q.LinkID]++
+	if q.ShortID != "" {
+		z.shorts[q.ShortID]++
+	}
+
+	x := z.ips[q.IP]
+	if x == nil {
+		x = &ipAcc{x: AnIP{IP: q.IP, First: q.At}}
+		z.ips[q.IP] = x
+	}
+	x.x.Count++
+	if ok {
+		x.x.OK++
+		x.times.add(q.At)
+	} else {
+		x.x.Fail++
+	}
+	x.x.Last = q.At
+	// 归属地与客户端取最近一次非空的值
+	if q.Country != "" {
+		x.x.Country = q.Country
+	}
+	if q.ASN != "" {
+		x.x.ASN, x.x.Org = q.ASN, q.Org
+	}
+	if q.Client != "" {
+		x.x.Client = q.Client
+	}
+
+	z.addFriend(q, ok)
+}
+
+func (z *Analyzer) addFriend(q *store.SubRequest, ok bool) {
+	uid := z.granteeOf[q.ShortID]
+	if uid == "" {
+		return
+	}
+	fa := z.friends[uid]
+	if fa == nil {
+		fa = &friendAcc{f: AnFriend{UserID: uid, First: q.At, Daily: make([]int, z.friendDays)}, ips: map[string]bool{}, countries: map[string]int{}, orgs: map[string]int{}, clients: map[string]int{}, shorts: map[string]bool{}}
+		z.friends[uid] = fa
+		z.friendOrder = append(z.friendOrder, uid)
+	}
+	f := &fa.f
+	f.Requests++
+	if ok {
+		f.OK++
+		fa.times.add(q.At)
+	} else {
+		f.Fail++
+	}
+	f.Last = q.At
+	fa.ips[q.IP] = true
+	if q.Country != "" {
+		fa.countries[q.Country]++
+	}
+	if q.Org != "" {
+		fa.orgs[q.Org]++
+	}
+	if q.Client != "" {
+		fa.clients[q.Client]++
+	}
+	fa.shorts[q.ShortID] = true
+	if i := int(q.At.Sub(z.from).Hours() / 24); i >= 0 && i < len(f.Daily) {
+		f.Daily[i]++
+	}
+}
+
+// Result 生成结果。recent 是区间内最新的请求（新的在前），原样列出。Result 之后不要再 Add。
+func (z *Analyzer) Result(recent []store.SubRequest) *Analytics {
+	a := z.a
+	a.Totals.IPs, a.Totals.Countries, a.Totals.Clients = len(z.ips), len(z.countries), len(z.clients)
+	a.Countries, a.Clients, a.Kinds, a.Links, a.Shorts = rank(z.countries, 30), rank(z.clients, 20), rank(z.kinds, 10), rank(z.links, 50), rank(z.shorts, 50)
+	a.Orgs = rank(z.orgs, 20)
 	for i := range a.Orgs {
-		a.Orgs[i].Label = orgLabel[a.Orgs[i].Key]
+		a.Orgs[i].Label = z.orgLabel[a.Orgs[i].Key]
 	}
 
-	recentCut := to.Add(-24 * time.Hour)
-	judgeNew := to.Sub(from) > 24*time.Hour
-	for ip, x := range ips {
-		x.Interval = medianGap(times[ip])
-		x.New = judgeNew && !x.First.Before(recentCut)
-		if x.New {
+	recentCut := z.to.Add(-24 * time.Hour)
+	judgeNew := z.to.Sub(z.from) > 24*time.Hour
+	a.IPs = make([]AnIP, 0, len(z.ips))
+	for _, x := range z.ips {
+		x.x.New = judgeNew && !x.x.First.Before(recentCut)
+		if x.x.New {
 			a.NewIPs++
 		}
-		a.IPs = append(a.IPs, *x)
+		a.IPs = append(a.IPs, x.x)
 	}
 	sort.Slice(a.IPs, func(i, j int) bool {
 		if a.IPs[i].Count != a.IPs[j].Count {
@@ -197,17 +326,66 @@ func Analyze(rs []store.SubRequest, from, to time.Time, loc *time.Location, trun
 	if len(a.IPs) > 200 {
 		a.IPs = a.IPs[:200]
 	}
+	// 中位数只为列出的 IP 计算
+	for i := range a.IPs {
+		a.IPs[i].Interval = medianGap(z.ips[a.IPs[i].IP].times.last())
+	}
 
 	for i, n := range a.Daily {
 		if n > 0 && (a.Peak == nil || n > a.Peak.Count) {
 			a.Peak = &AnPeakCount{Day: a.Days[i], Count: n}
 		}
 	}
-	for i := len(rs) - 1; i >= 0 && len(a.Recent) < 100; i-- {
-		q := rs[i]
+	a.Recent = make([]AnRequest, 0, len(recent))
+	for _, q := range recent {
 		a.Recent = append(a.Recent, AnRequest{At: q.At, IP: q.IP, Country: q.Country, Org: q.Org, Client: q.Client, UA: q.UA, Status: q.Status, Kind: q.Kind, LinkID: q.LinkID, ShortID: q.ShortID})
 	}
+	a.Friends = z.friendResult()
 	return a
+}
+
+// friendResult 按请求次数降序列出好友；没有请求的好友不列出（界面另外列出全部授权）。
+func (z *Analyzer) friendResult() []AnFriend {
+	keys := func(m map[string]int, n int) []string {
+		out := []string{}
+		for _, c := range rank(m, n) {
+			out = append(out, c.Key)
+		}
+		return out
+	}
+	out := make([]AnFriend, 0, len(z.friendOrder))
+	for _, uid := range z.friendOrder {
+		fa := z.friends[uid]
+		f := fa.f
+		f.IPs = len(fa.ips)
+		f.Countries, f.Orgs, f.Clients = keys(fa.countries, 20), keys(fa.orgs, 5), keys(fa.clients, 10)
+		for id := range fa.shorts {
+			f.Shorts = append(f.Shorts, id)
+		}
+		sort.Strings(f.Shorts)
+		f.Interval = medianGap(fa.times.last())
+		out = append(out, f)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Requests != out[j].Requests {
+			return out[i].Requests > out[j].Requests
+		}
+		return out[i].UserID < out[j].UserID
+	})
+	return out
+}
+
+// Analyze 一次性汇总内存中的请求（rs 按时间正序）；最近的请求取 rs 末尾。用于测试与小数据量。
+func Analyze(rs []store.SubRequest, granteeOf map[string]string, from, to time.Time, loc *time.Location) *Analytics {
+	z := NewAnalyzer(from, to, loc, granteeOf)
+	for i := range rs {
+		z.Add(&rs[i])
+	}
+	recent := make([]store.SubRequest, 0, RecentRequests)
+	for i := len(rs) - 1; i >= 0 && len(recent) < RecentRequests; i-- {
+		recent = append(recent, rs[i])
+	}
+	return z.Result(recent)
 }
 
 // rank 按次数降序（相同按键名）取前 n 项。
@@ -241,97 +419,4 @@ func medianGap(ts []time.Time) int64 {
 	}
 	slices.Sort(gaps)
 	return gaps[len(gaps)/2]
-}
-
-// AnFriend 是一位好友通过授权的短链接使用你的配置的情况（反馈 #75）。
-type AnFriend struct {
-	UserID    string    `json:"userId"`
-	Requests  int       `json:"requests"`
-	OK        int       `json:"ok"`
-	Fail      int       `json:"fail"`
-	IPs       int       `json:"ips"`
-	Countries []string  `json:"countries"` // 出现过的国家（按次数降序）
-	Orgs      []string  `json:"orgs"`      // 出现过的运营商（按次数降序，最多 5 个）
-	Clients   []string  `json:"clients"`   // 出现过的客户端（按次数降序）
-	Shorts    []string  `json:"shorts"`    // 经由的短链接 ID
-	Daily     []int     `json:"daily"`     // 与 Analytics.Days 对齐（区间起点是所选时区的零点，按 24 小时切分）
-	First     time.Time `json:"first"`
-	Last      time.Time `json:"last"`
-	Interval  int64     `json:"interval"` // 典型拉取间隔（秒），0 表示样本不足
-}
-
-// FriendUsage 按好友汇总经由授权短链接的请求。granteeOf 是短链接 ID → 好友 ID。
-// 返回值按请求次数降序；没有请求的好友不列出（界面另外列出全部授权）。
-func FriendUsage(rs []store.SubRequest, granteeOf map[string]string, from, to time.Time) []AnFriend {
-	type acc struct {
-		f                        *AnFriend
-		ips                      map[string]bool
-		countries, orgs, clients map[string]int
-		shorts                   map[string]bool
-		times                    []time.Time
-	}
-	days := int(to.Sub(from).Hours()/24 + 0.5)
-	by := map[string]*acc{}
-	var order []string
-	for _, q := range rs {
-		uid := granteeOf[q.ShortID]
-		if uid == "" {
-			continue
-		}
-		a := by[uid]
-		if a == nil {
-			a = &acc{f: &AnFriend{UserID: uid, First: q.At, Daily: make([]int, max(days, 1))}, ips: map[string]bool{}, countries: map[string]int{}, orgs: map[string]int{}, clients: map[string]int{}, shorts: map[string]bool{}}
-			by[uid] = a
-			order = append(order, uid)
-		}
-		f := a.f
-		f.Requests++
-		if q.Status < 400 {
-			f.OK++
-			a.times = append(a.times, q.At)
-		} else {
-			f.Fail++
-		}
-		f.Last = q.At
-		a.ips[q.IP] = true
-		if q.Country != "" {
-			a.countries[q.Country]++
-		}
-		if q.Org != "" {
-			a.orgs[q.Org]++
-		}
-		if q.Client != "" {
-			a.clients[q.Client]++
-		}
-		a.shorts[q.ShortID] = true
-		if i := int(q.At.Sub(from).Hours() / 24); i >= 0 && i < len(f.Daily) {
-			f.Daily[i]++
-		}
-	}
-	keys := func(m map[string]int, n int) []string {
-		out := []string{}
-		for _, c := range rank(m, n) {
-			out = append(out, c.Key)
-		}
-		return out
-	}
-	out := make([]AnFriend, 0, len(order))
-	for _, uid := range order {
-		a := by[uid]
-		a.f.IPs = len(a.ips)
-		a.f.Countries, a.f.Orgs, a.f.Clients = keys(a.countries, 20), keys(a.orgs, 5), keys(a.clients, 10)
-		for id := range a.shorts {
-			a.f.Shorts = append(a.f.Shorts, id)
-		}
-		sort.Strings(a.f.Shorts)
-		a.f.Interval = medianGap(a.times)
-		out = append(out, *a.f)
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Requests != out[j].Requests {
-			return out[i].Requests > out[j].Requests
-		}
-		return out[i].UserID < out[j].UserID
-	})
-	return out
 }

@@ -7,15 +7,15 @@
 ### 下次从这里开始（2026-11-20）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：R14c 剩余部分（订阅分析改为数据库内聚合，去掉 5 万行截断）；R22 后半的在线状态与多标签页共用连接；批 9 R11 在线指示灯。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：R22 后半的在线状态与多标签页共用连接；批 9 R11 在线指示灯。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
-  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 40 通过 22 跳过。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 45 通过 27 跳过。
   - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
-- **新迁移**：下一个编号是 0013；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
+- **新迁移**：下一个编号是 0017；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
 ### 各批次记录
 
@@ -60,6 +60,7 @@
 - **实施顺序第 5 批 R14a（2026-11-20）**：本机装好便携版 PostgreSQL 17.12（`.cache/toolchain/pg17`，只监听 127.0.0.1:55432；包内不带 VC++ 运行库，从包内 pgAdmin 与 Edge 目录复制了微软签名的 DLL），现有存储与 API 测试在其上全部通过。`store.OpenPool`：连接上限 20、空闲 5、空闲 5 分钟关闭、语句超时 30 秒，均可由 `CLASH_LAUNCH_DB_*` 设置，DSN 中的 `statement_timeout` 优先；迁移事务内 `SET LOCAL statement_timeout = 0`。deploy 文档补 `pg_dump`/`pg_restore`。验证：`TestPoolStatementTimeout`（只在 PostgreSQL 上运行：7s 生效、事务内解除后恢复、`pg_sleep` 超时被取消、DSN 优先、默认连接上限 20）；SQLite 与 PostgreSQL 两遍测试均通过。compose 叠加文件需要 Docker，随 R18。
 - **R14b 工具与 R14c 第一步（2026-11-20）**：`tools/dbbench` 新建临时库、执行全部迁移、用 `generate_series` 灌数据（文档地址与虚构名称）后 `VACUUM ANALYZE`，对 17 条热点查询各跑 3 次 `EXPLAIN (ANALYZE, BUFFERS)` 取中位数；结果见 [benchmarks](benchmarks.md)。R14c 第一步：迁移 0013 为 `sub_requests.at`、`audit.at` 建索引；订阅请求明细默认保留 400 天（`CLASH_LAUNCH_SUB_REQUEST_DAYS`，覆盖分析页最长的一年），每天按 1 万行一批删除，按天与按 IP 的汇总不受影响；保留期短于所选范围时分析页提示。验证：`TestPruneRequests`（SQLite 与 PostgreSQL，跨批删除、汇总保留）、迁移冻结测试、golangci-lint 0 issues；分析相关 e2e 通过。`realtime.test.ts` 在机器繁忙时超时一次，已放宽到 30 秒。
 - **R14d、R14e 与 R22「正在输入」（2026-11-20）**：千万行基准（[benchmarks](benchmarks.md)）定位的慢查询：会话页与最近消息改为两路索引合并（1251→2 ms、1185→1 ms，迁移 0014 `messages_pair`）；短链接最近访问改为逐个短链接取最大时间（4897→4 ms，部分索引 `sub_requests_short`）；审计计数只数到上限、页码上限 1000（全站计数 9614→1068 ms，界面显示「10,000+」）；用户搜索在 PostgreSQL 上用 `pg_trgm`（迁移 0015，46→17 ms）。未读数的部分索引在样本数据（三分之一未读）上没有改善，已如实记录。R22：WebSocket 接受浏览器发来的「正在输入」，只转发给互为联系人、未放进回收站的人，每连接每 2 秒最多一次；会话页标题旁显示「正在输入…」，4 秒或收到消息后消失。验证：`TestShortLinkLastSeen`、`TestAuditPagedCountCap`、`TestCapPage`、`TestEventsTyping`（陌生人收不到、联系人收到）；SQLite 与 PostgreSQL 两遍全部通过；前端 144 项单元（新增「正在输入」发送与补读隔离）；e2e 45 通过 27 跳过（一次全量运行中「分流规则拖动排序」失败，单独与再次全量运行均通过，判断为偶发）。「正在输入」的界面显示没有 e2e（新增账号会触发注册限制），由 API 与单元测试覆盖。
+- **R14c 订阅分析流式汇总（2026-11-20）**：分析不再把明细读进内存后截断，改为按时间正序流式读出、边读边汇总（`store.Stats.EachRequest` + `service.Analyzer`），去掉 5 万行上限；链接、短链接、好友筛选下推到 SQL；最近 100 条另取完整列（`LatestRequests`）。迁移 0016 建覆盖索引 `sub_requests_analytics` 并替换 `sub_requests_owner`。曾实测数据库内 `GROUP BY`：33 万行分三次聚合约 0.5 秒，与流式读出相当，而时区分桶与间隔中位数难以在两种数据库上一致实现，所以选流式。拉取间隔改为看每个 IP 最近 1000 次成功请求。同时发现 `EXPLAIN ANALYZE` 的逐行计时在本机把大结果集查询放大数倍到上百倍：`tools/dbbench` 改为真实执行并读完结果计时，[benchmarks](benchmarks.md) 整体重测，上一轮数字标注为偏大。实测（千万行）：重度用户近 30 天 33 万条端到端 0.66 秒，180 天 200 万条 3.8 秒，普通用户 1.6 ms。验证：`TestAnalyze`、`TestAnalyzeFriends`、`TestAnalyzerGapSamples`、`TestSocialRepos`（筛选与排序）、`TestEachRequestUsesCoveringIndex`（SQLite 计划只读覆盖索引、不排序）；SQLite 与 PostgreSQL 两遍通过；golangci-lint 0 issues、staticcheck 通过；前端 check / 144 项单元 / build；e2e「短链接与订阅分析」「实时通道」通过。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

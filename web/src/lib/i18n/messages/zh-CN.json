@@ -189,7 +189,6 @@
   "analytics.subtitle": "你的配置链接与短链接被谁、从哪里、在什么时候请求。时间按「设置 → 时区」显示。",
   "analytics.success": "成功率",
   "analytics.through": "经由",
-  "analytics.truncated": "请求太多，只分析了最近的50,000条。缩短时间范围可以看全。",
   "analytics.via": "访问方式",
   "analytics.when": "什么时候请求",
   "analytics.when_hint": "按星期与小时统计，颜色越深请求越多。客户端通常按固定间隔自动更新，异常的时段值得留意。",

@@ -102,21 +102,45 @@ func TestSocialRepos(t *testing.T) {
 		t.Error("只有收件人能记录加入的源")
 	}
 
-	// 请求记录带归属地，Range 按时间正序
+	// 请求记录带归属地；EachRequest 按时间正序，LatestRequests 新的在前，筛选条件生效
 	now := time.Now()
 	reqs := []SubRequest{
-		{LinkID: "l1", OwnerID: a.ID, At: now.Add(-2 * time.Hour), IP: "192.0.2.1", Status: 200, Country: "CN", ASN: "AS4134", Org: "Example Telecom"},
+		{LinkID: "l1", OwnerID: a.ID, At: now.Add(-2 * time.Hour), IP: "192.0.2.1", UA: "mihomo/1.19.33", Status: 200, Country: "CN", ASN: "AS4134", Org: "Example Telecom"},
 		{LinkID: "l1", OwnerID: a.ID, At: now.Add(-time.Hour), IP: "192.0.2.2", Status: 200, ShortID: "s1"},
+		{LinkID: "l2", OwnerID: a.ID, At: now.Add(-30 * time.Minute), IP: "192.0.2.3", Status: 404, ShortID: "s2"},
 	}
 	if err := d.Stats().AddRequests(ctx, reqs); err != nil {
 		t.Fatal(err)
 	}
-	rs, cut, err := d.Stats().Range(ctx, a.ID, now.Add(-3*time.Hour), now, 10)
-	if err != nil || cut || len(rs) != 2 || rs[0].Country != "CN" || rs[0].Org != "Example Telecom" || rs[1].ShortID != "s1" {
-		t.Fatalf("Range：%+v %v %v", rs, cut, err)
+	each := func(f RequestFilter) []SubRequest {
+		t.Helper()
+		var out []SubRequest
+		if err := d.Stats().EachRequest(ctx, a.ID, now.Add(-3*time.Hour), now, f, func(q *SubRequest) error {
+			out = append(out, *q) // 回调的指针会被复用，必须复制
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return out
 	}
-	if rs, cut, _ := d.Stats().Range(ctx, a.ID, now.Add(-3*time.Hour), now, 1); !cut || len(rs) != 1 || rs[0].IP != "192.0.2.2" {
-		t.Errorf("截断时应保留最新的：%+v %v", rs, cut)
+	rs := each(RequestFilter{})
+	if len(rs) != 3 || rs[0].Country != "CN" || rs[0].Org != "Example Telecom" || rs[0].UA != "" || rs[1].ShortID != "s1" || rs[2].Status != 404 {
+		t.Fatalf("EachRequest：%+v", rs)
+	}
+	if rs := each(RequestFilter{LinkID: "l2"}); len(rs) != 1 || rs[0].IP != "192.0.2.3" {
+		t.Errorf("按链接筛选：%+v", rs)
+	}
+	if rs := each(RequestFilter{Shorts: []string{"s1", "s2"}}); len(rs) != 2 {
+		t.Errorf("按一组短链接筛选：%+v", rs)
+	}
+	if rs := each(RequestFilter{Shorts: []string{}}); len(rs) != 0 {
+		t.Errorf("空的短链接集合不应匹配任何请求：%+v", rs)
+	}
+	if rs, err := d.Stats().LatestRequests(ctx, a.ID, now.Add(-3*time.Hour), now, RequestFilter{ShortID: "s1"}, 5); err != nil || len(rs) != 1 || rs[0].IP != "192.0.2.2" {
+		t.Errorf("LatestRequests 按短链接：%+v %v", rs, err)
+	}
+	if rs, _ := d.Stats().LatestRequests(ctx, a.ID, now.Add(-3*time.Hour), now, RequestFilter{}, 2); len(rs) != 2 || rs[0].IP != "192.0.2.3" || rs[1].UA != "" || rs[0].Status != 404 {
+		t.Errorf("LatestRequests 应新的在前：%+v", rs)
 	}
 	ips, _ := d.Stats().IPs(ctx, a.ID, "l1")
 	if len(ips) != 2 {

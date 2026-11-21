@@ -283,11 +283,6 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 	now := time.Now().In(loc)
 	to := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
 	from := to.AddDate(0, 0, -days)
-	rs, cut, err := s.Svc.Store.Stats().Range(ctx, p.User.ID, from, to, service.AnalyticsMaxRows)
-	if err != nil {
-		s.fail(w, err)
-		return
-	}
 	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
 	if err != nil {
 		s.fail(w, err)
@@ -309,18 +304,31 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 			}
 		}
 	}
-	link, short, friend := q.Get("link"), q.Get("short"), q.Get("friend")
-	if link != "" || short != "" || friend != "" {
-		kept := rs[:0]
-		for _, x := range rs {
-			if (link == "" || x.LinkID == link) && (short == "" || x.ShortID == short) && (friend == "" || granteeOf[x.ShortID] == friend) {
-				kept = append(kept, x)
+	// 筛选条件交给数据库；只看某位好友时取他的全部短链接（没有则为空切片：必然没有请求）
+	f := store.RequestFilter{LinkID: q.Get("link"), ShortID: q.Get("short")}
+	if friend := q.Get("friend"); friend != "" {
+		f.Shorts = []string{}
+		for _, x := range shorts {
+			if x.GranteeID == friend {
+				f.Shorts = append(f.Shorts, x.ID)
 			}
 		}
-		rs = kept
 	}
-	a := service.Analyze(rs, from, to, loc, cut)
-	a.Friends = service.FriendUsage(rs, granteeOf, from, to)
+	// 流式汇总，没有条数上限（需求 R14c）；最近的请求另外按完整列取一页
+	z := service.NewAnalyzer(from, to, loc, granteeOf)
+	if err := s.Svc.Store.Stats().EachRequest(ctx, p.User.ID, from, to, f, func(q *store.SubRequest) error {
+		z.Add(q)
+		return nil
+	}); err != nil {
+		s.fail(w, err)
+		return
+	}
+	recent, err := s.Svc.Store.Stats().LatestRequests(ctx, p.User.ID, from, to, f, service.RecentRequests)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	a := z.Result(recent)
 	labels, err := s.linkLabels(ctx, p.User.ID)
 	if err != nil {
 		s.fail(w, err)

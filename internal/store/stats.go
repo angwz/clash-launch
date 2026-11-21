@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -80,9 +79,12 @@ type StatsRepo interface {
 	// PruneRequests 删除 before 之前的请求明细，返回删除的行数。按批删除，每批一个短事务，
 	// 不长时间锁表；按天、按链接与按 IP 的汇总（stat_counts、sub_ips）不受影响（需求 R14c）。
 	PruneRequests(ctx context.Context, before time.Time) (int64, error)
-	// Range 返回某个用户在 [from, to) 内的全部请求记录（时间正序），最多 limit 条；用于订阅分析（反馈 #74）。
-	// 第二个返回值表示是否因超过 limit 而截断（此时返回的是区间内最新的 limit 条）。
-	Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error)
+	// EachRequest 按时间正序逐条回调某个用户在 [from, to) 内、满足 f 的请求（订阅分析，反馈 #74、需求 R14c）。
+	// 只填分析用到的列（不含 UA 与字节数），整行来自覆盖索引 sub_requests_analytics，不回表；
+	// 没有条数上限，内存由调用方的汇总决定。回调拿到的指针在下一次回调时被复用；fn 返回错误时停止并原样返回。
+	EachRequest(ctx context.Context, owner string, from, to time.Time, f RequestFilter, fn func(*SubRequest) error) error
+	// LatestRequests 返回某个用户在 [from, to) 内、满足 f 的最新 n 条请求（新的在前，完整列）。
+	LatestRequests(ctx context.Context, owner string, from, to time.Time, f RequestFilter, n int) ([]SubRequest, error)
 	// LastByShort 返回每个短链接最近一次被请求的时间（反馈 #78：短链接列表折叠时显示）。
 	LastByShort(ctx context.Context, owner string) (map[string]time.Time, error)
 }
@@ -273,23 +275,74 @@ func (r stats) PruneRequests(ctx context.Context, before time.Time) (int64, erro
 	}
 }
 
-func (r stats) Range(ctx context.Context, owner string, from, to time.Time, limit int) ([]SubRequest, bool, error) {
-	// 取区间内最新的 limit+1 条（倒序），再翻转为正序；多出一条说明被截断
-	rows, err := r.d.query(ctx, "SELECT "+requestCols+" FROM sub_requests WHERE owner_id=? AND at>=? AND at<? ORDER BY at DESC, id DESC LIMIT ?",
-		owner, ms(from), ms(to), limit+1)
+// RequestFilter 限定订阅分析的范围；零值表示不过滤。
+type RequestFilter struct {
+	LinkID  string
+	ShortID string
+	// Shorts 非 nil 时只取经由这些短链接的请求（某位好友，反馈 #75）；空切片表示没有匹配。
+	Shorts []string
+}
+
+// where 生成 owner、时间区间与 f 的条件，只由常量片段与占位符拼成。
+// 第二个返回值为 false 表示必然没有匹配，不必查询。
+func (f RequestFilter) where(owner string, from, to time.Time) (string, []any, bool) {
+	q := "owner_id=? AND at>=? AND at<?"
+	args := []any{owner, ms(from), ms(to)}
+	if f.LinkID != "" {
+		q += " AND link_id=?"
+		args = append(args, f.LinkID)
+	}
+	if f.ShortID != "" {
+		q += " AND short_id=?"
+		args = append(args, f.ShortID)
+	}
+	if f.Shorts != nil {
+		if len(f.Shorts) == 0 {
+			return "", nil, false
+		}
+		q += " AND short_id IN (" + strings.Repeat(",?", len(f.Shorts))[1:] + ")"
+		for _, id := range f.Shorts {
+			args = append(args, id)
+		}
+	}
+	return q, args, true
+}
+
+func (r stats) EachRequest(ctx context.Context, owner string, from, to time.Time, f RequestFilter, fn func(*SubRequest) error) error {
+	cond, args, ok := f.where(owner, from, to)
+	if !ok {
+		return nil
+	}
+	// 列与 ORDER BY 都与 sub_requests_analytics 一致：按索引顺序读出，不排序、不回表
+	rows, err := r.d.query(ctx, "SELECT at, id, status, ip, country, asn, org, client, kind, link_id, short_id FROM sub_requests WHERE "+cond+" ORDER BY at, id", args...)
 	if err != nil {
-		return nil, false, err
+		return fmt.Errorf("store: 读取订阅请求: %w", err)
 	}
-	out, err := scanRequests(rows)
+	defer func() { _ = rows.Close() }()
+	q := SubRequest{OwnerID: owner}
+	for rows.Next() {
+		var at int64
+		if err := rows.Scan(&at, &q.ID, &q.Status, &q.IP, &q.Country, &q.ASN, &q.Org, &q.Client, &q.Kind, &q.LinkID, &q.ShortID); err != nil {
+			return fmt.Errorf("store: 读取订阅请求: %w", err)
+		}
+		q.At = fromMS(at)
+		if err := fn(&q); err != nil {
+			return err
+		}
+	}
+	return rows.Err()
+}
+
+func (r stats) LatestRequests(ctx context.Context, owner string, from, to time.Time, f RequestFilter, n int) ([]SubRequest, error) {
+	cond, args, ok := f.where(owner, from, to)
+	if !ok {
+		return nil, nil
+	}
+	rows, err := r.d.query(ctx, "SELECT "+requestCols+" FROM sub_requests WHERE "+cond+" ORDER BY at DESC, id DESC LIMIT ?", append(args, n)...)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	cut := len(out) > limit
-	if cut {
-		out = out[:limit]
-	}
-	slices.Reverse(out)
-	return out, cut, nil
+	return scanRequests(rows)
 }
 
 func (r stats) IPs(ctx context.Context, owner, linkID string) ([]SubIP, error) {

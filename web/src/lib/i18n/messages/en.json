@@ -189,7 +189,6 @@
   "analytics.subtitle": "Who requested your config links and short links, from where and when. Times use Settings → Time zone.",
   "analytics.success": "Success rate",
   "analytics.through": "Via",
-  "analytics.truncated": "Too many requests; only the latest 50,000 were analysed. Choose a shorter range to see everything.",
   "analytics.via": "Access path",
   "analytics.when": "When requests happen",
   "analytics.when_hint": "By weekday and hour; darker means more requests. Clients usually update on a fixed interval, so unusual hours deserve a look.",

@@ -344,7 +344,7 @@ func TestPruneRequests(t *testing.T) {
 	if err != nil || n != int64(old) {
 		t.Fatalf("应删除 %d 行，得到 %d %v", old, n, err)
 	}
-	left, _, err := st.Range(ctx, "u1", cut.Add(-365*24*time.Hour), cut.Add(time.Hour), 100)
+	left, err := st.LatestRequests(ctx, "u1", cut.Add(-365*24*time.Hour), cut.Add(time.Hour), RequestFilter{}, 100)
 	if err != nil || len(left) != 3 {
 		t.Fatalf("应剩 3 条较新的明细，得到 %d %v", len(left), err)
 	}
@@ -372,5 +372,32 @@ func TestAuditPagedCountCap(t *testing.T) {
 	}
 	if _, n, _ := d.Audit().PagedAll(ctx, 0, 10, 5); n != 6 {
 		t.Fatalf("全站：上限 5 时应数到 6，得到 %d", n)
+	}
+}
+
+// 订阅分析的流式读取必须只读覆盖索引（需求 R14c）：回表在千万行上要慢一个数量级。
+// PostgreSQL 的仅索引扫描还取决于可见性映射，由 tools/dbbench 的执行计划核对；这里锁定 SQLite。
+func TestEachRequestUsesCoveringIndex(t *testing.T) {
+	d := newDB(t)
+	if d.Dialect() != "sqlite" {
+		t.Skip("只检查 SQLite 的执行计划")
+	}
+	cond, args, _ := RequestFilter{LinkID: "l1"}.where("u1", time.Unix(0, 0), time.Now())
+	rows, err := d.query(context.Background(), "EXPLAIN QUERY PLAN SELECT at, id, status, ip, country, asn, org, client, kind, link_id, short_id FROM sub_requests WHERE "+cond+" ORDER BY at, id", args...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var plan []string
+	for rows.Next() {
+		var id, parent, unused int
+		var detail string
+		if err := rows.Scan(&id, &parent, &unused, &detail); err != nil {
+			t.Fatal(err)
+		}
+		plan = append(plan, detail)
+	}
+	if got := strings.Join(plan, "; "); !strings.Contains(got, "COVERING INDEX sub_requests_analytics") || strings.Contains(got, "TEMP B-TREE") {
+		t.Errorf("应只读覆盖索引且不排序，实际计划：%s", got)
 	}
 }
