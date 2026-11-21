@@ -80,6 +80,9 @@ type User struct {
 	// 需求 R40：同意的用户协议版本与时间；0 表示尚未同意
 	TermsVersion int
 	TermsAt      time.Time
+	// 需求 R20：DeletionAt 是计划注销的时间（冷静期内，零值表示没有）；DeletedAt 非零表示已注销（墓碑）
+	DeletionAt time.Time
+	DeletedAt  time.Time
 }
 
 // Session 是登录会话。ID 只以哈希形式存储。
@@ -296,6 +299,13 @@ type UserRepo interface {
 	SetInviteBanned(ctx context.Context, id string, banned bool) error
 	// SetTerms 记录用户同意的用户协议版本与时间（需求 R40；不改变 version）。
 	SetTerms(ctx context.Context, id string, version int, at time.Time) error
+	// SetDeletion 设置或清除（零值）计划注销的时间（需求 R20）。
+	SetDeletion(ctx context.Context, id string, at time.Time) error
+	// DueDeletions 返回计划注销时间已到、尚未注销的用户。
+	DueDeletions(ctx context.Context, now time.Time) ([]User, error)
+	// Tombstone 删除用户的登录凭据与只属于本人的记录，把用户行改为墓碑（用户名改为 placeholder，
+	// 原用户名进入改名历史、按改名规则保留）。对话、好友、授权记录与邀请关系保留。须在业务数据删除之后调用。
+	Tombstone(ctx context.Context, id, placeholder string, at time.Time) error
 	// Invitees 返回由 inviterID 邀请注册的用户（注册早的在前）。
 	Invitees(ctx context.Context, inviterID string) ([]User, error)
 	Count(ctx context.Context) (int, error)

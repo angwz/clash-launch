@@ -89,3 +89,12 @@ The Account page downloads an encrypted backup of all your information, which ca
 - Restoring replaces your current nodes, configs, links, templates, rule sources and alert settings with the backup. Your current state is saved first and can be brought back within 7 days.
 - Subscription and short links come back with their tokens, so clients keep working. If a token or short code is already used by someone else, it is replaced and you are told which ones to update.
 - Your username, password, two-step verification, passkeys, signed-in devices and access tokens are not overwritten; messages, friends and grants are not part of the backup.
+
+## Delete your account
+
+At the bottom of the Account page you can delete your account with your current password (and a verification code if two-step verification is on):
+
+- There is a 7-day waiting period and all devices are signed out right away. Subscriptions keep working during that time, and signing in again cancels the deletion.
+- When the period ends, your nodes, configs, subscription links, short links, templates and all settings are deleted and subscriptions stop working; grants you gave are revoked and the other person is notified.
+- Conversations with others are kept and show you as a deleted user; your username stays reserved for 180 days so nobody can take it right away.
+- Consider downloading a backup first.

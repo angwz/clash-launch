@@ -10,6 +10,7 @@
   import Alerts from "../components/account/Alerts.svelte";
   import Channels from "../components/account/Channels.svelte";
   import BackupRestore from "../components/account/BackupRestore.svelte";
+  import DeleteAccount from "../components/account/DeleteAccount.svelte";
   import AccessTokens from "../components/account/AccessTokens.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
@@ -184,6 +185,11 @@
 
   <BackupRestore />
 
+  <section class="panel box danger-zone" aria-labelledby="ac-del">
+    <h2 id="ac-del">{t("deletion.title")}</h2>
+    <DeleteAccount />
+  </section>
+
   <section class="panel box" aria-labelledby="ac-s">
     <div class="shead">
       <h2 id="ac-s">{t("account.sessions")}</h2>
@@ -245,6 +251,9 @@
     max-inline-size: 1120px;
     margin-inline: auto;
     padding: var(--space-8) var(--space-6);
+  }
+  .danger-zone {
+    border-color: color-mix(in srgb, var(--err) 35%, var(--border));
   }
   .box {
     display: grid;

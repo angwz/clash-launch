@@ -125,3 +125,53 @@ func (r profiles) SetRevisions(ctx context.Context, owner, profileID string, ver
 
 // ErrBackupTable 是 Taken 收到未登记表名时的错误类别（供调用方区分编程错误）。
 var ErrBackupTable = errors.New("store: 不支持的表")
+
+// —— 注销账户（需求 R20）——
+
+func (r users) SetDeletion(ctx context.Context, id string, at time.Time) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET deletion_at=? WHERE id=? AND deleted_at=0", ms(at), id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r users) DueDeletions(ctx context.Context, now time.Time) ([]User, error) {
+	rows, err := r.d.query(ctx, "SELECT "+userCols+" FROM users WHERE deletion_at>0 AND deletion_at<=? AND deleted_at=0 ORDER BY deletion_at", ms(now))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *u)
+	}
+	return out, rows.Err()
+}
+
+// personalTables 是注销时删除的、只属于本人的记录（表名与所有者列）。业务数据（节点源、配置……）由服务层
+// 经 R2 的删除路径先行删除；对话、好友、授权、邀请与改名历史保留，审计按保留期自然清理。
+var personalTables = [][2]string{
+	{"sessions", "user_id"}, {"user_questions", "user_id"}, {"user_totp", "user_id"}, {"recovery_codes", "user_id"},
+	{"passkeys", "user_id"}, {"user_smtp", "user_id"}, {"user_quotas", "user_id"}, {"known_devices", "user_id"},
+	{"access_tokens", "owner_id"}, {"notifications", "owner_id"}, {"notify_channels", "owner_id"}, {"user_backups", "owner_id"},
+	{"sub_requests", "owner_id"}, {"sub_ips", "owner_id"}, {"link_seen", "owner_id"},
+}
+
+func (r users) Tombstone(ctx context.Context, id, placeholder string, at time.Time) error {
+	return r.d.Tx(ctx, func(s Store) error {
+		tx := s.(*DB)
+		for _, t := range personalTables {
+			if _, err := tx.exec(ctx, "DELETE FROM "+t[0]+" WHERE "+t[1]+"=?", id); err != nil { // 表名与列名来自常量列表
+				return fmt.Errorf("清除 %s：%w", t[0], err)
+			}
+		}
+		if err := (users{tx}).Rename(ctx, id, placeholder, at); err != nil {
+			return err
+		}
+		// 密码哈希改为不可能匹配的值；昵称、偏好与安全问题一并清除
+		_, err := tx.exec(ctx, "UPDATE users SET password_hash='!', nickname='', nickname_norm='', prefs='{}', disabled=1, deletion_at=0, deleted_at=? WHERE id=?", ms(at), id)
+		return err
+	})
+}

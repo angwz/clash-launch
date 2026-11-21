@@ -1,8 +1,9 @@
 <script lang="ts">
   // 协议待同意（需求 R40）：已登录的普通用户同意的版本低于当前版本时，App 用它代替整个界面。
   // 服务端在同意前拦截其他接口（403 terms.required），所以这里不启动实时通道、统计等后台请求。
-  // 拒绝只记入审计并退出登录；下次登录仍会看到协议。
+  // 拒绝只记入审计并退出登录；下次登录仍会看到协议。不同意时也可以在这里注销账号（需求 R20）。
   import AuthLayout from "./AuthLayout.svelte";
+  import DeleteAccount from "./account/DeleteAccount.svelte";
   import Markdown from "./Markdown.svelte";
   import { ApiError } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -58,6 +59,10 @@
     <button class="btn" type="button" disabled={busy} onclick={() => void answer(false)}>{t("terms.decline")}</button>
     <button class="btn primary" type="button" disabled={busy || !doc} onclick={() => void answer(true)}>{t("terms.accept")}</button>
   </div>
+  <details class="del">
+    <summary class="subtle">{t("terms.delete_instead")}</summary>
+    <DeleteAccount compact />
+  </details>
 </AuthLayout>
 
 <style>
@@ -70,6 +75,14 @@
     border-radius: var(--radius-md);
     background: var(--bg);
     line-height: 1.8;
+  }
+  .del {
+    margin-block-start: var(--space-5);
+    font-size: var(--text-sm);
+  }
+  .del summary {
+    cursor: pointer;
+    margin-block-end: var(--space-3);
   }
   .terms h2 {
     font-size: var(--text-lg);

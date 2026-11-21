@@ -31,6 +31,9 @@ type AdminUser struct {
 	Nickname     string `json:"nickname,omitempty"`
 	InvitedBy    string `json:"invitedBy,omitempty"`
 	InviteBanned bool   `json:"inviteBanned"`
+	// 需求 R20：冷静期内的计划注销时间；已注销的账号
+	DeletionAt *time.Time `json:"deletionAt,omitempty"`
+	Deleted    bool       `json:"deleted,omitempty"`
 }
 
 // AdminUsers 列出用户（只含元数据）。
@@ -64,7 +67,7 @@ func (s *Service) adminView(ctx context.Context, users []store.User) ([]AdminUse
 			return nil, err
 		}
 		st, _ := s.TOTPStatus(ctx, u.ID)
-		out = append(out, AdminUser{ID: u.ID, Username: u.Username, Role: u.Role, Disabled: u.Disabled, CreatedAt: u.CreatedAt, MFA: st.Enabled, Usage: *usage, Quota: *q, Invited: u.Invited, Defaults: limitsOf(s.defaultsFor(&u)), Nickname: u.Nickname, InvitedBy: s.inviterName(ctx, &u), InviteBanned: u.InviteBanned})
+		out = append(out, AdminUser{ID: u.ID, Username: u.Username, Role: u.Role, Disabled: u.Disabled, CreatedAt: u.CreatedAt, MFA: st.Enabled, Usage: *usage, Quota: *q, Invited: u.Invited, Defaults: limitsOf(s.defaultsFor(&u)), Nickname: u.Nickname, InvitedBy: s.inviterName(ctx, &u), InviteBanned: u.InviteBanned, DeletionAt: timePtr(u.DeletionAt), Deleted: !u.DeletedAt.IsZero()})
 	}
 	return out, nil
 }

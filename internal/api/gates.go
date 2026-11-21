@@ -56,6 +56,7 @@ var mfaExempt = map[string]bool{
 	"GET /api/v1/account/totp":         true,
 	"POST /api/v1/account/totp/setup":  true,
 	"POST /api/v1/account/totp/enable": true,
+	"POST /api/v1/account/delete":      true, // 不愿启用两步验证时可以注销（需求 R20）
 }
 
 // gate 依次检查令牌范围、用户协议与两步验证策略；不通过时写出错误并返回 false。

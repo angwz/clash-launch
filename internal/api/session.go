@@ -130,6 +130,8 @@ type sessionResp struct {
 	Terms termsState `json:"terms"`
 	// MFASetup 为 true 表示两步验证策略要求本账号启用而尚未启用（需求 R41）；页面先引导设置
 	MFASetup bool `json:"mfaSetup"`
+	// DeletionCanceled 为 true 表示这次登录撤销了冷静期内的注销（需求 R20），页面据此提示
+	DeletionCanceled bool `json:"deletionCanceled,omitempty"`
 }
 
 type userDTO struct {
@@ -200,6 +202,7 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 	}
 	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
 	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA)
+	canceled := s.Svc.CancelDeletionOnLogin(ctx, u) // 冷静期内登录即撤销注销（需求 R20）
 	terms, err := s.termsState(ctx, u)
 	if err != nil {
 		s.fail(w, err)
@@ -210,7 +213,7 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF, Terms: terms, MFASetup: mfa})
+	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF, Terms: terms, MFASetup: mfa, DeletionCanceled: canceled})
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {

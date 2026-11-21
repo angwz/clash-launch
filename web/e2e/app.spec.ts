@@ -1436,3 +1436,20 @@ test("备份与还原：下载加密备份，还原后整体回到备份时的�
   expect(await names()).toContain(name);
   expect(problems).toEqual([]);
 });
+
+test("注销账号：需要确认与当前密码，最后一个管理员不能注销（R20）", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "注销账号" }) });
+  await expect(box).toContainText("7天冷静期");
+  await box.getByLabel("当前密码").fill(ADMIN.password);
+  const run = box.getByRole("button", { name: "注销账号" });
+  await expect(run).toBeDisabled(); // 未勾选确认
+  await box.getByLabel(/我明白/).check();
+  await run.click();
+  await expect(page.getByText("这是最后一个管理员，不能注销。")).toBeVisible();
+  await expect(page).toHaveURL(/\/account$/); // 仍然登录
+  expect(problems.filter((p) => !p.includes("409"))).toEqual([]);
+});

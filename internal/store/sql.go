@@ -307,17 +307,18 @@ func (d *DB) Invites() InviteRepo         { return invites{d} }
 
 type users struct{ d *DB }
 
-const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version, nickname, username_changed_at, invited_by, invited_by_name, invite_id, invite_banned, terms_version, terms_at"
+const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version, nickname, username_changed_at, invited_by, invited_by_name, invite_id, invite_banned, terms_version, terms_at, deletion_at, deleted_at"
 
 func scanUser(r interface{ Scan(...any) error }) (*User, error) {
 	var u User
-	var dis, inv, c, up, ch, ban, tv, ta int64
-	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version, &u.Nickname, &ch, &u.InvitedBy, &u.InvitedByName, &u.InviteID, &ban, &tv, &ta); err != nil {
+	var dis, inv, c, up, ch, ban, tv, ta, dl, dd int64
+	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version, &u.Nickname, &ch, &u.InvitedBy, &u.InvitedByName, &u.InviteID, &ban, &tv, &ta, &dl, &dd); err != nil {
 		return nil, notFound(err)
 	}
 	u.Disabled, u.Invited, u.CreatedAt, u.UpdatedAt = dis == 1, inv == 1, fromMS(c), fromMS(up)
 	u.UsernameChangedAt, u.InviteBanned = fromMS(ch), ban == 1
 	u.TermsVersion, u.TermsAt = int(tv), fromMS(ta)
+	u.DeletionAt, u.DeletedAt = fromMS(dl), fromMS(dd)
 	return &u, nil
 }
 

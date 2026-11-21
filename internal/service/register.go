@@ -50,6 +50,9 @@ func CheckUsername(name string) error {
 	if n < 1 || n > 32 || strings.TrimSpace(name) != name {
 		return ErrUsername
 	}
+	if strings.HasPrefix(strings.ToLower(name), DeletedPrefix) {
+		return ErrUsername // 已注销账号的占位名（需求 R20）
+	}
 	for _, r := range name {
 		if r <= ' ' || r == 0x7F || (r >= 0x80 && r <= 0x9F) || r == 0x2028 || r == 0x2029 {
 			return ErrUsername

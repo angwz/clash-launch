@@ -21,6 +21,7 @@ const (
 	AlertMFA       Alert = "mfa"        // 两步验证启用或关闭、恢复码重新生成
 	AlertPasskey   Alert = "passkey"    // 通行密钥添加或删除
 	AlertToken     Alert = "token"      // 生成了个人访问令牌（需求 R25）
+	AlertDeletion  Alert = "deletion"   // 发起了注销（需求 R20）
 
 	// 以下是运行提醒（需求 R23、R24）：同时进入站内提醒列表，邮件的结尾提示不同于安全提醒
 	AlertSourceFailing Alert = "source_failing" // 订阅节点源连续拉取失败
@@ -52,6 +53,7 @@ var alertTexts = map[string]map[string][2]string{
 		"mfa":            {"你的 Clash, Launch! 两步验证设置已变更", "你的账号两步验证设置刚刚发生变化。"},
 		"passkey":        {"你的 Clash, Launch! 通行密钥已变更", "你的账号通行密钥刚刚发生变化。"},
 		"token":          {"你的 Clash, Launch! 账号生成了访问令牌", "你的账号刚刚生成了一个个人访问令牌，持有它的程序可以调用接口。"},
+		"deletion":       {"你的 Clash, Launch! 账号将被注销", "你的账号刚刚发起了注销，所有设备已退出登录。冷静期内重新登录即可撤销；到期后全部数据会被删除，订阅链接随之失效。"},
 		"source_failing": {"Clash, Launch! 节点源连续拉取失败", "一个订阅节点源连续两次拉取失败。订阅链接继续提供上一次成功的节点。"},
 		"check_failed":   {"Clash, Launch! 配置检查不通过", "一份配置在后台重新生成时没有通过检查。订阅链接继续提供上一次通过的版本。"},
 		"link_new":       {"Clash, Launch! 订阅链接出现新的来源", "你的一个订阅链接第一次被新的国家或地区、或新的客户端拉取。如果不是你自己或你分享的人，链接可能已经泄露。"},
@@ -65,6 +67,7 @@ var alertTexts = map[string]map[string][2]string{
 		"mfa":            {"Your Clash, Launch! two-step verification changed", "The two-step verification settings of your account just changed."},
 		"passkey":        {"Your Clash, Launch! passkeys changed", "The passkeys of your account just changed."},
 		"token":          {"A Clash, Launch! access token was created", "A personal access token was just created for your account; any program holding it can call the API."},
+		"deletion":       {"Your Clash, Launch! account is scheduled for deletion", "Deletion of your account was just requested and all devices were signed out. Sign in again during the waiting period to cancel; after it ends, all data is deleted and subscription links stop working."},
 		"source_failing": {"Clash, Launch! node source keeps failing", "A subscription node source failed to refresh twice in a row. Subscription links keep serving the last successful nodes."},
 		"check_failed":   {"Clash, Launch! config check failed", "A config failed its check while being regenerated in the background. Subscription links keep serving the last version that passed."},
 		"link_new":       {"Clash, Launch! subscription link has a new source", "One of your subscription links was fetched for the first time from a new country or region, or by a new client. If that was not you or someone you shared it with, the link may have leaked."},
@@ -88,8 +91,8 @@ func opsAlert(kind string) bool {
 }
 
 var alertLabels = map[string]map[string]string{
-	"zh": {"time": "时间", "user": "账号", "ip": "网络", "device": "设备", "change": "变更", "name": "名称", "scope": "权限", "error": "原因", "country": "国家或地区", "client": "客户端", "link": "链接"},
-	"en": {"time": "Time", "user": "Account", "ip": "Network", "device": "Device", "change": "Change", "name": "Name", "scope": "Scope", "error": "Reason", "country": "Country or region", "client": "Client", "link": "Link"},
+	"zh": {"time": "时间", "user": "账号", "ip": "网络", "device": "设备", "change": "变更", "name": "名称", "scope": "权限", "error": "原因", "country": "国家或地区", "client": "客户端", "link": "链接", "when": "注销时间"},
+	"en": {"time": "Time", "user": "Account", "ip": "Network", "device": "Device", "change": "Change", "name": "Name", "scope": "Scope", "error": "Reason", "country": "Country or region", "client": "Client", "link": "Link", "when": "Deletion time"},
 }
 
 // alertText 生成提醒邮件的标题与正文（纯文本）。细节按键名排序，便于测试与阅读。

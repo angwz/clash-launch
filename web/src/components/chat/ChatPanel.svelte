@@ -8,6 +8,7 @@
   // 大小随浏览器窗口变化，窗口够宽时左右两栏，否则单栏（用容器查询按窗口自身宽度切换），手机上铺满屏幕。
   import { tick } from "svelte";
   import Icon from "../Icon.svelte";
+  import { shownName } from "../../lib/names";
   import UserPicker from "../UserPicker.svelte";
   import { api, ApiError, listAll, type Source } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
@@ -396,7 +397,7 @@
             <a href={"/messages/" + encodeURIComponent(th.username)} onclick={(e) => { e.preventDefault(); open(th.username); }} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
               <span class="avatar" class:on={isOnline(th.username)} aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
               <span class="th-main">
-                <span class="th-top"><strong>{th.nickname || th.username}</strong>{#if isOnline(th.username)}<span class="visually-hidden">{t("messages.online")}</span>{/if}{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
+                <span class="th-top"><strong>{shownName(th, t("deletion.deleted_user"))}</strong>{#if isOnline(th.username)}<span class="visually-hidden">{t("messages.online")}</span>{/if}{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
                   {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{th.last}
                 </span>
@@ -446,7 +447,7 @@
       <header class="chat-head">
         <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
         <span class="avatar" class:on={isOnline(other?.username ?? peer)} aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
-        <strong class="peer">{other?.nickname || other?.username || peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
+        <strong class="peer">{other ? shownName(other, t("deletion.deleted_user")) : peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
         {#if peerTyping}<span class="typing" role="status">{t("messages.typing")}</span>{:else if isOnline(other?.username ?? peer)}<span class="online-label">{t("messages.online")}</span>{/if}
         {#if other && !deletedAt}
           <button class="btn sm ghost" type="button" onclick={() => void toggleBlock()}>{blocked ? t("messages.unblock") : t("messages.block")}</button>

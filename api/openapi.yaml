@@ -202,6 +202,7 @@ components:
         logoutAt: {type: string, format: date-time, description: 当前设备的定时退出时间（需求 R8）}
         terms: {$ref: '#/components/schemas/TermsState'}
         mfaSetup: {type: boolean, description: 两步验证策略要求本账号启用而尚未启用（需求 R41）}
+        deletionCanceled: {type: boolean, description: 这次登录撤销了冷静期内的注销（需求 R20）}
     Snapshot:
       type: object
       properties:
@@ -635,6 +636,8 @@ components:
       type: object
       required: [id, username, role, disabled, createdAt, mfa, usage, quota]
       properties:
+        deletionAt: {type: string, format: date-time, description: 冷静期内的计划注销时间（需求 R20）}
+        deleted: {type: boolean, description: 已注销}
         id: {type: string}
         username: {type: string}
         role: {type: string}
@@ -954,6 +957,17 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password, passphrase], properties: {password: {type: string}, passphrase: {type: string, minLength: 10}}}}}}
       responses: {'200': {description: 备份文件（application/octet-stream）}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/delete:
+    post:
+      tags: [account]
+      summary: 发起注销（需求 R20）
+      description: |
+        需要当前密码，启用了两步验证时还要 code。进入 7 天冷静期：所有会话与访问令牌立即失效，冷静期内再次登录即撤销（登录响应 deletionCanceled 为 true）；
+        到期后删除全部数据，订阅链接与短链接失效，给别人的授权收回并通知对方；对话保留，用户名改为 deleted-…，原用户名保留 180 天。
+        用户协议待同意或两步验证待设置时也可以调用。最后一个可用的管理员 409 account.last_admin
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}, code: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {at: {type: string, format: date-time}}}}}}, '401': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/restore/preview:
     post:
       tags: [account]
@@ -1060,6 +1074,12 @@ paths:
       parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items, defaults], properties: {items: {type: array, items: {$ref: '#/components/schemas/AdminUser'}}, defaults: {$ref: '#/components/schemas/Limits'}}}}}}, '404': {description: 不是管理员}}
   /api/v1/admin/users/{id}:
+    delete:
+      tags: [admin]
+      summary: 立即注销账号（需求 R20，没有冷静期）；最后一个可用的管理员 409 account.last_admin；记入审计 admin.user.delete
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
     patch:
       tags: [admin]
       summary: 停用或启用账号；停用时注销其全部会话。不能停用自己

@@ -1749,6 +1749,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 发起注销（需求 R20）
+         * @description 需要当前密码，启用了两步验证时还要 code。进入 7 天冷静期：所有会话与访问令牌立即失效，冷静期内再次登录即撤销（登录响应 deletionCanceled 为 true）；
+         *     到期后删除全部数据，订阅链接与短链接失效，给别人的授权收回并通知对方；对话保留，用户名改为 deleted-…，原用户名保留 180 天。
+         *     用户协议待同意或两步验证待设置时也可以调用。最后一个可用的管理员 409 account.last_admin
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        password: string;
+                        code?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: date-time */
+                            at?: string;
+                        };
+                    };
+                };
+                401: components["responses"]["Problem"];
+                403: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/restore/preview": {
         parameters: {
             query?: never;
@@ -2401,7 +2455,23 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** 立即注销账号（需求 R20，没有冷静期）；最后一个可用的管理员 409 account.last_admin；记入审计 admin.user.delete */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+            };
+        };
         options?: never;
         head?: never;
         /** 停用或启用账号；停用时注销其全部会话。不能停用自己 */
@@ -6332,6 +6402,8 @@ export interface components {
             terms: components["schemas"]["TermsState"];
             /** @description 两步验证策略要求本账号启用而尚未启用（需求 R41） */
             mfaSetup: boolean;
+            /** @description 这次登录撤销了冷静期内的注销（需求 R20） */
+            deletionCanceled?: boolean;
         };
         Snapshot: {
             /** Format: date-time */
@@ -6815,6 +6887,13 @@ export interface components {
             bytes: number;
         };
         AdminUser: {
+            /**
+             * Format: date-time
+             * @description 冷静期内的计划注销时间（需求 R20）
+             */
+            deletionAt?: string;
+            /** @description 已注销 */
+            deleted?: boolean;
             id: string;
             username: string;
             role: string;

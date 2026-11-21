@@ -32,6 +32,9 @@
     inviteBanned: boolean;
     /** 这个用户适用的默认配额（开放注册的用户更小，反馈 #71） */
     defaults: Limits;
+    /** 冷静期内的计划注销时间；已注销（需求 R20） */
+    deletionAt?: string;
+    deleted?: boolean;
   }
 
   let users = $state<U[]>([]);
@@ -72,6 +75,17 @@
     try {
       await api.put(`/api/v1/admin/users/${u.id}/invite-ban`, { banned: !u.inviteBanned });
       toasts.push("ok", u.inviteBanned ? t("invites.ban_lifted", { name: u.username }) : t("invites.banned", { name: u.username }));
+      await load(pageN);
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+  // 立即注销（需求 R20，没有冷静期）：不可撤销，先确认
+  async function remove(u: U) {
+    if (!confirm(t("deletion.admin_confirm", { name: u.username }))) return;
+    try {
+      await api.del("/api/v1/admin/users/" + u.id);
+      toasts.push("ok", t("deletion.admin_done", { name: u.username }));
       await load(pageN);
     } catch (e) {
       toasts.push("err", errorText(e));
@@ -157,17 +171,19 @@
             {#if u.invitedBy}<div class="muted by">{t("invites.by_user", { name: u.invitedBy })}</div>{/if}
           </td>
           <td>
-            {#if u.disabled}<StatusBadge tone="err" label={t("admin.disabled")} />{:else}<StatusBadge tone="ok" label={t("admin.active")} />{/if}
+            {#if u.deleted}<StatusBadge tone="muted" label={t("deletion.deleted")} />{:else if u.disabled}<StatusBadge tone="err" label={t("admin.disabled")} />{:else}<StatusBadge tone="ok" label={t("admin.active")} />{/if}
+            {#if u.deletionAt}<StatusBadge tone="warn" label={t("deletion.pending", { when: i18n.date(u.deletionAt) })} />{/if}
             {#if u.mfa}<StatusBadge tone="info" icon="shield" label="2FA" />{/if}
           </td>
           <td class="usage">{t("admin.usage", { sources: u.usage.sources, profiles: u.usage.profiles, links: u.usage.links })} · {mb(u.usage.bytes)}</td>
           <td class="muted">{i18n.relative(u.createdAt)}</td>
           <td class="act">
-            {#if u.id !== session.user?.id}
+            {#if u.id !== session.user?.id && !u.deleted}
               <button class="btn sm ghost" type="button" onclick={() => openQuota(u)}>{t("admin.quota")}</button>
               <button class="btn sm ghost" type="button" onclick={() => openReset(u)}>{t("admin.reset_password")}</button>
               {#if u.role !== "admin"}<button class="btn sm ghost" type="button" onclick={() => void toggleInvite(u)}>{u.inviteBanned ? t("invites.allow") : t("invites.ban")}</button>{/if}
               <button class="btn sm ghost" class:danger={!u.disabled} type="button" onclick={() => void toggle(u)}>{u.disabled ? t("admin.enable") : t("admin.disable")}</button>
+              <button class="btn sm ghost danger" type="button" onclick={() => void remove(u)}>{t("deletion.admin_run")}</button>
             {/if}
           </td>
         </tr>

@@ -3,6 +3,15 @@
 // 与已有名称重复时追加「 2」「 3」……（与 macOS Finder「untitled folder 2」的做法一致）。
 
 /** 返回不与 existing 重复的名称：base、base 2、base 3…… */
+/** 已注销账号的用户名前缀（需求 R20，与服务端 DeletedPrefix 一致）。 */
+export const DELETED_PREFIX = "deleted-";
+
+/** 用户在界面上的名字：已注销的账号显示为 fallback（如「已注销的用户」），否则昵称优先。 */
+export function shownName(u: { username: string; nickname?: string }, deletedLabel: string): string {
+  if (u.username.startsWith(DELETED_PREFIX)) return deletedLabel;
+  return u.nickname || u.username;
+}
+
 export function uniqueName(base: string, existing: Iterable<string>): string {
   const taken = new Set(Array.from(existing, (s) => s.trim()));
   if (!taken.has(base)) return base;

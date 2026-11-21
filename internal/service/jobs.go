@@ -35,6 +35,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 			return
 		case <-t.C:
 			s.tick(ctx)
+			s.RunDueDeletions(ctx) // 冷静期已满的注销（需求 R20）
 			s.FlushStats(ctx)
 			if s.now().Sub(lastPrune) >= 24*time.Hour { // 审计日志每天清理一次
 				s.PruneAudit(ctx)

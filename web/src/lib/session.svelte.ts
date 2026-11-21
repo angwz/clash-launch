@@ -1,7 +1,8 @@
 // 会话：/api/v1/me 返回当前用户与 CSRF 令牌；未登录时 user 为 null。
 // 登录可能分两步：密码正确且启用了第二因素时，服务端返回 {mfa, ticket} 而不建立会话。
 import { api, ApiError, setCsrf, type Schemas, type Session, type User } from "./api/client";
-import { i18n } from "./i18n/i18n.svelte";
+import { i18n, t } from "./i18n/i18n.svelte";
+import { toasts } from "./toast.svelte";
 
 export interface MFAChallenge {
   mfa: ("totp" | "passkey")[];
@@ -81,6 +82,8 @@ class SessionState {
   }
 
   #apply(s: Session): void {
+    // 冷静期内登录撤销了注销（需求 R20）
+    if ((s as { deletionCanceled?: boolean }).deletionCanceled) toasts.push("ok", t("deletion.canceled"));
     this.user = s.user;
     this.logoutAt = s.logoutAt ?? null;
     this.terms = s.terms;

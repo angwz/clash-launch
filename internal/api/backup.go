@@ -92,3 +92,33 @@ func (s *Server) undoRestore(w http.ResponseWriter, r *http.Request, p *principa
 	}
 	writeJSON(w, http.StatusOK, rep)
 }
+
+// —— 注销账户（需求 R20）——
+
+// requestDeletion 发起注销：需要当前密码（启用两步验证时还要验证码）。所有会话立即失效，本次请求的 Cookie 一并清除。
+func (s *Server) requestDeletion(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Password string `json:"password"`
+		Code     string `json:"code"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	at, err := s.Svc.RequestDeletion(r.Context(), p.User, req.Password, req.Code)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: "", Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: -1}) //nolint:gosec // 清除 Cookie；Secure 与设置时一致
+	writeJSON(w, http.StatusOK, map[string]any{"at": at})
+}
+
+// adminDeleteUser 由管理员立即注销一个账号（没有冷静期），记入审计。
+func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request, p *principal) {
+	if err := s.Svc.AdminDeleteUser(r.Context(), p.User, r.PathValue("id")); err != nil {
+		s.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

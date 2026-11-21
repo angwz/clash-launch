@@ -32,6 +32,8 @@ const known: Record<string, string> = {
   "profile.protected": "error.profile_protected",
   "export.needs_link": "error.export_needs_link",
   "backup.passphrase": "error.backup_passphrase",
+  "account.last_admin": "error.last_admin",
+  "account.deleted": "error.account_deleted",
   "backup.format": "error.backup_format",
   "backup.weak": "error.backup_weak",
   "channel.unavailable": "channels.unavailable",

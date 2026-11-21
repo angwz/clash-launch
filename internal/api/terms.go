@@ -18,9 +18,11 @@ import (
 
 // termsExempt 是协议待同意时仍然可用的接口：读取身份（页面据此显示协议）、同意或拒绝、退出登录。
 var termsExempt = map[string]bool{
-	"GET /api/v1/me":             true,
-	"POST /api/v1/account/terms": true,
-	"DELETE /api/v1/session":     true,
+	"GET /api/v1/me":              true,
+	"POST /api/v1/account/terms":  true,
+	"DELETE /api/v1/session":      true,
+	"POST /api/v1/account/delete": true, // 不同意新协议时可以选择注销（需求 R20）
+	"GET /api/v1/account/totp":    true, // 注销表单据此决定是否要验证码
 }
 
 type termsState struct {
