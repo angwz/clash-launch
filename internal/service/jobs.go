@@ -11,6 +11,7 @@ import (
 	"github.com/angwz/clash-launch/internal/auth"
 	"github.com/angwz/clash-launch/internal/diag"
 	"github.com/angwz/clash-launch/internal/engine"
+	"github.com/angwz/clash-launch/internal/metrics"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
 	"github.com/angwz/clash-launch/internal/render"
@@ -20,31 +21,54 @@ import (
 
 // Run 是后台调度：定期拉取到期的订阅与规则源（第 5.4 节：后台按间隔拉取，订阅请求从不触发拉取），
 // 并确保每个方案都有渲染结果。单实例假设：多实例部署时改用数据库租约锁（第 17.1 节）。
+// 每个任务的运行时间、耗时与失败记入 metrics.Default，供后台任务面板（需求 R36）与 /metrics（需求 R26）。
 func (s *Service) Run(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
-	s.tick(ctx)
-	s.PruneAudit(ctx)
-	s.PruneRequests(ctx)
-	s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
-	s.PurgeBackups(ctx) // 过期的还原留底（需求 R21）
+	s.runJob(ctx, "fetch", s.tick)
+	s.daily(ctx)
 	lastPrune := s.now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			s.tick(ctx)
-			s.RunDueDeletions(ctx) // 冷静期已满的注销（需求 R20）
-			s.FlushStats(ctx)
-			if s.now().Sub(lastPrune) >= 24*time.Hour { // 审计日志每天清理一次
-				s.PruneAudit(ctx)
-				s.PruneRequests(ctx)
-				s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
-				s.PurgeBackups(ctx) // 过期的还原留底（需求 R21）
+			s.runJob(ctx, "fetch", s.tick)
+			s.runJob(ctx, "deletions", s.RunDueDeletions) // 冷静期已满的注销（需求 R20）
+			s.runJob(ctx, "stats", s.FlushStats)
+			if s.now().Sub(lastPrune) >= 24*time.Hour { // 清理每天一次
+				s.daily(ctx)
 				lastPrune = s.now()
 			}
 		}
+	}
+}
+
+// daily 是每天一次的清理任务。
+func (s *Service) daily(ctx context.Context) {
+	s.runJob(ctx, "prune_audit", s.PruneAudit)
+	s.runJob(ctx, "prune_requests", s.PruneRequests)
+	s.runJob(ctx, "purge_threads", s.PurgeThreads) // 回收站中超过一年的对话（反馈 #75）
+	s.runJob(ctx, "purge_backups", s.PurgeBackups) // 过期的还原留底（需求 R21）
+}
+
+type jobKey struct{}
+
+// jobState 收集一次任务运行中的失败；任务函数沿用「失败只记日志」，同时经 jobFailed 记一笔。
+type jobState struct{ err string }
+
+// runJob 运行一个后台任务并记录运行情况。
+func (s *Service) runJob(ctx context.Context, name string, fn func(context.Context)) {
+	st := &jobState{}
+	done := metrics.Default.JobStart(name, s.now())
+	fn(context.WithValue(ctx, jobKey{}, st))
+	done(s.now(), st.err)
+}
+
+// jobFailed 记下任务运行中的第一个失败；不在任务中调用时什么也不做。
+func jobFailed(ctx context.Context, err error) {
+	if st, ok := ctx.Value(jobKey{}).(*jobState); ok && st.err == "" && err != nil {
+		st.err = err.Error()
 	}
 }
 
@@ -54,6 +78,7 @@ func (s *Service) tick(ctx context.Context) {
 	subs, err := s.Store.Sources().Due(ctx, now, 10000)
 	if err != nil {
 		s.Log.Error("scheduler: list sources", "error", err)
+		jobFailed(ctx, err)
 		return
 	}
 	// 订阅只由客户端拉取的账号（反馈 #71）：跳过，不记日志。策略按所有者在本轮内缓存
@@ -82,6 +107,7 @@ func (s *Service) tick(ctx context.Context) {
 		}
 		if _, err := s.RefreshSource(ctx, src.OwnerID, src.ID); err != nil {
 			s.Log.Warn("scheduler: refresh", "source", src.ID, "error", err)
+			jobFailed(ctx, err)
 		}
 	}
 	rules, err := s.Store.RuleSources().All(ctx, 10000)
@@ -115,6 +141,7 @@ func (s *Service) tick(ctx context.Context) {
 		if _, err := s.Store.Renders().Get(ctx, p.OwnerID, p.ID); errors.Is(err, store.ErrNotFound) {
 			if _, _, err := s.RenderProfile(ctx, p.OwnerID, p.ID); err != nil {
 				s.Log.Warn("scheduler: render", "profile", p.ID, "error", err)
+				jobFailed(ctx, err)
 			}
 		}
 	}

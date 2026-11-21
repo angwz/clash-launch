@@ -1479,3 +1479,20 @@ test("规则源编辑器：高亮编辑、策略组预览与带行号的问题�
   await expect(page.locator("#rd-gt .cm-activeLine")).toContainText("[[custom_groups]]");
   expect(problems).toEqual([]);
 });
+
+test("运行指标与后台任务：管理页列出任务，/metrics 在本机可读（R26、R36）", async ({ page, request }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const m = await request.get("/metrics");
+  expect(m.status()).toBe(200);
+  const text = await m.text();
+  expect(text).toContain("clash_launch_http_requests_total");
+  expect(text).toContain('clash_launch_job_runs_total{job="fetch"}');
+  expect((await request.get("/metrics", { headers: { "X-Forwarded-For": "203.0.113.9" } })).status()).toBe(404);
+  await login(page);
+  await page.goto("/admin");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "后台任务" }) });
+  await expect(box.getByRole("row", { name: /拉取订阅与规则源/ })).toBeVisible();
+  await expect(box.getByRole("row", { name: /清理审计日志/ })).toBeVisible();
+  expect(problems).toEqual([]);
+});

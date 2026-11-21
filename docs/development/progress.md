@@ -7,13 +7,13 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。进入阶段 5：R26 指标与结构化日志 + R36 后台任务面板，然后 R43 数据保留设置页 + R39 订阅分析导出。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 的 R26、R36 已完成，接着做 R43 数据保留设置页 + R39 订阅分析导出，然后进入阶段 6。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
-  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 57 通过 41 跳过（「分流规则拖动」「分流：规则源更新后提示」偶发超时，单独重跑通过）。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 58 通过 42 跳过（「分流规则拖动」「分流：规则源更新后提示」偶发超时，单独重跑通过）。
   - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
 - **新迁移**：下一个编号是 0025；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
@@ -75,6 +75,7 @@
 - **R21 个人备份与还原（2026-11-21）**：格式、加密与还原规则见 0005 修订 R21。还原在一个事务中删除并重建个人数据，ID 沿用、冲突时换新并替换文档中的引用；事务前按 R2 收回将消失对象的授权，事务后通知与重新生成。用户协议默认文本补上「数据可以带走」（不增加版本号）。验证：`TestBackupRestore` 在 SQLite 与 PostgreSQL 上通过（含跨账号还原的 ID、令牌与短码冲突）；e2e「备份与还原…」走完下载、还原、撤销。未验证：大数据量账号的备份耗时与内存（argon2id 本身需要 64 MiB）。
 - **R20 注销账户（2026-11-21）**：规则见 0005 修订 R20。冷静期满由后台任务每个周期检查一次（`RunDueDeletions`）；墓碑保留用户行以免外键级联删除对方的对话。用户协议页不同意时可以直接注销。验证：`TestAccountDeletion` 在 SQLite 与 PostgreSQL 上通过；e2e「注销账号…」验证确认、密码与最后一个管理员（不新注册账号）。
 - **O2 规则源编辑器与策略组预览（2026-11-21）**：规则源页的文本改为 CodeMirror（toml、ini 两种 StreamLanguage 高亮，按需加载，挂在 Shadow DOM 中以满足 CSP）；`POST /api/v1/rule-sources/preview` 用编辑中的文本与一份配置（或全部节点源）的节点走 `engine.Build`，返回每组的成员、规则条数与带文件和行号的诊断，编辑器在行内标出，点问题跳到对应行。验证：`TestRuleSourcePreview`（展开结果、按配置、用已保存的内容补齐、toml 结构错误与语法错误、ini 的行号）；e2e「规则源编辑器…」。未做：可点选的选择器标签。
+- **R26、R36 运行指标与后台任务（2026-11-21）**：`internal/metrics` 自己实现计数器与直方图并输出 Prometheus 文本格式（避免引入客户端库）；HTTP 中间件按 `r.Pattern` 统计（ServeMux 匹配后写回同一个请求），包装的 ResponseWriter 实现 `Unwrap` 与 `Hijack`，WebSocket 不受影响。后台任务经 `runJob` 记录，任务函数仍是「失败只记日志」，在原日志处加 `jobFailed`。验证：`TestWriteText`、`TestMetricsAndJobs`（本机可读、经代理 404、令牌、抓取不计入、任务面板与权限）；e2e「运行指标与后台任务…」。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

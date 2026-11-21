@@ -272,6 +272,7 @@ func (s *Service) PurgeThreads(ctx context.Context) {
 	n, err := s.Store.Contacts().Purge(ctx, s.now().Add(-contactRetention))
 	if err != nil && s.Log != nil {
 		s.Log.Error("清理回收站失败", "error", err)
+		jobFailed(ctx, err)
 	} else if n > 0 && s.Log != nil {
 		s.Log.Info("清理回收站", "threads", n)
 	}

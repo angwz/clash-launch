@@ -209,11 +209,15 @@ func (s *Service) RunDueDeletions(ctx context.Context) {
 		if s.Log != nil {
 			s.Log.Warn("读取待注销的账号失败", "error", err)
 		}
+		jobFailed(ctx, err)
 		return
 	}
 	for i := range us {
-		if err := s.PurgeAccount(ctx, &us[i]); err != nil && s.Log != nil {
-			s.Log.Warn("注销账号失败", "user", us[i].ID, "error", err)
+		if err := s.PurgeAccount(ctx, &us[i]); err != nil {
+			jobFailed(ctx, err)
+			if s.Log != nil {
+				s.Log.Warn("注销账号失败", "user", us[i].ID, "error", err)
+			}
 		}
 	}
 }

@@ -73,6 +73,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 运行指标（Prometheus 文本格式 0.0.4，需求 R26）
+         * @description 请求数与耗时（按路由模式）、配置生成耗时、数据库语句耗时、拉取结果、后台任务、实时在线人数与 Go 运行时。不含用户数据。
+         *     设置了 CLASH_LAUNCH_METRICS_TOKEN 时凭 Authorization: Bearer <令牌> 访问；否则只接受直接来自本机或内网、且不带转发头的请求。其余一律 404
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/plain; version=0.0.4 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description 不可访问 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/s/{token}": {
         parameters: {
             query?: never;
@@ -2434,6 +2479,61 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 后台任务的运行情况（需求 R36）；数据在内存中，重启后从零开始 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jobs?: {
+                                name: string;
+                                runs: number;
+                                failures: number;
+                                /** Format: date-time */
+                                lastStart: string;
+                                lastMs: number;
+                                lastError?: string;
+                                /** Format: date-time */
+                                lastErrorAt?: string;
+                                running: boolean;
+                            }[];
+                            /** @description 进程启动以来的拉取次数（source_ok、source_failed、rule_ok、rule_failed） */
+                            fetches?: {
+                                [key: string]: number;
+                            };
+                            /** Format: date-time */
+                            since?: string;
+                        };
+                    };
                 };
             };
         };

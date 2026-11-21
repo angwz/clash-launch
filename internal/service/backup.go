@@ -845,6 +845,7 @@ func (s *Service) PurgeBackups(ctx context.Context) {
 	n, err := s.Store.Backups().Purge(ctx, s.now())
 	if err != nil && s.Log != nil {
 		s.Log.Warn("清理过期的还原留底失败", "error", err)
+		jobFailed(ctx, err)
 		return
 	}
 	if n > 0 && s.Log != nil {

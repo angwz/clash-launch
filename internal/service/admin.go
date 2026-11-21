@@ -151,6 +151,7 @@ func (s *Service) PruneRequests(ctx context.Context) {
 	n, err := s.Store.Stats().PruneRequests(ctx, s.now().Add(-s.RequestRetention))
 	if err != nil && s.Log != nil {
 		s.Log.Error("清理订阅请求明细失败", "error", err, "rows", n)
+		jobFailed(ctx, err)
 	} else if n > 0 && s.Log != nil {
 		s.Log.Info("已清理过期的订阅请求明细", "rows", n)
 	}
@@ -163,6 +164,7 @@ func (s *Service) PruneAudit(ctx context.Context) {
 	n, err := s.Store.Audit().Prune(ctx, s.now().Add(-s.AuditRetention))
 	if err != nil && s.Log != nil {
 		s.Log.Error("清理审计日志失败", "error", err)
+		jobFailed(ctx, err)
 	} else if n > 0 && s.Log != nil {
 		s.Log.Info("已清理过期的审计日志", "rows", n)
 	}

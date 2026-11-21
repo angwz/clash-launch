@@ -177,15 +177,28 @@ func (d *DB) rebind(q string) string {
 	return b.String()
 }
 
+// Observe 在每条语句执行后被调用，参数是语句耗时（需求 R26 的数据库耗时指标）；nil 时不记录。
+// 只在启动时设置一次。QueryRow 的耗时不含之后的 Scan，Query 的耗时不含遍历结果。
+var Observe func(time.Duration)
+
+func observe(start time.Time) {
+	if Observe != nil {
+		Observe(time.Since(start))
+	}
+}
+
 func (d *DB) exec(ctx context.Context, q string, args ...any) (sql.Result, error) {
+	defer observe(time.Now())
 	return d.q.ExecContext(ctx, d.rebind(q), args...)
 }
 
 func (d *DB) query(ctx context.Context, q string, args ...any) (*sql.Rows, error) {
+	defer observe(time.Now())
 	return d.q.QueryContext(ctx, d.rebind(q), args...)
 }
 
 func (d *DB) row(ctx context.Context, q string, args ...any) *sql.Row {
+	defer observe(time.Now())
 	return d.q.QueryRowContext(ctx, d.rebind(q), args...)
 }
 

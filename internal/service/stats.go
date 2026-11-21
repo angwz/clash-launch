@@ -282,6 +282,7 @@ func (s *Service) FlushStats(ctx context.Context) {
 	reqs, err := s.Stats().Flush(ctx, s.Store.Stats(), s.now())
 	if err != nil {
 		s.Log.Error("stats: flush", "error", err)
+		jobFailed(ctx, err)
 		return
 	}
 	s.noticeSeen(ctx, reqs) // 订阅链接出现新的国家或客户端时提醒（R23）

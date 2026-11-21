@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/angwz/clash-launch/internal/events"
 	"log/slog"
 	"net"
 	"net/http"
@@ -18,6 +17,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/angwz/clash-launch/internal/events"
+	"github.com/angwz/clash-launch/internal/metrics"
 
 	"github.com/pelletier/go-toml/v2"
 
@@ -46,6 +48,8 @@ type config struct {
 	TrustedProxies string
 	FetchAllowlist string
 	LogLevel       string
+	LogFormat      string // json（默认）| text（需求 R26）
+	MetricsToken   string // 设置后 /metrics 凭令牌访问（需求 R26）
 	Mihomo         string
 	Geodata        string
 	PoWBits        int // 注册与找回的工作量证明难度（前导零位数），默认 20，约 1 秒
@@ -59,7 +63,7 @@ type config struct {
 	DBPool         store.Pool            // PostgreSQL 连接池与语句超时（R14a）；0 表示默认
 }
 
-var configKeys = []string{"LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
+var configKeys = []string{"LOG_FORMAT", "METRICS_TOKEN", "LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -90,7 +94,7 @@ func loadConfig() (config, error) {
 	c := config{
 		Listen: get("LISTEN", ":20230"), DataDir: get("DATA_DIR", "/data"),
 		TrustedProxies: get("TRUSTED_PROXIES", ""),
-		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"),
+		FetchAllowlist: get("FETCH_ALLOWLIST", ""), LogLevel: get("LOG_LEVEL", "info"), LogFormat: get("LOG_FORMAT", "json"), MetricsToken: get("METRICS_TOKEN", ""),
 		Mihomo: get("MIHOMO", "/opt/mihomo/mihomo"), Geodata: get("GEODATA", "/opt/mihomo/geodata"),
 	}
 	publics, err := api.ParsePublicURLs(get("PUBLIC_URL", ""))
@@ -134,10 +138,15 @@ func loadConfig() (config, error) {
 	return c, nil
 }
 
-func logger(level string) *slog.Logger {
+// logger 默认输出 JSON 日志（一行一条，便于日志系统采集）；CLASH_LAUNCH_LOG_FORMAT=text 时输出便于人读的文本。
+func logger(level, format string) *slog.Logger {
 	var l slog.Level
 	_ = l.UnmarshalText([]byte(level))
-	return slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: l}))
+	opts := &slog.HandlerOptions{Level: l}
+	if format == "text" {
+		return slog.New(slog.NewTextHandler(os.Stderr, opts))
+	}
+	return slog.New(slog.NewJSONHandler(os.Stderr, opts))
 }
 
 // openStore 读取主密钥、打开数据库并执行迁移（迁移前自动备份到 <数据目录>/backups/）。
@@ -240,7 +249,7 @@ func cmdServe(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	log := logger(c.LogLevel)
+	log := logger(c.LogLevel, c.LogFormat)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	db, err := openStore(ctx, c, log)
@@ -254,6 +263,11 @@ func cmdServe(args []string) int {
 		log.Error("初始化失败", "error", err)
 		return 1
 	}
+	// 运行指标（需求 R26）：数据库语句耗时、版本与实时在线人数
+	store.Observe = metrics.Default.DB
+	metrics.Default.SetVersion(version.Version)
+	metrics.Default.Gauge("clash_launch_realtime_online_users", func() float64 { return float64(svc.Events.Online()) })
+	apiCfg.MetricsToken = c.MetricsToken
 	srv := api.New(svc, *apiCfg, log)
 	if needed, err := svc.NeedsSetup(ctx); err == nil && needed {
 		base := c.primaryURL()
@@ -307,7 +321,7 @@ func cmdAdmin(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	log := logger(c.LogLevel)
+	log := logger(c.LogLevel, c.LogFormat)
 	ctx := context.Background()
 	db, err := openStore(ctx, c, log)
 	if err != nil {
@@ -345,7 +359,7 @@ func cmdKeys(args []string) int {
 		path = filepath.Join(c.DataDir, "master.key")
 	}
 	ctx := context.Background()
-	log := logger(c.LogLevel)
+	log := logger(c.LogLevel, c.LogFormat)
 	db, err := openStore(ctx, c, log)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -377,7 +391,7 @@ func cmdBackup(args []string) int {
 		return 1
 	}
 	ctx := context.Background()
-	db, err := openStore(ctx, c, logger(c.LogLevel))
+	db, err := openStore(ctx, c, logger(c.LogLevel, c.LogFormat))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -403,7 +417,7 @@ func cmdDB(args []string) int {
 		return 1
 	}
 	ctx := context.Background()
-	log := logger(c.LogLevel)
+	log := logger(c.LogLevel, c.LogFormat)
 	switch args[0] {
 	case "migrate":
 		db, err := openStore(ctx, c, log)

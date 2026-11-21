@@ -34,6 +34,7 @@ type Config struct {
 	SubRate        int            // 每个 IP+令牌每分钟的订阅请求上限，默认 30
 	Static         fs.FS          // 前端构建产物（web/dist）；nil 时只提供 API
 	Guard          source.Guard   // 添加订阅时的 URL 检查（与拉取层同一策略）
+	MetricsToken   string         // CLASH_LAUNCH_METRICS_TOKEN：设置后 /metrics 凭令牌访问（需求 R26）
 }
 
 // Server 是 HTTP 服务。
@@ -84,7 +85,7 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 
 // Handler 返回带全部中间件的处理器。
 func (s *Server) Handler() http.Handler {
-	return s.recoverer(s.secureHeaders(s.limitBody(s.mux)))
+	return s.recoverer(s.recordMetrics(s.secureHeaders(s.limitBody(s.mux))))
 }
 
 // HTTPServer 返回设置了超时与请求头上限的 http.Server（第 14.2 节：服务自身防慢速连接）。

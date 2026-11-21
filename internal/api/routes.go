@@ -14,6 +14,7 @@ func (s *Server) routes() []Route {
 	return []Route{
 		{"GET", "/healthz", s.healthz},
 		{"GET", "/readyz", s.readyz},
+		{"GET", "/metrics", s.serveMetrics},
 		{"GET", "/s/{token}", s.subscribe},
 		{"GET", "/u/{code}", s.short},
 		{"GET", "/{code}", s.rootShort},
@@ -79,6 +80,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/account/audit", a(s.myAudit)},
 		{"GET", "/api/v1/account/quota", a(s.myQuota)},
 		{"GET", "/api/v1/admin/users", s.adminOnly(s.adminUsers)},
+		{"GET", "/api/v1/admin/jobs", s.adminOnly(s.adminJobs)},
 		{"PATCH", "/api/v1/admin/users/{id}", s.adminOnly(s.adminPatchUser)},
 		{"DELETE", "/api/v1/admin/users/{id}", s.adminOnly(s.adminDeleteUser)},
 		{"POST", "/api/v1/admin/users/{id}/password", s.adminOnly(s.adminResetPassword)},

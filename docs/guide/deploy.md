@@ -107,6 +107,8 @@ docker compose -f compose.yaml -f compose.postgres.yaml up -d
 | `CLASH_LAUNCH_RULE_HOSTS` | 内置列表 | 普通用户的分流规则地址允许的站点，逗号分隔的主机名（精确匹配、只接受 https）；设置后替换内置列表（GitHub、jsDelivr、GitLab、Codeberg、Gitee 等，见 `internal/source/hosts.go`）。管理员不受限制 |
 | `CLASH_LAUNCH_MIHOMO` · `_GEODATA` | `/opt/mihomo/mihomo` · `/opt/mihomo/geodata` | 内核检查用的 mihomo 与地理数据；地理数据同时用于订阅请求的归属地与分流追踪中的 GEOIP、GEOSITE、IP-ASN（只读加载，缺失时不下载） |
 | `CLASH_LAUNCH_LOG_LEVEL` | `info` | `debug`、`info`、`warn`、`error` |
+| `CLASH_LAUNCH_LOG_FORMAT` | `json` | `json`：一行一条，便于日志系统采集；`text`：便于直接阅读 |
+| `CLASH_LAUNCH_METRICS_TOKEN` | 空 | 设置后 `/metrics` 凭 `Authorization: Bearer <令牌>` 访问，见下文「监控」 |
 | `CLASH_LAUNCH_POW_BITS` | `20` | 注册与找回的工作量证明难度（前导零位数）；每加 1 位耗时翻倍，20 位在桌面浏览器上约 1 秒 |
 | `CLASH_LAUNCH_QUOTA_SOURCES` · `_PROFILES` · `_LINKS` | `50` · `20` · `50` | 每个用户的节点源、方案、订阅链接数上限（管理员不受限制，可在管理页为单个用户调整） |
 | `CLASH_LAUNCH_QUOTA_MIN_INTERVAL` | `30` | 订阅与规则源的最短拉取间隔（分钟）；手动拉取每人每小时最多 30 次 |
@@ -129,6 +131,24 @@ docker compose -f compose.yaml -f compose.postgres.yaml up -d
 ## 统计与请求记录
 
 站点会记录订阅请求的 IP、User-Agent、时间，以及由本机地理数据查出的国家与运营商，供链接所有者在「配置链接」与「订阅分析」页做安全检查；站点访问与设置项热度只按天记次数，不记录是谁。站内消息加密保存。细节见 [stats](../design/stats.md) 与 [sharing](../design/sharing.md)。对外部署时，请在你的隐私说明中告知用户这一点。
+
+## 监控
+
+`/metrics` 以 Prometheus 文本格式提供运行指标：请求数与耗时（按路由模式）、配置生成耗时（含内核检查）、数据库语句耗时、订阅与规则源的拉取结果、后台任务的次数、失败与耗时、实时在线人数与 Go 运行时。指标不含用户数据，但会暴露各接口的使用情况，所以：
+
+- 没有设置 `CLASH_LAUNCH_METRICS_TOKEN` 时，只接受**直接**来自本机或内网、且不带转发头的请求。经反向代理转来的请求即使代理在本机也会被拒绝（404），公网上看不到这个端点。
+- 设置了令牌时只认令牌，可以经反向代理抓取：
+
+  ```yaml
+  # prometheus.yml
+  scrape_configs:
+    - job_name: clash-launch
+      authorization: { credentials: <令牌> }
+      static_configs: [{ targets: ["clash-launch.example.com"] }]
+      scheme: https
+  ```
+
+管理页的「后台任务」用同一份数据显示每个任务最近一次的运行时间、耗时与失败原因。数据在内存中，服务重启后从零开始。
 
 ## 出站与服务器 IP
 

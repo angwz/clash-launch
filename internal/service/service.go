@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/angwz/clash-launch/internal/events"
 	"log/slog"
 	"net/url"
 	"sort"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/angwz/clash-launch/internal/events"
+
 	"go.yaml.in/yaml/v3"
 
 	"github.com/angwz/clash-launch/internal/catalog"
@@ -26,6 +27,7 @@ import (
 	"github.com/angwz/clash-launch/internal/engine"
 	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/kernel"
+	"github.com/angwz/clash-launch/internal/metrics"
 	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
 	"github.com/angwz/clash-launch/internal/source"
@@ -158,6 +160,7 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 		return nil, err
 	}
 	s.Log.Info("refresh source", "owner", owner, "source", id, "ok", snap.LastError == "", "error", snap.LastError)
+	metrics.Default.Fetch("source", snap.LastError == "")
 	s.noticeSourceFailing(ctx, owner, src, prev, stored) // 连续失败时提醒（R24）
 	s.push(owner, events.Source, id)
 	s.rerenderGrantees(ctx, owner, id) // 被授权使用这个节点源的人（反馈 #75）
@@ -197,6 +200,7 @@ func (s *Service) fetchRuleSource(ctx context.Context, owner, id string) (fetchE
 		}
 		prev, _ := s.Store.Snapshots().Get(ctx, owner, RuleKey(id, part))
 		resp, err := s.Fetcher.Fetch(ctx, source.Request{URL: u, Hosts: hosts})
+		metrics.Default.Fetch("rule", err == nil)
 		if err != nil && firstErr == nil {
 			firstErr = err
 		}
@@ -449,6 +453,7 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 
 // render 是 Render 的实现；ex 是导出的裁剪选项（需求 R17），订阅与预览用零值。
 func (s *Service) render(ctx context.Context, owner string, doc []byte, updated time.Time, check bool, ex engine.Export) (*Result, error) {
+	defer func(start time.Time) { metrics.Default.Render(time.Since(start)) }(time.Now()) // 含内核检查（需求 R26）
 	var ds diag.List
 	p, err := profile.Parse(doc, &ds)
 	if err != nil {
