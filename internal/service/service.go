@@ -155,6 +155,7 @@ func (s *Service) RefreshSource(ctx context.Context, owner, id string) (*store.S
 		return nil, err
 	}
 	s.Log.Info("refresh source", "owner", owner, "source", id, "ok", snap.LastError == "", "error", snap.LastError)
+	s.noticeSourceFailing(ctx, owner, src, prev, stored) // 连续失败时提醒（R24）
 	s.push(owner, events.Source, id)
 	s.rerenderGrantees(ctx, owner, id) // 被授权使用这个节点源的人（反馈 #75）
 	s.rerenderUsing(ctx, owner, usesSource(id))
@@ -222,9 +223,7 @@ func (s *Service) rerenderUsing(ctx context.Context, owner string, uses func(*pr
 			if err != nil || !uses(doc) {
 				continue
 			}
-			if _, _, err := s.RenderProfile(ctx, owner, p.ID); err != nil {
-				s.Log.Warn("render after input change", "profile", p.ID, "error", err)
-			}
+			s.renderInBackground(ctx, owner, p.ID) // 由通过变为不通过时提醒（R24）
 		}
 		if len(ps) < pg.Limit {
 			return

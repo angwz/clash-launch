@@ -169,8 +169,8 @@ func (s *Stats) Request(q store.SubRequest) {
 	}
 }
 
-// Flush 把内存中的计数与请求写入数据库。写入失败时数据放回内存，下次再试。
-func (s *Stats) Flush(ctx context.Context, st store.StatsRepo, now time.Time) error {
+// Flush 把内存中的计数与请求写入数据库，返回写入的请求（供 R23 检查新的来源）。写入失败时数据放回内存，下次再试。
+func (s *Stats) Flush(ctx context.Context, st store.StatsRepo, now time.Time) ([]store.SubRequest, error) {
 	s.mu.Lock()
 	counts, reqs := s.counts, s.reqs
 	s.counts, s.reqs = map[store.CountDelta]int64{}, nil
@@ -205,8 +205,9 @@ func (s *Stats) Flush(ctx context.Context, st store.StatsRepo, now time.Time) er
 			s.mu.Lock()
 			s.reqs = append(reqs, s.reqs...)
 			s.mu.Unlock()
+			return nil, err
 		}
-		return err
+		return reqs, nil
 	}
 	s.mu.Lock()
 	for _, d := range ds {
@@ -214,7 +215,7 @@ func (s *Stats) Flush(ctx context.Context, st store.StatsRepo, now time.Time) er
 	}
 	s.reqs = append(reqs, s.reqs...)
 	s.mu.Unlock()
-	return err
+	return nil, err
 }
 
 // —— 设置项热度（反馈 #68）——
@@ -278,7 +279,10 @@ func (s *Service) Stats() *Stats {
 
 // FlushStats 把内存中的统计写入数据库；失败只记录日志（数据留在内存，下次再写）。
 func (s *Service) FlushStats(ctx context.Context) {
-	if err := s.Stats().Flush(ctx, s.Store.Stats(), s.now()); err != nil {
+	reqs, err := s.Stats().Flush(ctx, s.Store.Stats(), s.now())
+	if err != nil {
 		s.Log.Error("stats: flush", "error", err)
+		return
 	}
+	s.noticeSeen(ctx, reqs) // 订阅链接出现新的国家或客户端时提醒（R23）
 }

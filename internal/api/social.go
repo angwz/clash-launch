@@ -329,6 +329,7 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 		return
 	}
 	a := z.Result(recent)
+	s.Svc.Locate(a)
 	labels, err := s.linkLabels(ctx, p.User.ID)
 	if err != nil {
 		s.fail(w, err)

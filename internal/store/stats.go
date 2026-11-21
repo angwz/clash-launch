@@ -72,6 +72,9 @@ type StatsRepo interface {
 	Totals(ctx context.Context, scope string, keys []string) (map[string]int64, error)
 	// AddRequests 写入请求记录，并更新按链接与 IP 的汇总；令牌无效的请求（LinkID 为空）只更新汇总。
 	AddRequests(ctx context.Context, rs []SubRequest) error
+	// MarkSeen 记下链接见过的国家与客户端，返回其中第一次出现、且这个链接之前已经见过同类值的那些（需求 R23）：
+	// 链接的第一个国家或客户端是用户自己导入，不算异常。
+	MarkSeen(ctx context.Context, vs []SeenValue) ([]SeenValue, error)
 	// Requests 返回某条链接的请求记录（新的在前），Page.After 为上一页最后一条的 ID。
 	Requests(ctx context.Context, owner, linkID string, p Page) ([]SubRequest, error)
 	// IPs 返回某条链接的 IP 汇总；owner 为空且 linkID 为空时返回令牌无效的请求来源（管理员）。
@@ -363,4 +366,30 @@ func (r stats) IPs(ctx context.Context, owner, linkID string) ([]SubIP, error) {
 		out = append(out, x)
 	}
 	return out, rows.Err()
+}
+
+func (r stats) MarkSeen(ctx context.Context, vs []SeenValue) ([]SeenValue, error) {
+	var fresh []SeenValue
+	err := r.d.Tx(ctx, func(st Store) error {
+		x := st.(*DB)
+		for _, v := range vs {
+			var n int
+			if err := x.row(ctx, "SELECT COUNT(*) FROM link_seen WHERE link_id=? AND kind=?", v.LinkID, v.Kind).Scan(&n); err != nil {
+				return err
+			}
+			res, err := x.exec(ctx, "INSERT INTO link_seen (link_id, owner_id, kind, value, first_at) VALUES (?,?,?,?,?) ON CONFLICT (link_id, kind, value) DO NOTHING",
+				v.LinkID, v.OwnerID, v.Kind, v.Value, ms(v.At))
+			if err != nil {
+				return err
+			}
+			if k, err := res.RowsAffected(); err == nil && k == 1 && n > 0 {
+				fresh = append(fresh, v)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return fresh, nil
 }

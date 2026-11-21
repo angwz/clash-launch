@@ -1,4 +1,6 @@
 <script lang="ts">
+  import NoticePanel from "./NoticePanel.svelte";
+  import { notices } from "../lib/notices.svelte";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
   import { i18n, LOCALES, t } from "../lib/i18n/i18n.svelte";
@@ -29,6 +31,7 @@
     shell.init();
     stats.start();
     inbox.start(); // 未读消息角标（反馈 #74）
+    notices.start(); // 站内提醒（R23、R24）
     realtime.start(); // 实时通道（R22）
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
   });
@@ -38,6 +41,7 @@
     else delete document.documentElement.dataset.motion;
   });
 
+  let noticeOpen = $state(false);
   const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
@@ -49,6 +53,7 @@
 
   async function logout() {
     inbox.stop();
+    notices.stop();
     realtime.stop();
     chat.close();
     await session.logout();
@@ -130,6 +135,13 @@
       <Icon name="message" />
       {#if inbox.unread}<span class="dot">{inbox.unread > 99 ? "99+" : inbox.unread}</span>{/if}
     </button>
+
+    <!-- 站内提醒（R23、R24）：节点源失败、配置检查不通过、订阅链接出现新来源 -->
+    <button class="btn ghost icon notice-btn" type="button" class:active={noticeOpen} aria-expanded={noticeOpen} onclick={() => (noticeOpen = !noticeOpen)} aria-label={notices.unread ? t("notices.unread_n", { n: notices.unread }) : t("notices.title")} title={t("notices.title")}>
+      <Icon name="bell" />
+      {#if notices.unread}<span class="dot">{notices.unread > 99 ? "99+" : notices.unread}</span>{/if}
+    </button>
+    <NoticePanel bind:open={noticeOpen} />
 
     <Menu label={t("shell.language")} icon="globe">
       {#snippet items(close)}
@@ -395,10 +407,12 @@
     display: none;
   }
   /* 右上角的消息图标与未读数（反馈 #75） */
-  .msg-btn {
+  .msg-btn,
+  .notice-btn {
     position: relative;
   }
-  .msg-btn.active {
+  .msg-btn.active,
+  .notice-btn.active {
     color: var(--accent-fg);
   }
   .dot {

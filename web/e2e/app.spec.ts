@@ -1194,3 +1194,28 @@ test("访问令牌：生成后只显示一次，脚本可用它读取配置，�
   expect((await request.get("/api/v1/profiles", auth)).status()).toBe(401);
   expect(problems).toEqual([]);
 });
+
+test("站内提醒：订阅链接被新的客户端拉取时提醒，可在提醒里直接更换链接令牌（R23）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const { profile, call } = await seedProfile(request, baseURL!, "提醒");
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${profile}/links`, { note: "提醒测试" });
+  await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.0" } }); // 第一个客户端：基线，不提醒
+  await request.get(l.url, { headers: { "User-Agent": "Stash/2.5" } });
+  await call("GET", "/api/v1/analytics?days=1"); // 读取分析时写入内存中的统计，立即产生提醒（否则最迟约一分钟）
+
+  await login(page);
+  const bell = page.getByRole("button", { name: /条未读提醒/ });
+  await expect(bell).toBeVisible();
+  await bell.click();
+  const panel = page.getByRole("dialog", { name: "提醒" });
+  await expect(panel.getByText("订阅链接「提醒测试」第一次被Stash拉取。")).toBeVisible();
+  page.once("dialog", (d) => void d.accept());
+  await panel.getByRole("button", { name: "更换链接令牌" }).first().click();
+  await expect(page.getByText("已生成新链接")).toBeVisible();
+  expect((await request.get(l.url)).status()).toBe(404); // 旧链接失效
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(page.getByRole("button", { name: "提醒", exact: true })).toBeVisible(); // 打开后已读，角标消失
+  expect(problems).toEqual([]);
+});

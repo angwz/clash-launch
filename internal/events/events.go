@@ -31,6 +31,7 @@ const (
 	Presence = "presence" // 联系人上线或下线（ID 为对方的用户名，State 为 on 或 off）
 	Hello    = "hello"    // 连接建立：附服务器版本（新版本提示）与在线人数
 	Pong     = "pong"     // 回应浏览器的 ping（ID 原样带回，用于测往返延迟），附在线人数
+	Notice   = "notice"   // 新的站内提醒（R23、R24；ID 为提醒 ID）
 )
 
 // Event 是推给浏览器的一条通知。

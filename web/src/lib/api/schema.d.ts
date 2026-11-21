@@ -3299,6 +3299,7 @@ export interface paths {
          * 实时通道（WebSocket）
          * @description 升级为 WebSocket 后，服务器推送当前用户的数据变化事件 {type, id}：render、source、rules、message、sub、grant；
          *     联系人的 typing（id 为对方用户名）与 presence（state 为 on 或 off，只在互为联系人时推送，断开 15 秒后才算下线）。
+         *     notice 表示有新的站内提醒（id 为提醒 ID）。
          *     连接建立时先发 hello（version 为服务器版本；服务端内核检查不可用时 kernel 为 unavailable），丢过事件时发 resync。事件不含数据本身，收到后经对应接口重读。
          *     浏览器可发 {"type":"typing","to":"<用户名>"}（每 2 秒最多一次）与 {"type":"ping","id":"<不超过 32 字节>"}（每秒最多一次，回 pong 并带回 id）。
          *     hello 与 pong 的 online 是在线人数：总是发给管理员，是否发给普通用户见 /api/v1/admin/pulse。
@@ -3872,6 +3873,94 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 站内提醒（最近 100 条，新的在前）与未读数
+         * @description kind：source_failing（订阅节点源连续两次拉取失败，detail 有 source、name、error）、check_failed（配置在后台重新生成时由通过变为不通过，detail 有 profile、name、error）、
+         *     link_new（订阅链接第一次被新的国家或地区、新的客户端拉取，detail 有 linkId、profile、link 与 country 或 client；链接的第一个值不提醒，经由短链接的请求不计）。
+         *     同一件事只提醒一次；新的提醒经实时通道推送 notice 事件；配置了提醒邮件时同时发邮件。保留 180 天。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            unread: number;
+                            items: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "source_failing" | "check_failed" | "link_new";
+                                detail: {
+                                    [key: string]: string;
+                                };
+                                /** Format: date-time */
+                                createdAt: string;
+                                read: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 把提醒标为已读；ids 省略或为空时全部标为已读 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids?: string[];
+                    };
+                };
+            };
+            responses: {
+                204: components["responses"]["NoContent"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

@@ -11,7 +11,7 @@
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { live } from "../lib/live";
-  import { flagOf, isLocalIP, regionName } from "../lib/regions";
+  import { flagOf, isLocalIP, placeText, regionName, type Place } from "../lib/regions";
   import { browserZone } from "../components/TimezonePicker.svelte";
 
   interface Count {
@@ -32,6 +32,7 @@
     last: string;
     interval: number;
     new: boolean;
+    place?: Place;
   }
   interface Req {
     at: string;
@@ -43,6 +44,7 @@
     status: number;
     kind: string;
     linkId: string;
+    place?: Place;
     shortId?: string;
   }
   // 好友经由授权短链接的使用情况（反馈 #75）
@@ -148,6 +150,8 @@
   };
   // 归属地：有国家时显示旗帜与名称；本机与内网地址显示「本地网络」；其余（数据库里没有这个地址）留空（反馈 #75）
   const region = (c: string, ip = "") => (c ? `${flagOf(c)} ${regionName(c, i18n.intlLocale)}` : isLocalIP(ip) ? t("analytics.local") : "");
+  // 省市与运营商（O7）：有分层查询结果时显示到省市；IP 表另有运营商一列，这里不重复
+  const where = (c: string, ip: string, p: Place | undefined, withISP: boolean) => (p ? `${p.cc ? flagOf(p.cc) + " " : ""}${placeText(p, i18n.intlLocale, withISP)}` : region(c, ip));
   const kindLabel = (k: string) => t("analytics.kind." + (["config", "provider", "export", "short", "import"].includes(k) ? k : "config"));
 
   // 拉取间隔：约每 N 分钟 / 小时 / 天
@@ -300,8 +304,8 @@
             {#each a.ips.slice(0, ipLimit) as x (x.ip)}
               <tr>
                 <td class="mono ltr">{x.ip}{#if x.new} <span class="new-tag">{t("analytics.new")}</span>{/if}</td>
-                <td class:muted={!x.country}>{region(x.country, x.ip)}</td>
-                <td class="org" title={x.asn}>{x.org || "—"}</td>
+                <td class:muted={!x.country && !x.place}>{where(x.country, x.ip, x.place, false)}</td>
+                <td class="org" title={x.asn}>{x.place?.isp || x.org || "—"}</td>
                 <td class="mono">{x.client || "—"}</td>
                 <td class="num">{i18n.number(x.count)}{#if x.fail} <span class="bad">({t("analytics.fail_n", { n: x.fail })})</span>{/if}</td>
                 <td>{every(x.interval)}</td>
@@ -328,7 +332,7 @@
               <tr title={r.ua} class:fresh={fresh.has(k)}>
                 <td>{i18n.date(r.at, "long")}</td>
                 <td class="mono ltr">{r.ip}</td>
-                <td class:muted={!r.country}>{region(r.country, r.ip)}</td>
+                <td class:muted={!r.country && !r.place}>{where(r.country, r.ip, r.place, true)}</td>
                 <td class="mono">{r.client || "—"}</td>
                 <td><span class="code" data-tone={statusTone(r.status)}>{r.status}</span></td>
                 <td>{r.shortId ? "/" + (data?.shorts[r.shortId] ?? "?") : linkLabel(r.linkId)}{#if r.kind !== "config"} · {kindLabel(r.kind)}{/if}</td>

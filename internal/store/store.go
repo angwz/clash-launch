@@ -225,6 +225,7 @@ type Store interface {
 	Profiles() ProfileRepo
 	Templates() TemplateRepo
 	Tokens() TokenRepo
+	Notifications() NotificationRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo
@@ -293,6 +294,36 @@ type SessionRepo interface {
 	List(ctx context.Context, userID string) ([]Session, error)
 	// SetLogoutAt 设定或取消（零值）定时退出。
 	SetLogoutAt(ctx context.Context, userID, idHash string, at time.Time) error
+}
+
+// Notification 是一条站内提醒（需求 R23、R24）。
+type Notification struct {
+	ID        string
+	OwnerID   string
+	Kind      string
+	Dedup     string // 同一件事只提醒一次
+	Detail    []byte // JSON
+	CreatedAt time.Time
+	ReadAt    time.Time // 零值表示未读
+}
+
+// NotificationRepo 管理站内提醒。
+type NotificationRepo interface {
+	// Add 新增一条提醒；同一用户已有相同 dedup 时不插入，返回 false。顺带清理 180 天前的提醒。
+	Add(ctx context.Context, n *Notification) (bool, error)
+	// List 返回最近的提醒（新的在前），最多 limit 条。
+	List(ctx context.Context, owner string, limit int) ([]Notification, error)
+	Unread(ctx context.Context, owner string) (int, error)
+	// MarkRead 把本人的提醒标为已读；ids 为空表示全部。
+	MarkRead(ctx context.Context, owner string, ids []string, at time.Time) error
+}
+
+// SeenValue 是订阅链接见过的一个国家或客户端（需求 R23）。
+type SeenValue struct {
+	LinkID, OwnerID string
+	Kind            string // country | client
+	Value           string
+	At              time.Time
 }
 
 // AccessToken 是个人访问令牌（需求 R25）。令牌只以哈希保存。

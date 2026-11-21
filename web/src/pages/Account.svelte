@@ -12,7 +12,7 @@
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
   import InvitesPanel from "../components/InvitesPanel.svelte";
-  import { regionName } from "../lib/regions";
+  import { placeText } from "../lib/regions";
   import AuditLog from "../components/AuditLog.svelte";
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -35,11 +35,6 @@
   }
 
   let sessions = $state<SessionInfo[]>([]);
-  // 登录地点（需求 R7）：国家名按界面语言生成，省、市与运营商按数据库原文；重复的部分只显示一次
-  function placeText(p: { cc?: string; region?: string; city?: string; isp?: string }): string {
-    const parts = [p.cc ? regionName(p.cc, i18n.intlLocale) : "", p.region, p.city, p.isp].filter((x): x is string => !!x);
-    return parts.filter((x, i) => parts.indexOf(x) === i).join(" · ");
-  }
   // 定时退出（需求 R8）：目标为单台设备或 "others"
   let scheduling = $state<{ id: string; device: string; current?: boolean } | null>(null);
   let scheduleOpen = $state(false);
@@ -194,7 +189,7 @@
           <Icon name="monitor" size={18} />
           <div class="sinfo">
             <strong>{s.device}{#if s.current}<span class="cur">{t("account.this_device")}</span>{/if}</strong>
-            <span class="muted">{#if s.location}{placeText(s.location)} · {/if}<span class="mono ltr">{s.ip || "—"}</span></span>
+            <span class="muted">{#if s.location}{placeText(s.location, i18n.intlLocale)} · {/if}<span class="mono ltr">{s.ip || "—"}</span></span>
             <span class="muted">{t("account.last_active", { when: i18n.relative(s.lastSeen) })}</span>
             {#if s.logoutAt}
               <span class="sched"><Icon name="history" size={13} />{t("account.logout_at", { when: i18n.date(s.logoutAt, "long"), rel: i18n.relative(s.logoutAt) })}</span>

@@ -1,10 +1,12 @@
 package service
 
 import (
+	"net/netip"
 	"slices"
 	"sort"
 	"time"
 
+	"github.com/angwz/clash-launch/internal/geo"
 	"github.com/angwz/clash-launch/internal/store"
 )
 
@@ -85,20 +87,23 @@ type AnIP struct {
 	Last     time.Time `json:"last"`
 	Interval int64     `json:"interval"` // 秒；0 表示样本不足
 	New      bool      `json:"new"`
+	// Place 是省市与运营商（O7，按当前的本地地理库查询，见 Locate）；查不到时省略
+	Place *geo.Place `json:"place,omitempty"`
 }
 
 // AnRequest 是一条请求（最近的请求列表）。
 type AnRequest struct {
-	At      time.Time `json:"at"`
-	IP      string    `json:"ip"`
-	Country string    `json:"country"`
-	Org     string    `json:"org"`
-	Client  string    `json:"client"`
-	UA      string    `json:"ua"`
-	Status  int       `json:"status"`
-	Kind    string    `json:"kind"`
-	LinkID  string    `json:"linkId"`
-	ShortID string    `json:"shortId,omitempty"`
+	At      time.Time  `json:"at"`
+	IP      string     `json:"ip"`
+	Country string     `json:"country"`
+	Org     string     `json:"org"`
+	Client  string     `json:"client"`
+	UA      string     `json:"ua"`
+	Status  int        `json:"status"`
+	Kind    string     `json:"kind"`
+	LinkID  string     `json:"linkId"`
+	ShortID string     `json:"shortId,omitempty"`
+	Place   *geo.Place `json:"place,omitempty"`
 }
 
 // AnFriend 是一位好友通过授权的短链接使用你的配置的情况（反馈 #75）。
@@ -419,4 +424,30 @@ func medianGap(ts []time.Time) int64 {
 	}
 	slices.Sort(gaps)
 	return gaps[len(gaps)/2]
+}
+
+// Locate 为 IP 明细与最近请求补上省市与运营商（O7，复用登录设备所在地的分层查询，R7）。
+// 不写入请求表：千万行的明细表加列会让分析查询离开覆盖索引，而这两个列表都有上限（200 个 IP、100 条请求），
+// 读取时查本地库只需几百次内存查找。代价是显示的是按当前地理库的结果，而不是请求当时的。
+func (s *Service) Locate(a *Analytics) {
+	if s.Geo == nil {
+		return
+	}
+	at := func(ip string) *geo.Place {
+		addr, err := netip.ParseAddr(ip)
+		if err != nil {
+			return nil
+		}
+		p := s.Geo.Place(addr)
+		if p.Empty() {
+			return nil
+		}
+		return &p
+	}
+	for i := range a.IPs {
+		a.IPs[i].Place = at(a.IPs[i].IP)
+	}
+	for i := range a.Recent {
+		a.Recent[i].Place = at(a.Recent[i].IP)
+	}
 }

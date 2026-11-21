@@ -62,6 +62,8 @@
     send: "M4 11.5 20 4l-7.5 16-2.5-6.5zM10 13.5 20 4",
     // 反馈 #78：编辑
     edit: "M4.5 19.5h4l10-10a2.1 2.1 0 0 0-3-3l-10 10zM13.5 8l3 3",
+    // R23、R24：站内提醒
+    bell: "M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14l1.5-2ZM10 20.5a2.2 2.2 0 0 0 4 0",
   } as const;
   export type IconName = keyof typeof paths;
   const mirrored = new Set<IconName>(["chevron-right", "arrow-right", "logout", "external"]);

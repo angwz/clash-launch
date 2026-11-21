@@ -54,3 +54,11 @@ curl -H "Authorization: Bearer clt_…" https://your-site/api/v1/profiles
 ## Two-step verification requirement
 
 Administrators can require two-step verification for admins or for everyone. If it is required and you haven't enabled it, you'll see the setup page after signing in and can continue once it's done; while it is required, you can't turn it off.
+
+## Notifications
+
+The bell at the top right lists things that need your attention; if you have set up alert emails, you also get an email:
+
+- **A node source keeps failing**: you are told once after two failed refreshes in a row. Subscriptions keep using the last successful nodes.
+- **A config fails its check**: after a node source or rule source update, the config was regenerated in the background and did not pass. Subscriptions keep serving the last version that passed.
+- **A subscription link has a new source**: the link was fetched for the first time from a new country or region, or by a new client. If that was not you or someone you shared it with, the link may have leaked, and you can replace the link token right from the notification. A link's first source (your own import) does not trigger this, and requests through short links are not counted, since short links are usually shared with others.

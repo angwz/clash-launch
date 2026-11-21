@@ -1570,3 +1570,75 @@ func (r tokens) Touch(ctx context.Context, id string, at time.Time, ip string) e
 	_, err := r.d.exec(ctx, "UPDATE access_tokens SET last_used_at=?, last_ip=? WHERE id=?", ms(at), ip, id)
 	return err
 }
+
+// —— 站内提醒（需求 R23、R24）——
+
+type notifications struct{ d *DB }
+
+func (d *DB) Notifications() NotificationRepo { return notifications{d} }
+
+const notificationKeep = 180 * 24 * time.Hour
+
+func (r notifications) Add(ctx context.Context, n *Notification) (bool, error) {
+	if n.ID == "" {
+		n.ID = NewID()
+	}
+	if len(n.Detail) == 0 {
+		n.Detail = []byte("{}")
+	}
+	res, err := r.d.exec(ctx, "INSERT INTO notifications (id, owner_id, kind, dedup, detail, created_at, read_at) VALUES (?,?,?,?,?,?,0) ON CONFLICT (owner_id, dedup) DO NOTHING",
+		n.ID, n.OwnerID, n.Kind, n.Dedup, string(n.Detail), ms(n.CreatedAt))
+	if err != nil {
+		return false, err
+	}
+	k, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	if _, err := r.d.exec(ctx, "DELETE FROM notifications WHERE owner_id=? AND created_at<?", n.OwnerID, ms(n.CreatedAt.Add(-notificationKeep))); err != nil {
+		return false, err
+	}
+	return k == 1, nil
+}
+
+func (r notifications) List(ctx context.Context, owner string, limit int) ([]Notification, error) {
+	rows, err := r.d.query(ctx, "SELECT id, owner_id, kind, dedup, detail, created_at, read_at FROM notifications WHERE owner_id=? ORDER BY created_at DESC, id DESC LIMIT ?", owner, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Notification
+	for rows.Next() {
+		var n Notification
+		var detail string
+		var c, rd int64
+		if err := rows.Scan(&n.ID, &n.OwnerID, &n.Kind, &n.Dedup, &detail, &c, &rd); err != nil {
+			return nil, err
+		}
+		n.Detail, n.CreatedAt, n.ReadAt = []byte(detail), fromMS(c), fromMS(rd)
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
+func (r notifications) Unread(ctx context.Context, owner string) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM notifications WHERE owner_id=? AND read_at=0", owner).Scan(&n)
+	return n, err
+}
+
+func (r notifications) MarkRead(ctx context.Context, owner string, ids []string, at time.Time) error {
+	if len(ids) == 0 {
+		_, err := r.d.exec(ctx, "UPDATE notifications SET read_at=? WHERE owner_id=? AND read_at=0", ms(at), owner)
+		return err
+	}
+	return r.d.Tx(ctx, func(st Store) error {
+		x := st.(*DB)
+		for _, id := range ids {
+			if _, err := x.exec(ctx, "UPDATE notifications SET read_at=? WHERE owner_id=? AND id=? AND read_at=0", ms(at), owner, id); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

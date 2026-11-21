@@ -124,6 +124,8 @@ func (s *Server) routes() []Route {
 		{"PATCH", "/api/v1/short-links/{id}", a(s.patchShortLink)},
 		{"DELETE", "/api/v1/short-links/{id}", a(s.deleteShortLink)},
 		{"GET", "/api/v1/analytics", a(s.analytics)},
+		{"GET", "/api/v1/notifications", a(s.listNotices)},
+		{"POST", "/api/v1/notifications/read", a(s.readNotices)},
 		{"GET", "/api/v1/messages", a(s.listThreads)},
 		{"POST", "/api/v1/messages", a(s.sendMessage)},
 		{"GET", "/api/v1/messages/unread", a(s.unreadMessages)},

@@ -42,3 +42,17 @@ export function isLocalIP(ip: string): boolean {
   const s = ip.toLowerCase();
   return s === "::1" || s.startsWith("fc") || s.startsWith("fd") || s.startsWith("fe8") || s.startsWith("fe9") || s.startsWith("fea") || s.startsWith("feb") || s.startsWith("::ffff:127.");
 }
+
+/** 地点（登录设备 R7、订阅来源 O7）：国家代码与按数据库原文的省、市、运营商。 */
+export interface Place {
+  cc?: string;
+  region?: string;
+  city?: string;
+  isp?: string;
+}
+
+/** 地点的显示文字：国家名按界面语言生成，省、市与运营商按数据库原文；重复的部分只显示一次（例如直辖市的省与市）。 */
+export function placeText(p: Place, locale: string, withISP = true): string {
+  const parts = [p.cc ? regionName(p.cc, locale) : "", p.region, p.city, withISP ? p.isp : ""].filter((x): x is string => !!x);
+  return parts.filter((x, i) => parts.indexOf(x) === i).join(" · ");
+}
