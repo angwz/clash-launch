@@ -475,6 +475,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前的用户协议（公开）：版本与按语言的文本（Markdown，保留期占位符已替换为本站设置） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Terms"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 同意或拒绝当前版本的用户协议
+         * @description 普通用户同意的版本低于当前版本时，除 GET /api/v1/me、本接口与 DELETE /api/v1/session 外，已登录接口一律返回 403 terms.required。拒绝只记入审计（account.terms_decline），页面随后退出登录。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        version: number;
+                        accept: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已同意 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TermsState"];
+                    };
+                };
+                204: components["responses"]["NoContent"];
+                409: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/register": {
         parameters: {
             query?: never;
@@ -521,6 +605,8 @@ export interface paths {
                         questions: components["schemas"]["Question"][];
                         answers: string[];
                         pow: components["schemas"]["PoWProof"];
+                        /** @description 勾选同意的用户协议版本（需求 R40），必须是当前版本，否则 409 terms.outdated */
+                        terms: number;
                     };
                 };
             };
@@ -2137,6 +2223,80 @@ export interface paths {
                     };
                 };
                 400: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 当前协议的原始文本（占位符未替换）与随程序提供的默认文本（defaults），供编辑 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Terms"] & {
+                            defaults?: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * 改写用户协议，或 reset 恢复随程序提供的默认文本；两者都生成新版本，普通用户需重新同意（记入审计 admin.terms）
+         * @description 文本可以使用占位符 {{audit_days}} 与 {{request_days}}，读取时替换为本站的保留期。每种语言最多 64 KiB，两种语言都必须提供。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        texts?: {
+                            "zh-CN"?: string;
+                            en?: string;
+                        };
+                        reset?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Terms"];
+                    };
+                };
+                422: components["responses"]["Problem"];
             };
         };
         post?: never;
@@ -5257,6 +5417,7 @@ export interface components {
              * @description 当前设备的定时退出时间（需求 R8）
              */
             logoutAt?: string;
+            terms: components["schemas"]["TermsState"];
         };
         Snapshot: {
             /** Format: date-time */
@@ -5503,6 +5664,25 @@ export interface components {
                 /** @enum {string} */
                 exits?: "auto" | "node" | "region" | "source";
             };
+        };
+        Terms: {
+            /** @description 当前版本；每次改写或恢复默认加一 */
+            version: number;
+            /** @description 按语言（zh-CN、en）的 Markdown 文本 */
+            texts: {
+                [key: string]: string;
+            };
+            /** @description 管理员改写过 */
+            custom: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        TermsState: {
+            /** @description 用户同意的版本；0 表示尚未同意 */
+            accepted: number;
+            current: number;
+            /** @description 需要先同意才能继续使用 */
+            pending: boolean;
         };
         PulseSettings: {
             /** @description 是否向普通用户显示在线人数 */

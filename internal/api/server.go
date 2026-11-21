@@ -257,6 +257,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "source.client_fetch", "subscriptions on this account are fetched by the client, not the server")
 	case errors.Is(err, service.ErrNodeMode):
 		problem(w, http.StatusBadRequest, "node_mode.invalid", err.Error())
+	case errors.Is(err, service.ErrTermsOutdated):
+		problem(w, http.StatusConflict, "terms.outdated", "the terms of use have changed; read and accept the latest version")
+	case errors.Is(err, service.ErrTermsText):
+		problem(w, http.StatusUnprocessableEntity, "terms.invalid", err.Error())
 	case errors.Is(err, service.ErrRegistrationClosed):
 		problem(w, http.StatusForbidden, "register.closed", "registration is closed; a valid invite is required")
 	case errors.Is(err, service.ErrUsername):

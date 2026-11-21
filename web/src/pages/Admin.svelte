@@ -1,5 +1,6 @@
 <script lang="ts">
   // 管理（决定 0003）：注册开关（默认关闭）、邀请规则与全站的邀请（需求 R12：人人可邀请，见 InvitesPanel）。
+  import TermsEditor from "../components/admin/TermsEditor.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import AuditLog from "../components/AuditLog.svelte";
   import Status from "../components/admin/Status.svelte";
@@ -141,6 +142,8 @@
       </div>
       <p class="hint">{t("mode.explain")}</p>
     </section>
+
+    <TermsEditor />
 
     <section class="panel box" aria-labelledby="a-online">
       <div class="row">

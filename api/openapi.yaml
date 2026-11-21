@@ -194,11 +194,12 @@ components:
         invitedBy: {type: string, description: 邀请人的用户名（需求 R12）}
     Session:
       type: object
-      required: [user, csrf]
+      required: [user, csrf, terms]
       properties:
         user: {$ref: '#/components/schemas/User'}
         csrf: {type: string}
         logoutAt: {type: string, format: date-time, description: 当前设备的定时退出时间（需求 R8）}
+        terms: {$ref: '#/components/schemas/TermsState'}
     Snapshot:
       type: object
       properties:
@@ -416,6 +417,21 @@ components:
         autoCheck: {type: boolean, description: 自动保存后自动执行 mihomo -t 检查；省略为开}
         motion: {type: string, enum: [off], description: off 关闭界面动效（与系统的减少动态效果相同）；省略为跟随系统}
         routingView: {type: object, additionalProperties: false, description: 分流地图的显示偏好（routing 第 9 节）, properties: {rules: {type: string, enum: [auto, all]}, particles: {type: string, enum: [all, focus, off]}, candidates: {type: boolean}, exits: {type: string, enum: [auto, node, region, source]}}}
+    Terms:
+      type: object
+      required: [version, texts, custom]
+      properties:
+        version: {type: integer, description: 当前版本；每次改写或恢复默认加一}
+        texts: {type: object, additionalProperties: {type: string}, description: 按语言（zh-CN、en）的 Markdown 文本}
+        custom: {type: boolean, description: 管理员改写过}
+        updatedAt: {type: string, format: date-time}
+    TermsState:
+      type: object
+      required: [accepted, current, pending]
+      properties:
+        accepted: {type: integer, description: 用户同意的版本；0 表示尚未同意}
+        current: {type: integer}
+        pending: {type: boolean, description: 需要先同意才能继续使用}
     PulseSettings:
       type: object
       required: [showOnline]
@@ -660,6 +676,19 @@ paths:
       summary: 设置项热度快照（改值计 2、展开说明计 1，每周重算一次）
       security: [{session: []}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {computedAt: {type: string, format: date-time}, scores: {type: object, additionalProperties: {type: integer}}}}}}}}
+  /api/v1/terms:
+    get:
+      tags: [session]
+      summary: 当前的用户协议（公开）：版本与按语言的文本（Markdown，保留期占位符已替换为本站设置）
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Terms'}}}}}
+  /api/v1/account/terms:
+    post:
+      tags: [account]
+      summary: 同意或拒绝当前版本的用户协议
+      description: 普通用户同意的版本低于当前版本时，除 GET /api/v1/me、本接口与 DELETE /api/v1/session 外，已登录接口一律返回 403 terms.required。拒绝只记入审计（account.terms_decline），页面随后退出登录。
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [version, accept], properties: {version: {type: integer}, accept: {type: boolean}}}}}}
+      responses: {'200': {description: 已同意, content: {application/json: {schema: {$ref: '#/components/schemas/TermsState'}}}}, '204': {$ref: '#/components/responses/NoContent'}, '409': {$ref: '#/components/responses/Problem'}}
   /api/v1/register:
     get:
       tags: [session]
@@ -668,7 +697,7 @@ paths:
     post:
       tags: [session]
       summary: 注册普通用户；注册关闭时需要有效的一次性邀请。按 IP 限速
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password, questions, answers, pow], properties: {username: {type: string}, password: {type: string}, invite: {type: string}, questions: {type: array, items: {$ref: '#/components/schemas/Question'}, minItems: 3, maxItems: 3}, answers: {type: array, items: {type: string}, minItems: 3, maxItems: 3}, pow: {$ref: '#/components/schemas/PoWProof'}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [username, password, questions, answers, pow, terms], properties: {username: {type: string}, password: {type: string}, invite: {type: string}, questions: {type: array, items: {$ref: '#/components/schemas/Question'}, minItems: 3, maxItems: 3}, answers: {type: array, items: {type: string}, minItems: 3, maxItems: 3}, pow: {$ref: '#/components/schemas/PoWProof'}, terms: {type: integer, description: 勾选同意的用户协议版本（需求 R40），必须是当前版本，否则 409 terms.outdated}}}}}}
       responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/User'}}}}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: 用户名已存在}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/pow:
     get:
@@ -945,6 +974,19 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PulseSettings'}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/PulseSettings'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/terms:
+    get:
+      tags: [admin]
+      summary: 当前协议的原始文本（占位符未替换）与随程序提供的默认文本（defaults），供编辑
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/Terms'}, {type: object, properties: {defaults: {type: object, additionalProperties: {type: string}}}}]}}}}}
+    put:
+      tags: [admin]
+      summary: 改写用户协议，或 reset 恢复随程序提供的默认文本；两者都生成新版本，普通用户需重新同意（记入审计 admin.terms）
+      description: 文本可以使用占位符 {{audit_days}} 与 {{request_days}}，读取时替换为本站的保留期。每种语言最多 64 KiB，两种语言都必须提供。
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {texts: {type: object, properties: {zh-CN: {type: string}, en: {type: string}}}, reset: {type: boolean}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Terms'}}}}, '422': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/invites:
     get:
       tags: [admin]

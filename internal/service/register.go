@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -64,6 +65,8 @@ type RegisterInput struct {
 	Invite    string
 	Questions []auth.Question
 	Answers   []string
+	// TermsVersion 是用户在注册页勾选同意的用户协议版本（需求 R40），必须是当前版本
+	TermsVersion int
 }
 
 // Register 创建普通用户。注册开放时不需要邀请；关闭时邀请必须有效。
@@ -82,6 +85,13 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 	// 安全问题可选（反馈 #76）：0–3 个
 	if err := auth.CheckQuestions(in.Questions, in.Answers, 0); err != nil {
 		return nil, err
+	}
+	terms, err := s.TermsVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if in.TermsVersion != terms {
+		return nil, ErrTermsOutdated
 	}
 	open, err := s.RegistrationOpen(ctx)
 	if err != nil {
@@ -104,6 +114,10 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 			return err
 		}
 		if err := tx.Questions().Set(ctx, u.ID, stored); err != nil {
+			return err
+		}
+		u.TermsVersion, u.TermsAt = terms, s.now()
+		if err := tx.Users().SetTerms(ctx, u.ID, terms, u.TermsAt); err != nil {
 			return err
 		}
 		if invite != "" {
@@ -132,7 +146,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 				return ErrRegistrationClosed
 			}
 		}
-		return tx.Audit().Add(ctx, &store.AuditEntry{OwnerID: u.ID, Action: "register"})
+		return tx.Audit().Add(ctx, &store.AuditEntry{OwnerID: u.ID, Action: "register", Detail: []byte(`{"terms":"` + strconv.Itoa(terms) + `"}`)})
 	})
 	if err != nil {
 		return nil, err

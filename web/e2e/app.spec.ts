@@ -127,6 +127,7 @@ test("源排序：用键盘调整顺序", async ({ page, request, baseURL }) => 
 });
 
 test("注册：默认关闭；凭一次性邀请注册，邀请不能复用", async ({ browser, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关；注册每 IP 每小时限 10 次，只在桌面运行一次");
   const call = await apiAs(request, baseURL!);
   const inv = await call<{ url: string }>("POST", "/api/v1/admin/invites", { hours: 1, note: "e2e" });
   const hash = new URL(inv.url).hash;
@@ -142,6 +143,7 @@ test("注册：默认关闭；凭一次性邀请注册，邀请不能复用", as
   await page.getByLabel("密码", { exact: true }).fill("a long enough password");
   await page.getByLabel("确认密码").fill("a long enough password");
   await fillAnswers(page);
+  await page.getByLabel("我已阅读并同意").check();
   await page.getByRole("button", { name: "注册" }).click();
   await expect(page).toHaveURL(/\/welcome$/);
   // 普通用户看不到管理
@@ -155,6 +157,7 @@ test("注册：默认关闭；凭一次性邀请注册，邀请不能复用", as
   await p2.getByLabel("密码", { exact: true }).fill("a long enough password");
   await p2.getByLabel("确认密码").fill("a long enough password");
   await fillAnswers(p2);
+  await p2.getByLabel("我已阅读并同意").check();
   await p2.getByRole("button", { name: "注册" }).click();
   await expect(p2.getByRole("alert")).toContainText("需要有效的邀请链接");
   await ctx2.close();
@@ -206,6 +209,7 @@ test("找回密码：答对 2 个问题后重设，旧会话失效", async ({ br
   await page.getByLabel("密码", { exact: true }).fill("a long enough password");
   await page.getByLabel("确认密码").fill("a long enough password");
   await fillAnswers(page);
+  await page.getByLabel("我已阅读并同意").check();
   await page.getByRole("button", { name: "注册" }).click();
   await expect(page).toHaveURL(/\/welcome$/);
   await call("PUT", "/api/v1/admin/registration", { open: false });
@@ -1112,5 +1116,59 @@ test("在线指示灯与多标签页共用一条实时连接（R11、R22）", as
   await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread|degraded)$/, { timeout: 10_000 });
   await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
   await expect(totals[1]!).toHaveText("2", { timeout: 5_000 });
+  expect(problems).toEqual([]);
+});
+
+test("用户协议：注册时同意，管理员发布新版本后普通用户先同意才能继续（R40）", async ({ browser, page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  // 公开页面：未登录也能读
+  const anon = await browser.newContext();
+  const pub = await anon.newPage();
+  await pub.goto("/terms");
+  await expect(pub.getByRole("heading", { name: "用户协议" })).toBeVisible();
+  await expect(pub.getByText("节点与配置不能端到端加密")).toBeVisible();
+  await expect(pub.getByText("{{")).toHaveCount(0); // 保留期占位符已替换
+  // 注册页：不勾选不能提交；可在页内展开阅读
+  const call = await apiAs(request, baseURL!);
+  await call("PUT", "/api/v1/admin/registration", { open: true });
+  await pub.goto("/register");
+  const user = "terms" + Date.now().toString(36);
+  await pub.getByLabel("用户名").fill(user);
+  await pub.getByLabel("密码", { exact: true }).fill("a long enough password");
+  await pub.getByLabel("确认密码").fill("a long enough password");
+  await expect(pub.getByRole("button", { name: "注册" })).toBeDisabled();
+  await pub.getByText("在这里阅读").click();
+  await expect(pub.getByText("你的责任")).toBeVisible();
+  await pub.getByLabel("我已阅读并同意").check();
+  await expect(pub.getByRole("button", { name: "注册" })).toBeEnabled();
+  await pub.getByRole("button", { name: "注册" }).click(); // 用这个账号继续测试新版本的拦截，不再另外注册
+  await expect(pub).toHaveURL(/\/welcome$/);
+  await call("PUT", "/api/v1/admin/registration", { open: false });
+  await anon.close();
+
+  // 普通用户在新版本发布后被引导先同意
+  await login(page);
+  await page.goto("/admin");
+  const editor = page.getByRole("textbox", { name: /用户协议 · zh-CN/ });
+  await editor.fill((await editor.inputValue()) + "\n\n- 端到端测试追加的一条。");
+  await page.getByRole("button", { name: "发布新版本" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "发布新版本" }).click();
+  await expect(page.getByText(/用户协议已更新为第\d+版/)).toBeVisible();
+
+  const ctx = await browser.newContext();
+  const u = await ctx.newPage();
+  await login(u, { username: user, password: "a long enough password" });
+  await expect(u.getByRole("heading", { name: "用户协议已更新" })).toBeVisible();
+  await expect(u.getByText("端到端测试追加的一条")).toBeVisible();
+  await expect(u.locator("nav.sidebar")).toHaveCount(0); // 同意前不显示主界面
+  await u.getByRole("button", { name: "同意并继续" }).click();
+  await expect(u.locator("nav.sidebar")).toBeVisible();
+  await ctx.close();
+
+  // 恢复默认文本，不影响之后的用例
+  await page.getByRole("button", { name: "恢复默认文本" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "恢复默认文本" }).click();
+  await expect(page.getByText(/第\d+版 · 默认文本/)).toBeVisible();
   expect(problems).toEqual([]);
 });

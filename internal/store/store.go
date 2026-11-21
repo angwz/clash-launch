@@ -77,6 +77,9 @@ type User struct {
 	InvitedByName     string    // 邀请人的用户名快照（邀请人注销后仍能显示）
 	InviteID          string
 	InviteBanned      bool // 管理员收回了邀请权
+	// 需求 R40：同意的用户协议版本与时间；0 表示尚未同意
+	TermsVersion int
+	TermsAt      time.Time
 }
 
 // Session 是登录会话。ID 只以哈希形式存储。
@@ -269,6 +272,8 @@ type UserRepo interface {
 	SetInviter(ctx context.Context, id, inviterID, inviterName, inviteID string) error
 	// SetInviteBanned 收回或恢复邀请权。
 	SetInviteBanned(ctx context.Context, id string, banned bool) error
+	// SetTerms 记录用户同意的用户协议版本与时间（需求 R40；不改变 version）。
+	SetTerms(ctx context.Context, id string, version int, at time.Time) error
 	// Invitees 返回由 inviterID 邀请注册的用户（注册早的在前）。
 	Invitees(ctx context.Context, inviterID string) ([]User, error)
 	Count(ctx context.Context) (int, error)

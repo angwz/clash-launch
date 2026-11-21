@@ -82,6 +82,7 @@ export async function createUser(request: APIRequestContext, baseURL: string, pr
       questions: [{ builtin: 0 }, { builtin: 1 }, { builtin: 2 }],
       answers: ["aa", "bb", "cc"],
       pow: { challenge: ch.challenge, nonce: solve(ch.challenge, ch.bits) },
+      terms: ((await (await request.get("/api/v1/terms")).json()) as { version: number }).version, // 同意当前协议（R40）
     },
   });
   expect(res.ok(), await res.text()).toBeTruthy();

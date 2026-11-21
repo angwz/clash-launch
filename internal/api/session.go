@@ -44,6 +44,18 @@ func (s *Server) authed(h func(http.ResponseWriter, *http.Request, *principal)) 
 				return
 			}
 		}
+		// 用户协议有新版本（需求 R40）：同意之前只放行读取身份、同意或拒绝与退出登录
+		if !termsExempt[r.Pattern] {
+			pending, err := s.Svc.TermsPending(r.Context(), p.User)
+			if err != nil {
+				s.fail(w, err)
+				return
+			}
+			if pending {
+				problem(w, http.StatusForbidden, "terms.required", "accept the latest terms of use to continue")
+				return
+			}
+		}
 		h(w, r.WithContext(context.WithValue(r.Context(), userKey, p)), p)
 	}
 }
@@ -107,6 +119,8 @@ type sessionResp struct {
 	CSRF string  `json:"csrf"`
 	// LogoutAt 是当前设备的定时退出时间（需求 R8），页面顶部据此提示
 	LogoutAt *time.Time `json:"logoutAt,omitempty"`
+	// Terms 是用户协议的同意状态（需求 R40）；pending 为 true 时页面先显示协议
+	Terms termsState `json:"terms"`
 }
 
 type userDTO struct {
@@ -177,7 +191,12 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 	}
 	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
 	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA)
-	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF})
+	terms, err := s.termsState(ctx, u)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF, Terms: terms})
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -187,7 +206,12 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request, p *principal) {
-	writeJSON(w, http.StatusOK, sessionResp{User: s.userWithInviter(r.Context(), p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt)})
+	terms, err := s.termsState(r.Context(), p.User)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sessionResp{User: s.userWithInviter(r.Context(), p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt), Terms: terms})
 }
 
 type setupReq struct {

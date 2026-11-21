@@ -4,7 +4,8 @@
   import { theme } from "../lib/theme.svelte";
   import Icon from "./Icon.svelte";
 
-  let { title, subtitle, children }: { title: string; subtitle?: string; children: Snippet } = $props();
+  // wide：长文（用户协议）用更宽的卡片
+  let { title, subtitle, wide = false, children }: { title: string; subtitle?: string; wide?: boolean; children: Snippet } = $props();
 </script>
 
 <div class="auth">
@@ -16,7 +17,7 @@
       <Icon name={theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor"} />
     </button>
   </div>
-  <main class="card">
+  <main class="card" class:wide>
     <div class="brand">
       <span class="mark"><Icon name="logo" size={22} /></span>
       <span>Clash, Launch!</span>
@@ -55,6 +56,9 @@
     border-radius: 14px;
     background: var(--bg-raised);
     box-shadow: var(--shadow-md);
+  }
+  .card.wide {
+    inline-size: min(720px, 100%);
   }
   .brand {
     display: flex;

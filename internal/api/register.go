@@ -40,6 +40,8 @@ type registerReq struct {
 	Questions []auth.Question `json:"questions"`
 	Answers   []string        `json:"answers"`
 	PoW       powProof        `json:"pow"`
+	// Terms 是勾选同意的用户协议版本（需求 R40）
+	Terms int `json:"terms"`
 }
 
 // register 创建普通用户：注册开放时不需要邀请；关闭时需要有效的一次性邀请。
@@ -57,7 +59,7 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
-	u, err := s.Svc.Register(r.Context(), service.RegisterInput{Username: req.Username, Password: req.Password, Invite: strings.TrimSpace(req.Invite), Questions: req.Questions, Answers: req.Answers})
+	u, err := s.Svc.Register(r.Context(), service.RegisterInput{Username: req.Username, Password: req.Password, Invite: strings.TrimSpace(req.Invite), Questions: req.Questions, Answers: req.Answers, TermsVersion: req.Terms})
 	if err != nil {
 		s.fail(w, err)
 		return

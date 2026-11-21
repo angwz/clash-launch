@@ -9,7 +9,8 @@
   import { catalog, type MetaField } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
-  import { parse, type Block, type Inline } from "../lib/md";
+  import { parse, type Block } from "../lib/md";
+  import Markdown from "../components/Markdown.svelte";
 
   // 教程按语言懒加载，文件名前的序号决定顺序
   const docs = import.meta.glob<string>("../help/*/*.md", { query: "?raw", import: "default" });
@@ -121,7 +122,6 @@
   const valueText = (v: unknown) => (Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : String(v));
 </script>
 
-{#snippet inl(text: Inline[])}{#each text as x, i (i)}{#if x.k === "code"}<code>{x.s}</code>{:else if x.k === "bold"}<strong>{x.s}</strong>{:else if x.k === "link"}<a href={x.href} target={x.href.startsWith("/") ? undefined : "_blank"} rel={x.href.startsWith("/") ? undefined : "noopener noreferrer"}>{x.s}</a>{:else}{x.s}{/if}{/each}{/snippet}
 
 <div class="page">
   <PageHeader title={t("help.title")} subtitle={t("help.subtitle")} />
@@ -145,21 +145,7 @@
       {#if current}
         <article class="doc" id="help-main">
           <h2 class="doc-title">{current.title}</h2>
-          {#each current.blocks as b, i (i)}
-            {#if b.k === "h"}
-              {#if b.level <= 2}<h3 id={b.id}>{@render inl(b.text)}</h3>{:else}<h4 id={b.id}>{@render inl(b.text)}</h4>{/if}
-            {:else if b.k === "p"}
-              <p>{@render inl(b.text)}</p>
-            {:else if b.k === "ul"}
-              <ul>{#each b.items as it, j (j)}<li>{@render inl(it)}</li>{/each}</ul>
-            {:else if b.k === "ol"}
-              <ol>{#each b.items as it, j (j)}<li>{@render inl(it)}</li>{/each}</ol>
-            {:else if b.k === "code"}
-              <pre class="code ltr"><code>{b.text}</code></pre>
-            {:else if b.k === "tip"}
-              <aside class="tip"><Icon name="info" size={15} /><p>{@render inl(b.text)}</p></aside>
-            {/if}
-          {/each}
+          <Markdown blocks={current.blocks} />
           {#if topics.length > 1}
             {@const idx = topics.findIndex((x) => x.id === current.id)}
             <footer class="pager">
@@ -305,73 +291,6 @@
   .doc-title {
     font-size: var(--text-2xl, 1.6rem);
     margin-block-end: var(--space-4);
-  }
-  .doc h3 {
-    font-size: var(--text-lg);
-    margin-block: var(--space-8) var(--space-2);
-  }
-  .doc h4 {
-    font-size: var(--text-md);
-    margin-block: var(--space-5) var(--space-1);
-  }
-  .doc p,
-  .doc ul,
-  .doc ol {
-    margin-block: var(--space-2);
-  }
-  /* 列表标记可见并悬挂在正文左缘之外的缩进里：列表文字与段落的对齐关系一目了然（反馈 #56） */
-  .doc ul,
-  .doc ol {
-    padding-inline-start: 1.4em;
-  }
-  .doc ul {
-    list-style: disc;
-  }
-  .doc ol {
-    list-style: decimal;
-  }
-  .doc li::marker {
-    color: var(--fg-subtle);
-  }
-  .doc li {
-    margin-block: 2px;
-  }
-  .doc :global(code) {
-    padding: 1px 5px;
-    border-radius: var(--radius-sm);
-    background: var(--bg-sunken);
-    font-family: var(--font-mono);
-    font-size: 0.9em;
-  }
-  .code {
-    margin-block: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-md);
-    background: var(--bg-code);
-    font-size: 12.5px;
-    line-height: 1.6;
-    overflow-x: auto;
-  }
-  .code code {
-    padding: 0;
-    background: none;
-  }
-  .tip {
-    display: flex;
-    gap: var(--space-2);
-    margin-block: var(--space-4);
-    padding: var(--space-3) var(--space-4);
-    border-inline-start: 3px solid var(--accent);
-    border-radius: var(--radius-md);
-    background: var(--accent-soft);
-  }
-  .tip :global(.icon) {
-    flex: none;
-    margin-block-start: 5px;
-    color: var(--accent-fg);
-  }
-  .tip p {
-    margin: 0;
   }
   .pager {
     display: flex;

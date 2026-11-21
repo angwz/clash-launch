@@ -1,6 +1,6 @@
 // 会话：/api/v1/me 返回当前用户与 CSRF 令牌；未登录时 user 为 null。
 // 登录可能分两步：密码正确且启用了第二因素时，服务端返回 {mfa, ticket} 而不建立会话。
-import { api, ApiError, setCsrf, type Session, type User } from "./api/client";
+import { api, ApiError, setCsrf, type Schemas, type Session, type User } from "./api/client";
 import { i18n } from "./i18n/i18n.svelte";
 
 export interface MFAChallenge {
@@ -13,6 +13,8 @@ class SessionState {
   /** 当前设备的定时退出时间（需求 R8）；没有定时为 null */
   logoutAt = $state<string | null>(null);
   loaded = $state(false);
+  /** 用户协议的同意状态（需求 R40）：pending 时页面先显示协议，其他接口在同意前返回 403 */
+  terms = $state<Schemas["TermsState"] | null>(null);
 
   get isAdmin(): boolean {
     return this.user?.role === "admin";
@@ -48,11 +50,21 @@ class SessionState {
     this.#apply(s);
   }
 
+  /** 同意或拒绝当前版本的用户协议。版本过期时抛出 409（调用方重新读取协议）。 */
+  async answerTerms(version: number, accept: boolean): Promise<void> {
+    if (!accept) {
+      await api.post("/api/v1/account/terms", { version, accept });
+      return;
+    }
+    this.terms = await api.post<Schemas["TermsState"]>("/api/v1/account/terms", { version, accept });
+  }
+
   async logout(): Promise<void> {
     try {
       await api.del("/api/v1/session");
     } finally {
       this.user = null;
+      this.terms = null;
       i18n.timeZone = undefined;
       setCsrf("");
     }
@@ -68,6 +80,7 @@ class SessionState {
   #apply(s: Session): void {
     this.user = s.user;
     this.logoutAt = s.logoutAt ?? null;
+    this.terms = s.terms;
     i18n.timeZone = s.user?.timezone || undefined;
     setCsrf(s.csrf);
   }

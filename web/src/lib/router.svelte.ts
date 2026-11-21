@@ -13,6 +13,7 @@ export type RouteName =
   | "setup"
   | "register"
   | "recover"
+  | "terms"
   | "profile"
   | "profile-links"
   | "profile-history"
@@ -37,6 +38,7 @@ const table: [RouteName, string][] = [
   ["setup", "/setup"],
   ["register", "/register"],
   ["recover", "/recover"],
+  ["terms", "/terms"],
   ["profile", "/profiles/:id"],
   ["profile-links", "/profiles/:id/links"],
   ["profile-history", "/profiles/:id/history"],
@@ -55,7 +57,7 @@ const table: [RouteName, string][] = [
 ];
 
 /** 公开页面：未登录也可以访问。 */
-export const PUBLIC: ReadonlySet<RouteName> = new Set(["login", "setup", "register", "recover", "notfound"]);
+export const PUBLIC: ReadonlySet<RouteName> = new Set(["login", "setup", "register", "recover", "terms", "notfound"]);
 
 export function match(pathname: string): Match {
   const parts = pathname.replace(/\/+$/, "").split("/").filter(Boolean);

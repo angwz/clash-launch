@@ -34,3 +34,7 @@ That means **whoever controls this server and its key could technically decrypt 
 - The code is fully open source: [github.com/angwz/clash-launch](https://github.com/angwz/clash-launch). Encryption lives in `internal/store` and the admin endpoints in `internal/api/admin.go`, so you can review them yourself.
 - If you'd rather not trust anyone, deploy your own copy from the same code; then the key is only in your hands.
 - A config link is as sensitive as a node password: don't share it publicly. If it leaks, reset it on the Config links page; the old link stops working immediately.
+
+## Terms of use
+
+The [terms of use](/terms) you agree to when registering list what this site stores, how long each kind of data is kept, and the rules of use. When the terms change, you are asked to read and agree to the new version the next time you use the site.

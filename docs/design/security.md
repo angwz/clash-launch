@@ -77,6 +77,7 @@
 | A18 | 多个对外地址：按 Host 选用；未列出的域名链接指向主地址，写请求的 Origin 校验不通过 | `TestPublicURLPerHost`、`TestParsePublicURLs` | 单元 |
 | A19 | 改用户名需要当前密码、180 天一次；旧名保留 180 天，期间别人不能注册或改用 | `TestNicknameAndRename` | API |
 | A20 | 普通用户的邀请受名额、注册时长与邀请权约束，不赋予受邀权限；注册页查询邀请人时无效令牌计入失败限速 | `TestInvitesForEveryone` | API |
+| A21 | 注册必须同意当前版本的用户协议；协议有新版本时，普通用户在同意前只能读取身份、同意或拒绝、退出登录，其他接口 403 `terms.required`（订阅链接不受影响）；同意与拒绝记入审计；管理员维护协议本身，不受拦截 | `TestTerms`、e2e 用户协议 | API / e2e |
 
 ### 授权与隔离
 

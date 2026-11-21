@@ -10,6 +10,7 @@
   import AppShell from "./components/AppShell.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import Toasts from "./components/Toasts.svelte";
+  import TermsGate from "./components/TermsGate.svelte";
 
   // 页面按路由懒加载：首屏只包含外壳与当前页（第 15.4 节）。
   // 所有页面都以 { params } 渲染；不需要路由参数的页面不声明它，因此这里放宽为任意属性的组件。
@@ -23,6 +24,7 @@
     setup: () => import("./pages/Setup.svelte"),
     register: () => import("./pages/Register.svelte"),
     recover: () => import("./pages/Recover.svelte"),
+    terms: () => import("./pages/Terms.svelte"),
     profile: () => import("./pages/ProfileEditor.svelte"),
     "profile-links": () => import("./pages/ProfileLinks.svelte"),
     "profile-history": () => import("./pages/ProfileHistory.svelte"),
@@ -116,6 +118,8 @@
   });
 
   const bare = $derived(PUBLIC.has(router.route.name) || !session.user);
+  // 用户协议有新版本且尚未同意（需求 R40）：除了阅读协议本身，先显示同意页；服务端同时拦截其他接口
+  const gated = $derived(!!session.user && !!session.terms?.pending && router.route.name !== "terms");
 </script>
 
 {#if bootError}
@@ -123,7 +127,9 @@
     <p>Clash, Launch! — {bootError}</p>
   </div>
 {:else if booted}
-  {#if bare}
+  {#if gated}
+    <TermsGate />
+  {:else if bare}
     {#if Page}<Page params={router.route.params} />{/if}
   {:else}
     <AppShell>

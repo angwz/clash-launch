@@ -274,6 +274,7 @@ func TestEndToEnd(t *testing.T) {
 	}
 	bob := h.client()
 	bob.login("bob", "another long password")
+	bob.want(200, "POST", "/api/v1/account/terms", map[string]any{"version": 1, "accept": true}) // 直接建的账号没有同意过协议（R40）
 	for _, path := range []string{"/api/v1/profiles/" + pid, "/api/v1/profiles/" + pid + "/links", "/api/v1/profiles/" + pid + "/revisions", "/api/v1/profiles/" + pid + "/render", "/api/v1/profiles/" + pid + "/export"} {
 		bob.want(404, "GET", path, nil)
 	}
@@ -435,6 +436,7 @@ func registerBody(t *testing.T, c *client, user, invite string) map[string]any {
 		"questions": []map[string]any{{"builtin": 0}, {"builtin": 1}, {"builtin": -1, "text": "我的第一辆自行车"}},
 		"answers":   []string{"Beijing", "Mr. Whiskers", "红色"},
 		"pow":       solvePoW(t, c, "register"),
+		"terms":     1, // 默认协议的版本（需求 R40）
 	}
 }
 
