@@ -38,7 +38,7 @@
 | `internal/store` | 唯一持久化的包：仓储接口、SQLite/PostgreSQL 通用实现、迁移、加密、备份与 `db copy`，见 [0002](../decisions/0002-storage-and-service.md) |
 | `internal/auth` | argon2id 密码哈希、密码策略、随机令牌与哈希、常数时间比较 |
 | `internal/service` | 外壳编排：从存储组装引擎输入、渲染与内核检查、保存最近一次成功的结果、拉取与快照、后台调度、托管 provider |
-| `internal/events` | 进程内的实时事件中心：服务层按用户发布「什么变了」，不带数据；发布不阻塞，慢连接落后时改发 resync；不依赖其他本项目包 |
+| `internal/events` | 进程内的实时事件中心：服务层按用户发布「什么变了」，不带数据；发布不阻塞，慢连接落后时改发 resync；第一条连接建立时算上线、最后一条断开 15 秒后算下线；不依赖其他本项目包 |
 | `internal/api` | HTTP：管理接口、订阅端点、会话与 CSRF、安全响应头、限流、实时通道（WebSocket，`/api/v1/events`）；契约见 [`api/openapi.yaml`](../../api/openapi.yaml) |
 | `web` | 嵌入前端构建产物 |
 | `internal/version` | 版本号与项目地址 |

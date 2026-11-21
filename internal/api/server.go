@@ -77,6 +77,8 @@ func New(svc *service.Service, cfg Config, log *slog.Logger) *Server {
 		s.static = staticHandler(cfg.Static)
 		s.mux.Handle("GET /", s.static)
 	}
+	// 上线、下线通知联系人（R22）
+	s.Svc.Events.OnPresence(svc.AnnouncePresence)
 	return s
 }
 

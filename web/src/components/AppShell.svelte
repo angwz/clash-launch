@@ -21,6 +21,7 @@
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
   import { realtime } from "../lib/realtime.svelte";
+  import Pulse from "./Pulse.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -80,6 +81,8 @@
       <span class="mark"><Icon name="logo" size={18} /></span>
       <span class="word">Clash, Launch!</span>
     </a>
+    <!-- 在线指示灯（R11）：手机上侧栏是抽屉，灯放到顶栏 -->
+    <span class="only-narrow pulse-slot"><Pulse id="pulse-top" /></span>
 
     {#if p}
       <div class="status">
@@ -163,6 +166,8 @@
       {/each}
     </ul>
     <div class="sidebar-foot">
+      <!-- 在线指示灯（R11）：左下角，不可点击；悬停或聚焦显示说明 -->
+      <span class="pulse-slot"><Pulse id="pulse-side" /></span>
       <!-- 底部两个安静的图标按钮（反馈 #38、#61）：收起侧栏在前，项目入口在后；文字放在提示里 -->
       <button class="foot-btn" type="button" onclick={() => shell.toggleRail()} aria-label={shell.rail ? t("shell.expand") : t("shell.collapse")} title={shell.rail ? t("shell.expand") : t("shell.collapse")}>
         <Icon name="panel" size={16} />
@@ -449,6 +454,18 @@
     flex-direction: column;
     align-items: center;
     padding-inline: 0;
+  }
+  .pulse-slot {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 32px;
+    block-size: 32px;
+  }
+  .sidebar-foot .pulse-slot {
+    margin-inline-end: auto;
+  }
+  .rail .sidebar-foot .pulse-slot {
+    margin-inline-end: 0;
   }
   .sidebar .foot-btn {
     display: grid;

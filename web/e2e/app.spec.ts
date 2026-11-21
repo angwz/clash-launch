@@ -1047,3 +1047,45 @@ test("实时通道：客户端拉取订阅后，配置链接页立即更新，�
   await expect(total).toHaveText("1", { timeout: 5_000 });
   expect(problems).toEqual([]);
 });
+
+test("在线指示灯与多标签页共用一条实时连接（R11、R22）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const problems = watch(page);
+  const { profile } = await seedProfile(request, baseURL!, "共用连接");
+  const call = await apiAs(request, baseURL!);
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${profile}/links`, { note: "共用连接" });
+  // 第二个标签页建立的 WebSocket 数：主标签页还在时应为 0（页面重新加载时 Playwright 不报告旧连接关闭，所以不统计第一个页面）
+  let secondSockets = 0;
+  page.context().on("page", (p) => p.on("websocket", () => secondSockets++));
+  await login(page);
+  await page.goto(`/profiles/${profile}/links`);
+
+  // 连上后灯常亮、随操作起伏或因未读而呼吸（前面的用例可能留下未读），不是「正在连接」或「断线」
+  const pulse = page.locator(".sidebar-foot .pulse");
+  await expect(pulse).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 5_000 });
+  await pulse.hover();
+  const tip = page.getByRole("tooltip");
+  await expect(tip).toContainText("往返延迟");
+  await expect(tip).toContainText(/\d+ ms/);
+  await expect(tip).toContainText("在线人数"); // 管理员能看到在线人数
+  await page.mouse.move(600, 400);
+  await expect(tip).toBeHidden();
+
+  // 第二个标签页：不新建连接，事件经主标签页转发
+  const second = await page.context().newPage();
+  await second.goto(`/profiles/${profile}/links`);
+  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 5_000 });
+  const totals = [page, second].map((p) => p.locator(".moment").filter({ hasText: "累计被请求" }).locator("strong"));
+  for (const x of totals) await expect(x).toHaveText("0");
+  await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
+  for (const x of totals) await expect(x).toHaveText("1", { timeout: 5_000 });
+  expect(secondSockets).toBe(0);
+
+  // 主标签页关闭：第二个标签页接手连接，之后的事件照常到达
+  await page.close();
+  await expect.poll(() => secondSockets, { timeout: 10_000 }).toBe(1);
+  await expect(second.locator(".sidebar-foot .pulse")).toHaveAttribute("data-state", /^(idle|active|unread)$/, { timeout: 10_000 });
+  await request.get(l.url, { headers: { "User-Agent": "mihomo/1.19.33" } });
+  await expect(totals[1]!).toHaveText("2", { timeout: 5_000 });
+  expect(problems).toEqual([]);
+});

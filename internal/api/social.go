@@ -445,7 +445,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 		last := items[len(items)-1]
 		out.Next = strconv.FormatInt(last.CreatedAt.UnixMilli(), 10) + "|" + last.ID
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username, "nickname": other.Nickname}, "items": out.Items, "next": out.Next})
+	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]any{"id": other.ID, "username": other.Username, "nickname": other.Nickname, "online": s.Svc.PeerOnline(ctx, p.User.ID, other.ID)}, "items": out.Items, "next": out.Next})
 }
 
 func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principal) {

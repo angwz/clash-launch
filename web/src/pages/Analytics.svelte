@@ -96,8 +96,34 @@
   let error = $state("");
   let ipLimit = $state(20);
 
+  // 实时请求流（R22）：订阅被拉取时页面经 sub 事件重读；与上一次结果相比新出现的请求在列表顶端淡入，
+  // 总数变化时数字滚动一下。只在筛选条件不变时比较，切换筛选不算「新请求」。
+  let seen = new Set<string>();
+  let lastFilter = "";
+  let lastTotal = -1;
+  let fresh = $state(new Set<string>());
+  let rolled = $state(false);
+  // 同一毫秒、同一 IP、同一状态的请求可能不止一条：加序号保证键唯一（keyed each 要求）
+  function requestKeys(rs: Req[]): string[] {
+    const n = new Map<string, number>();
+    return rs.map((r) => {
+      const k = r.at + "|" + r.ip + "|" + r.status;
+      const i = n.get(k) ?? 0;
+      n.set(k, i + 1);
+      return k + "|" + i;
+    });
+  }
+
   async function load() {
     const d = await api.get<Data>("/api/v1/analytics", { query: { days, link: link || undefined, short: short || undefined, friend: friend || undefined, tz: browserZone() } });
+    const filter = JSON.stringify([days, link, short, friend]);
+    const keys = requestKeys(d.analytics.recent);
+    const same = filter === lastFilter && lastTotal >= 0;
+    fresh = same ? new Set(keys.filter((k) => !seen.has(k))) : new Set();
+    rolled = same && d.analytics.totals.requests > lastTotal;
+    seen = new Set(keys);
+    lastFilter = filter;
+    lastTotal = d.analytics.totals.requests;
     data = d;
     error = "";
   }
@@ -175,7 +201,7 @@
     <dl class="tiles">
       <div class="tile panel">
         <dt>{t("analytics.requests")}</dt>
-        <dd><strong>{i18n.number(a.totals.requests)}</strong>{#if a.peak}<span class="muted">{t("analytics.peak", { day: a.peak.day.slice(5), n: a.peak.count })}</span>{/if}</dd>
+        <dd>{#key a.totals.requests}<strong class:roll={rolled}>{i18n.number(a.totals.requests)}</strong>{/key}{#if a.peak}<span class="muted">{t("analytics.peak", { day: a.peak.day.slice(5), n: a.peak.count })}</span>{/if}</dd>
       </div>
       <div class="tile panel">
         <dt>{t("analytics.success")}</dt>
@@ -297,8 +323,9 @@
             <tr><th>{t("links.col_time")}</th><th>IP</th><th>{t("analytics.region")}</th><th>{t("stats.col_client")}</th><th>{t("links.col_status")}</th><th>{t("analytics.through")}</th></tr>
           </thead>
           <tbody>
-            {#each a.recent as r, i (i)}
-              <tr title={r.ua}>
+            {#each requestKeys(a.recent) as k, i (k)}
+              {@const r = a.recent[i]!}
+              <tr title={r.ua} class:fresh={fresh.has(k)}>
                 <td>{i18n.date(r.at, "long")}</td>
                 <td class="mono ltr">{r.ip}</td>
                 <td class:muted={!r.country}>{region(r.country, r.ip)}</td>
@@ -315,6 +342,41 @@
 </div>
 
 <style>
+  /* 实时请求流：只改 opacity 与 transform，交给合成线程；系统要求减少动态效果时不播放 */
+  @media (prefers-reduced-motion: no-preference) {
+    tr.fresh {
+      animation: req-in 1.2s ease-out;
+    }
+    strong.roll {
+      display: inline-block;
+      animation: count-roll 0.45s ease-out;
+    }
+  }
+  @keyframes req-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    40% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes count-roll {
+    from {
+      opacity: 0;
+      transform: translateY(40%);
+    }
+  }
+  /* 新请求的底色在 3 秒内褪去：颜色渐变不算动态效果，减少动态效果时也保留 */
+  tr.fresh td {
+    animation: req-glow 3s ease-out;
+  }
+  @keyframes req-glow {
+    from {
+      background: var(--accent-soft);
+    }
+  }
   .page {
     max-inline-size: 1120px;
     margin-inline: auto;

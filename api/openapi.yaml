@@ -1077,7 +1077,10 @@ paths:
       summary: 实时通道（WebSocket）
       description: |
         升级为 WebSocket 后，服务器推送当前用户的数据变化事件 {type, id}：render、source、rules、message、sub、grant；
-        连接建立时先发 hello，丢过事件时发 resync。事件不含数据本身，收到后经对应接口重读。
+        联系人的 typing（id 为对方用户名）与 presence（state 为 on 或 off，只在互为联系人时推送，断开 15 秒后才算下线）。
+        连接建立时先发 hello（version 为服务器版本），丢过事件时发 resync。事件不含数据本身，收到后经对应接口重读。
+        浏览器可发 {"type":"typing","to":"<用户名>"}（每 2 秒最多一次）与 {"type":"ping","id":"<不超过 32 字节>"}（每秒最多一次，回 pong 并带回 id）。
+        hello 与 pong 的 online 是在线人数，只发给管理员。
         握手需要会话 Cookie 与同源的 Origin；每个用户最多 16 条连接；会话失效后服务器关闭连接（1008）。
       security: [{session: []}]
       responses: {'101': {description: 已升级为 WebSocket}, '401': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}

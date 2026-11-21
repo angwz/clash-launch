@@ -351,6 +351,7 @@ type Thread struct {
 	LastAt   time.Time `json:"lastAt"`
 	Mine     bool      `json:"mine"` // 最后一条是自己发的
 	Unread   int       `json:"unread"`
+	Online   bool      `json:"online"` // 对方此刻在线（只在互为联系人时为 true，R22）
 }
 
 func preview(b MessageBody) string {

@@ -106,8 +106,8 @@ func TestShortLinksAnalyticsMessages(t *testing.T) {
 		t.Fatalf("附件应自动加入收件人的节点页：%+v", bs.Items)
 	}
 	th := decode[struct {
-		User  map[string]string `json:"user"`
-		Items []messageDTO      `json:"items"`
+		User  map[string]any `json:"user"`
+		Items []messageDTO   `json:"items"`
 	}](t, bob.want(200, "GET", "/api/v1/messages/with/admin", nil))
 	if len(th.Items) != 1 || th.Items[0].Mine || th.Items[0].Text != "送你节点 🎁" || th.Items[0].AddedSource != bs.Items[0].ID {
 		t.Fatalf("会话：%+v", th)
@@ -125,14 +125,14 @@ func TestShortLinksAnalyticsMessages(t *testing.T) {
 	bob.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"autoAdd": false})
 	m2 := decode[messageDTO](t, admin.want(201, "POST", "/api/v1/messages", map[string]any{"to": "bob", "source": srcs.Items[0].ID}))
 	th = decode[struct {
-		User  map[string]string `json:"user"`
-		Items []messageDTO      `json:"items"`
+		User  map[string]any `json:"user"`
+		Items []messageDTO   `json:"items"`
 	}](t, bob.want(200, "GET", "/api/v1/messages/with/admin", nil))
 	if th.Items[0].ID != m2.ID || th.Items[0].AddedSource != "" {
 		t.Errorf("关闭自动加入后不应加入：%+v", th.Items[0])
 	}
 	// 屏蔽与不接收：统一返回 404
-	bob.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"blocked": []string{th.User["id"]}})
+	bob.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"blocked": []string{th.User["id"].(string)}})
 	admin.want(404, "POST", "/api/v1/messages", map[string]any{"to": "bob", "text": "hi"})
 	bob.want(200, "PUT", "/api/v1/account/prefs", map[string]any{"inbox": "off"})
 	admin.want(404, "POST", "/api/v1/messages", map[string]any{"to": "bob", "text": "hi"})
@@ -148,8 +148,8 @@ func TestShortLinksAnalyticsMessages(t *testing.T) {
 	}
 	bob.want(204, "DELETE", "/api/v1/messages/"+m.ID, nil)
 	th = decode[struct {
-		User  map[string]string `json:"user"`
-		Items []messageDTO      `json:"items"`
+		User  map[string]any `json:"user"`
+		Items []messageDTO   `json:"items"`
 	}](t, admin.want(200, "GET", "/api/v1/messages/with/bob", nil))
 	if len(th.Items) != 2 {
 		t.Errorf("收件人隐藏不影响发件人：%d", len(th.Items))

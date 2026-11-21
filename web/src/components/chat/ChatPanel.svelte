@@ -28,6 +28,8 @@
     lastAt: string;
     mine: boolean;
     unread: number;
+    /** 对方此刻在线（只在互为联系人时为 true，R22） */
+    online?: boolean;
   }
   interface Deleted {
     userId: string;
@@ -96,13 +98,24 @@
     peerTyping = false;
   });
 
+  // 在线状态（R22）：列表与会话页加载时给出初值，之后随 presence 事件更新；键为小写用户名
+  let online = $state<Record<string, boolean>>({});
+  const isOnline = (name: string) => online[name.toLowerCase()] === true;
+  $effect(() =>
+    realtime.on(["presence"], (who, e) => {
+      if (who) online[who.toLowerCase()] = e?.state === "on";
+    }),
+  );
+
   let threads = $state<Thread[] | null>(null);
   let deleted = $state<Deleted[]>([]);
   let showBin = $state(false);
-  let other = $state<{ id: string; username: string; nickname?: string } | null>(null);
+  let other = $state<{ id: string; username: string; nickname?: string; online?: boolean } | null>(null);
   let deletedAt = $state<string | null>(null);
   let purgeAt = $state<string | null>(null);
   let msgs = $state<Msg[]>([]); // 正序（旧的在前）
+  let fresh = $state(new Set<string>());
+  let shownPeer = "";
   let next = $state<string | undefined>();
   let missing = $state(false);
   let to = $state("");
@@ -122,21 +135,27 @@
     const [a, b] = await Promise.all([api.get<{ items: Thread[] }>("/api/v1/messages"), api.get<{ items: Deleted[] }>("/api/v1/messages/deleted")]);
     threads = a.items;
     deleted = b.items;
+    for (const th of a.items) online[th.username.toLowerCase()] = th.online === true;
   }
 
   async function loadThread(reset = true) {
     if (!peer) return;
     try {
-      const r = await api.get<{ user: { id: string; username: string }; items: Msg[]; next?: string; deletedAt?: string; purgeAt?: string }>(
+      const r = await api.get<{ user: { id: string; username: string; online?: boolean }; items: Msg[]; next?: string; deletedAt?: string; purgeAt?: string }>(
         "/api/v1/messages/with/" + encodeURIComponent(peer),
         { query: { cursor: reset ? undefined : next, limit: 50 } },
       );
       missing = false;
       other = r.user;
+      online[r.user.username.toLowerCase()] = r.user.online === true;
       deletedAt = r.deletedAt ?? null;
       purgeAt = r.purgeAt ?? null;
       const older = [...r.items].reverse();
       const atBottom = !scroller || scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 40;
+      // 新消息进入动画（R22）：同一会话重读时，之前没见过的消息淡入；切换会话或首次打开不播放
+      const prev = new Set(msgs.map((m) => m.id));
+      fresh = reset && peer === shownPeer && prev.size ? new Set(older.filter((m) => !prev.has(m.id)).map((m) => m.id)) : new Set();
+      shownPeer = peer;
       msgs = reset ? older : [...older, ...msgs];
       next = r.next;
       if (reset) {
@@ -375,9 +394,9 @@
         {#each threads ?? [] as th (th.userId)}
           <li class="th">
             <a href={"/messages/" + encodeURIComponent(th.username)} onclick={(e) => { e.preventDefault(); open(th.username); }} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
-              <span class="avatar" aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
+              <span class="avatar" class:on={isOnline(th.username)} aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
               <span class="th-main">
-                <span class="th-top"><strong>{th.nickname || th.username}</strong>{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
+                <span class="th-top"><strong>{th.nickname || th.username}</strong>{#if isOnline(th.username)}<span class="visually-hidden">{t("messages.online")}</span>{/if}{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
                   {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{th.last}
                 </span>
@@ -426,9 +445,9 @@
     {:else}
       <header class="chat-head">
         <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
-        <span class="avatar" aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
+        <span class="avatar" class:on={isOnline(other?.username ?? peer)} aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
         <strong class="peer">{other?.nickname || other?.username || peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
-        {#if peerTyping}<span class="typing" role="status">{t("messages.typing")}</span>{/if}
+        {#if peerTyping}<span class="typing" role="status">{t("messages.typing")}</span>{:else if isOnline(other?.username ?? peer)}<span class="online-label">{t("messages.online")}</span>{/if}
         {#if other && !deletedAt}
           <button class="btn sm ghost" type="button" onclick={() => void toggleBlock()}>{blocked ? t("messages.unblock") : t("messages.block")}</button>
           {#if threads?.some((x) => x.userId === other!.id)}
@@ -460,7 +479,7 @@
                 <time datetime={m.createdAt} title={i18n.date(m.createdAt, "long")}>{i18n.date(m.createdAt).split(" ").slice(-1)[0]}</time>
               </p>
             {:else}
-            <div class="msg" class:mine={m.mine}>
+            <div class="msg" class:mine={m.mine} class:fresh={fresh.has(m.id)}>
               <div class="bubble">
                 {#if m.text}<p class="text">{m.text}</p>{/if}
                 {#if m.attach}
@@ -643,6 +662,7 @@
     background: var(--bg-active);
   }
   .avatar {
+    position: relative;
     display: grid;
     place-items: center;
     flex: none;
@@ -652,6 +672,23 @@
     background: var(--accent-soft);
     color: var(--accent-fg);
     font-weight: 650;
+  }
+  /* 在线：头像右下角的小圆点，带一圈面板底色描边，叠在头像边缘也清楚；文字另有「在线」 */
+  .avatar.on::after {
+    content: "";
+    position: absolute;
+    inset-block-end: -1px;
+    inset-inline-end: -1px;
+    inline-size: 10px;
+    block-size: 10px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 2px var(--bg-raised);
+  }
+  .online-label {
+    color: var(--ok);
+    font-size: var(--text-sm);
+    white-space: nowrap;
   }
   .th-main {
     display: grid;
@@ -715,6 +752,17 @@
     flex: 1;
   }
   /* 正在输入：轻微明暗呼吸；减少动态效果时保持静止 */
+  @media (prefers-reduced-motion: no-preference) {
+    .msg.fresh {
+      animation: msg-in 0.32s ease-out;
+    }
+  }
+  @keyframes msg-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
   .typing {
     color: var(--accent-fg);
     font-size: var(--text-sm);

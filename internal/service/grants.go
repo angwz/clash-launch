@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/angwz/clash-launch/internal/events"
 	"strings"
 	"time"
 
+	"github.com/angwz/clash-launch/internal/events"
 	"github.com/angwz/clash-launch/internal/profile"
 	"github.com/angwz/clash-launch/internal/store"
 )
@@ -147,9 +147,53 @@ func (s *Service) Threads(ctx context.Context, u *store.User) ([]Thread, error) 
 		if n, err := s.Store.Messages().UnreadFrom(ctx, u.ID, c.PeerID); err == nil {
 			t.Unread = n
 		}
+		t.Online = s.PeerOnline(ctx, u.ID, c.PeerID)
 		out = append(out, t)
 	}
 	return out, nil
+}
+
+// Mutual 报告两人是否互为联系人，且双方都没有把对话放进回收站。
+// 在线状态与「正在输入」只在这种关系下可见：陌生人、被删除对话的人无从得知你是否在线。
+func (s *Service) Mutual(ctx context.Context, a, b string) bool {
+	for _, pair := range [][2]string{{a, b}, {b, a}} {
+		c, err := s.Store.Contacts().Get(ctx, pair[0], pair[1])
+		if err != nil || !c.DeletedAt.IsZero() {
+			return false
+		}
+	}
+	return true
+}
+
+// PeerOnline 报告 me 能否看到 peer 在线（需求 R22）：互为联系人且对方此刻有实时连接。
+func (s *Service) PeerOnline(ctx context.Context, me, peer string) bool {
+	return s.Events.IsOnline(peer) && s.Mutual(ctx, me, peer)
+}
+
+// AnnouncePresence 把 user 的上线或下线通知给能看到它的联系人。由事件中心在独立的 goroutine 中调用。
+func (s *Service) AnnouncePresence(user string, online bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	u, err := s.Store.Users().ByID(ctx, user)
+	if err != nil {
+		return
+	}
+	cs, err := s.Store.Contacts().List(ctx, user, false)
+	if err != nil {
+		if s.Log != nil {
+			s.Log.Warn("在线状态：读取联系人失败", "user", user, "error", err)
+		}
+		return
+	}
+	state := "off"
+	if online {
+		state = "on"
+	}
+	for _, c := range cs {
+		if s.Mutual(ctx, user, c.PeerID) {
+			s.Events.Publish(c.PeerID, events.Event{Type: events.Presence, ID: u.Username, State: state})
+		}
+	}
 }
 
 // DeletedThread 是回收站中的会话。
