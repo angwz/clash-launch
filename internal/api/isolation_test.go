@@ -3,12 +3,15 @@ package api
 import (
 	"strings"
 	"testing"
+
+	"github.com/angwz/clash-launch/internal/source"
 )
 
 // 数据隔离（第 14.3 节「必须有测试」）：按路由表逐条检查——用户 A 的每个资源 ID，用户 B 访问时都得到 404。
 // 由路由表驱动：新增带路径参数的路由而没有在 ids 中给出对应的资源时，测试失败，提醒补上。
 func TestOwnerIsolationAllRoutes(t *testing.T) {
 	h := newHarness(t, nil)
+	h.svc.Pusher = &source.Pusher{} // 提醒渠道（R31）的路由需要推送可用；测试不发送
 	a, pid := h.setup()
 	const bpw = "a long enough password"
 
@@ -27,6 +30,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	tpl := decode[templateDTO](t, a.want(201, "POST", "/api/v1/templates", map[string]any{"name": "t", "doc": p.Doc}))
 	sl := decode[shortDTO](t, a.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID}))
 	tok := decode[tokenDTO](t, a.want(201, "POST", "/api/v1/account/tokens", map[string]any{"name": "t", "scope": "read"}))
+	ch := decode[map[string]any](t, a.want(201, "POST", "/api/v1/account/channels", map[string]any{"kind": "webhook", "url": "https://example.com/hook"}))
 
 	// 路由前缀 → A 的资源 ID
 	ids := map[string]string{
@@ -40,6 +44,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/templates/":        tpl.ID,
 		"/api/v1/short-links/":      sl.ID,
 		"/api/v1/account/tokens/":   tok.ID,
+		"/api/v1/account/channels/": ch["id"].(string),
 		"/api/v1/invites/":          inv.ID, // 管理员 A 发出的邀请：B 不能作废
 	}
 

@@ -22,7 +22,7 @@
 - 只按官方文档或源码实现语义；查不到就列为限制，不猜。没有正式规范的输入格式不支持。
 - 用户写下的内容是有意为之：节点名、组名、正则、手写规则、原始编辑中的值按原样保留，看似不规范时只报告。
 - 不静默丢弃：被跳过、改写、删除或无法验证的内容都进入诊断（`internal/diag`）。
-- 运行时不调用任何第三方服务（翻译、CDN、字体、验证码）；出站连接只有用户配置的订阅与规则源，服务器直连并经 SSRF 防护（[0003](docs/decisions/0003-direct-fetch-and-invites.md)）。
+- 运行时不调用任何第三方服务（翻译、CDN、字体、验证码）；出站连接只有用户配置的订阅与规则源，以及用户本人配置的提醒目标（SMTP、推送地址），服务器直连并经 SSRF 防护（[0003](docs/decisions/0003-direct-fetch-and-invites.md)、[0008](docs/decisions/0008-notification-channels.md)）。
 - 测试数据只用 `example.com`、`192.0.2.0/24`、`2001:db8::/32` 与明显虚构的凭据。
 - 数据随时可以带走：迁移只向前，已发布的迁移文件不得修改（`migrations/SUMS` 锁定）；改表结构时两种数据库各新增一个同号迁移，新表加入 `store.Tables`，废弃列登记 `store.RetiredColumns`。规则与验证见 [data](docs/guide/data.md)。
 

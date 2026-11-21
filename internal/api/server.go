@@ -297,6 +297,14 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
 	case errors.Is(err, source.ErrSMTP):
 		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
+	case errors.Is(err, source.ErrPush):
+		problem(w, http.StatusUnprocessableEntity, "push.failed", err.Error())
+	case errors.Is(err, service.ErrChannelsUnavailable):
+		problem(w, http.StatusConflict, "channel.unavailable", "notification channels are not available on this server")
+	case errors.Is(err, service.ErrChannelLimit):
+		problem(w, http.StatusConflict, "channel.limit", err.Error())
+	case errors.Is(err, service.ErrChannelName):
+		problem(w, http.StatusUnprocessableEntity, "channel.name", err.Error())
 	case errors.Is(err, service.ErrSMTPUnavailable):
 		problem(w, http.StatusConflict, "smtp.unavailable", "email alerts are not available on this server")
 	case errors.Is(err, service.ErrSelf):

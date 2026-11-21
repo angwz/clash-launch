@@ -28,6 +28,8 @@ const known: Record<string, string> = {
   "terms.required": "error.terms_required",
   "terms.outdated": "terms.changed",
   "token.limit": "error.token_limit",
+  "channel.limit": "error.channel_limit",
+  "channel.unavailable": "channels.unavailable",
   "token.invalid": "error.token_invalid",
   rate_limited: "error.rate",
   "rate_limited.check": "error.rate",
@@ -48,6 +50,8 @@ export function errorText(e: unknown): string {
   if (e instanceof ApiError) {
     // 邮件发送失败的说明（阶段与服务器返回码）对用户有用，原样附上
     if (e.type === "smtp.failed") return t("error.smtp", { detail: e.detail.replace(/^source: 邮件发送失败：/, "") });
+    // 推送失败的原因（已分类，不含地址与令牌）同样原样附上
+    if (e.type === "push.failed") return t("error.push", { detail: e.detail.replace(/^source: 推送失败：/, "") });
     const key = known[e.type];
     if (key) return t(key);
     if (e.status === 429) return t("error.rate");

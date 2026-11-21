@@ -1249,3 +1249,37 @@ test("订阅链接访问限制：只允许指定客户端，每天次数用完�
   expect((await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.0" } })).status()).toBe(200);
   expect(problems).toEqual([]);
 });
+
+test("提醒渠道：内网地址被拒绝，测试失败时显示原因，修改后回到未验证（R31）", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "提醒渠道" }) });
+  await box.getByRole("button", { name: "添加渠道" }).click();
+  // Webhook 指向本机：保存时被 SSRF 防护拒绝
+  await box.getByLabel("Webhook地址").fill("https://127.0.0.1/hook");
+  await box.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText(/推送失败：.*安全策略/)).toBeVisible();
+  // ntfy：保存后未验证；测试时连接不上，原因记在渠道上
+  await box.getByRole("radio", { name: "ntfy" }).click();
+  await expect(box.getByLabel("服务器地址")).toHaveValue("https://ntfy.sh");
+  await box.getByLabel("服务器地址").fill("https://ntfy.example.com");
+  await box.getByLabel("主题").fill("e2e-alerts");
+  await box.getByLabel("名称").fill("手机");
+  await box.getByRole("button", { name: "保存" }).click();
+  const item = box.locator("li", { hasText: "手机" });
+  await expect(item.getByText("未验证")).toBeVisible();
+  await expect(item.getByText("e2e-alerts · ntfy.example.com")).toBeVisible();
+  await item.getByRole("button", { name: "发送测试消息" }).click();
+  await expect(item.getByText(/最近一次发送失败：/)).toBeVisible({ timeout: 20_000 });
+  await expect(item.getByText("未验证")).toBeVisible();
+  await item.getByRole("button", { name: "修改" }).click();
+  await box.getByLabel("主题").fill("e2e-alerts-2");
+  await box.getByRole("button", { name: "保存" }).click();
+  await expect(item.getByText("e2e-alerts-2 · ntfy.example.com")).toBeVisible();
+  await expect(item.getByText(/最近一次发送失败/)).toHaveCount(0);
+  await item.getByRole("button", { name: "删除" }).click();
+  await expect(box.getByText("还没有提醒渠道。")).toBeVisible();
+  expect(problems.filter((p) => !p.includes("422"))).toEqual([]);
+});

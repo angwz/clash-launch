@@ -4,18 +4,18 @@
 
 ## 现在
 
-### 下次从这里开始（2026-11-20）
+### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 3 的最后一项 R31 其他通知渠道（先写网络边界的决定记录），然后进入阶段 4：R55 删除保护 + R33 删除可撤销 + R35 批量操作。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：阶段 3 已完成（R31 见决定 0008）。进入阶段 4：R55 删除保护 + R33 删除可撤销 + R35 批量操作。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
-  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 50 通过 34 跳过。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 51 通过 35 跳过（「分流规则拖动」偶发失败，单独重跑通过）。
   - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
-- **新迁移**：下一个编号是 0021；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
+- **新迁移**：下一个编号是 0022；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
 ### 各批次记录
 
@@ -67,6 +67,7 @@
 - **R41 两步验证策略与 R25 个人访问令牌（2026-11-21）**：策略存 settings（不要求 / 管理员 / 全部用户），要求前管理员自己须已启用；适用而未启用 TOTP 的账号，`authed` 只放行读取身份、同意协议、退出与启用 TOTP 的三步，其余 403 `mfa.setup_required`，页面由 `MfaGate` 引导（保存恢复码后点继续）；适用时不能关闭两步验证。只有 TOTP 让登录多一步，所以按 TOTP 判断。令牌 `clt_` 前缀、32 字节随机、只存哈希，read 或 write，可设有效期，每人最多 20 个；`Authorization: Bearer` 时不看 Cookie、不检查 CSRF，范围由 `gates.go` 的 `tokenPaths` 限定（配置数据类接口与 `GET /me`），账号安全、消息、实时通道、管理与令牌管理一律 403；最近使用时间至多每分钟写一次；找回或管理员重设密码时全部吊销；生成时发安全提醒。三道关卡（令牌范围、协议、两步验证）合并到 `gate`。同意页与引导页改为按需加载（否则首屏增加约 10 KiB）。验证：`TestAccessTokens`、`TestMFAPolicy`、`TestOwnerIsolationAllRoutes` 增加令牌；SQLite 全量、PostgreSQL（api、service、store）通过；golangci-lint 0 issues；前端 check 零警告、149 项单元、首屏 78.5 KiB；e2e 48 通过 32 跳过（新增「访问令牌」）。两步验证策略没有 e2e：需要给共用的管理员账号启用 TOTP，会让之后所有用例的登录失效，由 API 测试覆盖。
 - **R24、R23 站内提醒与 O7（2026-11-21）**：迁移 0019 新增 `notifications`（按用户与 dedup 去重，保留 180 天）与 `link_seen`（链接见过的国家与客户端，从 `sub_ips` 补齐）。触发：节点源第二次连续拉取失败（每段连续失败一次，以 `FailingSince` 区分）；`rerenderUsing` 改走 `renderInBackground`，由通过变为不通过时提醒（编辑器保存不提醒）；统计写入后 `MarkSeen` 找出链接第一次出现的国家或客户端（链接的第一个值不算，经由短链接的请求不计）。提醒写入后推送 `notice` 事件，用户配置了提醒邮件时同时发邮件（运行提醒的邮件结尾不同于安全提醒，邮件里不放对象 ID）。前端：右上角铃铛与提醒列表（打开即已读，可跳转，订阅链接新来源可直接更换令牌）。O7：分析结果的 IP 明细与最近请求在读取时查本地地理库补上省市与运营商（`Service.Locate`），不给请求表加列；`placeText` 移到 `lib/regions.ts` 与登录设备共用。验证：`TestNotices`（三种触发、去重、已读）、`TestAlertTexts` 增加新种类；SQLite 全量、PostgreSQL（api、service、store）通过；golangci-lint 0 issues；前端 check 零警告、149 项单元、首屏 80.5 KiB（铃铛与列表约 2 KiB）；完整 e2e 48 通过 1 失败（铃铛沿用了消息按钮的 class，选择器冲突），修正后失败用例与相关用例重跑通过（新增「站内提醒…」）。O7 的省市显示没有自动化测试（测试环境没有地理库）。
 - **R42 订阅链接访问限制（2026-11-21）**：迁移 0020 给 `links` 加 `limits`（JSON）；`PATCH …/links/{lid}` 改为只改出现的字段（备注、限制），限制规范化（去重、国家大写排序、客户端名不含版本与空格）并在变化时记审计。`CheckLinkAccess` 在三个订阅入口（`/s/`、短链接、托管节点文件）检查：客户端按 `clientOf` 比较、地区按本地地理库（查不到时挡住），403；每天次数按所有者时区，内存计数、每天首次从 `sub_requests` 与尚未写入的内存记录补齐，超过时 429 与到零点的 Retry-After；托管节点文件不计次数。被挡住的请求照常记录。前端：订阅链接页「访问限制」对话框（常见客户端与最近一次的客户端可一键加入）与卡片上的限制摘要。升级测试改为按旧列写入链接。验证：`TestLinkLimits`（规范化、422、只改备注不清限制、403、两次后 429、查不到地区挡住、清空恢复、状态码记入分析）；SQLite 全量、PostgreSQL（api、service、store）通过；golangci-lint 0 issues；149 项单元、首屏 80.8 KiB；e2e 50 通过 34 跳过（新增「订阅链接访问限制」）。之后只改了一处 CSS 写法（四值简写），重跑了单元测试与类型检查。地区限制在真实地理库下的放行没有自动化测试（测试环境没有地理库）。
+- **R31 提醒渠道（2026-11-21）**：决定 [0008](../decisions/0008-notification-channels.md) 把出站边界扩展到用户本人配置的推送地址。`internal/source/push.go` 发送 Webhook（可选 HMAC 签名）、Telegram、Bark、ntfy，格式按各自官方文档；只允许 https、不跟随重定向、10 s 超时、SSRF 防护同拉取，错误不含地址与令牌。迁移 0021 `notify_channels`（设置整体加密，参与密钥轮换）；`internal/service/channels.go` 增删改、测试送达后启用（与测试邮件共用每小时 5 次）、修改回到未验证；`sendAlert` 并行发往邮件与全部已启用渠道，结果记在渠道上。账号页「提醒渠道」。验证：`TestPush`（四种格式、签名、截断、校验、内网拒绝、非 2xx 与重定向失败、证书错误不泄露令牌）、`TestChannels`（API 全流程，含真实 https 接收端）、e2e「提醒渠道…」。没有向真实的 Telegram、Bark、ntfy 发送过消息。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

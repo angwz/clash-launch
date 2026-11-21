@@ -454,6 +454,41 @@ components:
         lastUsedAt: {type: string, format: date-time}
         lastIp: {type: string}
         token: {type: string, description: 明文，只在创建的响应中出现}
+    Channel:
+      type: object
+      description: 提醒渠道（需求 R31）。不返回令牌、设备 key、签名密钥与 Webhook 地址，只返回是否已设置与主机名
+      required: [id, kind, name, hasToken, hasKey, hasSecret, enabled, createdAt]
+      properties:
+        id: {type: string}
+        kind: {type: string, enum: [webhook, telegram, bark, ntfy]}
+        name: {type: string}
+        host: {type: string, description: webhook 的主机名}
+        url: {type: string, description: bark、ntfy 的服务器地址}
+        chat: {type: string}
+        topic: {type: string}
+        hasToken: {type: boolean}
+        hasKey: {type: boolean}
+        hasSecret: {type: boolean}
+        enabled: {type: boolean, description: 测试消息送达后为 true；修改设置后回到 false}
+        verifiedAt: {type: string, format: date-time}
+        lastAt: {type: string, format: date-time}
+        lastError: {type: string, description: 最近一次发送失败的原因（已分类，不含地址与令牌）}
+        createdAt: {type: string, format: date-time}
+    ChannelInput:
+      type: object
+      description: |
+        webhook：url（https）、secret（可选，附带 X-Timestamp 与 X-Signature-256 签名头）；telegram：token、chat；
+        bark：url（服务器地址）、key；ntfy：url（服务器地址）、topic、token（可选）。修改时 token、key、secret 与 webhook 的 url 留空表示保留原值
+      required: [kind]
+      properties:
+        name: {type: string, maxLength: 40}
+        kind: {type: string, enum: [webhook, telegram, bark, ntfy]}
+        url: {type: string}
+        token: {type: string}
+        chat: {type: string}
+        key: {type: string}
+        topic: {type: string}
+        secret: {type: string}
     MFAPolicy:
       type: object
       required: [policy]
@@ -908,6 +943,39 @@ paths:
       summary: 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次
       security: [{session: [], csrf: []}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/channels:
+    get:
+      tags: [account]
+      summary: 本人的提醒渠道；available 为 false 时服务没有启用推送
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: '#/components/schemas/Channel'}}, available: {type: boolean}, kinds: {type: array, items: {type: string}}, max: {type: integer}}}}}}}
+    post:
+      tags: [account]
+      summary: 新建提醒渠道（未启用，需要再发送测试消息）。每人最多 5 个；地址只允许 https 并经 SSRF 防护
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ChannelInput'}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/Channel'}}}}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/channels/{id}:
+    put:
+      tags: [account]
+      summary: 修改提醒渠道（种类不能改）；修改后回到未验证
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ChannelInput'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Channel'}}}}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+    delete:
+      tags: [account]
+      summary: 删除提醒渠道
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/channels/{id}/test:
+    post:
+      tags: [account]
+      summary: 发送测试消息；送达后启用。失败时 422 push.failed，原因同时记在渠道上。与测试邮件共用每小时 5 次
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Channel'}}}}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/tokens:
     get:
       tags: [account]

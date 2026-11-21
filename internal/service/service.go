@@ -72,6 +72,8 @@ type Service struct {
 	RequestRetention time.Duration
 	// Mailer 发送用户本人配置的提醒邮件；nil 时邮件提醒不可用。
 	Mailer *source.Mailer
+	// Pusher 把提醒发到用户本人配置的 Webhook、Telegram、Bark、ntfy（需求 R31）；nil 时渠道不可用。
+	Pusher *source.Pusher
 	// Notifier 接收安全提醒事件；设置时代替邮件发送（测试用）。
 	Notifier Notifier
 

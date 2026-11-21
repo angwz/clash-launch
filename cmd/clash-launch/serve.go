@@ -225,7 +225,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.primaryURL(), PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, RequestRetention: time.Duration(c.RequestDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo},
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.primaryURL(), PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, Pusher: &source.Pusher{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, RequestRetention: time.Duration(c.RequestDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo},
 		Events: events.New(eventsPerUser)}
 	return svc, &api.Config{PublicURLs: c.PublicURLs, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }

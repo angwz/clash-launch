@@ -239,6 +239,7 @@ type Store interface {
 	Profiles() ProfileRepo
 	Templates() TemplateRepo
 	Tokens() TokenRepo
+	Channels() ChannelRepo
 	Notifications() NotificationRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
@@ -351,6 +352,34 @@ type AccessToken struct {
 	ExpiresAt  time.Time // 零值表示不过期
 	LastUsedAt time.Time
 	LastIP     string
+}
+
+// Channel 是一个提醒渠道（需求 R31）。Config 是渠道设置的 JSON，整体加密存储。
+type Channel struct {
+	ID         string
+	OwnerID    string
+	Kind       string // webhook | telegram | bark | ntfy
+	Name       string
+	Config     []byte
+	Enabled    bool
+	VerifiedAt time.Time
+	LastAt     time.Time
+	LastError  string
+	CreatedAt  time.Time
+}
+
+// ChannelRepo 管理提醒渠道。
+type ChannelRepo interface {
+	Create(ctx context.Context, c *Channel) error
+	Get(ctx context.Context, owner, id string) (*Channel, error)
+	// List 返回本人的渠道（先建的在前）。
+	List(ctx context.Context, owner string) ([]Channel, error)
+	Count(ctx context.Context, owner string) (int, error)
+	// Update 改写名称、设置、启用状态与最近结果。
+	Update(ctx context.Context, c *Channel) error
+	Delete(ctx context.Context, owner, id string) error
+	// Result 记录最近一次发送的结果；errText 为空表示成功。
+	Result(ctx context.Context, id string, at time.Time, errText string) error
 }
 
 // TokenRepo 管理个人访问令牌。

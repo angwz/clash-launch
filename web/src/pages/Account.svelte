@@ -8,6 +8,7 @@
   import TwoFactor from "../components/account/TwoFactor.svelte";
   import Passkeys from "../components/account/Passkeys.svelte";
   import Alerts from "../components/account/Alerts.svelte";
+  import Channels from "../components/account/Channels.svelte";
   import AccessTokens from "../components/account/AccessTokens.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
@@ -175,6 +176,8 @@
   <TwoFactor />
 
   <Alerts />
+
+  <Channels />
 
   <AccessTokens />
 

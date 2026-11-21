@@ -12,6 +12,7 @@ import (
 
 // 个人 SMTP 提醒（第 14.1 节）：用户填写自己的 SMTP 服务器与收件地址，测试邮件发送成功后才启用。
 // 修改设置会回到「未验证」状态。密码加密存储，只用于该用户本人的提醒。发送失败只记日志。
+// 其他提醒渠道见 channels.go；sendAlert 同时发往两者。
 
 // ErrSMTPUnavailable 表示服务没有配置邮件发送（Mailer 为 nil）。
 var ErrSMTPUnavailable = errors.New("service: 邮件提醒不可用")
@@ -123,19 +124,16 @@ func langOf(u *store.User) string {
 	return "en"
 }
 
-// sendAlert 在后台发送一条提醒：只有已验证并启用的设置才会发送；失败只记日志。
+// sendAlert 在后台把一条提醒发到邮件与全部提醒渠道（需求 R31）：只有已验证并启用的才会发送；
+// 失败只记日志。邮件与各渠道彼此独立，一处失败不影响其他。
 func (s *Service) sendAlert(userID string, kind Alert, detail map[string]string) {
-	if s.Mailer == nil {
+	if s.Mailer == nil && s.Pusher == nil {
 		return
 	}
 	at := s.now()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		x, err := s.Store.SMTP().Get(ctx, userID)
-		if err != nil || !x.Enabled {
-			return
-		}
 		u, err := s.Store.Users().ByID(ctx, userID)
 		if err != nil {
 			return
@@ -145,8 +143,15 @@ func (s *Service) sendAlert(userID string, kind Alert, detail map[string]string)
 			d[k] = v
 		}
 		subject, body := alertText(langOf(u), string(kind), d)
-		if err := s.Mailer.Send(ctx, mailFor(x, subject, body)); err != nil && s.Log != nil {
-			s.Log.Warn("提醒邮件发送失败", "user", userID, "kind", kind, "error", err)
+		if s.Mailer != nil {
+			if x, err := s.Store.SMTP().Get(ctx, userID); err == nil && x.Enabled {
+				if err := s.Mailer.Send(ctx, mailFor(x, subject, body)); err != nil && s.Log != nil {
+					s.Log.Warn("提醒邮件发送失败", "user", userID, "kind", kind, "error", err)
+				}
+			}
+		}
+		if s.Pusher != nil {
+			s.pushAlert(ctx, userID, kind, subject, body, d, at)
 		}
 	}()
 }

@@ -1702,6 +1702,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 本人的提醒渠道；available 为 false 时服务没有启用推送 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items?: components["schemas"]["Channel"][];
+                            available?: boolean;
+                            kinds?: string[];
+                            max?: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 新建提醒渠道（未启用，需要再发送测试消息）。每人最多 5 个；地址只允许 https 并经 SSRF 防护 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChannelInput"];
+                };
+            };
+            responses: {
+                /** @description 已创建 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Channel"];
+                    };
+                };
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/channels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改提醒渠道（种类不能改）；修改后回到未验证 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChannelInput"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Channel"];
+                    };
+                };
+                404: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        /** 删除提醒渠道 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/channels/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发送测试消息；送达后启用。失败时 422 push.failed，原因同时记在渠道上。与测试邮件共用每小时 5 次 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Channel"];
+                    };
+                };
+                404: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/tokens": {
         parameters: {
             query?: never;
@@ -5970,6 +6139,47 @@ export interface components {
             lastIp?: string;
             /** @description 明文，只在创建的响应中出现 */
             token?: string;
+        };
+        /** @description 提醒渠道（需求 R31）。不返回令牌、设备 key、签名密钥与 Webhook 地址，只返回是否已设置与主机名 */
+        Channel: {
+            id: string;
+            /** @enum {string} */
+            kind: "webhook" | "telegram" | "bark" | "ntfy";
+            name: string;
+            /** @description webhook 的主机名 */
+            host?: string;
+            /** @description bark、ntfy 的服务器地址 */
+            url?: string;
+            chat?: string;
+            topic?: string;
+            hasToken: boolean;
+            hasKey: boolean;
+            hasSecret: boolean;
+            /** @description 测试消息送达后为 true；修改设置后回到 false */
+            enabled: boolean;
+            /** Format: date-time */
+            verifiedAt?: string;
+            /** Format: date-time */
+            lastAt?: string;
+            /** @description 最近一次发送失败的原因（已分类，不含地址与令牌） */
+            lastError?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * @description webhook：url（https）、secret（可选，附带 X-Timestamp 与 X-Signature-256 签名头）；telegram：token、chat；
+         *     bark：url（服务器地址）、key；ntfy：url（服务器地址）、topic、token（可选）。修改时 token、key、secret 与 webhook 的 url 留空表示保留原值
+         */
+        ChannelInput: {
+            name?: string;
+            /** @enum {string} */
+            kind: "webhook" | "telegram" | "bark" | "ntfy";
+            url?: string;
+            token?: string;
+            chat?: string;
+            key?: string;
+            topic?: string;
+            secret?: string;
         };
         MFAPolicy: {
             /** @enum {string} */

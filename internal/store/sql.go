@@ -1586,6 +1586,91 @@ func (r tokens) Touch(ctx context.Context, id string, at time.Time, ip string) e
 	return err
 }
 
+// —— 提醒渠道（需求 R31）——
+
+type channels struct{ d *DB }
+
+func (d *DB) Channels() ChannelRepo { return channels{d} }
+
+const channelCols = "id, owner_id, kind, name, config_enc, enabled, verified_at, last_at, last_error, created_at"
+
+func (r channels) scan(row interface{ Scan(...any) error }) (*Channel, error) {
+	var c Channel
+	var enc []byte
+	var en int
+	var v, l, cr int64
+	if err := row.Scan(&c.ID, &c.OwnerID, &c.Kind, &c.Name, &enc, &en, &v, &l, &c.LastError, &cr); err != nil {
+		return nil, notFound(err)
+	}
+	s, err := r.d.openStr(enc, "notify_channels", "config", c.ID)
+	if err != nil {
+		return nil, err
+	}
+	c.Config, c.Enabled = []byte(s), en != 0
+	c.VerifiedAt, c.LastAt, c.CreatedAt = fromMS(v), fromMS(l), fromMS(cr)
+	return &c, nil
+}
+
+func (r channels) Create(ctx context.Context, c *Channel) error {
+	if c.ID == "" {
+		c.ID = NewID()
+	}
+	enc, err := r.d.sealStr(string(c.Config), "notify_channels", "config", c.ID)
+	if err != nil {
+		return err
+	}
+	_, err = r.d.exec(ctx, "INSERT INTO notify_channels ("+channelCols+") VALUES (?,?,?,?,?,?,?,?,?,?)",
+		c.ID, c.OwnerID, c.Kind, c.Name, enc, b2i(c.Enabled), ms(c.VerifiedAt), ms(c.LastAt), c.LastError, ms(c.CreatedAt))
+	return err
+}
+
+func (r channels) Get(ctx context.Context, owner, id string) (*Channel, error) {
+	return r.scan(r.d.row(ctx, "SELECT "+channelCols+" FROM notify_channels WHERE owner_id=? AND id=?", owner, id))
+}
+
+func (r channels) List(ctx context.Context, owner string) ([]Channel, error) {
+	rows, err := r.d.query(ctx, "SELECT "+channelCols+" FROM notify_channels WHERE owner_id=? ORDER BY created_at, id", owner)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Channel
+	for rows.Next() {
+		c, err := r.scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *c)
+	}
+	return out, rows.Err()
+}
+
+func (r channels) Count(ctx context.Context, owner string) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM notify_channels WHERE owner_id=?", owner).Scan(&n)
+	return n, err
+}
+
+func (r channels) Update(ctx context.Context, c *Channel) error {
+	enc, err := r.d.sealStr(string(c.Config), "notify_channels", "config", c.ID)
+	if err != nil {
+		return err
+	}
+	res, err := r.d.exec(ctx, "UPDATE notify_channels SET name=?, config_enc=?, enabled=?, verified_at=?, last_at=?, last_error=? WHERE owner_id=? AND id=?",
+		c.Name, enc, b2i(c.Enabled), ms(c.VerifiedAt), ms(c.LastAt), c.LastError, c.OwnerID, c.ID)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r channels) Delete(ctx context.Context, owner, id string) error {
+	res, err := r.d.exec(ctx, "DELETE FROM notify_channels WHERE owner_id=? AND id=?", owner, id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r channels) Result(ctx context.Context, id string, at time.Time, errText string) error {
+	_, err := r.d.exec(ctx, "UPDATE notify_channels SET last_at=?, last_error=? WHERE id=?", ms(at), errText, id)
+	return err
+}
+
 // —— 站内提醒（需求 R23、R24）——
 
 type notifications struct{ d *DB }

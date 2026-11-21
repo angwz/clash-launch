@@ -57,12 +57,21 @@ Administrators can require two-step verification for admins or for everyone. If 
 
 ## Notifications
 
-The bell at the top right lists things that need your attention; if you have set up alert emails, you also get an email:
+The bell at the top right lists things that need your attention; if you have set up alert emails or alert channels, they get it too:
 
 - **A node source keeps failing**: you are told once after two failed refreshes in a row. Subscriptions keep using the last successful nodes.
 - **A config fails its check**: after a node source or rule source update, the config was regenerated in the background and did not pass. Subscriptions keep serving the last version that passed.
 - **A subscription link has a new source**: the link was fetched for the first time from a new country or region, or by a new client. If that was not you or someone you shared it with, the link may have leaked, and you can replace the link token right from the notification. A link's first source (your own import) does not trigger this, and requests through short links are not counted, since short links are usually shared with others.
 
+
+## Alert channels
+
+Besides email, the Account page can send the same alerts to a webhook, Telegram, Bark or ntfy — up to 5 channels:
+
+- Each channel is enabled only after a test message gets through; test again after changing its settings.
+- URLs must use https, and addresses on private networks are refused (a self-hosted service on a private network needs the administrator to allow it).
+- Tokens, device keys and signing secrets are stored encrypted and never shown again.
+- Alert contents pass through the service you choose. On the public ntfy server anyone can subscribe to a topic, so pick a hard-to-guess name.
 
 ## Subscription link access limits
 

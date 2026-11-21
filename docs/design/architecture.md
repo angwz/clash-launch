@@ -27,7 +27,7 @@
 | `internal/profile` | 方案文档 `clash-launch/profile: v1` 的解析、校验与规范化导出 |
 | `internal/node` | 内容识别、分享链接与 YAML 的解析与校验、sing-box 映射、整理、地区识别与装饰 emoji、倍率与标签，见 [nodes](nodes.md) |
 | `internal/ruleset` | groups.toml、rulesets.toml、外部配置 ini 的解析与校验；匹配器、现代选择器、策略组展开、规则与 rule-provider、预设，见 [rules](rules.md) |
-| `internal/source` | 唯一联网的包：拉取、SSRF 防护、出站代理、快照，见 [network](network.md) |
+| `internal/source` | 唯一联网的包：拉取、SSRF 防护、快照、提醒邮件与推送，见 [network](network.md) |
 | `internal/workspace` | 命令行的工作区文件（源与规则源的快照） |
 | `internal/layer` | 表单层校验（只接受目录字段）与原始编辑合并（合并标签），见 [merge](merge.md) |
 | `internal/target` | 目标预设加载；版本门槛、目标不支持的字段、弃用提示 |
