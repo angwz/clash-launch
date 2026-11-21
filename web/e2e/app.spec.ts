@@ -1172,3 +1172,25 @@ test("用户协议：注册时同意，管理员发布新版本后普通用户�
   await expect(page.getByText(/第\d+版 · 默认文本/)).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("访问令牌：生成后只显示一次，脚本可用它读取配置，吊销后失效（R25）", async ({ page, request }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "访问令牌" }) });
+  await box.getByLabel("名称").fill("e2e 脚本");
+  await box.getByRole("button", { name: "生成令牌" }).click();
+  const tok = (await box.locator("code.tok").textContent())!.trim();
+  expect(tok).toMatch(/^clt_/);
+  const auth = { headers: { Authorization: "Bearer " + tok } };
+  expect((await request.get("/api/v1/profiles", auth)).status()).toBe(200);
+  expect((await request.post("/api/v1/sources", { ...auth, data: { name: "x", kind: "batch", content: "" } })).status()).toBe(403); // 只读
+  await box.getByRole("button", { name: "我已保存" }).click();
+  await expect(box.locator("code.tok")).toHaveCount(0);
+  await box.getByRole("button", { name: "吊销 e2e 脚本" }).click();
+  await box.getByRole("button", { name: "确认吊销" }).click();
+  await expect(box.getByText("e2e 脚本")).toHaveCount(0);
+  expect((await request.get("/api/v1/profiles", auth)).status()).toBe(401);
+  expect(problems).toEqual([]);
+});

@@ -1498,3 +1498,75 @@ func (r templates) Delete(ctx context.Context, owner, id string) error {
 	res, err := r.d.exec(ctx, "DELETE FROM templates WHERE owner_id=? AND id=?", owner, id)
 	return affected(res, err, ErrNotFound)
 }
+
+// —— 个人访问令牌（需求 R25）——
+
+type tokens struct{ d *DB }
+
+func (d *DB) Tokens() TokenRepo { return tokens{d} }
+
+const tokenCols = "id, owner_id, name, token_hash, scope, created_at, expires_at, last_used_at, last_ip" //nolint:gosec // 列名，不是凭据
+
+func scanToken(r interface{ Scan(...any) error }) (*AccessToken, error) {
+	var t AccessToken
+	var c, e, u int64
+	if err := r.Scan(&t.ID, &t.OwnerID, &t.Name, &t.TokenHash, &t.Scope, &c, &e, &u, &t.LastIP); err != nil {
+		return nil, notFound(err)
+	}
+	t.CreatedAt, t.ExpiresAt, t.LastUsedAt = fromMS(c), fromMS(e), fromMS(u)
+	return &t, nil
+}
+
+func (r tokens) Create(ctx context.Context, t *AccessToken) error {
+	if t.ID == "" {
+		t.ID = NewID()
+	}
+	_, err := r.d.exec(ctx, "INSERT INTO access_tokens ("+tokenCols+") VALUES (?,?,?,?,?,?,?,?,?)",
+		t.ID, t.OwnerID, t.Name, t.TokenHash, t.Scope, ms(t.CreatedAt), ms(t.ExpiresAt), ms(t.LastUsedAt), t.LastIP)
+	if err != nil && isUnique(err) {
+		return ErrExists
+	}
+	return err
+}
+
+func (r tokens) ByHash(ctx context.Context, hash string) (*AccessToken, error) {
+	return scanToken(r.d.row(ctx, "SELECT "+tokenCols+" FROM access_tokens WHERE token_hash=?", hash))
+}
+
+func (r tokens) List(ctx context.Context, owner string) ([]AccessToken, error) {
+	rows, err := r.d.query(ctx, "SELECT "+tokenCols+" FROM access_tokens WHERE owner_id=? ORDER BY created_at DESC, id DESC", owner)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []AccessToken
+	for rows.Next() {
+		t, err := scanToken(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *t)
+	}
+	return out, rows.Err()
+}
+
+func (r tokens) Count(ctx context.Context, owner string) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM access_tokens WHERE owner_id=?", owner).Scan(&n)
+	return n, err
+}
+
+func (r tokens) Delete(ctx context.Context, owner, id string) error {
+	res, err := r.d.exec(ctx, "DELETE FROM access_tokens WHERE owner_id=? AND id=?", owner, id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r tokens) DeleteAll(ctx context.Context, owner string) error {
+	_, err := r.d.exec(ctx, "DELETE FROM access_tokens WHERE owner_id=?", owner)
+	return err
+}
+
+func (r tokens) Touch(ctx context.Context, id string, at time.Time, ip string) error {
+	_, err := r.d.exec(ctx, "UPDATE access_tokens SET last_used_at=?, last_ip=? WHERE id=?", ms(at), ip, id)
+	return err
+}

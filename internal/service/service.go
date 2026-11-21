@@ -82,7 +82,8 @@ type Service struct {
 	Trace TraceConfig
 
 	guardsState
-	terms     termsCache // 当前用户协议版本的短时缓存（需求 R40）
+	terms     termsCache  // 当前用户协议版本的短时缓存（需求 R40）
+	mfaPolicy policyCache // 两步验证策略的短时缓存（需求 R41）
 	traceOnce sync.Once
 	rules     *ruleCache
 	locks     sync.Map // 方案 ID → *sync.Mutex：同一方案的渲染串行

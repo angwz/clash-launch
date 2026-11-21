@@ -26,6 +26,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	p := decode[profileDTO](t, a.want(200, "GET", "/api/v1/profiles/"+pid, nil))
 	tpl := decode[templateDTO](t, a.want(201, "POST", "/api/v1/templates", map[string]any{"name": "t", "doc": p.Doc}))
 	sl := decode[shortDTO](t, a.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID}))
+	tok := decode[tokenDTO](t, a.want(201, "POST", "/api/v1/account/tokens", map[string]any{"name": "t", "scope": "read"}))
 
 	// 路由前缀 → A 的资源 ID
 	ids := map[string]string{
@@ -38,6 +39,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/admin/users/":      firstAdmin(t, h),
 		"/api/v1/templates/":        tpl.ID,
 		"/api/v1/short-links/":      sl.ID,
+		"/api/v1/account/tokens/":   tok.ID,
 		"/api/v1/invites/":          inv.ID, // 管理员 A 发出的邀请：B 不能作废
 	}
 

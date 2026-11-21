@@ -15,6 +15,8 @@ class SessionState {
   loaded = $state(false);
   /** 用户协议的同意状态（需求 R40）：pending 时页面先显示协议，其他接口在同意前返回 403 */
   terms = $state<Schemas["TermsState"] | null>(null);
+  /** 两步验证策略要求本账号启用而尚未启用（需求 R41）：页面先引导设置 */
+  mfaSetup = $state(false);
 
   get isAdmin(): boolean {
     return this.user?.role === "admin";
@@ -65,6 +67,7 @@ class SessionState {
     } finally {
       this.user = null;
       this.terms = null;
+      this.mfaSetup = false;
       i18n.timeZone = undefined;
       setCsrf("");
     }
@@ -81,6 +84,7 @@ class SessionState {
     this.user = s.user;
     this.logoutAt = s.logoutAt ?? null;
     this.terms = s.terms;
+    this.mfaSetup = s.mfaSetup;
     i18n.timeZone = s.user?.timezone || undefined;
     setCsrf(s.csrf);
   }

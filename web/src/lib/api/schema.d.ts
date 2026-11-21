@@ -1702,6 +1702,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 本人的个人访问令牌（不含明文） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items?: components["schemas"]["AccessToken"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * 生成个人访问令牌；明文 token 只在这次响应中出现（记入审计 token.create，并发送安全提醒）
+         * @description 令牌以 Authorization: Bearer clt_… 使用，不需要 CSRF。read 只能读取，write 还能修改；能访问节点源、规则源、配置、订阅链接、模板、短链接、订阅分析、节点写法、配额与 GET /api/v1/me，
+         *     账号安全（密码、两步验证、通行密钥、会话、令牌本身）、消息与授权、实时通道和管理接口一律 403 token.forbidden。每人最多 20 个；days 为 0 表示不过期。
+         *     找回密码或管理员重设密码时全部吊销；账号停用后不可用；用户协议与两步验证策略的拦截同样适用。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** @enum {string} */
+                        scope: "read" | "write";
+                        days?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 已创建 */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessToken"];
+                    };
+                };
+                409: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 吊销一个令牌（记入审计 token.revoke） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                204: components["responses"]["NoContent"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/audit": {
         parameters: {
             query?: never;
@@ -2223,6 +2328,71 @@ export interface paths {
                     };
                 };
                 400: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/mfa-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 两步验证策略：off 不要求，admins 要求管理员，all 要求全部用户 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MFAPolicy"];
+                    };
+                };
+            };
+        };
+        /**
+         * 设定两步验证策略（记入审计 admin.mfa_policy）
+         * @description 要求别人之前管理员自己必须已启用（否则 409 mfa.policy_self）。策略适用而尚未启用的用户，除读取身份、同意协议、退出登录与启用 TOTP 外的已登录接口返回 403 mfa.setup_required；策略适用时不能关闭两步验证（409 mfa.required_by_policy）。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MFAPolicy"];
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MFAPolicy"];
+                    };
+                };
+                400: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
             };
         };
         post?: never;
@@ -5418,6 +5588,8 @@ export interface components {
              */
             logoutAt?: string;
             terms: components["schemas"]["TermsState"];
+            /** @description 两步验证策略要求本账号启用而尚未启用（需求 R41） */
+            mfaSetup: boolean;
         };
         Snapshot: {
             /** Format: date-time */
@@ -5683,6 +5855,25 @@ export interface components {
             current: number;
             /** @description 需要先同意才能继续使用 */
             pending: boolean;
+        };
+        AccessToken: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            scope: "read" | "write";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastIp?: string;
+            /** @description 明文，只在创建的响应中出现 */
+            token?: string;
+        };
+        MFAPolicy: {
+            /** @enum {string} */
+            policy: "off" | "admins" | "all";
         };
         PulseSettings: {
             /** @description 是否向普通用户显示在线人数 */

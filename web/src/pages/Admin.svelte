@@ -63,6 +63,24 @@
     }
   }
 
+  // 两步验证策略（R41）
+  let mfaPolicy = $state<"off" | "admins" | "all" | null>(null);
+  $effect(() => {
+    if (!session.isAdmin) return;
+    api
+      .get<{ policy: "off" | "admins" | "all" }>("/api/v1/admin/mfa-policy")
+      .then((r) => (mfaPolicy = r.policy))
+      .catch((e) => (error = errorText(e)));
+  });
+  async function setMfaPolicy(p: "off" | "admins" | "all") {
+    try {
+      mfaPolicy = (await api.put<{ policy: "off" | "admins" | "all" }>("/api/v1/admin/mfa-policy", { policy: p })).policy;
+      toasts.push("ok", t("admin.mfa_policy_saved"));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
   // 是否向普通用户显示在线人数（R11）
   let showOnline = $state<boolean | null>(null);
   $effect(() => {
@@ -144,6 +162,22 @@
     </section>
 
     <TermsEditor />
+
+    <section class="panel box" aria-labelledby="a-mfa">
+      <div class="row">
+        <div>
+          <h2 id="a-mfa">{t("admin.mfa_policy")}</h2>
+          <p class="muted">{t("admin.mfa_policy_desc")}</p>
+        </div>
+        {#if mfaPolicy}
+          <div class="seg" role="radiogroup" aria-labelledby="a-mfa">
+            {#each ["off", "admins", "all"] as const as m (m)}
+              <button type="button" role="radio" aria-checked={mfaPolicy === m} class:on={mfaPolicy === m} onclick={() => void setMfaPolicy(m)}>{t("admin.mfa_policy_" + m)}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </section>
 
     <section class="panel box" aria-labelledby="a-online">
       <div class="row">

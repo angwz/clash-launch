@@ -257,6 +257,16 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "source.client_fetch", "subscriptions on this account are fetched by the client, not the server")
 	case errors.Is(err, service.ErrNodeMode):
 		problem(w, http.StatusBadRequest, "node_mode.invalid", err.Error())
+	case errors.Is(err, service.ErrMFAPolicy):
+		problem(w, http.StatusBadRequest, "mfa.policy", err.Error())
+	case errors.Is(err, service.ErrMFAPolicySelf):
+		problem(w, http.StatusConflict, "mfa.policy_self", "enable two-step verification for yourself before requiring it of others")
+	case errors.Is(err, service.ErrMFARequired):
+		problem(w, http.StatusConflict, "mfa.required_by_policy", "two-step verification is required on this site and cannot be turned off")
+	case errors.Is(err, service.ErrTokenInvalid):
+		problem(w, http.StatusUnprocessableEntity, "token.invalid", err.Error())
+	case errors.Is(err, service.ErrTokenLimit):
+		problem(w, http.StatusConflict, "token.limit", "too many access tokens; revoke one first")
 	case errors.Is(err, service.ErrTermsOutdated):
 		problem(w, http.StatusConflict, "terms.outdated", "the terms of use have changed; read and accept the latest version")
 	case errors.Is(err, service.ErrTermsText):

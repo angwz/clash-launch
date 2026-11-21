@@ -20,6 +20,7 @@ const (
 	AlertRecovered Alert = "recovered"  // 通过找回重设了密码
 	AlertMFA       Alert = "mfa"        // 两步验证启用或关闭、恢复码重新生成
 	AlertPasskey   Alert = "passkey"    // 通行密钥添加或删除
+	AlertToken     Alert = "token"      // 生成了个人访问令牌（需求 R25）
 )
 
 // Notifier 接收一条提醒事件。
@@ -45,6 +46,7 @@ var alertTexts = map[string]map[string][2]string{
 		"recovered":  {"你的 Clash, Launch! 密码已通过找回重设", "有人回答了安全问题并重设了你的账号密码，所有设备都已退出登录。"},
 		"mfa":        {"你的 Clash, Launch! 两步验证设置已变更", "你的账号两步验证设置刚刚发生变化。"},
 		"passkey":    {"你的 Clash, Launch! 通行密钥已变更", "你的账号通行密钥刚刚发生变化。"},
+		"token":      {"你的 Clash, Launch! 账号生成了访问令牌", "你的账号刚刚生成了一个个人访问令牌，持有它的程序可以调用接口。"},
 	},
 	"en": {
 		"test":       {"Clash, Launch! alert test", "This is a test message. Receiving it means alerts can be delivered; alerts are now enabled."},
@@ -54,17 +56,18 @@ var alertTexts = map[string]map[string][2]string{
 		"recovered":  {"Your Clash, Launch! password was reset", "Someone answered the security questions and reset your password; all devices were signed out."},
 		"mfa":        {"Your Clash, Launch! two-step verification changed", "The two-step verification settings of your account just changed."},
 		"passkey":    {"Your Clash, Launch! passkeys changed", "The passkeys of your account just changed."},
+		"token":      {"A Clash, Launch! access token was created", "A personal access token was just created for your account; any program holding it can call the API."},
 	},
 }
 
 var alertFooter = map[string]string{
-	"zh": "如果这不是你本人的操作，请立即修改密码，并在「账号」页面检查登录设备、两步验证与通行密钥。",
-	"en": "If this wasn't you, change your password now and review signed-in devices, two-step verification and passkeys on the Account page.",
+	"zh": "如果这不是你本人的操作，请立即修改密码，并在「账号」页面检查登录设备、两步验证、通行密钥与访问令牌。",
+	"en": "If this wasn't you, change your password now and review signed-in devices, two-step verification, passkeys and access tokens on the Account page.",
 }
 
 var alertLabels = map[string]map[string]string{
-	"zh": {"time": "时间", "user": "账号", "ip": "网络", "device": "设备", "change": "变更", "name": "名称"},
-	"en": {"time": "Time", "user": "Account", "ip": "Network", "device": "Device", "change": "Change", "name": "Name"},
+	"zh": {"time": "时间", "user": "账号", "ip": "网络", "device": "设备", "change": "变更", "name": "名称", "scope": "权限"},
+	"en": {"time": "Time", "user": "Account", "ip": "Network", "device": "Device", "change": "Change", "name": "Name", "scope": "Scope"},
 }
 
 // alertText 生成提醒邮件的标题与正文（纯文本）。细节按键名排序，便于测试与阅读。

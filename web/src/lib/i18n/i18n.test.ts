@@ -19,6 +19,7 @@ function files(dir: string): string[] {
 
 // 以前缀拼接的动态键：列出每个前缀可能的取值（与后端枚举、组件状态一致）
 const dynamic: Record<string, string[]> = {
+  "admin.mfa_policy_": ["off", "admins", "all"],
   "check.": ["idle", "running", "passed", "failed", "unavailable", "error"],
   "account.logout_in_": ["1h", "1d", "3d", "7d"],
   "theme.": ["system", "light", "dark"],

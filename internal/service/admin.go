@@ -95,7 +95,7 @@ func (s *Service) AdminSetDisabled(ctx context.Context, admin, id string, disabl
 	return nil
 }
 
-// AdminResetPassword 为用户设置新密码，并注销其全部会话。
+// AdminResetPassword 为用户设置新密码，并注销其全部会话、吊销全部访问令牌。
 func (s *Service) AdminResetPassword(ctx context.Context, admin, id, password string) error {
 	if err := auth.CheckPassword(password); err != nil {
 		return err
@@ -108,6 +108,9 @@ func (s *Service) AdminResetPassword(ctx context.Context, admin, id, password st
 		return err
 	}
 	if err := s.Store.Sessions().DeleteAll(ctx, id); err != nil {
+		return err
+	}
+	if err := s.Store.Tokens().DeleteAll(ctx, id); err != nil {
 		return err
 	}
 	s.audit(ctx, admin, "admin.user.password", map[string]string{"user": u.Username})

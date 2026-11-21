@@ -7,6 +7,8 @@
   import { t } from "../../lib/i18n/i18n.svelte";
   import { toasts } from "../../lib/toast.svelte";
 
+  // onenabled：启用成功后调用（两步验证策略的引导页据此刷新会话，R41）
+  let { onenabled }: { onenabled?: () => void } = $props();
   let status = $state<{ enabled: boolean; remainingCodes: number } | null>(null);
   let setup = $state<{ secret: string; uri: string } | null>(null);
   let code = $state("");
@@ -37,6 +39,7 @@
       setup = null;
       await load();
       toasts.push("ok", t("mfa.enabled"));
+      onenabled?.();
     } catch (err) {
       toasts.push("err", errorText(err));
     }

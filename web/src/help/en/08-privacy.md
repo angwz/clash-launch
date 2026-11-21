@@ -38,3 +38,19 @@ That means **whoever controls this server and its key could technically decrypt 
 ## Terms of use
 
 The [terms of use](/terms) you agree to when registering list what this site stores, how long each kind of data is kept, and the rules of use. When the terms change, you are asked to read and agree to the new version the next time you use the site.
+
+## Access tokens
+
+On the Account page you can create access tokens so scripts can call the API, for example to refresh node sources on a schedule or read subscription stats:
+
+```sh
+curl -H "Authorization: Bearer clt_…" https://your-site/api/v1/profiles
+```
+
+- Tokens are read-only or read-write, and can only reach node sources, rule sources, configs, subscription links, short links and stats. Password, two-step verification, signed-in devices, messages and admin features are off limits.
+- A token is shown only once, when it is created; the server keeps only its hash. If one leaks, revoke it on the Account page and it stops working immediately.
+- All tokens are revoked automatically when your password is recovered or reset by an administrator.
+
+## Two-step verification requirement
+
+Administrators can require two-step verification for admins or for everyone. If it is required and you haven't enabled it, you'll see the setup page after signing in and can continue once it's done; while it is required, you can't turn it off.

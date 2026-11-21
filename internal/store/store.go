@@ -224,6 +224,7 @@ type Store interface {
 	Snapshots() SnapshotRepo
 	Profiles() ProfileRepo
 	Templates() TemplateRepo
+	Tokens() TokenRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo
@@ -292,6 +293,32 @@ type SessionRepo interface {
 	List(ctx context.Context, userID string) ([]Session, error)
 	// SetLogoutAt 设定或取消（零值）定时退出。
 	SetLogoutAt(ctx context.Context, userID, idHash string, at time.Time) error
+}
+
+// AccessToken 是个人访问令牌（需求 R25）。令牌只以哈希保存。
+type AccessToken struct {
+	ID         string
+	OwnerID    string
+	Name       string
+	TokenHash  string
+	Scope      string // read | write
+	CreatedAt  time.Time
+	ExpiresAt  time.Time // 零值表示不过期
+	LastUsedAt time.Time
+	LastIP     string
+}
+
+// TokenRepo 管理个人访问令牌。
+type TokenRepo interface {
+	Create(ctx context.Context, t *AccessToken) error
+	ByHash(ctx context.Context, hash string) (*AccessToken, error)
+	// List 返回本人的令牌（新的在前）。
+	List(ctx context.Context, owner string) ([]AccessToken, error)
+	Count(ctx context.Context, owner string) (int, error)
+	Delete(ctx context.Context, owner, id string) error
+	// DeleteAll 吊销本人的全部令牌（找回密码、管理员重设密码时）。
+	DeleteAll(ctx context.Context, owner string) error
+	Touch(ctx context.Context, id string, at time.Time, ip string) error
 }
 
 // SourceRepo 管理节点源。

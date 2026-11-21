@@ -25,6 +25,7 @@ components:
   securitySchemes:
     session: {type: apiKey, in: cookie, name: cl_session, description: HTTPS 下 Cookie 名为 __Host-cl_session}
     csrf: {type: apiKey, in: header, name: X-CSRF-Token}
+    token: {type: http, scheme: bearer, description: 个人访问令牌（clt_…，需求 R25），见 POST /api/v1/account/tokens；不需要 CSRF，只能访问其中列出的接口}
   parameters:
     id: {name: id, in: path, required: true, schema: {type: string}}
     lid: {name: lid, in: path, required: true, schema: {type: string}}
@@ -194,12 +195,13 @@ components:
         invitedBy: {type: string, description: 邀请人的用户名（需求 R12）}
     Session:
       type: object
-      required: [user, csrf, terms]
+      required: [user, csrf, terms, mfaSetup]
       properties:
         user: {$ref: '#/components/schemas/User'}
         csrf: {type: string}
         logoutAt: {type: string, format: date-time, description: 当前设备的定时退出时间（需求 R8）}
         terms: {$ref: '#/components/schemas/TermsState'}
+        mfaSetup: {type: boolean, description: 两步验证策略要求本账号启用而尚未启用（需求 R41）}
     Snapshot:
       type: object
       properties:
@@ -432,6 +434,23 @@ components:
         accepted: {type: integer, description: 用户同意的版本；0 表示尚未同意}
         current: {type: integer}
         pending: {type: boolean, description: 需要先同意才能继续使用}
+    AccessToken:
+      type: object
+      required: [id, name, scope, createdAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        scope: {type: string, enum: [read, write]}
+        createdAt: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time}
+        lastUsedAt: {type: string, format: date-time}
+        lastIp: {type: string}
+        token: {type: string, description: 明文，只在创建的响应中出现}
+    MFAPolicy:
+      type: object
+      required: [policy]
+      properties:
+        policy: {type: string, enum: ['off', admins, all]}
     PulseSettings:
       type: object
       required: [showOnline]
@@ -881,6 +900,29 @@ paths:
       summary: 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次
       security: [{session: [], csrf: []}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/tokens:
+    get:
+      tags: [account]
+      summary: 本人的个人访问令牌（不含明文）
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {items: {type: array, items: {$ref: '#/components/schemas/AccessToken'}}}}}}}}
+    post:
+      tags: [account]
+      summary: 生成个人访问令牌；明文 token 只在这次响应中出现（记入审计 token.create，并发送安全提醒）
+      description: |
+        令牌以 Authorization: Bearer clt_… 使用，不需要 CSRF。read 只能读取，write 还能修改；能访问节点源、规则源、配置、订阅链接、模板、短链接、订阅分析、节点写法、配额与 GET /api/v1/me，
+        账号安全（密码、两步验证、通行密钥、会话、令牌本身）、消息与授权、实时通道和管理接口一律 403 token.forbidden。每人最多 20 个；days 为 0 表示不过期。
+        找回密码或管理员重设密码时全部吊销；账号停用后不可用；用户协议与两步验证策略的拦截同样适用。
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [name, scope], properties: {name: {type: string, maxLength: 64}, scope: {type: string, enum: [read, write]}, days: {type: integer, minimum: 0, maximum: 3650}}}}}}
+      responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/AccessToken'}}}}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/tokens/{id}:
+    delete:
+      tags: [account]
+      summary: 吊销一个令牌（记入审计 token.revoke）
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/audit:
     get:
       tags: [account]
@@ -974,6 +1016,19 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PulseSettings'}}}}
       responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/PulseSettings'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/mfa-policy:
+    get:
+      tags: [admin]
+      summary: 两步验证策略：off 不要求，admins 要求管理员，all 要求全部用户
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/MFAPolicy'}}}}}
+    put:
+      tags: [admin]
+      summary: 设定两步验证策略（记入审计 admin.mfa_policy）
+      description: 要求别人之前管理员自己必须已启用（否则 409 mfa.policy_self）。策略适用而尚未启用的用户，除读取身份、同意协议、退出登录与启用 TOTP 外的已登录接口返回 403 mfa.setup_required；策略适用时不能关闭两步验证（409 mfa.required_by_policy）。
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/MFAPolicy'}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/MFAPolicy'}}}}, '400': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /api/v1/admin/terms:
     get:
       tags: [admin]

@@ -231,6 +231,10 @@ func (s *Service) Recover(ctx context.Context, username string, answers []string
 	if err := s.Store.Sessions().DeleteAll(ctx, u.ID); err != nil {
 		return err
 	}
+	// 个人访问令牌一起吊销（需求 R25）：找回意味着账号可能已被别人掌握
+	if err := s.Store.Tokens().DeleteAll(ctx, u.ID); err != nil {
+		return err
+	}
 	g.recoverUser.Reset(userKey(username))
 	g.loginUser.Reset(userKey(username))
 	s.audit(ctx, u.ID, "recovery.ok", map[string]string{"ip": ip})

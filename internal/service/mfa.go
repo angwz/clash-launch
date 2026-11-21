@@ -160,6 +160,16 @@ func (s *Service) TOTPDisable(ctx context.Context, userID, password string) erro
 	if err := s.checkPassword(ctx, userID, password); err != nil {
 		return err
 	}
+	// 策略要求两步验证时不能关闭（需求 R41）
+	u, err := s.Store.Users().ByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if applies, err := s.MFAPolicyApplies(ctx, u); err != nil {
+		return err
+	} else if applies {
+		return ErrMFARequired
+	}
 	if err := s.Store.TOTP().Delete(ctx, userID); err != nil {
 		return err
 	}

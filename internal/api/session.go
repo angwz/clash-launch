@@ -21,6 +21,8 @@ const userKey ctxKey = 1
 type principal struct {
 	User    *store.User
 	Session *store.Session
+	// Token 非空表示请求用个人访问令牌认证（需求 R25）；此时 Session 是空值，没有 CSRF 令牌
+	Token *store.AccessToken
 }
 
 func (s *Server) cookieName(r *http.Request) string {
@@ -31,8 +33,22 @@ func (s *Server) cookieName(r *http.Request) string {
 }
 
 // authed 包装需要登录的处理器；写操作额外检查 CSRF 与 Origin（第 14.2 节）。
+// 带 Authorization: Bearer 的请求按个人访问令牌认证（需求 R25），不看 Cookie：令牌不是浏览器自动附带的凭据，
+// 不存在跨站请求伪造，所以不检查 CSRF；它能访问的范围由 gate 限制。
 func (s *Server) authed(h func(http.ResponseWriter, *http.Request, *principal)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if bearer, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok {
+			t, u, err := s.Svc.TokenPrincipal(r.Context(), strings.TrimSpace(bearer), s.clientIP(r).String())
+			if err != nil {
+				problem(w, http.StatusUnauthorized, "auth.token", "the access token is invalid, expired or revoked")
+				return
+			}
+			p := &principal{User: u, Session: &store.Session{}, Token: t}
+			if s.gate(w, r, p) {
+				h(w, r.WithContext(context.WithValue(r.Context(), userKey, p)), p)
+			}
+			return
+		}
 		p, err := s.principal(r)
 		if err != nil {
 			problem(w, http.StatusUnauthorized, "auth.required", "login required")
@@ -44,17 +60,8 @@ func (s *Server) authed(h func(http.ResponseWriter, *http.Request, *principal)) 
 				return
 			}
 		}
-		// 用户协议有新版本（需求 R40）：同意之前只放行读取身份、同意或拒绝与退出登录
-		if !termsExempt[r.Pattern] {
-			pending, err := s.Svc.TermsPending(r.Context(), p.User)
-			if err != nil {
-				s.fail(w, err)
-				return
-			}
-			if pending {
-				problem(w, http.StatusForbidden, "terms.required", "accept the latest terms of use to continue")
-				return
-			}
+		if !s.gate(w, r, p) {
+			return
 		}
 		h(w, r.WithContext(context.WithValue(r.Context(), userKey, p)), p)
 	}
@@ -121,6 +128,8 @@ type sessionResp struct {
 	LogoutAt *time.Time `json:"logoutAt,omitempty"`
 	// Terms 是用户协议的同意状态（需求 R40）；pending 为 true 时页面先显示协议
 	Terms termsState `json:"terms"`
+	// MFASetup 为 true 表示两步验证策略要求本账号启用而尚未启用（需求 R41）；页面先引导设置
+	MFASetup bool `json:"mfaSetup"`
 }
 
 type userDTO struct {
@@ -196,7 +205,12 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF, Terms: terms})
+	mfa, err := s.Svc.MFASetupPending(ctx, u)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sessionResp{User: toUser(u), CSRF: sess.CSRF, Terms: terms, MFASetup: mfa})
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -211,7 +225,12 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, p *principal) {
 		s.fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sessionResp{User: s.userWithInviter(r.Context(), p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt), Terms: terms})
+	mfa, err := s.Svc.MFASetupPending(r.Context(), p.User)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sessionResp{User: s.userWithInviter(r.Context(), p.User), CSRF: p.Session.CSRF, LogoutAt: tp(p.Session.LogoutAt), Terms: terms, MFASetup: mfa})
 }
 
 type setupReq struct {

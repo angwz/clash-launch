@@ -10,7 +10,6 @@
   import AppShell from "./components/AppShell.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import Toasts from "./components/Toasts.svelte";
-  import TermsGate from "./components/TermsGate.svelte";
 
   // 页面按路由懒加载：首屏只包含外壳与当前页（第 15.4 节）。
   // 所有页面都以 { params } 渲染；不需要路由参数的页面不声明它，因此这里放宽为任意属性的组件。
@@ -120,6 +119,8 @@
   const bare = $derived(PUBLIC.has(router.route.name) || !session.user);
   // 用户协议有新版本且尚未同意（需求 R40）：除了阅读协议本身，先显示同意页；服务端同时拦截其他接口
   const gated = $derived(!!session.user && !!session.terms?.pending && router.route.name !== "terms");
+  // 两步验证策略要求而尚未启用（需求 R41）：先同意协议，再设置两步验证
+  const mfaGated = $derived(!!session.user && !gated && session.mfaSetup && router.route.name !== "terms");
 </script>
 
 {#if bootError}
@@ -128,7 +129,10 @@
   </div>
 {:else if booted}
   {#if gated}
-    <TermsGate />
+    <!-- 同意页与两步验证引导页很少出现，按需加载，不计入首屏 -->
+    {#await import("./components/TermsGate.svelte") then m}<m.default />{/await}
+  {:else if mfaGated}
+    {#await import("./components/MfaGate.svelte") then m}<m.default />{/await}
   {:else if bare}
     {#if Page}<Page params={router.route.params} />{/if}
   {:else}
