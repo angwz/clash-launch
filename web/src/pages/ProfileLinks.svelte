@@ -7,6 +7,8 @@
   import Emoji from "../components/Emoji.svelte";
   import LinkStats, { type LinkStat } from "../components/links/LinkStats.svelte";
   import ImportMenu from "../components/links/ImportMenu.svelte";
+  import LimitsDialog from "../components/links/LimitsDialog.svelte";
+  import { flagOf } from "../lib/regions";
   import { api, listAll, type Link, type Profile } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
@@ -21,6 +23,18 @@
   // 默认名称（反馈 #65）：「设备 1」「设备 2」……
   const defaultNote = $derived(uniqueName(t("links.default_note", { n: (links?.length ?? 0) + 1 }), (links ?? []).map((l) => l.note)));
   let qrFor = $state<string | null>(null);
+  // 访问限制（需求 R42）
+  let limitsFor = $state<Link | null>(null);
+  let limitsOpen = $state(false);
+  const hasLimits = (l: Link) => !!(l.limits?.clients?.length || l.limits?.countries?.length || l.limits?.perDay);
+  function limitsText(l: Link): string {
+    const x = l.limits ?? {};
+    const parts: string[] = [];
+    if (x.clients?.length) parts.push(x.clients.join("、"));
+    if (x.countries?.length) parts.push(x.countries.map((c) => flagOf(c) + " " + c).join(" "));
+    if (x.perDay) parts.push(t("limits.per_day_n", { n: x.perDay }));
+    return parts.join(" · ");
+  }
   let error = $state("");
 
   const base = $derived("/api/v1/profiles/" + params.id + "/links");
@@ -168,12 +182,14 @@
             ·
             {#if l.lastAccess}{t("links.last_access", { when: i18n.relative(l.lastAccess), ua: l.lastUa || "—" })}{:else}{t("links.never_used")}{/if}
           </p>
+          {#if hasLimits(l)}<p class="limits"><Icon name="shield" size={13} /><span>{t("limits.active")}：{limitsText(l)}</span></p>{/if}
           {#if statOf(l.id)}<LinkStats stat={statOf(l.id)!} days={ps!.days} profileId={params.id!} />{/if}
           {#if qrFor === l.id}
             <div class="qr-box"><QRCode text={l.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
           {/if}
         </div>
         <div class="side">
+          <button class="btn sm" type="button" onclick={() => ((limitsFor = l), (limitsOpen = true))}><Icon name="shield" size={14} />{t("limits.button")}</button>
           <button class="btn sm" type="button" onclick={() => void reset(l)}><Icon name="refresh" size={14} />{t("links.reset")}</button>
           <button class="btn sm ghost danger" type="button" onclick={() => void remove(l)}><Icon name="trash" size={14} />{t("common.delete")}</button>
         </div>
@@ -182,7 +198,16 @@
   </ul>
 </div>
 
+<LimitsDialog bind:open={limitsOpen} link={limitsFor} {base} onsaved={() => void load()} />
+
 <style>
+  .limits {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--accent-fg);
+    font-size: var(--text-sm);
+  }
   .page > :global(*) {
     max-inline-size: 960px;
   }

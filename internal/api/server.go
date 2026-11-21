@@ -257,6 +257,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "source.client_fetch", "subscriptions on this account are fetched by the client, not the server")
 	case errors.Is(err, service.ErrNodeMode):
 		problem(w, http.StatusBadRequest, "node_mode.invalid", err.Error())
+	case errors.Is(err, service.ErrLinkLimits):
+		problem(w, http.StatusUnprocessableEntity, "link.limits", err.Error())
 	case errors.Is(err, service.ErrMFAPolicy):
 		problem(w, http.StatusBadRequest, "mfa.policy", err.Error())
 	case errors.Is(err, service.ErrMFAPolicySelf):

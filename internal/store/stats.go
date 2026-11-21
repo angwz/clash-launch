@@ -75,6 +75,8 @@ type StatsRepo interface {
 	// MarkSeen 记下链接见过的国家与客户端，返回其中第一次出现、且这个链接之前已经见过同类值的那些（需求 R23）：
 	// 链接的第一个国家或客户端是用户自己导入，不算异常。
 	MarkSeen(ctx context.Context, vs []SeenValue) ([]SeenValue, error)
+	// CountOK 返回链接自 since 起成功（状态码小于 400）的请求数（需求 R42 的每天次数限制）。
+	CountOK(ctx context.Context, linkID string, since time.Time) (int, error)
 	// Requests 返回某条链接的请求记录（新的在前），Page.After 为上一页最后一条的 ID。
 	Requests(ctx context.Context, owner, linkID string, p Page) ([]SubRequest, error)
 	// IPs 返回某条链接的 IP 汇总；owner 为空且 linkID 为空时返回令牌无效的请求来源（管理员）。
@@ -392,4 +394,10 @@ func (r stats) MarkSeen(ctx context.Context, vs []SeenValue) ([]SeenValue, error
 		return nil, err
 	}
 	return fresh, nil
+}
+
+func (r stats) CountOK(ctx context.Context, linkID string, since time.Time) (int, error) {
+	var n int
+	err := r.d.row(ctx, "SELECT COUNT(*) FROM sub_requests WHERE link_id=? AND at>=? AND status<400", linkID, ms(since)).Scan(&n)
+	return n, err
 }

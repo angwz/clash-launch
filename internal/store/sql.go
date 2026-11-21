@@ -1030,14 +1030,20 @@ func (r profiles) Revision(ctx context.Context, owner, profileID string, n int) 
 
 type links struct{ d *DB }
 
-const linkCols = "id, owner_id, profile_id, token_enc, token_hash, note, created_at, last_access, last_ua, version"
+const linkCols = "id, owner_id, profile_id, token_enc, token_hash, note, created_at, last_access, last_ua, version, limits"
 
 func (r links) scan(row interface{ Scan(...any) error }) (*Link, error) {
 	var l Link
 	var enc []byte
 	var c, a int64
-	if err := row.Scan(&l.ID, &l.OwnerID, &l.ProfileID, &enc, &l.TokenHash, &l.Note, &c, &a, &l.LastUA, &l.Version); err != nil {
+	var limits string
+	if err := row.Scan(&l.ID, &l.OwnerID, &l.ProfileID, &enc, &l.TokenHash, &l.Note, &c, &a, &l.LastUA, &l.Version, &limits); err != nil {
 		return nil, notFound(err)
+	}
+	if limits != "" {
+		if err := json.Unmarshal([]byte(limits), &l.Limits); err != nil {
+			return nil, fmt.Errorf("订阅链接 %s 的访问限制无法解析：%w", l.ID, err)
+		}
 	}
 	var err error
 	if l.Token, err = r.d.openStr(enc, "links", "token", l.ID); err != nil {
@@ -1056,8 +1062,17 @@ func (r links) Create(ctx context.Context, owner string, l *Link) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.d.exec(ctx, "INSERT INTO links ("+linkCols+") VALUES (?,?,?,?,?,?,?,0,'',1)", l.ID, owner, l.ProfileID, enc, l.TokenHash, l.Note, ms(l.CreatedAt))
+	_, err = r.d.exec(ctx, "INSERT INTO links ("+linkCols+") VALUES (?,?,?,?,?,?,?,0,'',1,?)", l.ID, owner, l.ProfileID, enc, l.TokenHash, l.Note, ms(l.CreatedAt), linkLimitsText(l.Limits))
 	return err
+}
+
+// linkLimitsText 把访问限制编码为 JSON；没有限制时为空串。
+func linkLimitsText(l LinkLimits) string {
+	if l.Empty() {
+		return ""
+	}
+	b, _ := json.Marshal(l) // 只含字符串与整数，不会失败
+	return string(b)
 }
 
 func (r links) Get(ctx context.Context, owner, id string) (*Link, error) {
@@ -1086,7 +1101,7 @@ func (r links) Update(ctx context.Context, owner string, l *Link) error {
 	if err != nil {
 		return err
 	}
-	res, err := r.d.exec(ctx, "UPDATE links SET token_enc=?, token_hash=?, note=?, version=version+1 WHERE owner_id=? AND id=? AND version=?", enc, l.TokenHash, l.Note, owner, l.ID, l.Version)
+	res, err := r.d.exec(ctx, "UPDATE links SET token_enc=?, token_hash=?, note=?, limits=?, version=version+1 WHERE owner_id=? AND id=? AND version=?", enc, l.TokenHash, l.Note, linkLimitsText(l.Limits), owner, l.ID, l.Version)
 	zero := ErrConflict
 	if _, gerr := r.Get(ctx, owner, l.ID); gerr != nil {
 		zero = ErrNotFound

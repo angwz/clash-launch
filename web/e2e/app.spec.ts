@@ -1219,3 +1219,33 @@ test("站内提醒：订阅链接被新的客户端拉取时提醒，可在提�
   await expect(page.getByRole("button", { name: "提醒", exact: true })).toBeVisible(); // 打开后已读，角标消失
   expect(problems).toEqual([]);
 });
+
+test("订阅链接访问限制：只允许指定客户端，每天次数用完返回 429（R42）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const { profile, call } = await seedProfile(request, baseURL!, "访问限制");
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${profile}/links`, { note: "限制测试" });
+  await login(page);
+  await page.goto(`/profiles/${profile}/links`);
+  await page.getByRole("button", { name: "访问限制" }).first().click();
+  const dlg = page.getByRole("dialog", { name: "访问限制" });
+  await dlg.getByRole("button", { name: "+ Stash" }).click();
+  await dlg.getByLabel("每天最多拉取次数").fill("1");
+  await dlg.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText("已限制：Stash · 每天1次")).toBeVisible();
+
+  expect((await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.0" } })).status()).toBe(403);
+  expect((await request.get(l.url, { headers: { "User-Agent": "Stash/2.5" } })).status()).toBe(200);
+  const over = await request.get(l.url, { headers: { "User-Agent": "Stash/2.5" } });
+  expect(over.status()).toBe(429);
+  expect(Number(over.headers()["retry-after"])).toBeGreaterThan(0);
+
+  // 清空限制
+  await page.getByRole("button", { name: "访问限制" }).first().click();
+  await dlg.getByRole("button", { name: "移除Stash" }).click();
+  await dlg.getByLabel("每天最多拉取次数").fill("0");
+  await dlg.getByRole("button", { name: "保存" }).click();
+  await expect(page.getByText(/已限制：/)).toHaveCount(0);
+  expect((await request.get(l.url, { headers: { "User-Agent": "clash-verge/v2.0" } })).status()).toBe(200);
+  expect(problems).toEqual([]);
+});

@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -872,6 +873,8 @@ type linkDTO struct {
 	LastAccess *time.Time `json:"lastAccess,omitempty"`
 	LastUA     string     `json:"lastUa,omitempty"`
 	Version    int64      `json:"version"`
+	// Limits 是访问限制（需求 R42）；没有限制时为空对象
+	Limits store.LinkLimits `json:"limits"`
 }
 
 // baseURL 返回对外地址：配置了 CLASH_LAUNCH_PUBLIC_URL 时取与请求域名相同的那个（见 publicurl.go），
@@ -894,7 +897,7 @@ func (s *Server) baseURL(r *http.Request) string {
 }
 
 func (s *Server) toLink(r *http.Request, l *store.Link) linkDTO {
-	return linkDTO{ID: l.ID, URL: s.baseURL(r) + "/s/" + l.Token, Note: l.Note, CreatedAt: l.CreatedAt, LastAccess: tp(l.LastAccess), LastUA: l.LastUA, Version: l.Version}
+	return linkDTO{ID: l.ID, URL: s.baseURL(r) + "/s/" + l.Token, Note: l.Note, CreatedAt: l.CreatedAt, LastAccess: tp(l.LastAccess), LastUA: l.LastUA, Version: l.Version, Limits: l.Limits}
 }
 
 func (s *Server) listLinks(w http.ResponseWriter, r *http.Request, p *principal) {
@@ -979,8 +982,10 @@ func (s *Server) patchLink(w http.ResponseWriter, r *http.Request, p *principal)
 		s.fail(w, err)
 		return
 	}
+	// 只改出现的字段：备注、访问限制（需求 R42）
 	var req struct {
-		Note string `json:"note"`
+		Note   *string           `json:"note"`
+		Limits *store.LinkLimits `json:"limits"`
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
@@ -991,7 +996,21 @@ func (s *Server) patchLink(w http.ResponseWriter, r *http.Request, p *principal)
 		s.fail(w, err)
 		return
 	}
-	l.Note, l.Version = truncate(req.Note, 200), v
+	if req.Note != nil {
+		l.Note = truncate(*req.Note, 200)
+	}
+	if req.Limits != nil {
+		lim, err := service.NormalizeLinkLimits(*req.Limits)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		if !reflect.DeepEqual(lim, l.Limits) {
+			s.audit(r.Context(), p.User.ID, "link.limits", map[string]string{"link": l.ID})
+		}
+		l.Limits = lim
+	}
+	l.Version = v
 	if err := s.Svc.Store.Links().Update(r.Context(), p.User.ID, l); err != nil {
 		s.fail(w, err)
 		return

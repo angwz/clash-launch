@@ -5435,7 +5435,10 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** 修改备注 */
+        /**
+         * 修改备注或访问限制（只改出现的字段）
+         * @description 访问限制（需求 R42）：clients 为允许的客户端名称（User-Agent 中第一个「名称/版本」的名称，不区分大小写，最多 20 个）；countries 为允许的国家或地区（两个字母，最多 60 个；查不到来源地区时视为不符合）；perDay 为每天最多成功拉取的次数（按所有者时区，0 表示不限）。不符合的客户端或地区返回 403，当天次数用完返回 429 与 Retry-After（到下一天零点）；托管节点文件只检查客户端与地区。限制变化记入审计 link.limits。
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -5453,6 +5456,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         note?: string;
+                        limits?: components["schemas"]["LinkLimits"];
                     };
                 };
             };
@@ -5855,6 +5859,13 @@ export interface components {
             lastAccess?: string;
             lastUa?: string;
             version: number;
+            limits: components["schemas"]["LinkLimits"];
+        };
+        /** @description 订阅链接的访问限制（需求 R42）；空列表或 0 表示该项不限制 */
+        LinkLimits: {
+            clients?: string[];
+            countries?: string[];
+            perDay?: number;
         };
         Invite: {
             id: string;

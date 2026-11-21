@@ -286,3 +286,16 @@ func (s *Service) FlushStats(ctx context.Context) {
 	}
 	s.noticeSeen(ctx, reqs) // 订阅链接出现新的国家或客户端时提醒（R23）
 }
+
+// pendingOK 返回内存中尚未写入数据库的、链接自 since 起的成功请求数（需求 R42）。
+func (s *Stats) pendingOK(linkID string, since time.Time) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := 0
+	for _, q := range s.reqs {
+		if q.LinkID == linkID && q.Status < 400 && !q.At.Before(since) {
+			n++
+		}
+	}
+	return n
+}

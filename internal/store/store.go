@@ -182,6 +182,20 @@ type Link struct {
 	LastAccess time.Time
 	LastUA     string
 	Version    int64
+	// Limits 是访问限制（需求 R42）；零值表示不限制
+	Limits LinkLimits
+}
+
+// LinkLimits 是订阅链接的访问限制（需求 R42）。空列表或 0 表示该项不限制。
+type LinkLimits struct {
+	Clients   []string `json:"clients,omitempty"`   // 允许的客户端名称（User-Agent 中第一个「名称/版本」的名称，不区分大小写）
+	Countries []string `json:"countries,omitempty"` // 允许的国家或地区（ISO 3166-1 alpha-2）
+	PerDay    int      `json:"perDay,omitempty"`    // 每天最多成功拉取的次数（按所有者的时区计算「天」）
+}
+
+// Empty 报告是否没有任何限制。
+func (l LinkLimits) Empty() bool {
+	return len(l.Clients) == 0 && len(l.Countries) == 0 && l.PerDay == 0
 }
 
 // Render 是方案的渲染状态：最近一次成功的结果（订阅端点提供它）与最近一次尝试。

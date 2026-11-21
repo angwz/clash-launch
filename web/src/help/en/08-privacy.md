@@ -62,3 +62,12 @@ The bell at the top right lists things that need your attention; if you have set
 - **A node source keeps failing**: you are told once after two failed refreshes in a row. Subscriptions keep using the last successful nodes.
 - **A config fails its check**: after a node source or rule source update, the config was regenerated in the background and did not pass. Subscriptions keep serving the last version that passed.
 - **A subscription link has a new source**: the link was fetched for the first time from a new country or region, or by a new client. If that was not you or someone you shared it with, the link may have leaked, and you can replace the link token right from the notification. A link's first source (your own import) does not trigger this, and requests through short links are not counted, since short links are usually shared with others.
+
+
+## Subscription link access limits
+
+On the Subscription links page, choose Access limits to allow only certain clients or certain countries and regions to fetch a link, or to cap fetches per day:
+
+- Clients or regions that don't match are blocked (403); requests whose region the server cannot determine are blocked too.
+- Once the daily cap is used up, the link answers 429; clients keep their current config and it resets the next day, in your time zone.
+- Blocked requests still show up in Subscription Analytics, with the status code telling you why.

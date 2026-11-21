@@ -67,7 +67,26 @@ func (s *Server) subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	link = l
+	if s.linkDenied(sw, r, l, true) {
+		return
+	}
 	s.serveConfig(sw, r, l, tok, kind == "export")
+}
+
+// linkDenied 按链接的访问限制（需求 R42）挡住不符合的请求：客户端或地区不符返回 403，
+// 当天次数用完返回 429 与到下一天零点的 Retry-After。返回 true 表示已写出拒绝的响应。
+func (s *Server) linkDenied(w http.ResponseWriter, r *http.Request, l *store.Link, count bool) bool {
+	d := s.Svc.CheckLinkAccess(r.Context(), l, r.UserAgent(), s.clientIP(r), count)
+	switch d.Status {
+	case 0:
+		return false
+	case http.StatusTooManyRequests:
+		w.Header().Set("Retry-After", strconv.Itoa(d.RetryAfter))
+		http.Error(w, "this subscription link has reached its daily limit", d.Status)
+	default:
+		http.Error(w, "this subscription link does not accept requests from this "+map[string]string{"client": "client", "country": "region"}[d.Reason], d.Status)
+	}
+	return true
 }
 
 // short 提供旧式短链接 /u/<短码>（反馈 #74，继续有效）。
@@ -127,6 +146,9 @@ func (s *Server) serveShort(w http.ResponseWriter, r *http.Request, code string,
 	kind := kindOf(r, "config")
 	defer func() { s.recordSub(r, l, sw, kind, sl.ID) }()
 	if s.rateLimited(sw, r, "short:"+code) {
+		return
+	}
+	if s.linkDenied(sw, r, l, true) {
 		return
 	}
 	s.serveConfig(sw, r, l, l.Token, kind == "export")
@@ -193,6 +215,10 @@ func (s *Server) hosted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	link = l
+	// 托管节点文件随配置一起拉取：客户端与地区照常检查，但不再计入每天次数
+	if s.linkDenied(w, r, l, false) {
+		return
+	}
 	body, err := s.Svc.HostedProvider(r.Context(), l, r.PathValue("source"))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) || errors.Is(err, service.ErrNotHosted) {

@@ -56,8 +56,14 @@ func TestUpgradePreservesData(t *testing.T) {
 	if err := old.Profiles().Create(ctx, "u1", prof, ""); err != nil {
 		t.Fatal(err)
 	}
-	link := &Link{ProfileID: prof.ID, Token: "token-example-0123456789abcdef", TokenHash: "hash-example", Note: "手机"}
-	if err := old.Links().Create(ctx, "u1", link); err != nil {
+	// links 表后来加了 limits 列（R42）：按 0003 时代的列直接写入
+	link := &Link{ID: NewID(), ProfileID: prof.ID, Token: "token-example-0123456789abcdef", TokenHash: "hash-example", Note: "手机"}
+	enc, err := old.sealStr(link.Token, "links", "token", link.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.root.ExecContext(ctx, "INSERT INTO links (id, owner_id, profile_id, token_enc, token_hash, note, created_at, last_access, last_ua, version) VALUES (?,?,?,?,?,?,?,0,'',1)",
+		link.ID, "u1", link.ProfileID, enc, link.TokenHash, link.Note, now); err != nil {
 		t.Fatal(err)
 	}
 
