@@ -18,7 +18,7 @@ docker compose up -d
    docker compose exec -T clash-launch /clash-launch admin create -username admin <<< '至少 5 位、含 2 类字符的密码'
    ```
 
-3. 正式使用：把 nginx 或 Caddy 反向代理到本机 20230（反代与服务在同一台机器时，可把 compose 的端口改为 `127.0.0.1:20230:20230`，只让反代访问），设置 `CLASH_LAUNCH_PUBLIC_URL=https://你的域名`，见 [reverse-proxy](reverse-proxy.md)。
+3. 正式使用：把 nginx 或 Caddy 反向代理到本机 20230（反代与服务在同一台机器时，可把 compose 的端口改为 `["127.0.0.1:20230:20230"]`，只让反代访问），设置 `CLASH_LAUNCH_PUBLIC_URL=https://你的域名`，见 [reverse-proxy](reverse-proxy.md)。
 
 4. 让别人注册：注册默认关闭。管理员可以在设置中打开注册，或者为每个人生成一次性邀请链接（可选有效期），见 [注册与邀请](#注册与邀请)。
 
@@ -32,12 +32,51 @@ docker compose pull && docker compose up -d
 
 ## 数据放在哪
 
-| 写法 | 位置 | 适合 |
-| --- | --- | --- |
-| `- data:/data`（默认） | Docker 数据卷，一般在 `/var/lib/docker/volumes/<目录名>_data/_data` | 不关心文件在哪，复制粘贴就能用 |
-| `- ./data:/data` | `compose.yaml` 旁边的 `data` 文件夹 | 想直接查看、整个文件夹打包备份 |
+数据（数据库与主密钥 `master.key`）在 `compose.yaml` 旁边的 `data` 文件夹，备份时整个文件夹打包即可。不需要手动改权限：镜像以 root 启动，程序先把 `/data` 交给运行用户，再放弃 root 继续运行（`cmd/clash-launch/privdrop_linux.go`）；宿主机上由 root 创建的目录、Docker 数据卷、NAS 的共享目录都能直接用。
 
-两种写法都不需要手动改权限：`compose.yaml` 以 root 启动容器（`user: "0:0"`），程序先把 `/data` 的所有者改为运行用户 65532，再放弃 root 继续运行（`cmd/clash-launch/privdrop_linux.go`）。为此 compose 只放行 `CHOWN`、`DAC_OVERRIDE`、`SETUID`、`SETGID` 四项能力，降权后全部失效。不用这个 compose、直接以普通用户运行且目录不可写时，程序会退出并在日志中给出 `chown` 命令。
+| 情况 | 做法 |
+| --- | --- |
+| 群晖、威联通、Unraid 等要让文件属于宿主机上的某个用户 | 在 `environment` 中设置 `PUID`、`PGID`（如 `1026`、`100`）；默认是 `65532`。不接受 `0`：服务不以 root 运行 |
+| 想用 Docker 数据卷 | 把 `./data:/data` 改为 `clash-launch-data:/data`，并在文件末尾加上 `volumes: {clash-launch-data: {}}` |
+| 用 `--user`、rootless 等方式以普通用户启动 | 程序不做任何整理；目录不可写时退出，日志里给出针对当前用户的 `chown` 命令 |
+
+### 从旧版 compose 升级
+
+2026-11-21 之前的 `compose.yaml` 把数据放在 Docker 卷 `<目录名>_data` 中。换成新文件前，先把数据复制到 `./data`，否则新实例是空的（旧数据仍在原来的卷里，不会丢）：
+
+```sh
+docker compose down
+docker run --rm -v "$(basename "$PWD")_data:/from" -v "$PWD/data:/to" busybox cp -a /from/. /to/
+curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.yaml
+docker compose up -d
+```
+
+继续用旧文件也可以：它以 `user: "0:0"` 启动并自带加固项，与新镜像兼容。
+
+### 不用 compose
+
+```sh
+docker run -d --name clash-launch --restart unless-stopped -p 20230:20230 -v "$PWD/data:/data" ghcr.io/angwz/clash-launch:latest
+```
+
+### 安全加固
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.hardened.yaml
+docker compose -f compose.yaml -f compose.hardened.yaml up -d
+```
+
+叠加后根文件系统只读（只写 `/data` 与 `/tmp`）、去掉其余全部 Linux 能力、禁止提权。保留的 `CHOWN`、`DAC_OVERRIDE`、`SETUID`、`SETGID` 只用于启动时整理 `/data` 并降权，降权后全部失效。默认不开，因为部分 NAS 与 rootless 环境不支持去掉能力或只读根文件系统。
+
+### 使用 PostgreSQL
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.postgres.yaml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
+docker compose -f compose.yaml -f compose.postgres.yaml up -d
+```
+
+数据库文件在旁边的 `postgres` 文件夹，只在 compose 内部网络中可达，不对外开放端口；主密钥仍在 `data`，两者都要备份。备份用 `pg_dump`，见下文「备份与升级」。已有的 SQLite 数据要先用 `db copy` 搬过去，见 [data](data.md)。三个文件可以同时叠加：`-f compose.yaml -f compose.hardened.yaml -f compose.postgres.yaml`。
 
 ## 版本
 

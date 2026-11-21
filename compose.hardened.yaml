@@ -1,0 +1,13 @@
+# 安全加固（叠加在 compose.yaml 之上）：
+#   docker compose -f compose.yaml -f compose.hardened.yaml up -d
+#
+# 只读根文件系统、去掉其余全部 Linux 能力、禁止提权；数据只写 /data 与 /tmp。
+# 保留的四项能力只用于启动时把 /data 交给运行用户并降权，降权后全部失效。
+# 默认不开：部分 NAS 与 rootless 环境不支持去掉能力或只读根文件系统。
+services:
+  clash-launch:
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]

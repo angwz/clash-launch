@@ -37,7 +37,9 @@ ENV CLASH_LAUNCH_LISTEN=:20230 \
     CLASH_LAUNCH_DATA_DIR=/data \
     CLASH_LAUNCH_MIHOMO=/opt/mihomo/mihomo \
     CLASH_LAUNCH_GEODATA=/opt/mihomo/geodata
-USER 65532:65532
+# 以 root 启动（需求 R18）：程序先把 /data 交给运行用户（默认 65532，可用 PUID、PGID 指定）再放弃 root，
+# 数据卷、宿主机目录与 NAS 共享目录都不用手动改权限；见 cmd/clash-launch/privdrop_linux.go。
+USER 0:0
 VOLUME /data
 EXPOSE 20230
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["/clash-launch", "healthcheck"]

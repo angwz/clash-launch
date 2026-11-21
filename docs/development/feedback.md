@@ -142,4 +142,4 @@
 | 108 | 生产使用中的七处缺陷：规则源保存后不返回、节点源内容失焦不更新且内容框太小、节点源列表不能直接删除、Chrome 自动填充密码、恢复默认后输入框与按钮一起消失、「首次」时间不如「上次」有用、改了策略组后订阅仍是旧配置；另提两项需求：中英文之间留细缝隙的排版、配置的删除保护开关 | 🔄 | [backlog](backlog.md) R47–R55；R47–R53 已完成 |
 | 109 | 额度充足，重新组织实施顺序，目标是全部完成 | ✅ | [backlog](backlog.md)「实施顺序」：按依赖排成七个阶段、31 批，列出需要维护者决定的节点 |
 | 110 | mihomo 通用链接已满足全部客户端，其他客户端预设暂不处理；按实施顺序持续推进；本机 Docker 不可用，R18 暂不处理 | 🔄 | [backlog](backlog.md)：R15、R16 标为暂不处理，R18 暂缓；第 2、3 批（R47–R53）完成；O4、R30（配色待确认）、R22 第一步完成；R14 因本机没有 PostgreSQL 暂缓 |
-| 111 | 有一台远程 Docker 主机可用（VS Code Containers 经 Docker 上下文 `aliyun-dev` 连接），可用于此前因缺少 Docker 而暂缓的任务 | 🔄 | 2026-11-21 检查：上下文存在，但 SSH 在握手阶段被对端断开，暂时连不上；恢复后再做 R18、R14 的 compose 覆盖与 O3 |
+| 111 | 有一台远程 Docker 主机可用（VS Code Containers 经 Docker 上下文 `aliyun-dev` 连接），可用于此前因缺少 Docker 而暂缓的任务；VS Code 能看到容器 | ✅ | 新建 SSH 连接会被服务器的连接惩罚拒绝，Git Bash 的 ssh 也读不到 ssh-agent 中的密钥；改用 Windows OpenSSH 建一条长期隧道后可用，做法记在 [progress](progress.md)。R18、R14 的 compose 叠加文件与 O3 的 Docker 部分已实测 |
