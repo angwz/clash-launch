@@ -80,3 +80,12 @@ On the Subscription links page, choose Access limits to allow only certain clien
 - Clients or regions that don't match are blocked (403); requests whose region the server cannot determine are blocked too.
 - Once the daily cap is used up, the link answers 429; clients keep their current config and it resets the next day, in your time zone.
 - Blocked requests still show up in Subscription Analytics, with the status code telling you why.
+
+## Backup and restore
+
+The Account page downloads an encrypted backup of all your information, which can be restored on any site running this software:
+
+- The backup is encrypted with a passphrase you choose. The server doesn't keep it; if you forget it, the backup can't be restored.
+- Restoring replaces your current nodes, configs, links, templates, rule sources and alert settings with the backup. Your current state is saved first and can be brought back within 7 days.
+- Subscription and short links come back with their tokens, so clients keep working. If a token or short code is already used by someone else, it is replaced and you are told which ones to update.
+- Your username, password, two-step verification, passkeys, signed-in devices and access tokens are not overwritten; messages, friends and grants are not part of the backup.

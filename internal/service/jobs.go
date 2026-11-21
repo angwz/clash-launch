@@ -27,6 +27,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 	s.PruneAudit(ctx)
 	s.PruneRequests(ctx)
 	s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
+	s.PurgeBackups(ctx) // 过期的还原留底（需求 R21）
 	lastPrune := s.now()
 	for {
 		select {
@@ -39,6 +40,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 				s.PruneAudit(ctx)
 				s.PruneRequests(ctx)
 				s.PurgeThreads(ctx) // 回收站中超过一年的对话（反馈 #75）
+				s.PurgeBackups(ctx) // 过期的还原留底（需求 R21）
 				lastPrune = s.now()
 			}
 		}

@@ -1702,6 +1702,291 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 下载个人全部信息的加密备份（需求 R21）
+         * @description 包含账号资料（昵称、语言、时区、偏好）、节点源、规则源、配置与修订历史、模板、订阅链接与短链接（含令牌）、提醒邮件与提醒渠道。
+         *     不含用户名、密码、两步验证、通行密钥、登录设备、访问令牌、消息、好友与授权。文件用 passphrase（至少 10 个字符）经 argon2id 派生的密钥以 AES-256-GCM 加密。需要当前密码；记入审计 account.backup
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        password: string;
+                        passphrase: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 备份文件（application/octet-stream） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                403: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/restore/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 还原前比较当前账号与备份的内容数量 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 备份文件原文 */
+                        file: string;
+                        passphrase: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            current?: {
+                                sources?: number;
+                                ruleSources?: number;
+                                profiles?: number;
+                                revisions?: number;
+                                templates?: number;
+                                links?: number;
+                                shortLinks?: number;
+                                channels?: number;
+                                smtp?: boolean;
+                                /** Format: date-time */
+                                createdAt?: string;
+                                server?: string;
+                            };
+                            backup?: {
+                                sources?: number;
+                                ruleSources?: number;
+                                profiles?: number;
+                                revisions?: number;
+                                templates?: number;
+                                links?: number;
+                                shortLinks?: number;
+                                channels?: number;
+                                smtp?: boolean;
+                                /** Format: date-time */
+                                createdAt?: string;
+                                server?: string;
+                            };
+                        };
+                    };
+                };
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 用备份整体覆盖当前账号的个人数据（需求 R21）
+         * @description 覆盖前自动为当前状态留底，保存 7 天，可经 /account/restore/undo 撤销。ID、令牌与短码沿用备份里的，订阅因此不断；已被其他账号使用时换新的并列在结果中。
+         *     还原后不再存在的节点源与为好友生成的短链接，授权被收回并通知对方（R2）。口令错误或文件损坏 422 backup.passphrase；需要当前密码；记入审计 account.restore
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        file: string;
+                        passphrase: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            summary?: {
+                                sources?: number;
+                                ruleSources?: number;
+                                profiles?: number;
+                                revisions?: number;
+                                templates?: number;
+                                links?: number;
+                                shortLinks?: number;
+                                channels?: number;
+                                smtp?: boolean;
+                                /** Format: date-time */
+                                createdAt?: string;
+                                server?: string;
+                            };
+                            /** @description 因令牌已被其他账号使用而换新的订阅链接（备注） */
+                            newTokens?: string[];
+                            /** @description 原短码 → 新短码 */
+                            newCodes?: string[];
+                            revoked?: number;
+                            /** Format: date-time */
+                            undoUntil?: string;
+                        };
+                    };
+                };
+                403: components["responses"]["Problem"];
+                422: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/restore/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 是否可以撤销最近一次还原 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            available: boolean;
+                            /** Format: date-time */
+                            createdAt?: string;
+                            /** Format: date-time */
+                            expiresAt?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 撤销最近一次还原：用自动留底覆盖回去，随后删除留底（需要当前密码；记入审计 account.restore_undo） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            summary?: {
+                                sources?: number;
+                                ruleSources?: number;
+                                profiles?: number;
+                                revisions?: number;
+                                templates?: number;
+                                links?: number;
+                                shortLinks?: number;
+                                channels?: number;
+                                smtp?: boolean;
+                                /** Format: date-time */
+                                createdAt?: string;
+                                server?: string;
+                            };
+                            /** @description 因令牌已被其他账号使用而换新的订阅链接（备注） */
+                            newTokens?: string[];
+                            /** @description 原短码 → 新短码 */
+                            newCodes?: string[];
+                            revoked?: number;
+                            /** Format: date-time */
+                            undoUntil?: string;
+                        };
+                    };
+                };
+                403: components["responses"]["Problem"];
+                404: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/channels": {
         parameters: {
             query?: never;

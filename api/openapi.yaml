@@ -944,6 +944,45 @@ paths:
       summary: 发送测试邮件；成功后启用提醒。每个用户每小时最多 5 次
       security: [{session: [], csrf: []}]
       responses: {'204': {$ref: '#/components/responses/NoContent'}, '404': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '429': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/backup:
+    post:
+      tags: [account]
+      summary: 下载个人全部信息的加密备份（需求 R21）
+      description: |
+        包含账号资料（昵称、语言、时区、偏好）、节点源、规则源、配置与修订历史、模板、订阅链接与短链接（含令牌）、提醒邮件与提醒渠道。
+        不含用户名、密码、两步验证、通行密钥、登录设备、访问令牌、消息、好友与授权。文件用 passphrase（至少 10 个字符）经 argon2id 派生的密钥以 AES-256-GCM 加密。需要当前密码；记入审计 account.backup
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password, passphrase], properties: {password: {type: string}, passphrase: {type: string, minLength: 10}}}}}}
+      responses: {'200': {description: 备份文件（application/octet-stream）}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/restore/preview:
+    post:
+      tags: [account]
+      summary: 还原前比较当前账号与备份的内容数量
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [file, passphrase], properties: {file: {type: string, description: 备份文件原文}, passphrase: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {current: {type: object, properties: {sources: {type: integer}, ruleSources: {type: integer}, profiles: {type: integer}, revisions: {type: integer}, templates: {type: integer}, links: {type: integer}, shortLinks: {type: integer}, channels: {type: integer}, smtp: {type: boolean}, createdAt: {type: string, format: date-time}, server: {type: string}}}, backup: {type: object, properties: {sources: {type: integer}, ruleSources: {type: integer}, profiles: {type: integer}, revisions: {type: integer}, templates: {type: integer}, links: {type: integer}, shortLinks: {type: integer}, channels: {type: integer}, smtp: {type: boolean}, createdAt: {type: string, format: date-time}, server: {type: string}}}}}}}}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/restore:
+    post:
+      tags: [account]
+      summary: 用备份整体覆盖当前账号的个人数据（需求 R21）
+      description: |
+        覆盖前自动为当前状态留底，保存 7 天，可经 /account/restore/undo 撤销。ID、令牌与短码沿用备份里的，订阅因此不断；已被其他账号使用时换新的并列在结果中。
+        还原后不再存在的节点源与为好友生成的短链接，授权被收回并通知对方（R2）。口令错误或文件损坏 422 backup.passphrase；需要当前密码；记入审计 account.restore
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [file, passphrase, password], properties: {file: {type: string}, passphrase: {type: string}, password: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {summary: {type: object, properties: {sources: {type: integer}, ruleSources: {type: integer}, profiles: {type: integer}, revisions: {type: integer}, templates: {type: integer}, links: {type: integer}, shortLinks: {type: integer}, channels: {type: integer}, smtp: {type: boolean}, createdAt: {type: string, format: date-time}, server: {type: string}}}, newTokens: {type: array, items: {type: string}, description: 因令牌已被其他账号使用而换新的订阅链接（备注）}, newCodes: {type: array, items: {type: string}, description: 原短码 → 新短码}, revoked: {type: integer}, undoUntil: {type: string, format: date-time}}}}}}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/account/restore/undo:
+    get:
+      tags: [account]
+      summary: 是否可以撤销最近一次还原
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [available], properties: {available: {type: boolean}, createdAt: {type: string, format: date-time}, expiresAt: {type: string, format: date-time}}}}}}}
+    post:
+      tags: [account]
+      summary: 撤销最近一次还原：用自动留底覆盖回去，随后删除留底（需要当前密码；记入审计 account.restore_undo）
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [password], properties: {password: {type: string}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {summary: {type: object, properties: {sources: {type: integer}, ruleSources: {type: integer}, profiles: {type: integer}, revisions: {type: integer}, templates: {type: integer}, links: {type: integer}, shortLinks: {type: integer}, channels: {type: integer}, smtp: {type: boolean}, createdAt: {type: string, format: date-time}, server: {type: string}}}, newTokens: {type: array, items: {type: string}, description: 因令牌已被其他账号使用而换新的订阅链接（备注）}, newCodes: {type: array, items: {type: string}, description: 原短码 → 新短码}, revoked: {type: integer}, undoUntil: {type: string, format: date-time}}}}}}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/account/channels:
     get:
       tags: [account]

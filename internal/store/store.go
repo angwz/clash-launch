@@ -242,6 +242,9 @@ type Store interface {
 	Templates() TemplateRepo
 	Tokens() TokenRepo
 	Channels() ChannelRepo
+	Backups() BackupRepo
+	// Taken 报告 table 中是否已有这个 ID（不区分所有者；还原备份时检查，需求 R21）。
+	Taken(ctx context.Context, table, id string) (bool, error)
 	Notifications() NotificationRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
@@ -435,6 +438,8 @@ type ProfileRepo interface {
 	// 而不是再加一个：连续编辑在历史中只留一条（反馈 #35）。
 	Autosave(ctx context.Context, owner string, p *Profile, window time.Duration) error
 	Delete(ctx context.Context, owner, id string) error
+	// SetRevisions 用备份中的修订历史替换现有历史并设置版本（还原，需求 R21）
+	SetRevisions(ctx context.Context, owner, profileID string, version int64, revs []Revision) error
 	// SetProtected 开关删除保护（需求 R55），不改变版本
 	SetProtected(ctx context.Context, owner, id string, on bool) error
 	Revisions(ctx context.Context, owner, profileID string, p Page) ([]Revision, error)

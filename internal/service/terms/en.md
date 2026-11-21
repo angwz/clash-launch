@@ -8,7 +8,7 @@ This site is a Clash (mihomo) config generator: you provide nodes, subscriptions
 - **No third-party services**: no third-party translation, font, analytics or CAPTCHA services are used at runtime. The only connections the server makes on its own are to the subscriptions, rule sources and mail server you configure.
 - **What you write is kept as written**: node names, group names, regular expressions and hand-written rules are preserved. If something looks unusual, you get a notice, not a silent rewrite.
 - **Nothing is dropped silently**: anything skipped, rewritten, removed or unverifiable is listed in the diagnostics.
-- **You can delete at any time**: your node sources, configs, subscription links and short links can be deleted whenever you like.
+- **You can delete or take your data with you**: your node sources, configs, subscription links and short links can be deleted whenever you like. The Account page downloads an encrypted backup of all your information that can be restored on any site running this software, and each config can be exported as a file clients use directly.
 
 ## What we store
 

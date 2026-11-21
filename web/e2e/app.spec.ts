@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { apiAs, createUser, login, seedProfile, step, totp } from "./helpers";
+import { ADMIN, apiAs, createUser, login, seedProfile, step, totp } from "./helpers";
 
 // 三个安全问题使用默认选择的内置问题 0、1、2
 async function fillAnswers(page: Page, answers = ["Beijing", "Mochi", "Sunrise School"]) {
@@ -1395,5 +1395,44 @@ test("导入配置：预览将要创建的内容与去掉的设置，导入后�
   expect(y).toContain("MATCH,导入的组");
   expect(y).not.toContain("🇰🇷");
   expect(y).not.toContain("external-controller");
+  expect(problems).toEqual([]);
+});
+
+test("备份与还原：下载加密备份，还原后整体回到备份时的状态，可以撤销（R21）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "备份与还原" }) });
+  const pass = "e2e backup passphrase";
+  await box.getByLabel("当前密码").first().fill(ADMIN.password);
+  await box.getByLabel("备份口令", { exact: true }).first().fill(pass);
+  await box.getByLabel("再输入一次备份口令").fill(pass);
+  const dl = page.waitForEvent("download");
+  await box.getByRole("button", { name: "下载备份" }).click();
+  const file = await (await dl).path();
+  await expect(page.getByText("备份已下载")).toBeVisible();
+
+  // 备份之后新增的节点源：还原后应消失，撤销后应回来
+  const call = await apiAs(request, baseURL!);
+  const name = "还原后应消失 " + Date.now();
+  await call("POST", "/api/v1/sources", { name, kind: "batch", content: "- {name: 测试 51, type: ss, server: 192.0.2.51, port: 8388, cipher: aes-128-gcm, password: example-pw}\n" });
+
+  await box.getByLabel("备份文件").setInputFiles(file);
+  await box.getByLabel("备份口令", { exact: true }).nth(1).fill(pass);
+  await box.getByRole("button", { name: "检查备份" }).click();
+  await expect(box.getByRole("table")).toContainText("节点源");
+  await box.getByLabel(/我明白/).check();
+  await box.getByLabel("当前密码").nth(1).fill(ADMIN.password);
+  await box.getByRole("button", { name: "还原（整体替换）" }).click();
+  await expect(box.getByRole("status")).toContainText("已从备份还原");
+  const names = async () => ((await call<{ items: { name: string }[] }>("GET", "/api/v1/sources?limit=100")).items.map((s) => s.name));
+  expect(await names()).not.toContain(name);
+
+  await expect(box.getByRole("heading", { name: "撤销最近一次还原" })).toBeVisible();
+  await box.getByLabel("当前密码").last().fill(ADMIN.password);
+  await box.getByRole("button", { name: "撤销还原" }).click();
+  await expect(page.getByText("已撤销还原")).toBeVisible();
+  expect(await names()).toContain(name);
   expect(problems).toEqual([]);
 });

@@ -262,6 +262,7 @@ var encrypted = []struct{ table, pk, col, aad string }{
 	{"snapshots", "key", "headers_enc", "headers"}, {"renders", "profile_id", "good_headers_enc", "good_headers"},
 	{"renders", "profile_id", "last_diags_enc", "last_diags"}, {"renders", "profile_id", "last_error_enc", "last_error"},
 	{"notify_channels", "id", "config_enc", "config"}, // 需求 R31
+	{"user_backups", "id", "data_enc", "data"},        // 需求 R21
 }
 
 // ReEncrypt 用当前密钥重新加密全部数据（keys rotate 的第二步），返回改写的单元数。在一个事务中完成。

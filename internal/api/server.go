@@ -118,7 +118,10 @@ func (s *Server) secureHeaders(next http.Handler) http.Handler {
 func (s *Server) limitBody(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limit := s.Cfg.MaxBody
-		if strings.HasPrefix(r.URL.Path, "/api/v1/sources") || strings.HasSuffix(r.URL.Path, "/import") {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/api/v1/account/restore"):
+			limit = 64 << 20 // 还原要带上整个备份文件（需求 R21）
+		case strings.HasPrefix(r.URL.Path, "/api/v1/sources"), strings.HasSuffix(r.URL.Path, "/import"), r.URL.Path == "/api/v1/import/preview":
 			limit = 10 << 20 // 节点原文与导入可以较大（第 14.5 节：上传有体积上限）
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
@@ -297,6 +300,12 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
 	case errors.Is(err, source.ErrSMTP):
 		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
+	case errors.Is(err, service.ErrBackupPassphrase):
+		problem(w, http.StatusUnprocessableEntity, "backup.passphrase", "the backup passphrase is wrong or the file is damaged")
+	case errors.Is(err, service.ErrBackupFormat):
+		problem(w, http.StatusUnprocessableEntity, "backup.format", err.Error())
+	case errors.Is(err, service.ErrBackupWeak):
+		problem(w, http.StatusUnprocessableEntity, "backup.weak", "the backup passphrase must be at least 10 characters")
 	case errors.Is(err, service.ErrExportNeedsLink):
 		problem(w, http.StatusConflict, "export.needs_link", "this config has sources handed to the client; create a subscription link before exporting with proxies")
 	case errors.Is(err, service.ErrProtected):

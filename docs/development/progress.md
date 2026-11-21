@@ -7,15 +7,15 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：R17 导入导出已完成，接着做 R21 备份与还原、R20 注销账户、O2 规则源编辑器。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：R21 已完成，接着做 R20 注销账户、O2 规则源编辑器。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
-  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 54 通过 38 跳过（「分流规则拖动」偶发失败，单独重跑通过）。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 55 通过 39 跳过（「分流规则拖动」偶发失败，单独重跑通过）。
   - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
-- **新迁移**：下一个编号是 0023；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
+- **新迁移**：下一个编号是 0024；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
 ### 各批次记录
 
@@ -72,6 +72,7 @@
 - **R17 导出（2026-11-21）**：`engine.Export`（`NoNodes`、`NoRules`）在合并与适配之后、渲染之前裁剪：去掉 proxies 与 proxy-providers，组内引用与 use 一并去掉，没有成员也不会自动收录节点的组写 DIRECT 占位（mihomo 不接受空组），指向被去掉节点的规则改为 DIRECT；去掉 rule-providers 与使用 RULE-SET 的规则（含逻辑规则的条件）。每项写入 `export.*` 诊断。服务端同源渲染并做内核检查，替换「交给客户端」的链接令牌。验证：`TestStripExport`、`TestExportConfig`（完整导出与订阅内容逐字节相同、骨架、审计、隔离）、e2e「导出配置…」（下载文件内容与诊断显示）；带 filter 与 DIRECT 占位的骨架样例经本机 mihomo v1.19.33 `-t` 通过。
 - **R18 最简 compose（2026-11-21）**：镜像默认 `USER 0:0`，`prepareDataDir` 在 `os.Root` 内把 `/data` 交给 `PUID`/`PGID`（默认 65532，拒绝 0）后降权；以普通用户启动时提示针对当前用户的 `chown`。`compose.yaml` 缩为四项，加固与 PostgreSQL 为叠加文件。远程 Docker 的用法：Docker 上下文 `aliyun-dev` 的 sshd（OpenSSH 10）会惩罚频繁新建的连接，Git Bash 的 ssh 读不到 Windows ssh-agent 里的密钥；做法是用 `/c/Windows/System32/OpenSSH/ssh.exe -N -L 127.0.0.1:23750:/var/run/docker.sock aliyun-dev` 建一条长期隧道，之后 `DOCKER_HOST=tcp://127.0.0.1:23750`，Git Bash 中加 `MSYS_NO_PATHCONV=1` 防止挂载路径被改写；compose 的数据路径要写远程主机上的绝对路径。那台主机上有别的项目（`paycore-*`），测试一律用单独的项目名、只绑定 127.0.0.1，测完清理。实测结果见 backlog R18 一行。
 - **R17 导入（2026-11-21）**：`engine.PlanImport` 换算为节点源 + 配置文档 + `import.*` 诊断，映射与取舍见 0004 #31；`POST /api/v1/import/preview` 不写存储，订阅更新间隔低于本账号最小值时提高并报告；界面经已有接口创建，失败时删除已建的节点源。验证：`TestPlanImport`（计数、订阅映射、面板与未知键、保留未知键、经真实管线渲染后节点名与组和规则原样出现），生成的配置经本机 mihomo v1.19.33 `-t` 通过；`TestImportPreview`（预览不写存储、按计划创建后订阅输出、普通用户的间隔提高、非配置时 ok=false）；e2e「导入配置…」。
+- **R21 个人备份与还原（2026-11-21）**：格式、加密与还原规则见 0005 修订 R21。还原在一个事务中删除并重建个人数据，ID 沿用、冲突时换新并替换文档中的引用；事务前按 R2 收回将消失对象的授权，事务后通知与重新生成。用户协议默认文本补上「数据可以带走」（不增加版本号）。验证：`TestBackupRestore` 在 SQLite 与 PostgreSQL 上通过（含跨账号还原的 ID、令牌与短码冲突）；e2e「备份与还原…」走完下载、还原、撤销。未验证：大数据量账号的备份耗时与内存（argon2id 本身需要 64 MiB）。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

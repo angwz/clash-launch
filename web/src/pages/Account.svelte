@@ -9,6 +9,7 @@
   import Passkeys from "../components/account/Passkeys.svelte";
   import Alerts from "../components/account/Alerts.svelte";
   import Channels from "../components/account/Channels.svelte";
+  import BackupRestore from "../components/account/BackupRestore.svelte";
   import AccessTokens from "../components/account/AccessTokens.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
@@ -180,6 +181,8 @@
   <Channels />
 
   <AccessTokens />
+
+  <BackupRestore />
 
   <section class="panel box" aria-labelledby="ac-s">
     <div class="shead">
