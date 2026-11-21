@@ -1360,3 +1360,40 @@ test("导出配置：含节点时与订阅内容相同，不含节点时得到�
   await expect(dlg.getByText(/导出时不含节点：去掉了 2 个节点/)).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("导入配置：预览将要创建的内容与去掉的设置，导入后节点名与策略组原样保留（R17）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "导入配置" }).click();
+  const dlg = page.getByRole("dialog", { name: "导入配置" });
+  await dlg.getByLabel("配置内容").fill([
+    "mixed-port: 7890",
+    "external-controller: 127.0.0.1:9090",
+    "proxies:",
+    "  - {name: 首尔 01, type: ss, server: 192.0.2.41, port: 8388, cipher: aes-128-gcm, password: example-pw}",
+    "proxy-groups:",
+    "  - {name: 导入的组, type: select, proxies: [首尔 01, DIRECT]}",
+    "rules:",
+    "  - MATCH,导入的组",
+  ].join("\n"));
+  await dlg.getByLabel("配置名称").fill("e2e 导入");
+  await dlg.getByRole("button", { name: "预览" }).click();
+  await expect(dlg.getByText("1个节点（一个手动节点源）")).toBeVisible();
+  await expect(dlg.getByText("1个策略组")).toBeVisible();
+  await expect(dlg.getByText(/external-controller 是面板或外部控制设置，没有导入/)).toBeVisible();
+  await dlg.getByRole("button", { name: "导入", exact: true }).click();
+  await expect(page).toHaveURL(/\/profiles\/[0-9a-f-]+$/);
+  const id = page.url().split("/").pop()!;
+
+  const call = await apiAs(request, baseURL!);
+  const l = await call<{ url: string }>("POST", `/api/v1/profiles/${id}/links`, { note: "导入" });
+  const y = await (await request.get(new URL(l.url).pathname)).text();
+  expect(y).toContain("name: 首尔 01");
+  expect(y).toContain("name: 导入的组");
+  expect(y).toContain("MATCH,导入的组");
+  expect(y).not.toContain("🇰🇷");
+  expect(y).not.toContain("external-controller");
+  expect(problems).toEqual([]);
+});

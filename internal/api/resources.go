@@ -1189,3 +1189,40 @@ func (s *Server) exportConfig(w http.ResponseWriter, r *http.Request, p *princip
 	s.audit(r.Context(), p.User.ID, "profile.export", map[string]string{"profile": r.PathValue("id"), "nodes": strconv.FormatBool(req.Nodes), "rules": strconv.FormatBool(req.Rules)})
 	writeJSON(w, http.StatusOK, map[string]any{"yaml": string(res.YAML), "filename": res.Name + suffix + ".yaml", "diagnostics": diag.Sorted(res.Diagnostics), "kernel": res.Kernel, "fatal": res.Fatal})
 }
+
+// previewImport 把一份完整的 Clash/mihomo 配置换算为导入计划（需求 R17）：要新建的节点源、配置文档与诊断。
+// 不写存储；界面确认后经已有的接口创建节点源与配置（配额、SSRF 防护与校验照常生效）。
+// 订阅的更新间隔低于本账号允许的最小值时提高到最小值并报告，避免创建时被配额拒绝。
+func (s *Server) previewImport(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Text        string `json:"text"`
+		Name        string `json:"name"`
+		KeepUnknown bool   `json:"keepUnknown"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if !s.renderAllowed(w, p, false) {
+		return
+	}
+	plan, err := engine.PlanImport(engine.ImportInput{Text: []byte(req.Text), Name: req.Name, Catalog: s.Svc.Catalog, KeepUnknown: req.KeepUnknown})
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "diagnostics": diag.Sorted(plan.Diagnostics)})
+		return
+	}
+	l, err := s.Svc.Limits(r.Context(), p.User)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	var extra diag.List
+	for i := range plan.Sources {
+		src := &plan.Sources[i]
+		if src.Interval > 0 && src.Interval < l.MinInterval {
+			extra.Add(diag.ImportIntervalRaised, "proxy-providers."+src.Name, "name", src.Name, "from", strconv.Itoa(src.Interval), "to", strconv.Itoa(l.MinInterval))
+			src.Interval = l.MinInterval
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "sources": plan.Sources, "doc": plan.Doc, "counts": plan.Counts, "diagnostics": diag.Sorted(append(plan.Diagnostics, extra.Items()...))})
+}

@@ -4,6 +4,7 @@
   import Emoji from "../components/Emoji.svelte";
   import Dialog from "../components/Dialog.svelte";
   import DeleteProfileDialog from "../components/DeleteProfileDialog.svelte";
+  import ImportProfileDialog from "../components/ImportProfileDialog.svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
@@ -20,6 +21,7 @@
   import BatchBar from "../components/BatchBar.svelte";
 
   let items = $state<Profile[] | null>(null);
+  let importing = $state(false); // 导入配置（R17）
   // 等待删除（可撤销，R33）的配置先隐藏；多选与批量删除（R35）
   const visible = $derived((items ?? []).filter((p) => !pending.has(p.id)));
   const sel = new Selection();
@@ -150,6 +152,7 @@
   <PageHeader title={t("profiles.title")} subtitle={t("profiles.subtitle")}>
     {#snippet actions()}
       <a class="btn" href="/welcome"><Icon name="sparkle" size={15} />{t("profiles.wizard")}</a>
+      <button class="btn" type="button" onclick={() => (importing = true)}><Icon name="upload" size={15} />{t("import.title")}</button>
       <button class="btn primary" type="button" onclick={() => void openNew()}><Icon name="plus" size={15} />{t("profiles.new")}</button>
     {/snippet}
   </PageHeader>
@@ -202,6 +205,7 @@
 </div>
 
 <DeleteProfileDialog bind:open={deleteOpen} profile={deleting} />
+<ImportProfileDialog bind:open={importing} />
 
 <Dialog bind:open={creating} title={t("profiles.new")}>
   <form id="new-profile" class="form" onsubmit={create}>

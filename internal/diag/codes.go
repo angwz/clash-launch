@@ -174,3 +174,16 @@ var (
 	ExportRuleTarget       = reg("export.rule_target", Warning, "Rule {rule} pointed to proxy {target}, which was removed; it now goes to DIRECT", "规则 {rule} 指向的节点 {target} 已去掉，改为 DIRECT")
 	ExportRulesRemoved     = reg("export.rule_sets_removed", Info, "Exported without rule sets: removed {providers} rule providers and {rules} rules that use them", "导出时不含规则集：去掉了 {providers} 个规则集与使用它们的 {rules} 条规则")
 )
+
+// —— 导入（需求 R17）——
+var (
+	ImportInvalid        = reg("import.invalid", Error, "Cannot import: {reason}", "无法导入：{reason}")
+	ImportRuntimeDropped = reg("import.runtime_dropped", Info, "{key} is a panel or external-controller setting and was not imported", "{key} 是面板或外部控制设置，没有导入")
+	ImportUnknownDropped = reg("import.unknown_dropped", Warning, "{key} is not a known mihomo field and was dropped", "{key} 不是已知的 mihomo 字段，已丢弃")
+	ImportRawKept        = reg("import.raw_kept", Info, "{key} is not a known mihomo field; kept as-is in the directly edited YAML", "{key} 不是已知的 mihomo 字段，已原样留在直接编辑的 YAML 中")
+	ImportProviderKept   = reg("import.provider_kept", Info, "Proxy provider {name} has type {type}; kept as-is in the directly edited YAML instead of becoming a node source", "节点订阅 {name} 的类型是 {type}，没有转为节点源，已原样留在直接编辑的 YAML 中")
+	ImportProviderKey    = reg("import.provider_key", Warning, "Proxy provider {name}: {key} cannot be expressed by a node source and was not imported", "节点订阅 {name}：{key} 无法由节点源表达，没有导入")
+)
+
+// ImportIntervalRaised 在导入时把订阅的更新间隔提高到账号允许的最小值（与 ImportInvalid 等同属导入）。
+var ImportIntervalRaised = reg("import.interval_raised", Info, "Proxy provider {name}: update interval {from}s raised to {to}s, the minimum for this account", "节点订阅 {name}：更新间隔 {from} 秒低于本账号允许的最小值，已改为 {to} 秒")

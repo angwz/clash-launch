@@ -1650,6 +1650,47 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: text/yaml}}
+  /api/v1/import/preview:
+    post:
+      tags: [profiles]
+      summary: 把完整的 Clash/mihomo 配置换算为导入计划（需求 R17），不写存储
+      description: |
+        返回要新建的节点源（sources，配置文档中以 "@" + key 占位）与配置文档 doc：proxies 成为一个整理全部关闭的手动节点源；
+        type 为 http 的 proxy-providers 成为「交给客户端」的订阅节点源（名称不变）；proxy-groups、rule-providers、rules 与其他类型的 provider 原样写入直接编辑层；
+        其余键按字段目录归入表单层，面板与外部控制设置不导入，未知键丢弃或按 keepUnknown 原样保留。每项去掉或改写的内容在 diagnostics 中（import.*）。
+        不是 YAML 映射时 ok 为 false。受预览限流约束
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [text], properties: {text: {type: string}, name: {type: string}, keepUnknown: {type: boolean}}}}}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, diagnostics]
+                properties:
+                  ok: {type: boolean}
+                  doc: {type: string}
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, kind, name, processing, mode]
+                      properties:
+                        key: {type: string}
+                        kind: {type: string, enum: [batch, subscription]}
+                        name: {type: string}
+                        url: {type: string}
+                        content: {type: string}
+                        ua: {type: string}
+                        headers: {type: object, additionalProperties: {type: string}}
+                        interval: {type: integer}
+                        processing: {type: object}
+                        mode: {type: string, enum: [inline, provider]}
+                  counts: {type: object, properties: {proxies: {type: integer}, providers: {type: integer}, groups: {type: integer}, rules: {type: integer}, ruleProviders: {type: integer}, form: {type: integer}, raw: {type: integer}}}
+                  diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+        '429': {$ref: '#/components/responses/Problem'}
   /api/v1/profiles/{id}/export-config:
     post:
       tags: [profiles]

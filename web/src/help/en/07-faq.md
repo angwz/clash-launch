@@ -39,3 +39,12 @@ Under More in the editor, choose Export config to download a file that clients c
 - Clear both to get a skeleton you can share. The dialog lists everything that was removed.
 
 A file with proxies contains their addresses and passwords; don't share it publicly.
+
+## Import a config copied from the web
+
+On the Configs page, choose Import config and paste a complete Clash or mihomo config. You preview it before anything is created:
+
+- Proxies become one manual node source with their names unchanged; `type: http` proxy providers become subscriptions handed to the client.
+- Proxy groups, rules and rule sets go into the config's directly edited YAML exactly as written.
+- Other settings are placed into the form by field; panel and external-controller settings (external-controller, secret and so on) are not imported.
+- The preview lists everything that was removed or rewritten.

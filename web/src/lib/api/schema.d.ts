@@ -5518,6 +5518,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 把完整的 Clash/mihomo 配置换算为导入计划（需求 R17），不写存储
+         * @description 返回要新建的节点源（sources，配置文档中以 "@" + key 占位）与配置文档 doc：proxies 成为一个整理全部关闭的手动节点源；
+         *     type 为 http 的 proxy-providers 成为「交给客户端」的订阅节点源（名称不变）；proxy-groups、rule-providers、rules 与其他类型的 provider 原样写入直接编辑层；
+         *     其余键按字段目录归入表单层，面板与外部控制设置不导入，未知键丢弃或按 keepUnknown 原样保留。每项去掉或改写的内容在 diagnostics 中（import.*）。
+         *     不是 YAML 映射时 ok 为 false。受预览限流约束
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text: string;
+                        name?: string;
+                        keepUnknown?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok: boolean;
+                            doc?: string;
+                            sources?: {
+                                key: string;
+                                /** @enum {string} */
+                                kind: "batch" | "subscription";
+                                name: string;
+                                url?: string;
+                                content?: string;
+                                ua?: string;
+                                headers?: {
+                                    [key: string]: string;
+                                };
+                                interval?: number;
+                                processing: Record<string, never>;
+                                /** @enum {string} */
+                                mode: "inline" | "provider";
+                            }[];
+                            counts?: {
+                                proxies?: number;
+                                providers?: number;
+                                groups?: number;
+                                rules?: number;
+                                ruleProviders?: number;
+                                form?: number;
+                                raw?: number;
+                            };
+                            diagnostics: components["schemas"]["Diagnostic"][];
+                        };
+                    };
+                };
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles/{id}/export-config": {
         parameters: {
             query?: never;

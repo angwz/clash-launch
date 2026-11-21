@@ -167,6 +167,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/profiles/{id}/render", a(s.renderStatus)},
 		{"GET", "/api/v1/profiles/{id}/export", a(s.exportProfile)},
 		{"POST", "/api/v1/profiles/{id}/export-config", a(s.exportConfig)},
+		{"POST", "/api/v1/import/preview", a(s.previewImport)},
 
 		{"GET", "/api/v1/profiles/{id}/links", a(s.listLinks)},
 		{"GET", "/api/v1/profiles/{id}/stats", a(s.profileStats)},
