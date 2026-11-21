@@ -301,6 +301,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
 	case errors.Is(err, source.ErrSMTP):
 		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
+	case errors.Is(err, service.ErrRetention):
+		problem(w, http.StatusUnprocessableEntity, "admin.retention", err.Error())
 	case errors.Is(err, service.ErrLastAdmin):
 		problem(w, http.StatusConflict, "account.last_admin", "the last administrator cannot be deleted")
 	case errors.Is(err, service.ErrDeleted):

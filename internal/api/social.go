@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"github.com/angwz/clash-launch/internal/events"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/angwz/clash-launch/internal/events"
 
 	"github.com/angwz/clash-launch/internal/service"
 	"github.com/angwz/clash-launch/internal/store"
@@ -265,55 +266,12 @@ func (s *Server) deleteShortLink(w http.ResponseWriter, r *http.Request, p *prin
 // tz（用户没有设置时区时，前端传入浏览器时区）。
 func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal) {
 	ctx := r.Context()
-	q := r.URL.Query()
-	days, _ := strconv.Atoi(q.Get("days"))
-	if days <= 0 || days > 365 {
-		days = 30
-	}
-	zone := p.User.Timezone
-	if zone == "" {
-		zone = q.Get("tz")
-	}
-	loc, err := time.LoadLocation(zone)
-	if err != nil || zone == "" || zone == "Local" {
-		loc = time.UTC
-	}
-	s.Svc.FlushStats(ctx)
-	// 区间结束于所选时区的明天零点，开始于 days 天前的零点：每天的柱子都是完整的自然日
-	now := time.Now().In(loc)
-	to := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
-	from := to.AddDate(0, 0, -days)
-	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
+	sc, err := s.analyticsScope(r, p)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
-	// 为好友生成的短链接 → 好友（反馈 #75）：好友的使用情况单独统计，也可以只看某位好友
-	granteeOf, friends := map[string]string{}, map[string]string{}
-	codes := map[string]string{}
-	for _, x := range shorts {
-		codes[x.ID] = x.Code
-		if x.GranteeID != "" {
-			granteeOf[x.ID] = x.GranteeID
-			if _, ok := friends[x.GranteeID]; !ok {
-				if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
-					friends[x.GranteeID] = u.Username
-				} else {
-					friends[x.GranteeID] = "?"
-				}
-			}
-		}
-	}
-	// 筛选条件交给数据库；只看某位好友时取他的全部短链接（没有则为空切片：必然没有请求）
-	f := store.RequestFilter{LinkID: q.Get("link"), ShortID: q.Get("short")}
-	if friend := q.Get("friend"); friend != "" {
-		f.Shorts = []string{}
-		for _, x := range shorts {
-			if x.GranteeID == friend {
-				f.Shorts = append(f.Shorts, x.ID)
-			}
-		}
-	}
+	from, to, loc, f, codes, friends, granteeOf := sc.from, sc.to, sc.loc, sc.filter, sc.codes, sc.friends, sc.granteeOf
 	// 流式汇总，没有条数上限（需求 R14c）；最近的请求另外按完整列取一页
 	z := service.NewAnalyzer(from, to, loc, granteeOf)
 	if err := s.Svc.Store.Stats().EachRequest(ctx, p.User.ID, from, to, f, func(q *store.SubRequest) error {
@@ -336,7 +294,7 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 		return
 	}
 	// 明细保留期（R14c）：所选范围超过它时，前端提示前段不完整
-	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends, "retentionDays": int(s.Svc.RequestRetention.Hours() / 24)})
+	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends, "retentionDays": s.Svc.Retention(ctx).RequestDays})
 }
 
 // —— 站内消息 ——

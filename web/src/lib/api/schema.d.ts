@@ -2545,6 +2545,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 生效的数据保留期（需求 R43）：网页设置优先，否则沿用环境变量；0 表示永不清理 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            auditDays?: number;
+                            requestDays?: number;
+                            auditFromSetting?: boolean;
+                            requestFromSetting?: boolean;
+                            auditDefault?: number;
+                            requestDefault?: number;
+                        };
+                    };
+                };
+            };
+        };
+        /** 设置保留期（天，0–3650）；某项为 null 时恢复为环境变量的值；立即生效，记入审计 admin.retention */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        auditDays?: number | null;
+                        requestDays?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            auditDays?: number;
+                            requestDays?: number;
+                            auditFromSetting?: boolean;
+                            requestFromSetting?: boolean;
+                            auditDefault?: number;
+                            requestDefault?: number;
+                        };
+                    };
+                };
+                422: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 各表的数据量与占用（需求 R43）；PostgreSQL 为统计信息中的估算行数与占用，SQLite 为精确行数与整库大小 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            dialect?: string;
+                            total?: number;
+                            tables?: {
+                                table?: string;
+                                rows?: number;
+                                /** @description -1 表示无法按表统计 */
+                                bytes?: number;
+                                estimated?: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/{id}": {
         parameters: {
             query?: never;
@@ -4528,6 +4652,51 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/analytics/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 订阅分析导出为 CSV（需求 R39）
+         * @description 与 /analytics 相同的范围与筛选（days、link、short、friend、tz）。kind=requests（默认）是请求明细，受明细保留期限制；kind=daily 是按天的汇总。
+         *     UTF-8 带 BOM；以 = + - @ 等开头的单元格前加单引号，防止 CSV 注入。访问令牌（读）可用
+         */
+        get: {
+            parameters: {
+                query?: {
+                    kind?: "requests" | "daily";
+                    days?: number;
+                    link?: string;
+                    short?: string;
+                    friend?: string;
+                    tz?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/csv */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/analytics": {

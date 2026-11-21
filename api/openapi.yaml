@@ -1097,6 +1097,24 @@ paths:
                   jobs: {type: array, items: {type: object, required: [name, runs, failures, lastStart, lastMs, running], properties: {name: {type: string}, runs: {type: integer}, failures: {type: integer}, lastStart: {type: string, format: date-time}, lastMs: {type: number}, lastError: {type: string}, lastErrorAt: {type: string, format: date-time}, running: {type: boolean}}}}
                   fetches: {type: object, additionalProperties: {type: integer}, description: 进程启动以来的拉取次数（source_ok、source_failed、rule_ok、rule_failed）}
                   since: {type: string, format: date-time}
+  /api/v1/admin/retention:
+    get:
+      tags: [admin]
+      summary: 生效的数据保留期（需求 R43）：网页设置优先，否则沿用环境变量；0 表示永不清理
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {auditDays: {type: integer}, requestDays: {type: integer}, auditFromSetting: {type: boolean}, requestFromSetting: {type: boolean}, auditDefault: {type: integer}, requestDefault: {type: integer}}}}}}}
+    put:
+      tags: [admin]
+      summary: 设置保留期（天，0–3650）；某项为 null 时恢复为环境变量的值；立即生效，记入审计 admin.retention
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {auditDays: {type: integer, nullable: true}, requestDays: {type: integer, nullable: true}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {auditDays: {type: integer}, requestDays: {type: integer}, auditFromSetting: {type: boolean}, requestFromSetting: {type: boolean}, auditDefault: {type: integer}, requestDefault: {type: integer}}}}}}, '422': {$ref: '#/components/responses/Problem'}}
+  /api/v1/admin/usage:
+    get:
+      tags: [admin]
+      summary: 各表的数据量与占用（需求 R43）；PostgreSQL 为统计信息中的估算行数与占用，SQLite 为精确行数与整库大小
+      security: [{session: []}]
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {dialect: {type: string}, total: {type: integer}, tables: {type: array, items: {type: object, properties: {table: {type: string}, rows: {type: integer}, bytes: {type: integer, description: -1 表示无法按表统计}, estimated: {type: boolean}}}}}}}}}}
   /api/v1/admin/users/{id}:
     delete:
       tags: [admin]
@@ -1476,6 +1494,22 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'204': {description: deleted}}
+  /api/v1/analytics/export:
+    get:
+      tags: [analytics]
+      summary: 订阅分析导出为 CSV（需求 R39）
+      description: |
+        与 /analytics 相同的范围与筛选（days、link、short、friend、tz）。kind=requests（默认）是请求明细，受明细保留期限制；kind=daily 是按天的汇总。
+        UTF-8 带 BOM；以 = + - @ 等开头的单元格前加单引号，防止 CSV 注入。访问令牌（读）可用
+      security: [{session: []}]
+      parameters:
+        - {name: kind, in: query, schema: {type: string, enum: [requests, daily]}}
+        - {name: days, in: query, schema: {type: integer, minimum: 1, maximum: 365}}
+        - {name: link, in: query, schema: {type: string}}
+        - {name: short, in: query, schema: {type: string}}
+        - {name: friend, in: query, schema: {type: string}}
+        - {name: tz, in: query, schema: {type: string}}
+      responses: {'200': {description: text/csv}}
   /api/v1/analytics:
     get:
       tags: [stats]

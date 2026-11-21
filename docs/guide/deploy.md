@@ -114,8 +114,8 @@ docker compose -f compose.yaml -f compose.postgres.yaml up -d
 | `CLASH_LAUNCH_QUOTA_MIN_INTERVAL` | `30` | 订阅与规则源的最短拉取间隔（分钟）；手动拉取每人每小时最多 30 次 |
 | `CLASH_LAUNCH_QUOTA_STORAGE_MB` | `100` | 每个用户保存的内容上限（源、快照、方案与版本，按加密后计） |
 | `CLASH_LAUNCH_OPEN_QUOTA_*`（同上五项） | `10` · `5` · `10` · `60` · `20` | 开放注册（未经邀请）的用户使用的默认配额，比上面更小；管理员与受邀用户使用上面的值 |
-| `CLASH_LAUNCH_AUDIT_DAYS` | `180` | 审计日志保留天数；`0` 表示不清理 |
-| `CLASH_LAUNCH_SUB_REQUEST_DAYS` | `400` | 订阅请求明细（每次拉取一行）的保留天数，每天按批清理；按天、按链接与按 IP 的汇总永久保留。低于 365 时，订阅分析选「一年」会提示前段不完整；`0` 表示不清理 |
+| `CLASH_LAUNCH_AUDIT_DAYS` | `180` | 审计日志保留天数；`0` 表示不清理。管理页「数据保留」中的设置优先于它，立即生效 |
+| `CLASH_LAUNCH_SUB_REQUEST_DAYS` | `400` | 订阅请求明细（每次拉取一行）的保留天数，每天按批清理；按天、按链接与按 IP 的汇总永久保留。低于 365 时，订阅分析选「一年」会提示前段不完整；`0` 表示不清理。管理页「数据保留」中的设置优先于它 |
 | `CLASH_LAUNCH_TRACE` | `on` | 分流追踪与常用网站体检。开启时服务器会下载方案引用的规则内容（与拉取订阅相同的 SSRF 防护与站点白名单，只缓存在内存）；`off` 时追踪与体检不可用，分流地图照常 |
 | `CLASH_LAUNCH_TRACE_CACHE_MB` | `256` | 规则内容的内存缓存上限，按内容字节淘汰最久未用的 |
 

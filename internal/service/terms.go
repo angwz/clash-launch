@@ -106,7 +106,7 @@ func (s *Service) CurrentTerms(ctx context.Context) (Terms, error) {
 		return Terms{}, err
 	}
 	for l, x := range t.Texts {
-		t.Texts[l] = s.fillTerms(l, x)
+		t.Texts[l] = s.fillTerms(ctx, l, x)
 	}
 	return t, nil
 }
@@ -142,7 +142,7 @@ func (s *Service) RawTerms(ctx context.Context) (Terms, error) {
 }
 
 // fillTerms 把保留期占位符替换为本站的实际设置。
-func (s *Service) fillTerms(lang, text string) string {
+func (s *Service) fillTerms(ctx context.Context, lang, text string) string {
 	days := func(d time.Duration) string {
 		n := int(d.Hours() / 24)
 		switch {
@@ -158,7 +158,7 @@ func (s *Service) fillTerms(lang, text string) string {
 			return strconv.Itoa(n) + " days"
 		}
 	}
-	return strings.NewReplacer("{{audit_days}}", days(s.AuditRetention), "{{request_days}}", days(s.RequestRetention)).Replace(text)
+	return strings.NewReplacer("{{audit_days}}", days(s.auditRetention(ctx)), "{{request_days}}", days(s.requestRetention(ctx))).Replace(text)
 }
 
 // SetTerms 改写协议文本（管理员）；texts 为 nil 时恢复默认文本。两种情况都生成新版本，

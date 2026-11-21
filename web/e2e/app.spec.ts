@@ -1496,3 +1496,28 @@ test("运行指标与后台任务：管理页列出任务，/metrics 在本机�
   await expect(box.getByRole("row", { name: /清理审计日志/ })).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("数据保留与订阅分析导出：设置保留期、统计数据量、导出 CSV（R43、R39）", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/admin");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "数据保留" }) });
+  await box.getByLabel("审计日志保留天数").fill("365");
+  await box.getByLabel("订阅请求明细保留天数").fill("60");
+  await box.getByRole("button", { name: "保存" }).click();
+  await expect(box.getByText(/已在网页上设置/).first()).toBeVisible();
+  await box.getByRole("button", { name: "统计" }).click();
+  await expect(box.getByRole("cell", { name: "users", exact: true })).toBeVisible();
+  await box.getByRole("button", { name: "恢复为环境变量" }).click();
+  await expect(box.getByText(/当前沿用环境变量/).first()).toBeVisible();
+
+  await page.goto("/analytics");
+  const dl = page.waitForEvent("download");
+  await page.getByRole("link", { name: "导出明细" }).click();
+  const f = await dl;
+  expect(f.suggestedFilename()).toMatch(/^subscription-requests-\d{8}-\d{8}\.csv$/);
+  const text = await (await f.createReadStream()).toArray().then((c) => Buffer.concat(c).toString("utf8"));
+  expect(text.replace(/^﻿/, "").split("\n")[0]).toBe("time,config,link,short_link,friend,client,ip,country,asn,org,status,kind");
+  expect(problems).toEqual([]);
+});

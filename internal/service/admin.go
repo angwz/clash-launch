@@ -145,10 +145,11 @@ func limitsOf(d QuotaDefaults) Limits {
 // PruneAudit 删除超过保留期的审计记录；保留期为 0 时不删除。
 // PruneRequests 删除超过保留期的订阅请求明细（需求 R14c）；按天与按 IP 的汇总不受影响。
 func (s *Service) PruneRequests(ctx context.Context) {
-	if s.RequestRetention <= 0 {
+	keep := s.requestRetention(ctx) // 管理页设置优先，否则环境变量（需求 R43）
+	if keep <= 0 {
 		return
 	}
-	n, err := s.Store.Stats().PruneRequests(ctx, s.now().Add(-s.RequestRetention))
+	n, err := s.Store.Stats().PruneRequests(ctx, s.now().Add(-keep))
 	if err != nil && s.Log != nil {
 		s.Log.Error("清理订阅请求明细失败", "error", err, "rows", n)
 		jobFailed(ctx, err)
@@ -158,10 +159,11 @@ func (s *Service) PruneRequests(ctx context.Context) {
 }
 
 func (s *Service) PruneAudit(ctx context.Context) {
-	if s.AuditRetention <= 0 {
+	keep := s.auditRetention(ctx) // 管理页设置优先，否则环境变量（需求 R43）
+	if keep <= 0 {
 		return
 	}
-	n, err := s.Store.Audit().Prune(ctx, s.now().Add(-s.AuditRetention))
+	n, err := s.Store.Audit().Prune(ctx, s.now().Add(-keep))
 	if err != nil && s.Log != nil {
 		s.Log.Error("清理审计日志失败", "error", err)
 		jobFailed(ctx, err)

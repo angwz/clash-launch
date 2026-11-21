@@ -248,7 +248,7 @@ func (s *Server) adminStatus(w http.ResponseWriter, r *http.Request, _ *principa
 		"database":  s.Svc.Store.Dialect(),
 		"publicURL": strings.Join(s.Cfg.PublicURLs, ", "),
 		"features":  map[string]bool{"passkeys": pkErr == nil, "smtp": s.Svc.Mailer != nil},
-		"auditDays": int(s.Svc.AuditRetention.Hours() / 24),
+		"auditDays": s.Svc.Retention(r.Context()).AuditDays,
 	})
 }
 
@@ -266,4 +266,38 @@ func auditList(items []auditDTO) list[auditDTO] {
 		out.Next = items[len(items)-1].ID
 	}
 	return out
+}
+
+// —— 数据保留（需求 R43）——
+
+func (s *Server) getRetention(w http.ResponseWriter, r *http.Request, _ *principal) {
+	writeJSON(w, http.StatusOK, s.Svc.Retention(r.Context()))
+}
+
+// putRetention 设置保留期；某一项为 null 时恢复为环境变量的值。
+func (s *Server) putRetention(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		AuditDays   *int `json:"auditDays"`
+		RequestDays *int `json:"requestDays"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	v, err := s.Svc.SetRetention(r.Context(), p.User, req.AuditDays, req.RequestDays)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+// dataUsage 统计各表的数据量（按需读取：SQLite 上大表的计数需要时间）。
+func (s *Server) dataUsage(w http.ResponseWriter, r *http.Request, _ *principal) {
+	u, err := s.Svc.DataUsage(r.Context())
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, u)
 }

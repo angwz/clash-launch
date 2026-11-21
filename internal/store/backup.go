@@ -175,3 +175,57 @@ func (r users) Tombstone(ctx context.Context, id, placeholder string, at time.Ti
 		return err
 	})
 }
+
+// —— 数据量（需求 R43）——
+
+// TableUsage 是一张表的行数与占用。Estimated 为 true 时行数是数据库统计信息中的估算值（PostgreSQL），
+// 大表不必逐行计数；Bytes 为 -1 表示这个数据库无法按表给出占用。
+type TableUsage struct {
+	Table     string `json:"table"`
+	Rows      int64  `json:"rows"`
+	Bytes     int64  `json:"bytes"`
+	Estimated bool   `json:"estimated"`
+}
+
+// DataUsage 是数据库的总占用与各表情况。
+type DataUsage struct {
+	Dialect string       `json:"dialect"`
+	Total   int64        `json:"total"` // 字节
+	Tables  []TableUsage `json:"tables"`
+}
+
+// Usage 统计 Tables 中各表的数据量。PostgreSQL 用 pg_class 的估算行数与 pg_total_relation_size；
+// SQLite 精确计数，总占用为 page_count × page_size（SQLite 不按表统计占用）。
+func (d *DB) Usage(ctx context.Context) (*DataUsage, error) {
+	u := &DataUsage{Dialect: d.dialect, Tables: []TableUsage{}}
+	if d.dialect == "postgres" {
+		if err := d.row(ctx, "SELECT pg_database_size(current_database())").Scan(&u.Total); err != nil {
+			return nil, err
+		}
+		for _, t := range Tables {
+			tu := TableUsage{Table: t, Estimated: true}
+			err := d.row(ctx, "SELECT GREATEST(c.reltuples, 0)::bigint, pg_total_relation_size(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = ? AND c.relkind = 'r' AND n.nspname = current_schema()", t).Scan(&tu.Rows, &tu.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("统计 %s：%w", t, err)
+			}
+			u.Tables = append(u.Tables, tu)
+		}
+		return u, nil
+	}
+	var pages, size int64
+	if err := d.row(ctx, "PRAGMA page_count").Scan(&pages); err != nil {
+		return nil, err
+	}
+	if err := d.row(ctx, "PRAGMA page_size").Scan(&size); err != nil {
+		return nil, err
+	}
+	u.Total = pages * size
+	for _, t := range Tables {
+		tu := TableUsage{Table: t, Bytes: -1}
+		if err := d.row(ctx, "SELECT COUNT(*) FROM "+t).Scan(&tu.Rows); err != nil { // 表名来自常量列表 Tables
+			return nil, fmt.Errorf("统计 %s：%w", t, err)
+		}
+		u.Tables = append(u.Tables, tu)
+	}
+	return u, nil
+}

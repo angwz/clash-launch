@@ -7,6 +7,7 @@
   import StatsPanel from "../components/admin/StatsPanel.svelte";
   import Users from "../components/admin/Users.svelte";
   import JobsPanel from "../components/admin/JobsPanel.svelte";
+  import RetentionPanel from "../components/admin/RetentionPanel.svelte";
   import { api } from "../lib/api/client";
   import InvitesPanel from "../components/InvitesPanel.svelte";
   import { errorText } from "../lib/errors";
@@ -128,6 +129,8 @@
     <StatsPanel />
 
     <JobsPanel />
+
+    <RetentionPanel />
 
     <section class="panel box" aria-labelledby="a-users">
       <h2 id="a-users">{t("admin.users")}</h2>

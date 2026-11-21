@@ -98,3 +98,7 @@ At the bottom of the Account page you can delete your account with your current 
 - When the period ends, your nodes, configs, subscription links, short links, templates and all settings are deleted and subscriptions stop working; grants you gave are revoked and the other person is notified.
 - Conversations with others are kept and show you as a deleted user; your username stays reserved for 180 days so nobody can take it right away.
 - Consider downloading a backup first.
+
+## Export subscription analytics
+
+The Subscription Analytics page exports the current range and filters as CSV: Export details gives one row per fetch (time, config, link, client, IP, region, network operator, status code), and Export daily totals gives requests, successes, blocked requests and distinct IPs per day. Details are limited by the retention period; older days appear only in the daily totals.

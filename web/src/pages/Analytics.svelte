@@ -90,6 +90,14 @@
 
   const q = new URLSearchParams(location.search);
   let days = $state(Number(q.get("days")) || 30);
+  // 导出地址：与当前范围、筛选相同的查询参数（需求 R39）
+  function exportURL(kind: "requests" | "daily"): string {
+    const qs = new URLSearchParams({ kind, days: String(days), tz: browserZone() });
+    if (link) qs.set("link", link);
+    if (short) qs.set("short", short);
+    if (friend) qs.set("friend", friend);
+    return "/api/v1/analytics/export?" + qs.toString();
+  }
   let link = $state(q.get("link") ?? "");
   let short = $state(q.get("short") ?? "");
   let friend = $state(q.get("friend") ?? "");
@@ -165,7 +173,13 @@
 </script>
 
 <div class="page">
-  <PageHeader title={t("nav.analytics")} subtitle={t("analytics.subtitle")} />
+  <PageHeader title={t("nav.analytics")} subtitle={t("analytics.subtitle")}>
+    {#snippet actions()}
+      <!-- 导出（需求 R39）：与当前范围和筛选相同；直接下载，由浏览器带上会话 Cookie -->
+      <a class="btn" href={exportURL("requests")} download><Icon name="download" size={15} />{t("analytics.export_requests")}</a>
+      <a class="btn" href={exportURL("daily")} download>{t("analytics.export_daily")}</a>
+    {/snippet}
+  </PageHeader>
 
   <div class="filters" role="group" aria-label={t("analytics.filters")}>
     <div class="seg" role="radiogroup" aria-label={t("analytics.range")}>

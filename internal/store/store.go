@@ -248,6 +248,8 @@ type Store interface {
 	Backups() BackupRepo
 	// Taken 报告 table 中是否已有这个 ID（不区分所有者；还原备份时检查，需求 R21）。
 	Taken(ctx context.Context, table, id string) (bool, error)
+	// Usage 统计各表的数据量与占用（需求 R43）。
+	Usage(ctx context.Context) (*DataUsage, error)
 	Notifications() NotificationRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
