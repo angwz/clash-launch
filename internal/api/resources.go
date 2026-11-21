@@ -569,6 +569,7 @@ type profileDTO struct {
 	Version   int64      `json:"version"`
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
+	Protected bool       `json:"protected"`
 	Render    *renderDTO `json:"render,omitempty"`
 }
 
@@ -580,7 +581,7 @@ type profileReq struct {
 }
 
 func (s *Server) toProfile(r *http.Request, owner string, p *store.Profile) profileDTO {
-	d := profileDTO{ID: p.ID, Name: p.Name, Doc: string(p.Doc), Version: p.Version, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt}
+	d := profileDTO{ID: p.ID, Name: p.Name, Doc: string(p.Doc), Version: p.Version, CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt, Protected: p.Protected}
 	if x, err := s.Svc.Store.Renders().Get(r.Context(), owner, p.ID); err == nil {
 		d.Render = &renderDTO{Status: x.LastStatus, Error: x.LastError, GoodAt: tp(x.GoodAt), LastAt: tp(x.LastAt), Diagnostics: diagsJSON(x.LastDiags)}
 	} else {
@@ -1132,4 +1133,26 @@ func (s *Server) quota(r *http.Request, p *principal, kind string, extra int64, 
 		return s.Svc.CheckStorage(ctx, p.User, extra)
 	}
 	return nil
+}
+
+// protectProfile 开关删除保护（需求 R55）。不改变配置版本，返回更新后的配置。
+func (s *Server) protectProfile(w http.ResponseWriter, r *http.Request, p *principal) {
+	var in struct {
+		Protected bool `json:"protected"`
+	}
+	if err := readJSON(r, &in); err != nil {
+		s.fail(w, err)
+		return
+	}
+	id := r.PathValue("id")
+	if err := s.Svc.SetProfileProtected(r.Context(), p.User, id, in.Protected); err != nil {
+		s.fail(w, err)
+		return
+	}
+	pr, err := s.Svc.Store.Profiles().Get(r.Context(), p.User.ID, id)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"protected": pr.Protected})
 }

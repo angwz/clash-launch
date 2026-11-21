@@ -603,7 +603,8 @@ test("删除配置：从列表卡片、编辑器的「更多」或命令面板�
   await expect(dialog).toContainText("1条订阅链接");
   await dialog.getByRole("button", { name: "删除", exact: true }).click();
   await expect(page.getByRole("link", { name: "删除甲" + suffix })).toHaveCount(0);
-  expect((await request.get(new URL(link.url).pathname)).status()).toBe(404);
+  // 可撤销（R33）：10 秒后才真正删除，订阅链接随之失效
+  await expect.poll(async () => (await request.get(new URL(link.url).pathname)).status(), { timeout: 20_000 }).toBe(404);
 
   // 编辑器：桌面在「更多」里，手机（分节导航是下拉框）经命令面板；删除后回到列表
   await page.goto(`/profiles/${b.profile}`);
@@ -618,7 +619,9 @@ test("删除配置：从列表卡片、编辑器的「更多」或命令面板�
     await page.getByRole("button", { name: "删除配置" }).click();
   }
   await page.getByRole("dialog", { name: "删除配置" }).getByRole("button", { name: "删除", exact: true }).click();
-  await expect(page).toHaveURL(/\/profiles$/);
+  // 回到配置列表（首页），而不是不存在的 /profiles
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "配置", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "删除乙" + suffix })).toHaveCount(0);
 });
 
@@ -1002,7 +1005,6 @@ test("节点源：保存后返回列表，列表中可直接删除（R48、R50�
   await page.goto(`/sources/${src.id}`);
   await page.getByRole("button", { name: "保存" }).click();
   await expect(page).toHaveURL(/\/sources$/);
-  page.once("dialog", (d) => void d.accept());
   await page.getByRole("button", { name: `删除节点源「${name}」` }).click();
   await expect(page.getByRole("link", { name })).toHaveCount(0);
 });
@@ -1282,4 +1284,47 @@ test("提醒渠道：内网地址被拒绝，测试失败时显示原因，修�
   await item.getByRole("button", { name: "删除" }).click();
   await expect(box.getByText("还没有提醒渠道。")).toBeVisible();
   expect(problems.filter((p) => !p.includes("422"))).toEqual([]);
+});
+
+test("删除保护、可撤销的删除与批量操作（R55、R33、R35）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const a = await seedProfile(request, baseURL!, "保护甲");
+  const b = await seedProfile(request, baseURL!, "保护乙");
+  await login(page);
+
+  // 编辑器「更多」里开启删除保护：删除入口禁用，服务端同样拒绝
+  await page.goto(`/profiles/${a.profile}`);
+  await page.locator("#editor-main").waitFor();
+  await page.getByText("更多", { exact: true }).click();
+  await page.getByRole("switch", { name: /删除保护/ }).click();
+  await expect(page.getByText("已开启删除保护")).toBeVisible();
+  await expect(page.getByRole("button", { name: "删除配置" })).toBeDisabled();
+
+  // 列表：卡片上的删除按钮禁用；批量删除跳过受保护的
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "删除配置「保护甲」" })).toBeDisabled();
+  await page.getByRole("checkbox", { name: "选择保护甲" }).check();
+  await page.getByRole("checkbox", { name: "选择保护乙" }).check();
+  await expect(page.getByRole("toolbar", { name: "批量操作" })).toContainText("已选2项");
+  await page.getByRole("toolbar", { name: "批量操作" }).getByRole("button", { name: "删除" }).click();
+  await expect(page.getByText("1个开启了删除保护的配置没有删除")).toBeVisible();
+  await expect(page.getByRole("link", { name: "保护乙" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "保护甲" })).toBeVisible();
+
+  // 撤销：恢复显示，服务器上没有删除
+  await page.getByRole("button", { name: "撤销" }).click();
+  await expect(page.getByRole("link", { name: "保护乙" })).toBeVisible();
+  await page.waitForTimeout(11_000);
+  expect((await b.call<{ id: string }>("GET", `/api/v1/profiles/${b.profile}`)).id).toBe(b.profile);
+
+  // 不撤销：10 秒后真正删除
+  await page.getByRole("checkbox", { name: "选择保护乙" }).check();
+  await page.getByRole("toolbar", { name: "批量操作" }).getByRole("button", { name: "删除" }).click();
+  await expect(page.getByRole("link", { name: "保护乙" })).toHaveCount(0);
+  await expect.poll(async () => (await request.get(`/api/v1/profiles/${b.profile}`)).status(), { timeout: 20_000 }).toBe(404);
+  await page.reload();
+  await expect(page.getByRole("link", { name: "保护乙" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "保护甲" })).toBeVisible();
+  expect(problems).toEqual([]);
 });

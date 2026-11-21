@@ -4967,8 +4967,56 @@ export interface paths {
             requestBody?: never;
             responses: {
                 204: components["responses"]["NoContent"];
+                409: components["responses"]["Problem"];
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{id}/protection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 开关删除保护（需求 R55）；不改变配置版本，记入审计 profile.protect / profile.unprotect */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        protected: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            protected?: boolean;
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5968,6 +6016,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description 删除保护（需求 R55）；为 true 时删除返回 409 profile.protected */
+            protected?: boolean;
             render?: components["schemas"]["RenderState"];
         };
         ProfileInput: {

@@ -52,8 +52,14 @@ func TestUpgradePreservesData(t *testing.T) {
 	if err := old.Sources().Create(ctx, "u1", src); err != nil {
 		t.Fatal(err)
 	}
-	prof := &Profile{Name: "配置", Doc: []byte("clash-launch/profile: v1\nname: 配置\n")}
-	if err := old.Profiles().Create(ctx, "u1", prof, ""); err != nil {
+	// profiles 表后来加了 protected 列（R55）：按 0003 时代的列直接写入
+	prof := &Profile{ID: NewID(), Name: "配置", Doc: []byte("clash-launch/profile: v1\nname: 配置\n")}
+	pdoc, err := old.seal(prof.Doc, "profiles", "doc", prof.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := old.root.ExecContext(ctx, "INSERT INTO profiles (id, owner_id, name, doc_enc, created_at, updated_at, version) VALUES (?,?,?,?,?,?,1)",
+		prof.ID, "u1", prof.Name, pdoc, now, now); err != nil {
 		t.Fatal(err)
 	}
 	// links 表后来加了 limits 列（R42）：按 0003 时代的列直接写入

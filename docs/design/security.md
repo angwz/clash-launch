@@ -93,6 +93,7 @@
 | B5 | 停用账号立即注销其会话、不能登录；管理员不能停用自己 | `TestQuotaAndAdmin` | API |
 | B6 | 配额：数量、拉取间隔、存储 | `TestQuotaAndAdmin` | API |
 | B7 | 订阅链接访问限制：不允许的客户端、地区返回 403，查不到地区时也挡住；当天次数用完返回 429 与 Retry-After；托管节点文件只检查客户端与地区；被挡住的请求照常记录 | `TestLinkLimits`、e2e 订阅链接访问限制 | API / e2e |
+| B8 | 配置删除保护：开启后删除接口 409，保存文档不清除保护，开关记审计且不改变版本；他人的配置 404 | `TestProfileProtection`、e2e 删除保护 | API / e2e |
 
 ### Web 安全
 

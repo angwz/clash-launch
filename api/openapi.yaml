@@ -311,6 +311,7 @@ components:
         version: {type: integer}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
+        protected: {type: boolean, description: 删除保护（需求 R55）；为 true 时删除返回 409 profile.protected}
         render: {$ref: '#/components/schemas/RenderState'}
     ProfileInput:
       type: object
@@ -1556,7 +1557,15 @@ paths:
       tags: [profiles]
       security: [{session: [], csrf: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
-      responses: {'204': {$ref: '#/components/responses/NoContent'}}
+      responses: {'204': {$ref: '#/components/responses/NoContent'}, '409': {$ref: '#/components/responses/Problem'}}
+  /api/v1/profiles/{id}/protection:
+    put:
+      tags: [profiles]
+      summary: 开关删除保护（需求 R55）；不改变配置版本，记入审计 profile.protect / profile.unprotect
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [protected], properties: {protected: {type: boolean}}}}}}
+      responses: {'200': {description: ok, content: {application/json: {schema: {type: object, properties: {protected: {type: boolean}}}}}}, '404': {$ref: '#/components/responses/Problem'}}
   /api/v1/profiles/{id}/revisions:
     get:
       tags: [profiles]

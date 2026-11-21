@@ -29,6 +29,7 @@ const known: Record<string, string> = {
   "terms.outdated": "terms.changed",
   "token.limit": "error.token_limit",
   "channel.limit": "error.channel_limit",
+  "profile.protected": "error.profile_protected",
   "channel.unavailable": "channels.unavailable",
   "token.invalid": "error.token_invalid",
   rate_limited: "error.rate",

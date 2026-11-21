@@ -157,6 +157,8 @@ type Profile struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Version   int64
+	// Protected 为真时不能删除（需求 R55）；修改它不产生新版本
+	Protected bool
 }
 
 // Revision 是方案的一个版本。
@@ -433,6 +435,8 @@ type ProfileRepo interface {
 	// 而不是再加一个：连续编辑在历史中只留一条（反馈 #35）。
 	Autosave(ctx context.Context, owner string, p *Profile, window time.Duration) error
 	Delete(ctx context.Context, owner, id string) error
+	// SetProtected 开关删除保护（需求 R55），不改变版本
+	SetProtected(ctx context.Context, owner, id string, on bool) error
 	Revisions(ctx context.Context, owner, profileID string, p Page) ([]Revision, error)
 	Revision(ctx context.Context, owner, profileID string, n int) (*Revision, error)
 	All(ctx context.Context, limit int) ([]Profile, error) // 后台渲染（跨所有者，仅调度器使用）

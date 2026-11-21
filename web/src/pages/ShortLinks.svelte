@@ -14,6 +14,9 @@
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { live, type Live } from "../lib/live";
   import { toasts } from "../lib/toast.svelte";
+  import { pending } from "../lib/pending.svelte";
+  import { Selection } from "../lib/selection.svelte";
+  import BatchBar from "../components/BatchBar.svelte";
 
   interface Target {
     profileId: string;
@@ -127,14 +130,35 @@
     }
   }
 
-  async function remove(s: Short) {
-    if (!confirm(t("short.delete_confirm", { code: s.code }))) return;
-    try {
-      await api.del("/api/v1/short-links/" + s.id);
-      await loadList();
-    } catch (e) {
-      toasts.push("err", errorText(e));
+  // 删除可撤销（R33）：先隐藏，10 秒后才真正删除
+  function remove(list: Short[]) {
+    if (!list.length) return;
+    const label = list.length === 1 ? t("short.deleted", { code: list[0]!.code }) : t("batch.deleted_n", { n: list.length });
+    pending.remove(list.map((x) => ({ id: x.id, path: "/api/v1/short-links/" + x.id })), label, () => void loadList());
+    for (const x of list) sel.toggle(x.id, false);
+  }
+  // 多选与批量操作（R35）：删除、停用、启用。授权给好友的短链接不能停用（由收回授权控制），批量停用时跳过
+  const visible = $derived((items ?? []).filter((x) => !pending.has(x.id)));
+  const sel = new Selection();
+  $effect(() => sel.keep(visible.map((x) => x.id)));
+  const allOn = $derived(visible.length > 0 && visible.every((x) => sel.has(x.id)));
+  const selected = $derived(visible.filter((x) => sel.has(x.id)));
+  let batchBusy = $state(false);
+  async function setDisabled(on: boolean) {
+    const list = selected.filter((x) => !x.grantee && !!x.disabled !== on);
+    batchBusy = true;
+    let failed: unknown = null;
+    for (const x of list) {
+      try {
+        await api.patch("/api/v1/short-links/" + x.id, { disabled: on, version: x.version });
+      } catch (e) {
+        failed ??= e;
+      }
     }
+    batchBusy = false;
+    await loadList();
+    if (failed) toasts.push("err", errorText(failed));
+    else toasts.push("ok", on ? t("batch.disabled_n", { n: list.length }) : t("batch.enabled_n", { n: list.length }));
   }
 
   async function copy(url: string) {
@@ -205,15 +229,24 @@
     <p class="hint">{t("short.safety")}</p>
   </form>
 
-  {#if items && !items.length}
+  {#if items && !visible.length}
     <p class="empty muted">{t("short.empty")}</p>
   {:else if items}
+    <div class="pick-all">
+      <label><input type="checkbox" checked={allOn} onchange={(e) => sel.setAll(visible.map((x) => x.id), e.currentTarget.checked)} />{t("batch.select_all")}</label>
+    </div>
+    <BatchBar {sel}>
+      <button class="btn sm" type="button" disabled={batchBusy} onclick={() => void setDisabled(true)}>{t("short.disable")}</button>
+      <button class="btn sm" type="button" disabled={batchBusy} onclick={() => void setDisabled(false)}>{t("short.enable")}</button>
+      <button class="btn sm danger" type="button" onclick={() => remove(selected)}><Icon name="trash" size={14} />{t("common.delete")}</button>
+    </BatchBar>
     <ul class="list">
-      {#each items as s (s.id)}
-        <li class="item panel" class:off={statusOf(s) !== "active"}>
+      {#each visible as s (s.id)}
+        <li class="item panel" class:off={statusOf(s) !== "active"} class:picked={sel.has(s.id)}>
           <!-- 默认折叠（反馈 #78）：只显示短码、状态、指向、请求次数与上次请求时间；趋势、二维码与管理操作在「详情」里 -->
           <div class="head">
             <div class="title">
+              <input class="pick" type="checkbox" checked={sel.has(s.id)} aria-label={t("batch.select_x", { name: "/" + s.code })} onchange={(e) => sel.toggle(s.id, e.currentTarget.checked)} />
               <code class="code-big ltr">/{s.code}</code>
               <span class="tag" data-state={statusOf(s)}>{t("short.state." + statusOf(s))}</span>
               {#if s.grantee}<span class="tag friend"><Icon name="shield" size={11} />{s.granted ? t("short.granted_to", { name: s.grantee }) : t("short.revoked_from", { name: s.grantee })}</span>{/if}
@@ -253,7 +286,7 @@
                   <button class="btn sm ghost" type="button" onclick={() => void patch(s, { disabled: !s.disabled })}>{s.disabled ? t("short.enable") : t("short.disable")}</button>
                 {/if}
                 {#if s.expiresAt}<button class="btn sm ghost" type="button" onclick={() => void patch(s, { clearExpiry: true })}>{t("short.never_expire")}</button>{/if}
-                <button class="btn sm ghost danger" type="button" onclick={() => void remove(s)}><Icon name="trash" size={14} />{t("common.delete")}</button>
+                <button class="btn sm ghost danger" type="button" onclick={() => remove([s])}><Icon name="trash" size={14} />{t("common.delete")}</button>
               </div>
             </div>
           {/if}
@@ -288,6 +321,30 @@
 </div>
 
 <style>
+  .pick {
+    flex: none;
+    inline-size: 16px;
+    block-size: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .item.picked {
+    border-color: var(--accent);
+  }
+  .pick-all {
+    margin-block: var(--space-3) var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+  .pick-all label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+  }
+  .pick-all input {
+    accent-color: var(--accent);
+  }
   .page > :global(*) {
     max-inline-size: 960px;
   }

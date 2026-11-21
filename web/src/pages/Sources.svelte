@@ -18,13 +18,23 @@
   import { live } from "../lib/live";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import { pending } from "../lib/pending.svelte";
+  import { Selection } from "../lib/selection.svelte";
+  import BatchBar from "../components/BatchBar.svelte";
 
   let items = $state<GSource[] | null>(null);
   // 分享或授权给好友（反馈 #76）
   let shareTarget = $state<ShareTarget | null>(null);
   let refreshing = $state<string | null>(null);
   // 自己的节点与别人授权给我的节点（反馈 #75）分开显示
-  const mine = $derived((items ?? []).filter((s) => !s.grant));
+  // 等待删除（可撤销，R33）的条目先从列表隐藏
+  const mine = $derived((items ?? []).filter((s) => !s.grant && !pending.has(s.id)));
+  // 多选与批量操作（R35）
+  const sel = new Selection();
+  $effect(() => sel.keep(mine.map((s) => s.id)));
+  const allOn = $derived(mine.length > 0 && mine.every((s) => sel.has(s.id)));
+  const selected = $derived(mine.filter((s) => sel.has(s.id)));
+  let batchBusy = $state(false);
   const granted = $derived((items ?? []).filter((s) => !!s.grant));
   async function removeGrant(s: GSource) {
     if (!s.grant || !confirm(t("messages.remove_confirm", { name: s.name }))) return;
@@ -36,16 +46,33 @@
       toasts.push("err", errorText(e));
     }
   }
-  // 列表中直接删除（R50）：与详情页同一确认与接口；服务端先收回授权、通知对方（R2）
-  async function remove(s: GSource) {
-    if (!confirm(t("source.delete_confirm", { name: s.name }))) return;
-    try {
-      await api.del("/api/v1/sources/" + s.id);
-      toasts.push("ok", t("sources.deleted", { name: s.name }));
-      await load();
-    } catch (e) {
-      toasts.push("err", errorText(e));
+  // 列表中直接删除（R50）：可在 10 秒内撤销（R33），到期后服务端先收回授权、通知对方（R2）
+  function remove(list: GSource[]) {
+    if (!list.length) return;
+    const label = list.length === 1 ? t("sources.deleted", { name: list[0]!.name }) : t("batch.deleted_n", { n: list.length });
+    pending.remove(list.map((s) => ({ id: s.id, path: "/api/v1/sources/" + s.id })), label, () => void load());
+    for (const s of list) sel.toggle(s.id, false);
+  }
+  // 批量重新拉取（R35）：逐个进行，避免同时打到同一家机场；汇报成功与失败的数量
+  async function refreshSelected() {
+    const subs = selected.filter((s) => s.kind === "subscription");
+    if (!subs.length) return;
+    batchBusy = true;
+    let failed = 0;
+    for (const s of subs) {
+      refreshing = s.id;
+      try {
+        const r = await api.post<{ lastError?: string }>("/api/v1/sources/" + s.id + "/refresh");
+        if (r.lastError) failed++;
+      } catch {
+        failed++;
+      }
     }
+    refreshing = null;
+    batchBusy = false;
+    await load();
+    if (failed) toasts.push("err", t("batch.refresh_partial", { ok: subs.length - failed, failed }));
+    else toasts.push("ok", t("batch.refresh_done", { n: subs.length }));
   }
   // 订阅只由客户端拉取（反馈 #71）：不显示拉取状态与「立即拉取」
   let clientFetch = $state(false);
@@ -153,10 +180,17 @@
     </div>
   {:else}
     {#if mine.length}
+    <BatchBar {sel}>
+      {#if !clientFetch && selected.some((s) => s.kind === "subscription")}
+        <button class="btn sm" type="button" disabled={batchBusy} onclick={() => void refreshSelected()}><Icon name="refresh" size={14} />{t("source.refresh")}</button>
+      {/if}
+      <button class="btn sm danger" type="button" onclick={() => remove(selected)}><Icon name="trash" size={14} />{t("common.delete")}</button>
+    </BatchBar>
     <div class="panel table-wrap">
       <table class="table">
         <thead>
           <tr>
+            <th class="pick"><input type="checkbox" checked={allOn} aria-label={t("batch.select_all")} onchange={(e) => sel.setAll(mine.map((s) => s.id), e.currentTarget.checked)} /></th>
             <th>{t("sources.col_name")}</th>
             <th>{t("sources.col_kind")}</th>
             <th>{t("sources.col_status")}</th>
@@ -166,7 +200,8 @@
         <tbody>
           {#each mine as s (s.id)}
             {@const st = status(s)}
-            <tr>
+            <tr class:picked={sel.has(s.id)}>
+              <td class="pick"><input type="checkbox" checked={sel.has(s.id)} aria-label={t("batch.select_x", { name: s.name })} onchange={(e) => sel.toggle(s.id, e.currentTarget.checked)} /></td>
               <td>
                 <a class="name" href={"/sources/" + s.id}>{s.name}</a>
                 {#if host(s.url)}<span class="host mono ltr">{host(s.url)}</span>{/if}
@@ -183,7 +218,7 @@
                 <!-- 编辑：带文字的按钮，比只有箭头更容易发现和点中（反馈 #78） -->
                 <a class="btn sm" href={"/sources/" + s.id}><Icon name="edit" size={14} />{t("common.edit")}</a>
                 <!-- 删除放在最右端、与编辑隔开，样式与配置列表一致（R50） -->
-                <button class="btn sm ghost danger" type="button" aria-label={t("sources.delete_named", { name: s.name })} title={t("common.delete")} onclick={() => void remove(s)}><Icon name="trash" size={14} /></button>
+                <button class="btn sm ghost danger" type="button" aria-label={t("sources.delete_named", { name: s.name })} title={t("common.delete")} onclick={() => remove([s])}><Icon name="trash" size={14} /></button>
               </td>
             </tr>
           {/each}
@@ -250,6 +285,19 @@
 </Dialog>
 
 <style>
+  .pick {
+    inline-size: 1%;
+    padding-inline-end: 0;
+  }
+  .pick input {
+    inline-size: 16px;
+    block-size: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  tr.picked {
+    background: var(--accent-soft);
+  }
   .privacy {
     display: flex;
     flex-wrap: wrap;

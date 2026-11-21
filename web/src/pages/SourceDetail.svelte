@@ -12,6 +12,7 @@
   import { live } from "../lib/live";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import { pending } from "../lib/pending.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
 
@@ -151,14 +152,11 @@
     }
   }
 
-  async function remove() {
-    if (!src || !confirm(t("source.delete_confirm", { name: src.name }))) return;
-    try {
-      await api.del("/api/v1/sources/" + src.id);
-      router.go("/sources");
-    } catch (e) {
-      toasts.push("err", errorText(e));
-    }
+  // 删除可撤销（R33）：回到列表，条目在 10 秒内可以撤销，到期后才真正删除
+  function remove() {
+    if (!src) return;
+    pending.remove([{ id: src.id, path: "/api/v1/sources/" + src.id }], t("sources.deleted", { name: src.name }));
+    router.go("/sources");
   }
 
   function startRegion(n: Node) {

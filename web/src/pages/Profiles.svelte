@@ -15,8 +15,35 @@
   import { toasts } from "../lib/toast.svelte";
   import { router } from "../lib/router.svelte";
   import { ProfileDoc } from "../lib/profile-doc";
+  import { pending } from "../lib/pending.svelte";
+  import { Selection } from "../lib/selection.svelte";
+  import BatchBar from "../components/BatchBar.svelte";
 
   let items = $state<Profile[] | null>(null);
+  // 等待删除（可撤销，R33）的配置先隐藏；多选与批量删除（R35）
+  const visible = $derived((items ?? []).filter((p) => !pending.has(p.id)));
+  const sel = new Selection();
+  $effect(() => sel.keep(visible.map((p) => p.id)));
+  const allOn = $derived(visible.length > 0 && visible.every((p) => sel.has(p.id)));
+  // 批量删除跳过开启了删除保护的配置（R55），并说明跳过了几个
+  function removeSelected() {
+    const list = visible.filter((p) => sel.has(p.id));
+    const ok = list.filter((p) => !p.protected);
+    const skipped = list.length - ok.length;
+    if (ok.length) {
+      const label = ok.length === 1 ? t("profiles.deleted", { name: ok[0]!.name }) : t("batch.deleted_n", { n: ok.length });
+      pending.remove(ok.map((p) => ({ id: p.id, path: "/api/v1/profiles/" + p.id })), label, () => void reload());
+    }
+    if (skipped) toasts.push("info", t("batch.protected_skipped", { n: skipped }));
+    sel.clear();
+  }
+  async function reload() {
+    try {
+      items = await listAll<Profile>("/api/v1/profiles");
+    } catch (e) {
+      error = errorText(e);
+    }
+  }
   let error = $state("");
   let creating = $state(false);
   let name = $state("");
@@ -131,7 +158,7 @@
 
   {#if items === null}
     <div class="skeleton" aria-busy="true"></div>
-  {:else if items.length === 0}
+  {:else if visible.length === 0}
     <div class="empty panel">
       <div class="empty-mark"><Emoji name="rocket" size={32} /></div>
       <h2>{t("profiles.empty_title")}</h2>
@@ -139,13 +166,21 @@
       <a class="btn primary" href="/welcome"><Icon name="sparkle" size={15} />{t("profiles.wizard")}</a>
     </div>
   {:else}
+    <div class="pick-all">
+      <label><input type="checkbox" checked={allOn} onchange={(e) => sel.setAll(visible.map((p) => p.id), e.currentTarget.checked)} />{t("batch.select_all")}</label>
+    </div>
+    <BatchBar {sel}>
+      <button class="btn sm danger" type="button" onclick={removeSelected}><Icon name="trash" size={14} />{t("common.delete")}</button>
+    </BatchBar>
     <ul class="grid">
-      {#each items as p (p.id)}
+      {#each visible as p (p.id)}
         {@const tone = renderTone(p)}
-        <li class="card panel">
+        <li class="card panel" class:picked={sel.has(p.id)}>
           <a class="cover" href={"/profiles/" + p.id} aria-label={p.name}></a>
           <div class="row">
+            <input class="pick" type="checkbox" checked={sel.has(p.id)} aria-label={t("batch.select_x", { name: p.name })} onchange={(e) => sel.toggle(p.id, e.currentTarget.checked)} />
             <h2 class="name">{p.name}</h2>
+            {#if p.protected}<span class="lock" title={t("profiles.protected_hint")}><Icon name="shield" size={13} /><span class="visually-hidden">{t("profiles.protected")}</span></span>{/if}
             <StatusBadge {tone} label={t("render." + (p.render?.status ?? "pending"))} />
           </div>
           <p class="meta muted">
@@ -158,7 +193,7 @@
           <div class="links">
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/history"}><Icon name="history" size={14} />{t("profiles.history")}</a>
-            <button class="btn sm ghost danger del" type="button" aria-label={t("profiles.delete_named", { name: p.name })} title={t("profiles.delete")} onclick={() => { deleting = p; deleteOpen = true; }}><Icon name="trash" size={14} /></button>
+            <button class="btn sm ghost danger del" type="button" disabled={p.protected} aria-label={t("profiles.delete_named", { name: p.name })} title={p.protected ? t("profiles.protected_hint") : t("profiles.delete")} onclick={() => { deleting = p; deleteOpen = true; }}><Icon name="trash" size={14} /></button>
           </div>
         </li>
       {/each}
@@ -166,7 +201,7 @@
   {/if}
 </div>
 
-<DeleteProfileDialog bind:open={deleteOpen} profile={deleting} onDeleted={() => (items = (items ?? []).filter((x) => x.id !== deleting?.id))} />
+<DeleteProfileDialog bind:open={deleteOpen} profile={deleting} />
 
 <Dialog bind:open={creating} title={t("profiles.new")}>
   <form id="new-profile" class="form" onsubmit={create}>
@@ -306,6 +341,38 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
+  }
+  /* 勾选框与保护标记压在整卡链接之上 */
+  .pick {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    inline-size: 16px;
+    block-size: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .lock {
+    display: inline-flex;
+    color: var(--fg-muted);
+  }
+  .card.picked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .pick-all {
+    margin-block-end: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+  .pick-all label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+  }
+  .pick-all input {
+    accent-color: var(--accent);
   }
   .row {
     display: flex;

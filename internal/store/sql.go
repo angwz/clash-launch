@@ -846,18 +846,19 @@ func (r profiles) scan(row interface{ Scan(...any) error }) (*Profile, error) {
 	var p Profile
 	var enc []byte
 	var c, u int64
-	if err := row.Scan(&p.ID, &p.OwnerID, &p.Name, &enc, &c, &u, &p.Version); err != nil {
+	var prot int
+	if err := row.Scan(&p.ID, &p.OwnerID, &p.Name, &enc, &c, &u, &p.Version, &prot); err != nil {
 		return nil, notFound(err)
 	}
 	var err error
 	if p.Doc, err = r.d.open(enc, "profiles", "doc", p.ID); err != nil {
 		return nil, err
 	}
-	p.CreatedAt, p.UpdatedAt = fromMS(c), fromMS(u)
+	p.CreatedAt, p.UpdatedAt, p.Protected = fromMS(c), fromMS(u), prot != 0
 	return &p, nil
 }
 
-const profileCols = "id, owner_id, name, doc_enc, created_at, updated_at, version"
+const profileCols = "id, owner_id, name, doc_enc, created_at, updated_at, version, protected"
 
 func (r profiles) addRevision(ctx context.Context, owner string, p *Profile, note string) error {
 	id := NewID()
@@ -883,7 +884,7 @@ func (r profiles) Create(ctx context.Context, owner string, p *Profile, note str
 		if err != nil {
 			return err
 		}
-		if _, err := d.exec(ctx, "INSERT INTO profiles ("+profileCols+") VALUES (?,?,?,?,?,?,1)", p.ID, owner, p.Name, enc, ms(now), ms(now)); err != nil {
+		if _, err := d.exec(ctx, "INSERT INTO profiles ("+profileCols+") VALUES (?,?,?,?,?,?,1,?)", p.ID, owner, p.Name, enc, ms(now), ms(now), b2i(p.Protected)); err != nil {
 			return err
 		}
 		return profiles{d}.addRevision(ctx, owner, p, note)
@@ -947,6 +948,11 @@ func (r profiles) bump(ctx context.Context, owner string, p *Profile) error {
 	p.Version++
 	p.UpdatedAt = now
 	return nil
+}
+
+func (r profiles) SetProtected(ctx context.Context, owner, id string, on bool) error {
+	res, err := r.d.exec(ctx, "UPDATE profiles SET protected=? WHERE owner_id=? AND id=?", b2i(on), owner, id)
+	return affected(res, err, ErrNotFound)
 }
 
 // AutosaveNote 是自动保存版本的备注；界面据此显示为「自动保存」。

@@ -23,3 +23,9 @@ Yes, edit YAML directly. It shows the full config exactly as in the preview; cha
 ## History
 
 Every save records a version. The config's History page compares any two versions and can roll back.
+
+## Deleted something by mistake
+
+After you delete a node, config or short link, a notice stays at the bottom right for 10 seconds — choose Undo to bring it back; it is only deleted after that. The checkboxes on the left of each list select several items at once for bulk delete, refresh or disable.
+
+To keep a config from being deleted by accident, turn on Delete protection under More in the editor. While it is on, the config can't be deleted from the list or the editor; turn it off first.

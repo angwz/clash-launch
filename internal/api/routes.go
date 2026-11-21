@@ -154,6 +154,7 @@ func (s *Server) routes() []Route {
 		{"GET", "/api/v1/profiles/{id}", a(s.getProfile)},
 		{"PUT", "/api/v1/profiles/{id}", a(s.updateProfile)},
 		{"DELETE", "/api/v1/profiles/{id}", a(s.deleteProfile)},
+		{"PUT", "/api/v1/profiles/{id}/protection", a(s.protectProfile)},
 		{"GET", "/api/v1/profiles/{id}/revisions", a(s.listRevisions)},
 		{"POST", "/api/v1/profiles/{id}/rollback", a(s.rollback)},
 		{"POST", "/api/v1/profiles/{id}/preview", a(s.preview)},

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
+
 	"github.com/angwz/clash-launch/internal/events"
 
 	"github.com/angwz/clash-launch/internal/store"
@@ -69,8 +71,12 @@ func (s *Service) DeleteShortLink(ctx context.Context, u *store.User, id string)
 // DeleteProfile 删除配置。它的订阅链接与指向这些链接的短链接随之级联删除，
 // 其中为好友生成的短链接先收回授权，删除后通知对方。
 func (s *Service) DeleteProfile(ctx context.Context, u *store.User, id string) error {
-	if _, err := s.Store.Profiles().Get(ctx, u.ID, id); err != nil {
+	p, err := s.Store.Profiles().Get(ctx, u.ID, id)
+	if err != nil {
 		return err
+	}
+	if p.Protected {
+		return ErrProtected // 删除保护（需求 R55）：服务端同样拒绝，不只靠界面
 	}
 	links, err := s.Store.Links().List(ctx, u.ID, id)
 	if err != nil {
@@ -81,6 +87,22 @@ func (s *Service) DeleteProfile(ctx context.Context, u *store.User, id string) e
 		ids = append(ids, l.ID)
 	}
 	return s.deleteWithShorts(ctx, u, ids, func() error { return s.Store.Profiles().Delete(ctx, u.ID, id) })
+}
+
+// ErrProtected 表示配置开启了删除保护（需求 R55）。
+var ErrProtected = errors.New("service: 配置开启了删除保护，先关闭保护再删除")
+
+// SetProfileProtected 开关配置的删除保护，记入审计。
+func (s *Service) SetProfileProtected(ctx context.Context, u *store.User, id string, on bool) error {
+	if err := s.Store.Profiles().SetProtected(ctx, u.ID, id, on); err != nil {
+		return err
+	}
+	action := "profile.unprotect"
+	if on {
+		action = "profile.protect"
+	}
+	s.audit(ctx, u.ID, action, map[string]string{"profile": id})
+	return nil
 }
 
 // DeleteLink 删除一条订阅链接；指向它的、为好友生成的短链接处理同 DeleteProfile。

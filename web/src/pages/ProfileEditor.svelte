@@ -13,6 +13,8 @@
   import { catalog, type MetaField, type NavSection } from "../lib/catalog.svelte";
   import { EditorState } from "../lib/editor.svelte";
   import { errorText } from "../lib/errors";
+  import { api } from "../lib/api/client";
+  import { toasts } from "../lib/toast.svelte";
   import { t } from "../lib/i18n/i18n.svelte";
   import { palette, type PaletteItem } from "../lib/palette.svelte";
   import { router } from "../lib/router.svelte";
@@ -25,13 +27,36 @@
   let loadError = $state("");
   let section = $state(new URLSearchParams(location.search).get("section") || "sources");
   let rawOpen = $state(false);
+  // 「更多」的展开状态由组件记住：配置对象被替换（如开关删除保护）时导航会重新渲染，不应收起
+  let advOpen = $state(false);
+  $effect(() => {
+    if (rawOpen) advOpen = true;
+  });
   let savingTemplate = $state(false);
   let deletingProfile = $state(false);
+
+  // 删除保护（R55）：开启后三处删除入口（配置卡片、这里的「更多」、命令面板）都不可用，服务端同样拒绝
+  const isProtected = $derived(!!editor.profile?.protected);
+  async function setProtected(on: boolean) {
+    const p = editor.profile;
+    if (!p) return;
+    try {
+      await api.put("/api/v1/profiles/" + p.id + "/protection", { protected: on });
+      editor.profile = { ...p, protected: on };
+      toasts.push("ok", on ? t("profiles.protect_on") : t("profiles.protect_off"));
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+  function askDelete() {
+    if (isProtected) toasts.push("info", t("profiles.protected_hint"));
+    else deletingProfile = true;
+  }
 
   // 删除后离开编辑器：先撤掉「离开时自动保存」，否则会去保存一个已经不存在的配置
   function afterDelete() {
     router.guard = null;
-    router.go("/profiles", true); // 替换当前历史记录：返回时不再回到已删除的配置
+    router.go("/", true); // 配置列表在首页；替换当前历史记录：返回时不再回到已删除的配置
   }
   let rawKey = $state<string | undefined>();
   let previewOpen = $state(false); // 浮层 / 手机视图中预览是否可见
@@ -166,7 +191,7 @@
       { id: "cmd.save", kind: "command", title: t("editor.save"), hint: "Ctrl S", icon: "check", run: () => void editor.save() },
       { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true, true) },
       { id: "routing.open", kind: "command", title: t("routing.title"), hint: "routing", icon: "rules", run: () => select("routing") },
-      { id: "profile.delete", kind: "command", title: t("profiles.delete"), hint: "delete", icon: "trash", run: () => (deletingProfile = true) },
+      { id: "profile.delete", kind: "command", title: t("profiles.delete"), hint: "delete", icon: "trash", run: askDelete },
     ];
     // 输入像域名或 IP 的内容时，提供「追踪」：跳到分流分节并开始追踪（routing 第 11.1 节）
     const q = palette.query.replace(/^>\s*/, "").trim();
@@ -249,7 +274,7 @@
         {/each}
       </ul>
       <!-- 低频与兜底功能收在末端，默认收起（反馈 #32、#43、#49）：本分区说明、历史版本、直接编辑 YAML -->
-      <details class="adv" open={rawOpen || undefined}>
+      <details class="adv" bind:open={advOpen}>
         <summary class="subtle"><span>{t("editor.advanced")}</span><Icon name="chevron-down" size={12} /></summary>
       <ul>
         <li>
@@ -264,7 +289,13 @@
           <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><span class="t">{t("profiles.history")}</span></a>
         </li>
         <li>
-          <button type="button" class="danger-item" onclick={() => (deletingProfile = true)}><span class="t">{t("profiles.delete")}</span></button>
+          <button type="button" role="switch" aria-checked={isProtected} onclick={() => void setProtected(!isProtected)}>
+            <span class="t">{t("profiles.protected")}</span>
+            <span class="sw" class:on={isProtected}>{isProtected ? t("common.on") : t("common.off")}</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="danger-item" disabled={isProtected} title={isProtected ? t("profiles.protected_hint") : undefined} onclick={askDelete}><span class="t">{t("profiles.delete")}</span></button>
         </li>
         <li>
           <button type="button" class:active={rawOpen} aria-current={rawOpen ? "true" : undefined} onclick={() => openRaw()}>
@@ -463,7 +494,20 @@
     background: var(--bg-hover);
     color: var(--fg);
   }
-  .secnav button.danger-item:hover {
+  .secnav .sw {
+    margin-inline-start: auto;
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+  }
+  .secnav .sw.on {
+    color: var(--ok);
+    font-weight: 560;
+  }
+  .secnav button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .secnav button.danger-item:hover:not(:disabled) {
     background: var(--err-soft);
     color: var(--err);
   }
