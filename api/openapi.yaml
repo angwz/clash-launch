@@ -1650,6 +1650,34 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/id'}]
       responses: {'200': {description: text/yaml}}
+  /api/v1/profiles/{id}/export-config:
+    post:
+      tags: [profiles]
+      summary: 导出客户端可以直接使用的配置（需求 R17）
+      description: |
+        与订阅链接同源（同一渲染与内核检查）。nodes 为 false 时去掉 proxies 与 proxy-providers，组内引用一并去掉，没有成员的组写入 DIRECT 占位；
+        rules 为 false 时去掉 rule-providers 与使用它们的规则。去掉与改写的内容在 diagnostics 中（export.*）。
+        「交给客户端」的节点源需要订阅链接的令牌：用 link 指定的（或第一条）链接，配置没有链接时 409 export.needs_link。受预览与内核检查的限流约束，记入审计 profile.export
+      security: [{session: [], csrf: []}]
+      parameters: [{$ref: '#/components/parameters/id'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {nodes: {type: boolean}, rules: {type: boolean}, link: {type: string, description: 订阅链接 ID}}}}}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [yaml, filename, diagnostics, kernel, fatal]
+                properties:
+                  yaml: {type: string}
+                  filename: {type: string}
+                  diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+                  kernel: {type: object, properties: {status: {type: string, enum: [passed, failed, unavailable, timeout]}, version: {type: string}, message: {type: string}, path: {type: string}}}
+                  fatal: {type: string}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '429': {$ref: '#/components/responses/Problem'}
   /api/v1/profiles/{id}/links:
     get:
       tags: [links]

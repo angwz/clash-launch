@@ -30,6 +30,7 @@ const known: Record<string, string> = {
   "token.limit": "error.token_limit",
   "channel.limit": "error.channel_limit",
   "profile.protected": "error.profile_protected",
+  "export.needs_link": "error.export_needs_link",
   "channel.unavailable": "channels.unavailable",
   "token.invalid": "error.token_invalid",
   rate_limited: "error.rate",

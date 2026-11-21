@@ -38,6 +38,8 @@ type Input struct {
 	Diagnostics []diag.Diagnostic
 	// Updated 是输入快照中最新的时间戳，写入文件头；零值时文件头不含 UPDATED。
 	Updated time.Time
+	// Export 是导出的裁剪选项（需求 R17）；零值即订阅链接下发的完整配置。
+	Export Export
 }
 
 // Output 是渲染结果。
@@ -76,6 +78,7 @@ func Render(in Input) (Output, error) {
 	res.Touched = merged.Touched
 
 	target.Adapt(merged.Node, merged.Touched, in.Catalog, preset, p.Target.Core, &out)
+	stripExport(merged.Node, in.Export, &out)
 	if !preset.Kernel {
 		out.Add(diag.TargetCoreNoCheck, "", "preset", preset.ID)
 	}

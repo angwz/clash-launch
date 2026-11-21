@@ -166,3 +166,11 @@ var (
 	FetchBlocked   = reg("fetch.blocked", Error, "Fetching {source} was blocked: {reason}", "已阻止拉取 {source}：{reason}")
 	FetchStaleLong = reg("fetch.stale_long", Warning, "{source} has been failing for more than {days} days", "{source} 已连续失败超过 {days} 天")
 )
+
+// —— 导出（需求 R17）——
+var (
+	ExportNodesRemoved     = reg("export.nodes_removed", Info, "Exported without proxies: removed {proxies} proxies and {providers} proxy providers", "导出时不含节点：去掉了 {proxies} 个节点与 {providers} 个节点 provider")
+	ExportGroupPlaceholder = reg("export.group_placeholder", Warning, "Group {name} has no members once proxies are removed; DIRECT written as a placeholder — add proxies before use", "去掉节点后策略组 {name} 没有成员，已写入 DIRECT 占位，使用前请补上节点")
+	ExportRuleTarget       = reg("export.rule_target", Warning, "Rule {rule} pointed to proxy {target}, which was removed; it now goes to DIRECT", "规则 {rule} 指向的节点 {target} 已去掉，改为 DIRECT")
+	ExportRulesRemoved     = reg("export.rule_sets_removed", Info, "Exported without rule sets: removed {providers} rule providers and {rules} rules that use them", "导出时不含规则集：去掉了 {providers} 个规则集与使用它们的 {rules} 条规则")
+)

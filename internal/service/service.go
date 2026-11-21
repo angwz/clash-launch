@@ -444,6 +444,11 @@ func (s *Service) rulesInput(ctx context.Context, owner, ref string) (*engine.Ru
 
 // Render 渲染方案文档（不写存储）。doc 是方案文档原文；updated 是方案版本的时间。
 func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated time.Time, check bool) (*Result, error) {
+	return s.render(ctx, owner, doc, updated, check, engine.Export{})
+}
+
+// render 是 Render 的实现；ex 是导出的裁剪选项（需求 R17），订阅与预览用零值。
+func (s *Service) render(ctx context.Context, owner string, doc []byte, updated time.Time, check bool, ex engine.Export) (*Result, error) {
 	var ds diag.List
 	p, err := profile.Parse(doc, &ds)
 	if err != nil {
@@ -458,7 +463,7 @@ func (s *Service) Render(ctx context.Context, owner string, doc []byte, updated 
 	if built.Updated.After(latest) {
 		latest = built.Updated
 	}
-	out, rerr := engine.Render(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Diagnostics: append(ds.Items(), built.Diagnostics...), Updated: latest})
+	out, rerr := engine.Render(engine.Input{Profile: p, Catalog: s.Catalog, Presets: s.Presets, Generated: built.Generated, Diagnostics: append(ds.Items(), built.Diagnostics...), Updated: latest, Export: ex})
 	res := &Result{YAML: out.YAML, Preview: out.Preview, Diagnostics: out.Diagnostics, Touched: out.Touched, Key: engine.CacheKey(doc, hashes, s.CatalogDigest), Nodes: built.Nodes, Numbering: built.Numbering, Chains: built.Chains, Outbounds: built.Outbounds, Generated: built.Generated}
 	if rerr != nil {
 		res.Fatal = rerr.Error()

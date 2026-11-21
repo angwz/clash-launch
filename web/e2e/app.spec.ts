@@ -1328,3 +1328,35 @@ test("删除保护、可撤销的删除与批量操作（R55、R33、R35）", as
   await expect(page.getByRole("link", { name: "保护甲" })).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("导出配置：含节点时与订阅内容相同，不含节点时得到骨架并列出去掉的内容（R17）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const { profile } = await seedProfile(request, baseURL!, "导出测试");
+  await login(page);
+  await page.goto(`/profiles/${profile}`);
+  await page.locator("#editor-main").waitFor();
+  await page.getByText("更多", { exact: true }).click();
+  await page.getByRole("button", { name: "导出配置" }).click();
+  const dlg = page.getByRole("dialog", { name: "导出配置" });
+
+  const full = page.waitForEvent("download");
+  await dlg.getByRole("button", { name: "导出并下载" }).click();
+  const f = await full;
+  expect(f.suggestedFilename()).toBe("导出测试.yaml");
+  const fullText = await (await f.createReadStream()).toArray().then((c) => Buffer.concat(c).toString("utf8"));
+  expect(fullText).toContain("proxies:");
+  expect(fullText).toContain("香港 01");
+
+  await dlg.getByLabel(/含节点/).uncheck();
+  await dlg.getByLabel(/含规则集/).uncheck();
+  const bare = page.waitForEvent("download");
+  await dlg.getByRole("button", { name: "导出并下载" }).click();
+  const b = await bare;
+  expect(b.suggestedFilename()).toBe("导出测试.skeleton.yaml");
+  const text = await (await b.createReadStream()).toArray().then((c) => Buffer.concat(c).toString("utf8"));
+  expect(text).not.toContain("香港 01");
+  expect(text).not.toMatch(/^proxies:/m);
+  await expect(dlg.getByText(/导出时不含节点：去掉了 2 个节点/)).toBeVisible();
+  expect(problems).toEqual([]);
+});

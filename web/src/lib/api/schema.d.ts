@@ -5518,6 +5518,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profiles/{id}/export-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 导出客户端可以直接使用的配置（需求 R17）
+         * @description 与订阅链接同源（同一渲染与内核检查）。nodes 为 false 时去掉 proxies 与 proxy-providers，组内引用一并去掉，没有成员的组写入 DIRECT 占位；
+         *     rules 为 false 时去掉 rule-providers 与使用它们的规则。去掉与改写的内容在 diagnostics 中（export.*）。
+         *     「交给客户端」的节点源需要订阅链接的令牌：用 link 指定的（或第一条）链接，配置没有链接时 409 export.needs_link。受预览与内核检查的限流约束，记入审计 profile.export
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["id"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        nodes?: boolean;
+                        rules?: boolean;
+                        /** @description 订阅链接 ID */
+                        link?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            yaml: string;
+                            filename: string;
+                            diagnostics: components["schemas"]["Diagnostic"][];
+                            kernel: {
+                                /** @enum {string} */
+                                status?: "passed" | "failed" | "unavailable" | "timeout";
+                                version?: string;
+                                message?: string;
+                                path?: string;
+                            };
+                            fatal: string;
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+                409: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profiles/{id}/links": {
         parameters: {
             query?: never;

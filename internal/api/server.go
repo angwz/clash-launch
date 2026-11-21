@@ -297,6 +297,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusForbidden, "quota.exceeded", err.Error())
 	case errors.Is(err, source.ErrSMTP):
 		problem(w, http.StatusUnprocessableEntity, "smtp.failed", err.Error())
+	case errors.Is(err, service.ErrExportNeedsLink):
+		problem(w, http.StatusConflict, "export.needs_link", "this config has sources handed to the client; create a subscription link before exporting with proxies")
 	case errors.Is(err, service.ErrProtected):
 		problem(w, http.StatusConflict, "profile.protected", "this config is protected from deletion; turn off protection first")
 	case errors.Is(err, source.ErrPush):

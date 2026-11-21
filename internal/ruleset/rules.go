@@ -180,3 +180,17 @@ func splitRule(rule string) []string {
 	}
 	return append(parts, rule[start:])
 }
+
+// Target 返回规则的目标（策略组或出口）及其在顶层字段中的位置：最后一个不是规则参数的字段。
+// 与 InsertGroup 的位置约定相同；MATCH,x 的目标是 x。字段数不足两个时返回 -1。
+func Target(rule string) (string, int, []string) {
+	parts := splitRule(rule)
+	i := len(parts) - 1
+	for i > 1 && ruleParams[strings.TrimSpace(parts[i])] {
+		i--
+	}
+	if i < 1 {
+		return "", -1, parts
+	}
+	return strings.TrimSpace(parts[i]), i, parts
+}

@@ -1156,3 +1156,36 @@ func (s *Server) protectProfile(w http.ResponseWriter, r *http.Request, p *princ
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"protected": pr.Protected})
 }
+
+// exportConfig 导出客户端可以直接使用的配置（需求 R17）：与订阅链接同源，可选去掉节点或规则集。
+// 返回 JSON（YAML 正文、文件名、诊断与内核检查结果），由界面生成下载；同预览一样受渲染限流。
+func (s *Server) exportConfig(w http.ResponseWriter, r *http.Request, p *principal) {
+	var req struct {
+		Nodes bool   `json:"nodes"`
+		Rules bool   `json:"rules"`
+		Link  string `json:"link"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if !s.renderAllowed(w, p, true) {
+		return
+	}
+	res, err := s.Svc.ExportConfig(r.Context(), p.User.ID, r.PathValue("id"), engine.Export{NoNodes: !req.Nodes, NoRules: !req.Rules}, req.Link)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	suffix := ""
+	switch {
+	case !req.Nodes && !req.Rules:
+		suffix = ".skeleton"
+	case !req.Nodes:
+		suffix = ".no-proxies"
+	case !req.Rules:
+		suffix = ".no-rule-sets"
+	}
+	s.audit(r.Context(), p.User.ID, "profile.export", map[string]string{"profile": r.PathValue("id"), "nodes": strconv.FormatBool(req.Nodes), "rules": strconv.FormatBool(req.Rules)})
+	writeJSON(w, http.StatusOK, map[string]any{"yaml": string(res.YAML), "filename": res.Name + suffix + ".yaml", "diagnostics": diag.Sorted(res.Diagnostics), "kernel": res.Kernel, "fatal": res.Fatal})
+}

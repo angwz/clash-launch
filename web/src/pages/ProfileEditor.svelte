@@ -10,6 +10,7 @@
   import ChainsPanel from "../components/editor/ChainsPanel.svelte";
   import SaveTemplateDialog from "../components/editor/SaveTemplateDialog.svelte";
   import DeleteProfileDialog from "../components/DeleteProfileDialog.svelte";
+  import ExportDialog from "../components/editor/ExportDialog.svelte";
   import { catalog, type MetaField, type NavSection } from "../lib/catalog.svelte";
   import { EditorState } from "../lib/editor.svelte";
   import { errorText } from "../lib/errors";
@@ -34,6 +35,7 @@
   });
   let savingTemplate = $state(false);
   let deletingProfile = $state(false);
+  let exporting = $state(false); // 导出配置（R17）
 
   // 删除保护（R55）：开启后三处删除入口（配置卡片、这里的「更多」、命令面板）都不可用，服务端同样拒绝
   const isProtected = $derived(!!editor.profile?.protected);
@@ -191,6 +193,7 @@
       { id: "cmd.save", kind: "command", title: t("editor.save"), hint: "Ctrl S", icon: "check", run: () => void editor.save() },
       { id: "cmd.check", kind: "command", title: t("check.run"), hint: "mihomo -t", icon: "ok", run: () => void editor.runPreview(true, true) },
       { id: "routing.open", kind: "command", title: t("routing.title"), hint: "routing", icon: "rules", run: () => select("routing") },
+      { id: "profile.export", kind: "command", title: t("export.title"), hint: "export", icon: "download", run: () => (exporting = true) },
       { id: "profile.delete", kind: "command", title: t("profiles.delete"), hint: "delete", icon: "trash", run: askDelete },
     ];
     // 输入像域名或 IP 的内容时，提供「追踪」：跳到分流分节并开始追踪（routing 第 11.1 节）
@@ -289,6 +292,9 @@
           <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><span class="t">{t("profiles.history")}</span></a>
         </li>
         <li>
+          <button type="button" onclick={() => (exporting = true)}><span class="t">{t("export.title")}</span></button>
+        </li>
+        <li>
           <button type="button" role="switch" aria-checked={isProtected} onclick={() => void setProtected(!isProtected)}>
             <span class="t">{t("profiles.protected")}</span>
             <span class="sw" class:on={isProtected}>{isProtected ? t("common.on") : t("common.off")}</span>
@@ -349,6 +355,7 @@
 
     <SaveTemplateDialog bind:open={savingTemplate} doc={editor.text} profileName={editor.profile.name} />
     <DeleteProfileDialog bind:open={deletingProfile} profile={editor.profile} onDeleted={afterDelete} />
+    <ExportDialog bind:open={exporting} profileId={editor.profile.id} />
 
     <aside class="preview" aria-label={t("preview.title")}>
       <PreviewPane {editor} {floating} onLocate={(p) => void locate(p)} onHide={mobile ? undefined : docked ? () => (dockHidden = true) : () => (previewOpen = false)} />

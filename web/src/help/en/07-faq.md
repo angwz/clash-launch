@@ -29,3 +29,13 @@ Every save records a version. The config's History page compares any two version
 After you delete a node, config or short link, a notice stays at the bottom right for 10 seconds — choose Undo to bring it back; it is only deleted after that. The checkboxes on the left of each list select several items at once for bulk delete, refresh or disable.
 
 To keep a config from being deleted by accident, turn on Delete protection under More in the editor. While it is on, the config can't be deleted from the list or the editor; turn it off first.
+
+## Export a config file
+
+Under More in the editor, choose Export config to download a file that clients can use directly — the same content the subscription link serves.
+
+- Clear Include proxies to remove every proxy; groups left with no members get DIRECT as a placeholder.
+- Clear Include rule sets to remove rule sets and the rules that use them, keeping only hand-written rules and the fallback.
+- Clear both to get a skeleton you can share. The dialog lists everything that was removed.
+
+A file with proxies contains their addresses and passwords; don't share it publicly.

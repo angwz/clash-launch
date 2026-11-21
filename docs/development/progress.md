@@ -7,13 +7,13 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 4 的 R55、R33、R35 已完成，接着做 R17 导出与导入，然后 R21 备份与还原、R20 注销账户、O2 规则源编辑器。远程 Docker（上下文 `aliyun-dev`）恢复连通后，补做 R18、R14 的 compose 覆盖与 O3（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：R17 的导出已完成，接着做 R17 导入（反向解析网上复制的 YAML），然后 R21 备份与还原、R20 注销账户、O2 规则源编辑器。远程 Docker（上下文 `aliyun-dev`）恢复连通后，补做 R18、R14 的 compose 覆盖与 O3（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
   - 没有 Python，脚本化编辑用 `node -e` 或 `awk`；`sed` 的多行插入容易出错，复杂改动用编辑工具。
   - mihomo 与地理数据在 `.cache/tools/`（`go run ./tools/toolsync` 按 `tools.lock.json` 下载校验，已含 `ip2region_v4.xdb`）。
-  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 52 通过 36 跳过（「分流规则拖动」偶发失败，单独重跑通过）。
+  - e2e 共用一个后端、串行运行，注册有「每 IP 每小时 10 次」的限制：新测试不要再新注册账号，改用管理员或已有用户；也不要改管理员的用户名与密码。完整 e2e 约 3.5 分钟，当前基线 53 通过 37 跳过（「分流规则拖动」偶发失败，单独重跑通过）。
   - `golangci-lint` 全仓 0 issues（O4 已清零），新问题都应修掉。
 - **新迁移**：下一个编号是 0023；两种数据库各一个同号文件，加入 `migrations/SUMS`（`TestMigrationsFrozen` 会打印要追加的行），新表加入 `store.Tables`。
 
@@ -69,6 +69,7 @@
 - **R42 订阅链接访问限制（2026-11-21）**：迁移 0020 给 `links` 加 `limits`（JSON）；`PATCH …/links/{lid}` 改为只改出现的字段（备注、限制），限制规范化（去重、国家大写排序、客户端名不含版本与空格）并在变化时记审计。`CheckLinkAccess` 在三个订阅入口（`/s/`、短链接、托管节点文件）检查：客户端按 `clientOf` 比较、地区按本地地理库（查不到时挡住），403；每天次数按所有者时区，内存计数、每天首次从 `sub_requests` 与尚未写入的内存记录补齐，超过时 429 与到零点的 Retry-After；托管节点文件不计次数。被挡住的请求照常记录。前端：订阅链接页「访问限制」对话框（常见客户端与最近一次的客户端可一键加入）与卡片上的限制摘要。升级测试改为按旧列写入链接。验证：`TestLinkLimits`（规范化、422、只改备注不清限制、403、两次后 429、查不到地区挡住、清空恢复、状态码记入分析）；SQLite 全量、PostgreSQL（api、service、store）通过；golangci-lint 0 issues；149 项单元、首屏 80.8 KiB；e2e 50 通过 34 跳过（新增「订阅链接访问限制」）。之后只改了一处 CSS 写法（四值简写），重跑了单元测试与类型检查。地区限制在真实地理库下的放行没有自动化测试（测试环境没有地理库）。
 - **R31 提醒渠道（2026-11-21）**：决定 [0008](../decisions/0008-notification-channels.md) 把出站边界扩展到用户本人配置的推送地址。`internal/source/push.go` 发送 Webhook（可选 HMAC 签名）、Telegram、Bark、ntfy，格式按各自官方文档；只允许 https、不跟随重定向、10 s 超时、SSRF 防护同拉取，错误不含地址与令牌。迁移 0021 `notify_channels`（设置整体加密，参与密钥轮换）；`internal/service/channels.go` 增删改、测试送达后启用（与测试邮件共用每小时 5 次）、修改回到未验证；`sendAlert` 并行发往邮件与全部已启用渠道，结果记在渠道上。账号页「提醒渠道」。验证：`TestPush`（四种格式、签名、截断、校验、内网拒绝、非 2xx 与重定向失败、证书错误不泄露令牌）、`TestChannels`（API 全流程，含真实 https 接收端）、e2e「提醒渠道…」。没有向真实的 Telegram、Bark、ntfy 发送过消息。
 - **R55、R33、R35 删除保护、可撤销的删除与批量操作（2026-11-21）**：迁移 0022 `profiles.protected`，`PUT …/protection`（不改版本、记审计），受保护时删除 409；编辑器「更多」里的开关，三处删除入口禁用。删除改为浏览器端延迟 10 秒发出（`pending.svelte.ts`，页面关闭时 keepalive 立即发出，删掉的 ID 保持隐藏以免旧列表重新显示），取舍见 0004 #28。三个列表多选与批量操作。顺带修正：在编辑器里删除配置后跳到不存在的 `/profiles`（显示「页面不存在」），改回首页；原 e2e 只检查了地址，现在检查配置列表可见。「更多」的展开状态改由组件记住，开关保护时不再收起。验证：`TestProfileProtection`、`pending.test.ts`（撤销、到期删除、失败恢复、404 视为已删除、页面关闭时发出）、e2e「删除保护、可撤销的删除与批量操作」与改写后的「删除配置…」。
+- **R17 导出（2026-11-21）**：`engine.Export`（`NoNodes`、`NoRules`）在合并与适配之后、渲染之前裁剪：去掉 proxies 与 proxy-providers，组内引用与 use 一并去掉，没有成员也不会自动收录节点的组写 DIRECT 占位（mihomo 不接受空组），指向被去掉节点的规则改为 DIRECT；去掉 rule-providers 与使用 RULE-SET 的规则（含逻辑规则的条件）。每项写入 `export.*` 诊断。服务端同源渲染并做内核检查，替换「交给客户端」的链接令牌。验证：`TestStripExport`、`TestExportConfig`（完整导出与订阅内容逐字节相同、骨架、审计、隔离）、e2e「导出配置…」（下载文件内容与诊断显示）；带 filter 与 DIRECT 占位的骨架样例经本机 mihomo v1.19.33 `-t` 通过。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
