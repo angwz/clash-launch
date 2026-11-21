@@ -1226,3 +1226,21 @@ func (s *Server) previewImport(w http.ResponseWriter, r *http.Request, p *princi
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "sources": plan.Sources, "doc": plan.Doc, "counts": plan.Counts, "diagnostics": diag.Sorted(append(plan.Diagnostics, extra.Items()...))})
 }
+
+// previewRuleSource 校验编辑中的规则源并预览策略组（O2）：不写存储，受预览限流约束。
+func (s *Server) previewRuleSource(w http.ResponseWriter, r *http.Request, p *principal) {
+	var in service.RulesPreviewInput
+	if err := readJSON(r, &in); err != nil {
+		s.fail(w, err)
+		return
+	}
+	if !s.renderAllowed(w, p, false) {
+		return
+	}
+	res, err := s.Svc.PreviewRules(r.Context(), p.User.ID, in)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}

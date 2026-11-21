@@ -1363,6 +1363,30 @@ paths:
       security: [{session: [], csrf: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSourceInput'}}}}
       responses: {'201': {description: 已创建, content: {application/json: {schema: {$ref: '#/components/schemas/RuleSource'}}}}, '400': {$ref: '#/components/responses/Problem'}}
+  /api/v1/rule-sources/preview:
+    post:
+      tags: [rules]
+      summary: 校验编辑中的规则源并预览策略组（O2），不写存储
+      description: |
+        用请求中的文本（未保存）与一份配置的节点源（profile；为空时用本人全部节点源）走一遍生成流程，返回每个策略组最终包含的组与节点、规则条数与诊断。
+        诊断带 file（groups | rulesets | ini）与 line（从 1 开始），编辑器据此在行内标出。source 指定正在编辑的规则源时，文本为空的部分用它已保存的内容或拉取快照补上。受预览限流约束
+      security: [{session: [], csrf: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {kind: {type: string, enum: [toml, ini]}, groupsText: {type: string}, rulesetsText: {type: string}, iniText: {type: string}, profile: {type: string}, source: {type: string}}}}}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [groups, rules, nodes, diagnostics]
+                properties:
+                  groups: {type: array, items: {type: object, required: [name, type, members], properties: {name: {type: string}, type: {type: string}, members: {type: array, items: {type: string}}, use: {type: array, items: {type: string}}, filter: {type: string}}}}
+                  rules: {type: integer}
+                  nodes: {type: integer}
+                  diagnostics: {type: array, items: {allOf: [{$ref: '#/components/schemas/Diagnostic'}, {type: object, properties: {file: {type: string, enum: [groups, rulesets, ini]}, line: {type: integer}}}]}}
+        '404': {$ref: '#/components/responses/Problem'}
+        '429': {$ref: '#/components/responses/Problem'}
   /api/v1/rule-sources/{id}:
     get:
       tags: [rule-sources]

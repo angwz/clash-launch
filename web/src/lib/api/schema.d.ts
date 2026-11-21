@@ -4019,6 +4019,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rule-sources/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 校验编辑中的规则源并预览策略组（O2），不写存储
+         * @description 用请求中的文本（未保存）与一份配置的节点源（profile；为空时用本人全部节点源）走一遍生成流程，返回每个策略组最终包含的组与节点、规则条数与诊断。
+         *     诊断带 file（groups | rulesets | ini）与 line（从 1 开始），编辑器据此在行内标出。source 指定正在编辑的规则源时，文本为空的部分用它已保存的内容或拉取快照补上。受预览限流约束
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind?: "toml" | "ini";
+                        groupsText?: string;
+                        rulesetsText?: string;
+                        iniText?: string;
+                        profile?: string;
+                        source?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            groups: {
+                                name: string;
+                                type: string;
+                                members: string[];
+                                use?: string[];
+                                filter?: string;
+                            }[];
+                            rules: number;
+                            nodes: number;
+                            diagnostics: (components["schemas"]["Diagnostic"] & {
+                                /** @enum {string} */
+                                file?: "groups" | "rulesets" | "ini";
+                                line?: number;
+                            })[];
+                        };
+                    };
+                };
+                404: components["responses"]["Problem"];
+                429: components["responses"]["Problem"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rule-sources/{id}": {
         parameters: {
             query?: never;

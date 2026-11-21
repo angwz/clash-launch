@@ -126,6 +126,7 @@ func (s *Server) routes() []Route {
 
 		{"GET", "/api/v1/rule-sources", a(s.listRules)},
 		{"POST", "/api/v1/rule-sources", a(s.createRule)},
+		{"POST", "/api/v1/rule-sources/preview", a(s.previewRuleSource)},
 		{"GET", "/api/v1/rule-sources/{id}", a(s.getRule)},
 		{"PUT", "/api/v1/rule-sources/{id}", a(s.updateRule)},
 		{"DELETE", "/api/v1/rule-sources/{id}", a(s.deleteRule)},

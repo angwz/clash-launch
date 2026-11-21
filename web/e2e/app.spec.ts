@@ -1453,3 +1453,29 @@ test("注销账号：需要确认与当前密码，最后一个管理员不能�
   await expect(page).toHaveURL(/\/account$/); // 仍然登录
   expect(problems.filter((p) => !p.includes("409"))).toEqual([]);
 });
+
+test("规则源编辑器：高亮编辑、策略组预览与带行号的问题（O2）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const { call } = await seedProfile(request, baseURL!, "规则预览");
+  const groups = '[[custom_groups]]\nname = "代理"\ntype = "select"\nrule = ["[]DIRECT", ".*"]\n';
+  const rulesets = '[[rulesets]]\ngroup = "代理"\nruleset = "[]MATCH"\n';
+  const rs = await call<{ id: string }>("POST", "/api/v1/rule-sources", { name: "预览测试 " + Date.now(), kind: "toml", groupsText: groups, rulesetsText: rulesets });
+  await login(page);
+  await page.goto("/rules/" + rs.id);
+  const pv = page.locator("section", { has: page.getByRole("heading", { name: "策略组预览" }) });
+  await expect(pv.getByText(/1个策略组、1条规则/)).toBeVisible();
+  await expect(pv.getByText("代理", { exact: true })).toBeVisible();
+  await expect(pv.locator("li[data-kind=builtin]", { hasText: "DIRECT" })).toBeVisible();
+  await expect(pv.locator("li[data-kind=node]").first()).toBeVisible();
+
+  // 在 groups 编辑器末尾追加一个缺少 name 的组：问题列表指向它所在的第 5 行（保存的文本末尾没有换行）
+  const editor = page.locator("#rd-gt .cm-content");
+  await editor.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.insertText('\n[[custom_groups]]\ntype = "select"\nrule = [".*"]\n');
+  await expect(pv.getByRole("list", { name: "问题" })).toContainText("groups.toml:5");
+  await pv.getByRole("list", { name: "问题" }).getByRole("button").first().click();
+  await expect(page.locator("#rd-gt .cm-activeLine")).toContainText("[[custom_groups]]");
+  expect(problems).toEqual([]);
+});
