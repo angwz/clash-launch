@@ -143,7 +143,7 @@ func (s *Service) Threads(ctx context.Context, u *store.User) ([]Thread, error) 
 		if ms, err := s.Store.Messages().Thread(ctx, u.ID, c.PeerID, store.Page{Limit: 1}); err == nil && len(ms) > 0 {
 			var body MessageBody
 			_ = json.Unmarshal(ms[0].Body, &body)
-			t.Last, t.LastKind, t.Mine = preview(body), ms[0].Kind, ms[0].SenderID == u.ID
+			t.Last, t.LastKind, t.Mine, t.LastEnc = preview(body), ms[0].Kind, ms[0].SenderID == u.ID, body.Enc != nil
 		}
 		if n, err := s.Store.Messages().UnreadFrom(ctx, u.ID, c.PeerID); err == nil {
 			t.Unread = n

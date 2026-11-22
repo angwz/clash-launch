@@ -69,7 +69,9 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		// 公告是全站的，人人可以关闭自己看到的那一条（关闭记录只属于本人），另由 TestAnnouncements 检查
 		"POST /api/v1/announcements/{id}/dismiss": true,
 		// 现在的用户名原样返回（找人联想本来就能搜到），旧名只对联系人解析，另由 TestResolveFormerName 检查
-		"GET /api/v1/messages/resolve/{username}": true}
+		"GET /api/v1/messages/resolve/{username}": true,
+		// 消息公钥（R46）任何登录用户可读：给对方发加密消息要用；只有公钥，另由 TestMessageKeys 检查
+		"GET /api/v1/users/{username}/message-keys": true}
 	// 每条路由一个能通过格式校验的请求体（接口拒绝未知字段），使所有权检查成为决定结果的那一步
 	bodies := map[string]any{
 		"PATCH /api/v1/account/passkeys/{id}":       map[string]string{"name": "x"},

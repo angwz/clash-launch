@@ -315,10 +315,11 @@ type attachDTO struct {
 }
 
 type messageDTO struct {
-	ID     string     `json:"id"`
-	Mine   bool       `json:"mine"`
-	Text   string     `json:"text"`
-	Attach *attachDTO `json:"attach,omitempty"`
+	ID     string           `json:"id"`
+	Mine   bool             `json:"mine"`
+	Text   string           `json:"text"`
+	Enc    *service.EncText `json:"enc,omitempty"` // R46：浏览器解密
+	Attach *attachDTO       `json:"attach,omitempty"`
 	// Notice 是系统通知（如授权的对象被删除），前端按 code 生成文案
 	Notice      *service.Notice `json:"notice,omitempty"`
 	CreatedAt   time.Time       `json:"createdAt"`
@@ -330,7 +331,7 @@ type messageDTO struct {
 func (s *Server) toMessage(ctx context.Context, me string, m *store.Message) messageDTO {
 	var b service.MessageBody
 	_ = json.Unmarshal(m.Body, &b)
-	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, Notice: b.Notice, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
+	d := messageDTO{ID: m.ID, Mine: m.SenderID == me, Text: b.Text, Enc: b.Enc, Notice: b.Notice, CreatedAt: m.CreatedAt, ReadAt: tp(m.ReadAt)}
 	if !d.Mine {
 		d.AddedSource = m.AddedSource
 	}
@@ -417,12 +418,14 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principa
 		Short    string `json:"short"`
 		Template string `json:"template"`
 		Mode     string `json:"mode"` // share | grant
+		// Enc 是浏览器加密后的正文（R46，决定 0009）；有它时 text 为空
+		Enc *service.EncText `json:"enc"`
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
 		return
 	}
-	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, service.AttachRequest{Source: req.Source, Short: req.Short, Template: req.Template, Mode: req.Mode})
+	m, err := s.Svc.SendMessage(r.Context(), p.User, req.To, req.Text, service.AttachRequest{Source: req.Source, Short: req.Short, Template: req.Template, Mode: req.Mode, Enc: req.Enc})
 	if err != nil {
 		s.fail(w, err)
 		return

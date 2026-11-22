@@ -96,6 +96,7 @@ const (
 // MessageBody 是加密保存的消息内容。
 type MessageBody struct {
 	Text   string      `json:"text,omitempty"`
+	Enc    *EncText    `json:"enc,omitempty"` // 端到端加密的正文（R46）：服务器不能解开
 	Attach *Attachment `json:"attach,omitempty"`
 	Notice *Notice     `json:"notice,omitempty"` // 系统通知（kind = notice），见 deletion.go
 }
@@ -147,6 +148,8 @@ type AttachRequest struct {
 	Short    string
 	Template string // 配置模板（只能分享，反馈 #76）
 	Mode     string // share | grant
+	// Enc 是端到端加密的正文（R46）：有它时 text 必须为空
+	Enc *EncText
 }
 
 // SendMessage 发送一条消息，可以附带节点（分享或授权）或短链接（授权）。收件人开启自动加入时，
@@ -154,7 +157,7 @@ type AttachRequest struct {
 // 授权不占对方配额，直接出现在对方的节点页或短链接页。
 func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text string, at AttachRequest) (*store.Message, error) {
 	text = strings.TrimSpace(text)
-	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && at.Source == "" && at.Short == "" && at.Template == "") {
+	if utf8.RuneCountInString(text) > messageMaxText || (text == "" && at.Enc == nil && at.Source == "" && at.Short == "" && at.Template == "") || (at.Enc != nil && text != "") {
 		return nil, ErrMessage
 	}
 	if at.Mode == "" {
@@ -186,7 +189,12 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 			return nil, &WaitError{Wait: time.Hour}
 		}
 	}
-	body := MessageBody{Text: text}
+	if at.Enc != nil {
+		if err := s.checkEnc(ctx, at.Enc, from.ID, rcpt.ID); err != nil {
+			return nil, err
+		}
+	}
+	body := MessageBody{Text: text, Enc: at.Enc}
 	kind := "text"
 	var grant *store.Grant
 	switch {
@@ -354,8 +362,9 @@ type Thread struct {
 	Username string    `json:"username"`
 	Nickname string    `json:"nickname,omitempty"`
 	Avatar   string    `json:"avatar,omitempty"` // 需求 R19
-	Last     string    `json:"last"`             // 最后一条的文字预览
-	LastKind string    `json:"lastKind"`         // text | nodes | subscription
+	Last     string    `json:"last"`
+	LastEnc  bool      `json:"lastEnc,omitempty"` // 最后一条的文字是加密的（R46）：服务器看不到，界面显示「加密消息」             // 最后一条的文字预览
+	LastKind string    `json:"lastKind"`          // text | nodes | subscription
 	LastAt   time.Time `json:"lastAt"`
 	Mine     bool      `json:"mine"` // 最后一条是自己发的
 	Unread   int       `json:"unread"`

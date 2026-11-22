@@ -110,3 +110,7 @@ Footprints on the Account page record things that happen only once: joining, you
 ## Avatar
 
 When you sign up you get a random preset avatar and nickname; change them any time on the Account page. Uploaded images are cropped to a square, scaled down and re-encoded on the server, so extra data such as where a photo was taken is not kept. Avatars are visible only to people signed in to this site.
+
+## Message encryption
+
+Once both people have it on, the text of in-site messages is encrypted in the browser; the server stores only ciphertext and administrators cannot read it. It turns on automatically when you sign in with your password; on a device where you sign in with a passkey, enter your password once in the message window to unlock. Your key is protected by your sign-in password: create a recovery key under Account and Security → Message encryption and keep it safe, or earlier encrypted messages are lost if you forget the password. Attached nodes and access are not encrypted, because the server needs them to build configs.

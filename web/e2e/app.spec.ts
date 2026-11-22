@@ -533,6 +533,38 @@ test("站内消息：发送文字与节点，对方的节点页自动加入，�
   await expect(p2.locator(".msg-btn .dot")).toHaveCount(0);
   await p2.goto("/sources");
   await expect(p2.getByText(/来自 admin/)).toBeVisible();
+
+  // 端到端加密（R46）：bob 用密码登录后有了密钥；admin 重新打开会话，文字自动加密
+  await page.goto("/messages/" + bob);
+  await expect(page.locator(".window .enc-state")).toHaveText(/端到端加密/);
+  const secret = "这条是加密的 " + Date.now().toString(36);
+  await page.getByPlaceholder("输入消息，回车发送，Shift + 回车换行").fill(secret);
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect(page.locator(".msg.mine .text").last()).toHaveText(secret);
+  // 服务器上只有密文
+  const call = await apiAs(request, baseURL!);
+  const raw = JSON.stringify(await call("GET", "/api/v1/messages/with/" + bob));
+  expect(raw).not.toContain(secret);
+  expect(raw).toContain('"enc":{');
+  // bob 解开；刷新后仍能解开（私钥在本机）
+  await p2.goto("/messages/admin");
+  await expect(p2.locator(".msg:not(.mine) .text").last()).toHaveText(secret);
+  await p2.goto("/"); // 整页重新加载（消息窗关闭），再打开会话：私钥从本机读取
+  await p2.goto("/messages/admin");
+  await expect(p2.locator(".msg:not(.mine) .text").last()).toHaveText(secret);
+  // 改密码：私钥随之重新包裹；退出（本机私钥删除）后用新密码登录，仍能解开
+  await p2.goto("/account");
+  await p2.locator("#ac-cur").fill("a long enough password");
+  await p2.locator("#ac-new").fill("a brand new long password");
+  await p2.locator("#ac-cf").fill("a brand new long password");
+  await p2.getByRole("button", { name: "修改密码" }).click();
+  await expect(p2.getByText("密码已修改")).toBeVisible();
+  await ctx.clearCookies(); // 退出：浏览器不再有会话
+  await p2.evaluate(() => indexedDB.deleteDatabase("clash-launch-e2e"));
+  await login(p2, { username: bob, password: "a brand new long password" });
+  await p2.goto("/messages/admin");
+  await expect(p2.locator(".msg:not(.mine) .text").last()).toHaveText(secret);
+  await p2.screenshot({ path: "test-results/shot-e2e-chat.png" });
   await ctx.close();
 });
 
@@ -1812,7 +1844,8 @@ test("邀请树与旧名地址：管理页显示邀请关系；旧的消息地�
   const tree = page.locator("section", { has: page.getByRole("heading", { name: "邀请树" }) });
   await expect(tree).toBeVisible();
   await tree.getByLabel("只看有邀请关系的人").uncheck();
-  await expect(tree.getByText("@admin").first()).toBeVisible();
+  // 管理员有昵称时显示「昵称 @admin」，没有时显示 admin（其他测试会改动管理员的昵称）
+  await expect(tree.getByText(/^@?admin$/).first()).toBeVisible();
   await tree.screenshot({ path: "test-results/shot-invite-tree.png" });
 
   // 旧名地址：给自己以外的已有联系人发过消息时才能解析；这里只验证查不到的名字按原样打开，不报错
@@ -1821,4 +1854,22 @@ test("邀请树与旧名地址：管理页显示邀请关系；旧的消息地�
   await page.goto("/messages/nobody-" + Date.now().toString(36));
   await expect(page).toHaveURL((u) => u.pathname === "/");
   expect(problems.filter((p) => !p.includes("404"))).toEqual([]);
+});
+
+test("消息加密：账号页显示状态与指纹，生成只显示一次的恢复密钥（R46）", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page); // 用密码登录：没有密钥时生成，有时解开
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "消息加密" }) });
+  await expect(box.getByText("已启用，本机已解锁")).toBeVisible();
+  await expect(box.locator(".fp code")).toHaveText(/^([0-9a-f]{4} ){7}[0-9a-f]{4}$/);
+  await box.getByRole("button", { name: /恢复密钥/ }).first().click();
+  await box.getByLabel("当前密码").fill("admin password 2026");
+  await box.getByRole("button", { name: "生成恢复密钥" }).last().click();
+  await expect(box.locator(".code code")).toHaveText(/^([A-Z2-9]{4}-){12}[A-Z2-9]{4}$/);
+  await box.screenshot({ path: "test-results/shot-e2e-account.png" });
+  await box.getByRole("button", { name: "我已保存" }).click();
+  await expect(box.getByText("已设置恢复密钥。")).toBeVisible();
+  expect(problems).toEqual([]);
 });

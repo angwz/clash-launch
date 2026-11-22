@@ -14,6 +14,8 @@
   import AccessTokens from "../components/account/AccessTokens.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
+  import MessageEncryption from "../components/account/MessageEncryption.svelte";
+  import { messageKeys } from "../lib/message-keys.svelte";
   import Footprints from "../components/account/Footprints.svelte";
   import InvitesPanel from "../components/InvitesPanel.svelte";
   import { placeText } from "../lib/regions";
@@ -87,7 +89,9 @@
   async function changePassword(e: SubmitEvent) {
     e.preventDefault();
     try {
-      await api.put("/api/v1/account/password", { current: pw.current, password: pw.next, logoutOthers: pw.logoutOthers });
+      // 消息私钥（R46）：用旧密码解开、新密码重新包裹，与新密码一起提交（服务端同一事务）
+      const messageKey = await messageKeys.rewrapFor(pw.current, pw.next).catch(() => undefined);
+      await api.put("/api/v1/account/password", { current: pw.current, password: pw.next, logoutOthers: pw.logoutOthers, messageKey });
       pw = { current: "", next: "", confirm: "", logoutOthers: true };
       toasts.push("ok", t("account.password_changed"));
       await load();
@@ -235,6 +239,8 @@
   {/if}
 
   <InvitesPanel />
+
+  <MessageEncryption />
 
   <Footprints />
 

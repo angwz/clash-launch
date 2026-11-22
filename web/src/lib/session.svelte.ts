@@ -3,6 +3,7 @@
 import { api, ApiError, setCsrf, type Schemas, type Session, type User } from "./api/client";
 import { i18n, t } from "./i18n/i18n.svelte";
 import { toasts } from "./toast.svelte";
+import { messageKeys } from "./message-keys.svelte";
 
 export interface MFAChallenge {
   mfa: ("totp" | "passkey")[];
@@ -35,22 +36,45 @@ class SessionState {
     }
   }
 
+  // 密码登录需要第二因素时，密码只在内存里留到第二步完成：用于解开消息密钥（R46），之后立即丢弃
+  #pendingPassword = "";
+
   /** 密码登录。需要第二因素时返回挑战，否则返回 null（已登录）。 */
   async login(username: string, password: string): Promise<MFAChallenge | null> {
     const r = await api.post<Session | MFAChallenge>("/api/v1/session", { username, password });
-    if ("mfa" in r) return r;
+    if ("mfa" in r) {
+      this.#pendingPassword = password;
+      return r;
+    }
+    await this.#keys(r, password);
     this.#apply(r);
     return null;
   }
 
   /** 第二步：TOTP 验证码或恢复码。 */
   async completeTOTP(ticket: string, code: string): Promise<void> {
-    this.#apply(await api.post<Session>("/api/v1/session/totp", { ticket, code }));
+    const r = await api.post<Session>("/api/v1/session/totp", { ticket, code });
+    await this.#keys(r, this.#pendingPassword);
+    this.#apply(r);
   }
 
   /** 由其他方式（如通行密钥）完成登录后，直接采用返回的会话。 */
-  adopt(s: Session): void {
+  async adopt(s: Session): Promise<void> {
+    await this.#keys(s, this.#pendingPassword); // 通行密钥作为第二因素时有密码；只用通行密钥登录时没有，打开消息时再解锁
     this.#apply(s);
+  }
+
+  /**
+   * 登录后生成或解开消息密钥（R46，决定 0009 #7）。在把用户写进会话（随即离开登录页）之前完成：
+   * 否则登录后立刻刷新或跳转会中断它，而之后就没有密码可用了。只有在一台设备上第一次登录时需要 PBKDF2（约半秒）；
+   * 失败不影响登录。
+   */
+  async #keys(s: Session, password: string): Promise<void> {
+    this.#pendingPassword = "";
+    // 还要先同意新版协议或先设置两步验证时，服务端会拦下其他接口：这时不处理，打开消息窗口时再解锁
+    if (!password || !s.user || s.terms?.pending || s.mfaSetup) return;
+    setCsrf(s.csrf); // 上传密钥要用这次会话的 CSRF 令牌
+    await messageKeys.afterPasswordLogin(s.user.id, password).catch(() => undefined);
   }
 
   /** 同意或拒绝当前版本的用户协议。版本过期时抛出 409（调用方重新读取协议）。 */
@@ -66,6 +90,7 @@ class SessionState {
     try {
       await api.del("/api/v1/session");
     } finally {
+      void messageKeys.forget(); // 本机的消息私钥随退出删除
       this.user = null;
       this.terms = null;
       this.mfaSetup = false;

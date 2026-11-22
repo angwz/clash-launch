@@ -41,7 +41,7 @@
 | 订阅端点 | 每 IP + 令牌每分钟 30 次 | `internal/api/subscribe.go` |
 | 拉取 | 10 MiB、30 s、5 次重定向；最短间隔 30 分钟；手动拉取每人每小时 30 次 | `internal/source`、配额 |
 | 短链接 | 随机短码 5 位起（约 2,800 万种，撞码时加长）；同一 IP 一小时内猜错 30 次后限速；只能指向自己的链接；不能占用保留路径 | `internal/api/subscribe.go`、[sharing](sharing.md) |
-| 站内消息与授权 | 正文与附件加密保存；附件不含请求头；每人每小时 60 条；收件人不存在、不接收或屏蔽时统一返回 404；授权的节点对方看不到地址与内容，一律写入配置；删除对话收回双方之间的全部授权 | `internal/service/social.go` |
+| 站内消息与授权 | 正文与附件加密保存；双方都启用消息加密后，文字在浏览器里端到端加密，服务器只见密文（决定 [0009](../decisions/0009-message-encryption.md)，含威胁模型）；附件不含请求头；每人每小时 60 条；收件人不存在、不接收或屏蔽时统一返回 404；授权的节点对方看不到地址与内容，一律写入配置；删除对话收回双方之间的全部授权 | `internal/service/social.go` |
 | 分流规则地址 | 普通用户只能用公共代码托管站与其 CDN 上的 https 地址（主机名精确匹配，重定向每一跳都检查），其他来源改为粘贴文本；管理员不受限 | `internal/source/hosts.go`、`CLASH_LAUNCH_RULE_HOSTS` |
 | 配额 | 50 个源、20 个方案、50 条链接、100 MiB；开放注册的用户 10 个源、5 个方案、10 条链接、最短间隔 60 分钟、20 MiB；管理员不受限 | `CLASH_LAUNCH_QUOTA_*`、`CLASH_LAUNCH_OPEN_QUOTA_*` |
 | 预览与内核检查 | 每人每分钟预览 240 次、内核检查 30 次（管理员不限）；全站同时 2 个检查，每个 10 秒、256 MiB | `internal/api/server.go`、`internal/kernel` |
@@ -102,6 +102,7 @@
 | B12 | 上传的头像先按尺寸拒绝（至多 2 MiB、4000 万像素，防解压炸弹）再解码，裁剪缩放后重新编码为 PNG 或 JPEG（去掉 EXIF 等附加数据）；类型由服务器决定，响应带 `nosniff` 与 `default-src 'none'`；读取需要登录 | `TestAvatars`、`TestSquareResize` | API / 单元 |
 | B13 | 站内公告只有管理员能发布、修改与删除（普通用户访问管理接口得到 404）；正文是纯文字，界面按文字显示，不解析 HTML 或 Markdown；关闭记录只属于本人 | `TestAnnouncements`、`TestOwnerIsolationAllRoutes` | API |
 | B14 | 访客试用由独立的示例环境处理（临时目录中的另一个数据库，只有示例数据），访客的请求碰不到正式数据；试用接口没有写入，POST 只接受同源请求并按 IP 限流；示例用户不能登录；用别人的真实配置 ID 访问试用接口得到 404 | `TestDemo`、`TestOwnerIsolationAllRoutes` | API |
+| B15 | 消息密钥（R46）：设置或重新生成需要当前密码；加密消息必须使用双方当前的密钥，带明文的加密消息被拒绝；服务器原样转交密文；改密码与重新包裹在同一事务，包裹不对时密码不变；重新生成后旧私钥的包裹删除、旧公钥保留；注销时删除私钥包裹 | `TestMessageKeys`、`e2e.test.ts`、e2e「站内消息…」（服务器上只有密文、改密码后仍能解开） | API / 单元 / e2e |
 
 ### Web 安全
 

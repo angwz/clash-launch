@@ -340,6 +340,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "account.rename_wait", "the username can be changed again at "+renameWait.Until.UTC().Format(time.RFC3339))
 	case errors.Is(err, service.ErrNameReserved):
 		problem(w, http.StatusConflict, "account.name_reserved", err.Error())
+	case errors.Is(err, service.ErrMessageKey):
+		problem(w, http.StatusUnprocessableEntity, "message.key", "invalid message key or encrypted message, or the key is no longer current")
 	case errors.Is(err, service.ErrAnnouncement):
 		problem(w, http.StatusUnprocessableEntity, "announcement.invalid", "text must be 1 to 500 characters, level info or warn, and the end after the start")
 	case errors.Is(err, service.ErrAvatarTooLarge):

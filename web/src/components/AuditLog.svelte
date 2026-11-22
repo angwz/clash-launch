@@ -5,7 +5,7 @@
     "admin.node_mode", "admin.registration", "template.create", "template.delete", "admin.user.disable", "admin.user.enable", "admin.user.password", "admin.user.quota", "link.create", "link.delete",
     "link.reset", "login.failed", "login.ok", "mfa.disable", "mfa.enable", "mfa.failed", "mfa.recovery_code", "mfa.recovery_codes",
     "passkey.add", "passkey.delete", "passkey.login_failed", "profile.create", "profile.delete", "profile.update", "recovery.failed",
-    "recovery.ok", "register", "session.revoke", "smtp.delete", "smtp.update", "smtp.verified", "channel.create", "channel.update", "channel.delete", "channel.verified", "profile.protect", "profile.unprotect", "profile.export", "account.backup", "account.restore", "account.restore_undo", "account.delete_request", "account.delete_cancel", "account.deleted", "admin.user.delete", "admin.retention", "account.avatar", "admin.announcement.create", "admin.announcement.update", "admin.announcement.delete", "grant.create", "grant.revoke", "message.source_added", "message.template_added",
+    "recovery.ok", "register", "session.revoke", "smtp.delete", "smtp.update", "smtp.verified", "channel.create", "channel.update", "channel.delete", "channel.verified", "profile.protect", "profile.unprotect", "profile.export", "account.backup", "account.restore", "account.restore_undo", "account.delete_request", "account.delete_cancel", "account.deleted", "admin.user.delete", "admin.retention", "account.avatar", "account.message_key", "account.message_key_reset", "admin.announcement.create", "admin.announcement.update", "admin.announcement.delete", "grant.create", "grant.revoke", "message.source_added", "message.template_added",
   ];
 </script>
 

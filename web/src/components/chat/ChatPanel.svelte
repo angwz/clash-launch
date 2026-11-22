@@ -7,7 +7,7 @@
   // 反馈 #79：不再是独立页面，而是浮在当前页面之上的窗口（右上角消息图标打开，Esc 或 × 关闭）；
   // 大小随浏览器窗口变化，窗口够宽时左右两栏，否则单栏（用容器查询按窗口自身宽度切换），手机上铺满屏幕。
   import Avatar from "../Avatar.svelte";
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import Icon from "../Icon.svelte";
   import { shownName } from "../../lib/names";
   import UserPicker from "../UserPicker.svelte";
@@ -20,6 +20,9 @@
   import { chat } from "../../lib/chat.svelte";
   import { toasts } from "../../lib/toast.svelte";
   import { realtime } from "../../lib/realtime.svelte";
+  import { messageKeys } from "../../lib/message-keys.svelte";
+  import { session } from "../../lib/session.svelte";
+  import type { EncText } from "../../lib/e2e";
 
   interface Thread {
     userId: string;
@@ -27,6 +30,8 @@
     nickname?: string;
     avatar?: string;
     last: string;
+    /** 最后一条的文字是端到端加密的（R46）：服务器没有预览 */
+    lastEnc?: boolean;
     lastKind: string;
     lastAt: string;
     mine: boolean;
@@ -55,6 +60,8 @@
     id: string;
     mine: boolean;
     text: string;
+    /** 端到端加密的正文（R46）：在浏览器里解开 */
+    enc?: EncText;
     attach?: Attach;
     /** 系统通知（需求 R2）：授权的对象被所有者删除 */
     notice?: { code: string; target?: "source" | "short"; name: string };
@@ -72,6 +79,62 @@
   type Pending = { kind: "source"; mode: "share" | "grant"; id: string; name: string; sourceKind: string } | { kind: "short"; id: string; name: string };
 
   const peer = $derived(chat.peer);
+
+  // —— 端到端加密（R46，决定 0009）——
+  // encWith：能否给当前对方发加密消息（ok）；不能时的原因：self 本机没有可用的私钥，peer 对方还没有启用
+  let encWith = $state<"ok" | "self" | "peer" | "">("");
+  // 解开的正文：消息 ID → 原文；null 表示解不开（密钥已更换或本机未解锁）
+  let plain = $state<Record<string, string | null>>({});
+  let unlockPw = $state("");
+  let recoveryCode = $state("");
+  let unlockMode = $state<"password" | "recovery" | "reset">("password");
+  let unlocking = $state(false);
+  let unlockError = $state("");
+  $effect(() => {
+    if (session.user) void messageKeys.refresh(session.user.id).catch(() => undefined);
+  });
+  $effect(() => {
+    const p = peer;
+    void messageKeys.state;
+    encWith = "";
+    if (p)
+      void messageKeys.canEncrypt(p).then(
+        (r) => p === peer && (encWith = r),
+        () => (encWith = "peer"),
+      );
+  });
+  // 解开新到的加密消息；解锁后重试之前没解开的
+  $effect(() => {
+    void messageKeys.state;
+    const p = peer;
+    for (const m of msgs) {
+      if (!m.enc || typeof untrack(() => plain[m.id]) === "string") continue;
+      messageKeys.decrypt(p, m.enc, m.mine).then(
+        (s) => (plain[m.id] = s),
+        () => (plain[m.id] = null),
+      );
+    }
+  });
+  async function unlock() {
+    if (!session.user) return;
+    unlocking = true;
+    unlockError = "";
+    try {
+      if (unlockMode === "recovery") await messageKeys.unlockWithRecovery(session.user.id, recoveryCode, unlockPw);
+      else if (unlockMode === "reset") await messageKeys.reset(session.user.id, unlockPw);
+      else await messageKeys.unlock(session.user.id, unlockPw);
+      unlockPw = "";
+      recoveryCode = "";
+      unlockMode = "password";
+      panel = "";
+      plain = {};
+      toasts.push("ok", t("e2e.unlocked"));
+    } catch (e) {
+      unlockError = e instanceof ApiError ? errorText(e) : unlockMode === "recovery" ? t("e2e.bad_recovery") : t("e2e.bad_password");
+    } finally {
+      unlocking = false;
+    }
+  }
 
   // 正在输入（R22）：输入时最多每 2 秒告诉对方一次；对方的信号 4 秒内没有续上就消失，收到对方消息时也立即消失
   let peerTyping = $state(false);
@@ -126,7 +189,7 @@
   let attach = $state<Pending | null>(null);
   let sources = $state<Source[] | null>(null);
   let shorts = $state<Short[] | null>(null);
-  let panel = $state<"" | "emoji" | "attach">("");
+  let panel = $state<"" | "emoji" | "attach" | "unlock">("");
   let sending = $state(false);
   let scroller: HTMLDivElement | undefined = $state();
   let input: HTMLTextAreaElement | undefined = $state();
@@ -220,10 +283,23 @@
     if (sending || !peer || (!text.trim() && !attach)) return;
     sending = true;
     try {
-      const body: Record<string, string> = { to: peer, text };
+      const body: Record<string, unknown> = { to: peer, text };
+      // 双方都有密钥且本机已解锁：文字加密后发送，服务器只见密文（R46）
+      if (text.trim() && encWith === "ok") {
+        body.text = "";
+        body.enc = await messageKeys.encrypt(peer, text.trim());
+      }
       if (attach?.kind === "source") Object.assign(body, { source: attach.id, mode: attach.mode });
       if (attach?.kind === "short") Object.assign(body, { short: attach.id, mode: "grant" });
-      await api.post("/api/v1/messages", body);
+      try {
+        await api.post("/api/v1/messages", body);
+      } catch (e) {
+        // 对方刚换了密钥：重新取对方的公钥，再加密一次
+        if (!(e instanceof ApiError && e.type === "message.key" && body.enc)) throw e;
+        messageKeys.dropPeer(peer);
+        body.enc = await messageKeys.encrypt(peer, text.trim());
+        await api.post("/api/v1/messages", body);
+      }
       text = "";
       attach = null;
       panel = "";
@@ -401,7 +477,7 @@
               <span class="th-main">
                 <span class="th-top"><strong>{shownName(th, t("deletion.deleted_user"))}</strong>{#if isOnline(th.username)}<span class="visually-hidden">{t("messages.online")}</span>{/if}{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
-                  {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{th.last}
+                  {#if th.mine}{t("messages.you")}：{/if}{#if th.lastKind !== "text"}<Icon name={th.lastKind === "grant" ? "shield" : th.lastKind === "subscription" ? "link" : th.lastKind === "notice" ? "info" : "server"} size={12} /> {/if}{#if th.lastEnc && !th.last}<Icon name="lock" size={12} /> {t("e2e.encrypted_message")}{:else}{th.last}{/if}
                 </span>
               </span>
               {#if th.unread}<span class="badge">{th.unread}</span>{/if}
@@ -484,7 +560,15 @@
             {:else}
             <div class="msg" class:mine={m.mine} class:fresh={fresh.has(m.id)}>
               <div class="bubble">
-                {#if m.text}<p class="text">{m.text}</p>{/if}
+                {#if m.enc}
+                  {#if plain[m.id] === undefined}
+                    <p class="text muted"><Icon name="lock" size={12} /> {t("e2e.decrypting")}</p>
+                  {:else if plain[m.id] === null}
+                    <p class="text muted"><Icon name="lock" size={12} /> {messageKeys.state === "ready" ? t("e2e.undecryptable") : t("e2e.locked_message")}</p>
+                  {:else}
+                    <p class="text">{plain[m.id]}</p>
+                  {/if}
+                {:else if m.text}<p class="text">{m.text}</p>{/if}
                 {#if m.attach}
                   <div class="card" class:revoked={m.attach.kind === "grant" && !m.attach.active}>
                     <Icon name={attachIcon(m.attach)} size={16} />
@@ -514,6 +598,7 @@
               </div>
               <div class="meta muted">
                 <time datetime={m.createdAt} title={i18n.date(m.createdAt, "long")}>{i18n.date(m.createdAt).split(" ").slice(-1)[0]}</time>
+                {#if m.enc}<span class="enc-mark" title={t("e2e.on")}><Icon name="lock" size={11} /><span class="visually-hidden">{t("e2e.on")}</span></span>{/if}
                 {#if m.mine && m.readAt}<span>· {t("messages.read")}</span>{/if}
                 <button class="hide" type="button" aria-label={t("messages.hide")} title={t("messages.hide")} onclick={() => void hide(m)}><Icon name="x" size={12} /></button>
               </div>
@@ -569,6 +654,36 @@
             <textarea bind:this={input} class="textarea" rows="1" bind:value={text} onkeydown={onKey} oninput={onTyping} placeholder={t("messages.placeholder")} aria-label={t("messages.placeholder")} maxlength="2000"></textarea>
             <button class="btn primary" type="button" disabled={sending || (!text.trim() && !attach)} onclick={() => void send()}><Icon name="send" size={15} />{t("messages.send")}</button>
           </div>
+          <!-- 加密状态（R46）：不静默降级——不能加密时写明原因，本机没解锁时给出入口 -->
+          {#if encWith}
+            <p class="enc-state" class:on={encWith === "ok"}>
+              <Icon name="lock" size={12} />
+              {#if encWith === "ok"}{t("e2e.on")}
+              {:else if encWith === "peer"}{t("e2e.off_peer")}
+              {:else if messageKeys.state === "unsupported"}{t("e2e.off_unsupported")}
+              {:else}{messageKeys.state === "none" ? t("e2e.off_none") : t("e2e.off_locked")}
+                <button class="link" type="button" onclick={() => (panel = panel === "unlock" ? "" : "unlock")}>{messageKeys.state === "none" ? t("e2e.enable") : t("e2e.unlock")}</button>
+              {/if}
+            </p>
+          {/if}
+          {#if panel === "unlock"}
+            <form class="pop unlock" onsubmit={(e) => { e.preventDefault(); void unlock(); }}>
+              <p class="pop-h">{messageKeys.state === "none" ? t("e2e.enable_title") : t("e2e.unlock_title")}</p>
+              {#if unlockMode === "recovery"}
+                <input class="input mono" bind:value={recoveryCode} placeholder="XXXX-XXXX" aria-label={t("e2e.recovery_code")} autocomplete="off" spellcheck="false" />
+              {/if}
+              <input class="input" type="password" bind:value={unlockPw} aria-label={t("account.current_password")} placeholder={t("account.current_password")} autocomplete="current-password" />
+              {#if unlockMode === "reset"}<p class="hint warn">{t("e2e.reset_warning")}</p>{/if}
+              {#if unlockError}<p class="err">{unlockError}</p>{/if}
+              <div class="unlock-row">
+                {#if messageKeys.state !== "none"}
+                  <button class="link" type="button" onclick={() => (unlockMode = unlockMode === "recovery" ? "password" : "recovery")}>{unlockMode === "recovery" ? t("e2e.use_password") : t("e2e.use_recovery")}</button>
+                  <button class="link danger" type="button" onclick={() => (unlockMode = unlockMode === "reset" ? "password" : "reset")}>{unlockMode === "reset" ? t("common.cancel") : t("e2e.reset")}</button>
+                {/if}
+                <button class="btn sm primary" type="submit" disabled={unlocking || !unlockPw || (unlockMode === "recovery" && !recoveryCode)}>{unlockMode === "reset" ? t("e2e.reset_confirm") : messageKeys.state === "none" ? t("e2e.enable") : t("e2e.unlock")}</button>
+              </div>
+            </form>
+          {/if}
         </div>
       {/if}
     {/if}
@@ -1069,5 +1184,47 @@
   }
   .card.revoked {
     opacity: 0.6;
+  }
+  .enc-state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-block-start: 4px;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
+  }
+  .enc-state.on {
+    color: var(--ok);
+  }
+  .link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-fg);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .link.danger {
+    color: var(--err);
+  }
+  .unlock {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .unlock-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+  .unlock .err {
+    color: var(--err);
+    font-size: var(--text-sm);
+  }
+  .hint.warn {
+    color: var(--warn);
   }
 </style>

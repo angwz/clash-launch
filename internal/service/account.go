@@ -252,8 +252,16 @@ func (s *Service) setPassword(ctx context.Context, u *store.User, pw string) err
 	return s.Store.Users().Update(ctx, u)
 }
 
+// KeyRewrap 是改密码时用新密码重新包裹的消息私钥（R46，决定 0009 #8）。
+type KeyRewrap struct {
+	KeyID   string
+	Wrapped WrappedKey
+}
+
 // ChangePassword 修改密码（需要当前密码）。logoutOthers 为 true 时注销除 keepSession 外的全部会话。
-func (s *Service) ChangePassword(ctx context.Context, userID, current, next string, logoutOthers bool, keepSession string) error {
+// 有消息密钥时，浏览器同时提交用新密码重新包裹的私钥（rewrap），与新密码在同一个事务里更新；
+// 不提交时私钥仍按旧密码包裹，下次解锁要用旧密码或恢复密钥。
+func (s *Service) ChangePassword(ctx context.Context, userID, current, next string, logoutOthers bool, keepSession string, rewrap *KeyRewrap) error {
 	u, err := s.Store.Users().ByID(ctx, userID)
 	if err != nil {
 		return err
@@ -264,7 +272,31 @@ func (s *Service) ChangePassword(ctx context.Context, userID, current, next stri
 	if err := auth.CheckPassword(next); err != nil {
 		return err
 	}
-	if err := s.setPassword(ctx, u, next); err != nil {
+	if rewrap != nil {
+		if err := checkWrapped(rewrap.Wrapped, true); err != nil {
+			return err
+		}
+	}
+	hash, err := auth.HashPassword(next)
+	if err != nil {
+		return err
+	}
+	u.PasswordHash = hash
+	err = s.Store.Tx(ctx, func(tx store.Store) error {
+		if err := tx.Users().Update(ctx, u); err != nil {
+			return err
+		}
+		if rewrap == nil {
+			return nil
+		}
+		if err := tx.MessageKeys().Rewrap(ctx, u.ID, rewrap.KeyID, string(rewrap.Wrapped), nil); errors.Is(err, store.ErrNotFound) {
+			return ErrMessageKey // 包裹的不是当前的密钥：整个修改作废，密码不变
+		} else if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	if logoutOthers {

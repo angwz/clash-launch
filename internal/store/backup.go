@@ -170,6 +170,10 @@ func (r users) Tombstone(ctx context.Context, id, placeholder string, at time.Ti
 		if err := (users{tx}).Rename(ctx, id, placeholder, at); err != nil {
 			return err
 		}
+		// 消息密钥（R46）：清掉包裹后的私钥，公钥保留——对方仍能解开以前的对话
+		if _, err := tx.exec(ctx, "UPDATE message_keys SET wrapped='', recovery='', active=0 WHERE user_id=?", id); err != nil {
+			return err
+		}
 		// 密码哈希改为不可能匹配的值；昵称、偏好与安全问题一并清除
 		_, err := tx.exec(ctx, "UPDATE users SET password_hash='!', nickname='', nickname_norm='', avatar='', prefs='{}', disabled=1, deletion_at=0, deleted_at=? WHERE id=?", ms(at), id)
 		return err

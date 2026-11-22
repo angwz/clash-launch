@@ -255,6 +255,7 @@ type Store interface {
 	Notifications() NotificationRepo
 	Footprints() FootprintRepo
 	Announcements() AnnouncementRepo
+	MessageKeys() MessageKeyRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo

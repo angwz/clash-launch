@@ -13,7 +13,8 @@ This site is a Clash (mihomo) config generator: you provide nodes, subscriptions
 ## What we store
 
 - **Account details**: username, nickname, a hash of your password, hashes of your security answers, and interface preferences.
-- **Nodes and configs**: subscription URLs, node content, config documents and their history, generated configs and in-site messages, all encrypted before they are written to the database.
+- **Nodes and configs**: subscription URLs, node content, config documents and their history and generated configs, all encrypted before they are written to the database.
+- **In-site messages**: once both people have turned on message encryption, the text is encrypted end to end in the browser and the server stores only ciphertext; attached nodes and access, send times and who wrote to whom are not encrypted. Your key is protected by your sign-in password; if you forget the password and have no recovery key, earlier encrypted messages can no longer be read.
 - **Signed-in devices**: device type, the network range of the sign-in IP (not the full address) and an approximate location.
 - **Subscription fetch records**: when a subscription link is requested, the client's full IP, region, network operator and client name, so you can see who is using it under Subscription Analytics. Details are kept for {{request_days}}; daily totals are kept indefinitely.
 - **Account activity**: security-related actions such as sign-ins and password changes, kept for {{audit_days}}.

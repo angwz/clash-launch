@@ -137,12 +137,21 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request, p *princ
 		Current      string `json:"current"`
 		Password     string `json:"password"`
 		LogoutOthers bool   `json:"logoutOthers"`
+		// MessageKey 是用新密码重新包裹的消息私钥（R46）；没有消息密钥时省略
+		MessageKey *struct {
+			KeyID   string          `json:"keyId"`
+			Wrapped json.RawMessage `json:"wrapped"`
+		} `json:"messageKey"`
 	}
 	if err := readJSON(r, &req); err != nil {
 		s.fail(w, err)
 		return
 	}
-	if err := s.Svc.ChangePassword(r.Context(), p.User.ID, req.Current, req.Password, req.LogoutOthers, p.Session.IDHash); err != nil {
+	var rewrap *service.KeyRewrap
+	if req.MessageKey != nil {
+		rewrap = &service.KeyRewrap{KeyID: req.MessageKey.KeyID, Wrapped: req.MessageKey.Wrapped}
+	}
+	if err := s.Svc.ChangePassword(r.Context(), p.User.ID, req.Current, req.Password, req.LogoutOthers, p.Session.IDHash, rewrap); err != nil {
 		s.fail(w, err)
 		return
 	}

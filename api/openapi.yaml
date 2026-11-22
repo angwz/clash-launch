@@ -1077,6 +1077,24 @@ paths:
       summary: 足迹（需求 R10）：本人不会重复的「第一次」、累计里程碑、新地区与改名，按时间先后；管理员另附站点的足迹（site）
       security: [{session: []}]
       responses: {'200': {description: ok}}
+  /api/v1/account/message-key:
+    get:
+      tags: [messages]
+      summary: 本人的消息密钥（R46，决定 0009）：公钥与包裹后的私钥（浏览器用密码或恢复密钥解开）；还没有时 key 为 null
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+    put:
+      tags: [messages]
+      summary: 生成（首次或 replace）或重新包裹消息密钥；需要当前密码。重新生成后旧公钥保留、旧私钥的包裹删除
+      security: [{session: [], csrf: []}]
+      responses: {'200': {description: ok}, '403': {description: 密码不对}, '422': {description: 格式不对或密钥编号不是当前的}}
+  /api/v1/users/{username}/message-keys:
+    get:
+      tags: [messages]
+      summary: 某个用户的全部消息公钥（含已不再使用的旧公钥），用于加密发给他的消息与解开他以前发来的消息
+      security: [{session: []}]
+      parameters: [{name: username, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}, '404': {description: 没有这个用户}}
   /api/v1/account/avatar:
     put:
       tags: [account]

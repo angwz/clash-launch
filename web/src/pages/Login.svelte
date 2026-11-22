@@ -59,7 +59,7 @@
     busy = true;
     error = "";
     try {
-      session.adopt(await passkeyLogin(challenge?.ticket ?? ""));
+      await session.adopt(await passkeyLogin(challenge?.ticket ?? ""));
       done();
     } catch (err) {
       if (!isCancelled(err)) error = errorText(err);
