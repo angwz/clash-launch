@@ -11,6 +11,7 @@
   import AppShell from "./components/AppShell.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
   import ShortcutsDialog, { shortcuts } from "./components/ShortcutsDialog.svelte";
+  import ChangelogDialog, { changelog } from "./components/ChangelogDialog.svelte";
   import Toasts from "./components/Toasts.svelte";
 
   // 页面按路由懒加载：首屏只包含外壳与当前页（第 15.4 节）。
@@ -84,6 +85,7 @@
       { id: "page.settings", kind: "page", title: t("nav.settings"), icon: "settings", run: () => router.go("/settings") },
       ...(session.isAdmin ? [{ id: "page.admin", kind: "page" as const, title: t("nav.admin"), icon: "shield" as const, run: () => router.go("/admin") }] : []),
       { id: "cmd.shortcuts", kind: "command", title: t("palette.shortcuts"), hint: "?", icon: "command", run: () => (shortcuts.open = true) },
+      { id: "cmd.changelog", kind: "command", title: t("changelog.title"), icon: "sparkle", run: () => (changelog.open = true) },
       { id: "cmd.theme.light", kind: "command", title: t("palette.theme", { theme: t("theme.light") }), icon: "sun", run: () => theme.apply("light") },
       { id: "cmd.theme.dark", kind: "command", title: t("palette.theme", { theme: t("theme.dark") }), icon: "moon", run: () => theme.apply("dark") },
       { id: "cmd.theme.system", kind: "command", title: t("palette.theme", { theme: t("theme.system") }), icon: "monitor", run: () => theme.apply("system") },
@@ -172,6 +174,7 @@
     </AppShell>
     <CommandPalette />
     <ShortcutsDialog />
+    <ChangelogDialog />
   {/if}
   <Toasts />
 {/if}

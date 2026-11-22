@@ -7,7 +7,7 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。阶段 6 的批 24–26 已完成（R34、R45、R3、R10、R11、R19、O12）。接着做批 27：R28 强调色 + R29 安装为应用 + R27 更新日志 + R32 站内公告。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。阶段 6 的批 24–27 已完成（R34、R45、R3、R10、R11、R19、O12、R28、R29、R27、R32）。接着做批 28：R44 访客体验。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
@@ -81,6 +81,7 @@
 - **R3 浏览器返回（2026-11-21）**：逐页核对后的改动见 backlog「已完成」与 0004 #32。顺带修正三处：修改节点地区会调用保存并跳回列表（现在留在本页）；新页面异步加载期间旧页面会以新路由的参数重新挂载并请求 `/api/v1/sources/undefined`（`App.svelte` 只在路由属于已加载的页面时渲染并传参）；详情页离开后仍在进行的刷新读到新路由参数（四个按 id 的页面在创建时固定 id）。另补上 R34 漏掉的 `npm run gen:api`。验证：e2e「浏览器返回…」（分节逐个返回、未保存确认含浏览器返回、保存后返回不回详情、滚动还原）。
 - **R10 足迹（2026-11-21）**：设计见 backlog「R10 足迹」，实现与取舍见「已完成」。顺带：服务层审计改用 JSON 编码（原先的 `%q` 遇到控制字符会写出不合法的 JSON），API 层的审计改走服务层。验证：`TestFootprints`（各触发点、去重、改昵称每次都记、站点足迹只给管理员、补记只跑一次、随备份导出）与 `TestStreak` 在 SQLite 与 PostgreSQL 上通过；`-tags kernel` 通过（未断言检查通过的足迹）；e2e「足迹…」（时间线、实时提示、指示灯庆祝）。
 - **R19、O12 头像、默认昵称与昵称补全（2026-11-21）**：实现与取舍见 backlog「已完成」。顺带修正账号页「昵称与用户名」区块缺少内边距。验证：`TestAvatars`（分配、按语言的昵称、换预置、随机换、无效标识、上传的尺寸与格式、未登录 401、换回预置删除图片、补分配只处理从未分配的账号）、`TestNicknamesEverywhere` 与三项单元测试在 SQLite 与 PostgreSQL 上通过；e2e「头像与默认昵称…」；截图看过 60 个预置头像。
+- **R28、R29、R27、R32 外观与提示（2026-11-21）**：实现与取舍见 backlog「已完成」。验证：`accents.test.ts`（12 项对比度与一致性）、`TestPrefsAccent`、`TestStaticTypes`、`TestAnnouncements` 在 SQLite 与 PostgreSQL 上通过；e2e「强调色、安装为应用、更新日志与站内公告…」（选色并刷新保持、manifest 与图标可取、命令面板打开日志、发布公告即时出现、关闭后不再出现）；截图看过青色强调色与公告面板。未验证：真机「添加到主屏幕」。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

@@ -429,6 +429,7 @@ components:
         fieldClick: {type: string, enum: [button, text, card], description: 「说明与建议」的点击范围：只有按钮、说明文字或整张卡片；省略为 card}
         autoCheck: {type: boolean, description: 自动保存后自动执行 mihomo -t 检查；省略为开}
         motion: {type: string, enum: [off], description: off 关闭界面动效（与系统的减少动态效果相同）；省略为跟随系统}
+        accent: {type: string, enum: [indigo, blue, teal, green, amber, rose, violet], description: 界面强调色（R28）；省略为默认的 indigo}
         routingView: {type: object, additionalProperties: false, description: 分流地图的显示偏好（routing 第 9 节）, properties: {rules: {type: string, enum: [auto, all]}, particles: {type: string, enum: [all, focus, off]}, candidates: {type: boolean}, exits: {type: string, enum: [auto, node, region, source]}}}
     Terms:
       type: object
@@ -1101,6 +1102,43 @@ paths:
       security: [{session: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string}}]
       responses: {'200': {description: image/png 或 image/jpeg}, '404': {description: 没有上传的头像}}
+  /api/v1/announcements:
+    get:
+      tags: [account]
+      summary: 此刻生效、本人没有关闭的站内公告（需求 R32），新的在前
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+  /api/v1/announcements/{id}/dismiss:
+    post:
+      tags: [account]
+      summary: 关闭一条公告；记在服务器上，换设备也不再出现
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'204': {description: dismissed}, '404': {description: 公告不存在}}
+  /api/v1/admin/announcements:
+    get:
+      tags: [admin]
+      summary: 全部公告（含已过期与尚未开始的），新的在前
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
+    post:
+      tags: [admin]
+      summary: 发布公告：text（纯文字，至多 500 字）、level（info 或 warn）、startsAt（省略为立即）、endsAt（省略为一直显示到删除）；在线用户即时看到
+      security: [{session: [], csrf: []}]
+      responses: {'201': {description: created}, '422': {description: 内容或时间无效}}
+  /api/v1/admin/announcements/{id}:
+    put:
+      tags: [admin]
+      summary: 修改公告；已关闭过它的用户不会再次看到
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}, '404': {description: 不存在}, '422': {description: 内容或时间无效}}
+    delete:
+      tags: [admin]
+      summary: 删除公告
+      security: [{session: [], csrf: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'204': {description: deleted}, '404': {description: 不存在}}
   /api/v1/account/quota:
     get:
       tags: [account]

@@ -11,7 +11,7 @@
 // 转给其他标签页，其他标签页要发的消息也经它代发。主标签页关闭时锁自动释放，排队的下一个标签页接手并重连。
 // 浏览器不支持这两个接口时，每个标签页各自连接（服务器按用户限制条数）。
 
-export type Topic = "render" | "source" | "rules" | "message" | "sub" | "grant" | "typing" | "presence" | "notice" | "footprint";
+export type Topic = "render" | "source" | "rules" | "message" | "sub" | "grant" | "typing" | "presence" | "notice" | "footprint" | "announce";
 
 /** 服务器推来的事件（字段见 internal/events.Event）。 */
 export interface RealtimeEvent {

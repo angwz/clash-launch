@@ -31,21 +31,23 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	sl := decode[shortDTO](t, a.want(201, "POST", "/api/v1/short-links", map[string]any{"linkId": l.ID}))
 	tok := decode[tokenDTO](t, a.want(201, "POST", "/api/v1/account/tokens", map[string]any{"name": "t", "scope": "read"}))
 	ch := decode[map[string]any](t, a.want(201, "POST", "/api/v1/account/channels", map[string]any{"kind": "webhook", "url": "https://example.com/hook"}))
+	ann := decode[map[string]any](t, a.want(201, "POST", "/api/v1/admin/announcements", map[string]any{"text": "公告"}))
 
 	// 路由前缀 → A 的资源 ID
 	ids := map[string]string{
-		"/api/v1/profiles/":         pid,
-		"/api/v1/sources/":          srcs.Items[0].ID,
-		"/api/v1/rule-sources/":     rss.Items[0].ID,
-		"/api/v1/account/passkeys/": pk.ID,
-		"/api/v1/account/sessions/": sess.Items[0].ID,
-		"/api/v1/admin/invites/":    inv.ID,
-		"/api/v1/admin/users/":      firstAdmin(t, h),
-		"/api/v1/templates/":        tpl.ID,
-		"/api/v1/short-links/":      sl.ID,
-		"/api/v1/account/tokens/":   tok.ID,
-		"/api/v1/account/channels/": ch["id"].(string),
-		"/api/v1/invites/":          inv.ID, // 管理员 A 发出的邀请：B 不能作废
+		"/api/v1/profiles/":            pid,
+		"/api/v1/sources/":             srcs.Items[0].ID,
+		"/api/v1/rule-sources/":        rss.Items[0].ID,
+		"/api/v1/account/passkeys/":    pk.ID,
+		"/api/v1/account/sessions/":    sess.Items[0].ID,
+		"/api/v1/admin/invites/":       inv.ID,
+		"/api/v1/admin/users/":         firstAdmin(t, h),
+		"/api/v1/templates/":           tpl.ID,
+		"/api/v1/short-links/":         sl.ID,
+		"/api/v1/account/tokens/":      tok.ID,
+		"/api/v1/account/channels/":    ch["id"].(string),
+		"/api/v1/admin/announcements/": ann["id"].(string),
+		"/api/v1/invites/":             inv.ID, // 管理员 A 发出的邀请：B 不能作废
 	}
 
 	// B：普通用户
@@ -62,7 +64,9 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	ids["/api/v1/grants/"] = gm.Attach.GrantID
 	// 按调用者自身划定范围的路由：B 只能看到自己参与的会话，不存在「A 的资源」，另由 TestMessages 检查
 	// 头像图片与昵称一样是站内可见的资料（R19），任何登录用户都能读取，另由 TestAvatars 检查需要登录
-	scoped := map[string]bool{"GET /api/v1/messages/with/{username}": true, "GET /api/v1/avatars/{id}": true}
+	scoped := map[string]bool{"GET /api/v1/messages/with/{username}": true, "GET /api/v1/avatars/{id}": true,
+		// 公告是全站的，人人可以关闭自己看到的那一条（关闭记录只属于本人），另由 TestAnnouncements 检查
+		"POST /api/v1/announcements/{id}/dismiss": true}
 	// 每条路由一个能通过格式校验的请求体（接口拒绝未知字段），使所有权检查成为决定结果的那一步
 	bodies := map[string]any{
 		"PATCH /api/v1/account/passkeys/{id}":       map[string]string{"name": "x"},

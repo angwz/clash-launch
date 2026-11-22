@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -30,7 +32,12 @@ type prefsDTO struct {
 	RoutingView *routingView `json:"routingView,omitempty"`
 	// Motion：off 关闭界面动效（R11），与系统的「减少动态效果」效果相同；省略表示跟随系统。
 	Motion string `json:"motion,omitempty"`
+	// Accent：界面强调色（R28），web/src/lib/accents.ts 中的名称；省略为默认的 indigo。
+	Accent string `json:"accent,omitempty"`
 }
+
+// accents 与 web/src/lib/accents.ts 的 ACCENTS 一致（TestPrefsAccent 锁定）。
+var accents = []string{"indigo", "blue", "teal", "green", "amber", "rose", "violet"}
 
 // fieldClick 兼容早期保存的布尔值（反馈 #50 的第一版）：false 读作 button，true 读作默认。
 type fieldClick string
@@ -69,6 +76,9 @@ func (p prefsDTO) validate() error {
 	}
 	if p.Motion != "" && p.Motion != "off" {
 		return badRequest("motion must be empty or off")
+	}
+	if p.Accent != "" && !slices.Contains(accents, p.Accent) {
+		return badRequest("accent must be one of %s", strings.Join(accents, ", "))
 	}
 	if p.Inbox != "" && p.Inbox != "off" {
 		return badRequest("inbox must be empty or off")

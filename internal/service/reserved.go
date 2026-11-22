@@ -9,7 +9,7 @@ var reservedCodes = map[string]bool{}
 func init() {
 	for _, w := range strings.Fields(`
 		api s p u assets static public dist build fonts images img css js media files file uploads upload download downloads
-		favicon favicon.ico favicon.svg robots.txt sitemap.xml manifest.json sw.js index index.html
+		favicon favicon.ico favicon.svg robots.txt sitemap.xml manifest.json manifest.webmanifest sw.js index index.html
 		healthz readyz health healthcheck status metrics ping version debug
 		login logout signin signout signup register setup recover reset verify confirm auth oauth sso callback
 		admin administrator root system account accounts user users me profile profiles settings preferences

@@ -52,3 +52,7 @@ On the Configs page, choose Import config and paste a complete Clash or mihomo c
 ## Find a config or node quickly
 
 Press Ctrl K (⌘ K on macOS) to open the command palette and type part of a name. Besides pages and fields, it finds your configs, node sources, node names, rule sources, short links and message contacts. Picking a node opens its node source and highlights that row. Press ? to see every keyboard shortcut.
+
+## Change the color or install on your home screen
+
+Settings → Appearance and language lets you pick an accent color, kept across devices. Use Add to Home Screen in a mobile browser, or Install in a desktop browser's address bar, to run the site as its own app; it keeps no offline copy and always loads the latest data from the server. After the site is updated, New version appears at the top; open it to see what changed.

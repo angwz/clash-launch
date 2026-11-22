@@ -1706,3 +1706,57 @@ test("头像与默认昵称：已分配预置头像，换一个、从预置中�
   await call("PUT", "/api/v1/account/avatar", { preset: before.avatar });
   expect(problems).toEqual([]);
 });
+
+test("强调色、安装为应用、更新日志与站内公告（R28、R29、R27、R32）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  await login(page);
+
+  // 强调色：选择后立即生效，刷新后仍在（偏好与本机都记下）
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: "青" }).check();
+  await expect(page.locator("html")).toHaveAttribute("data-accent", "teal");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-accent", "teal");
+  await page.screenshot({ path: "test-results/shot-accent-teal.png" });
+  await page.getByRole("radio", { name: "靛蓝（默认）" }).check();
+  await expect(page.locator("html")).not.toHaveAttribute("data-accent", /.+/);
+
+  // 安装为应用：manifest 与图标
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/manifest.webmanifest");
+  const m = await request.get("/manifest.webmanifest");
+  expect(m.headers()["content-type"]).toBe("application/manifest+json");
+  const manifest = (await m.json()) as { display: string; icons: { src: string; purpose: string }[] };
+  expect(manifest.display).toBe("standalone");
+  for (const icon of manifest.icons) expect((await request.get(icon.src)).ok(), icon.src).toBeTruthy();
+  expect(manifest.icons.some((i) => i.purpose === "maskable")).toBeTruthy();
+
+  // 更新日志：命令面板中打开
+  await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused();
+  await page.keyboard.type(">更新日志");
+  await page.keyboard.press("Enter");
+  const log = page.getByRole("dialog", { name: "更新日志" });
+  await expect(log.getByRole("heading", { name: "账号与安全" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // 站内公告：管理页发布，横幅即时出现；关闭后消失；删除
+  await page.goto("/admin");
+  const panel = page.locator("section", { has: page.getByRole("heading", { name: "站内公告", exact: true }) });
+  const text = "维护通知 " + Date.now().toString(36);
+  await panel.getByLabel("内容（纯文字，至多500字）").fill(text);
+  await panel.getByLabel("类型").selectOption("warn");
+  await panel.getByRole("button", { name: "发布" }).click();
+  const bar = page.getByRole("region", { name: "公告", exact: true });
+  await expect(bar.getByText(text)).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-announcement.png" });
+  await bar.getByRole("button", { name: "关闭这条公告" }).click();
+  await expect(bar.getByText(text)).toBeHidden();
+  await page.reload();
+  await expect(page.getByText(text, { exact: true }).first()).toBeVisible(); // 管理页的列表里仍在
+  await expect(page.getByRole("region", { name: "公告", exact: true })).toHaveCount(0);
+  const all = await call<{ items: { id: string; text: string }[] }>("GET", "/api/v1/admin/announcements");
+  for (const a of all.items.filter((x) => x.text === text)) await call("DELETE", "/api/v1/admin/announcements/" + a.id);
+  expect(problems).toEqual([]);
+});

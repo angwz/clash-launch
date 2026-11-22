@@ -254,6 +254,7 @@ type Store interface {
 	Usage(ctx context.Context) (*DataUsage, error)
 	Notifications() NotificationRepo
 	Footprints() FootprintRepo
+	Announcements() AnnouncementRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo

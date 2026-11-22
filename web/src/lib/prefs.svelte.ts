@@ -18,6 +18,8 @@ export interface PrefsData {
   blocked?: string[];
   /** off：关闭界面动效（R11），与系统的「减少动态效果」相同；省略表示跟随系统 */
   motion?: "off";
+  /** 强调色（R28）：lib/accents.ts 中的名称；省略为默认的 indigo */
+  accent?: string;
 }
 
 export type FieldClickMode = "button" | "text" | "card";
@@ -39,7 +41,8 @@ export function ordered<T>(items: readonly T[], id: (x: T) => string, order: rea
 
 class Prefs {
   data = $state<PrefsData>({});
-  loaded = false;
+  /** 已从服务端读取（$state：强调色等在读取后才应用，避免先清掉本机记下的值） */
+  loaded = $state(false);
 
   async load(): Promise<void> {
     this.data = await api.get<PrefsData>("/api/v1/account/prefs");

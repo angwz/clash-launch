@@ -7,6 +7,12 @@
     <meta name="referrer" content="no-referrer" />
     <title>Clash, Launch!</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- 安装为应用（R29）：没有 Service Worker，不做离线缓存，敏感数据不留在设备上 -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Launch!" />
+    <meta name="theme-color" content="#f7f7f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111114" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <div id="app"></div>

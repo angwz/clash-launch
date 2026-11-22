@@ -27,6 +27,9 @@
   import { footprintText, type Footprint } from "../lib/footprints";
   import Pulse from "./Pulse.svelte";
   import Avatar from "./Avatar.svelte";
+  import AnnouncementBar from "./AnnouncementBar.svelte";
+  import { applyAccent } from "../lib/accents";
+  import { changelog } from "./ChangelogDialog.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -49,6 +52,10 @@
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
     return offFootprint;
   });
+  // 强调色（R28）：偏好加载后应用，并记在本机供下次启动时先用
+  $effect(() => {
+    if (prefs.loaded) applyAccent(prefs.data.accent);
+  });
   // 关闭动效（R11）：根元素加 data-motion="off"，base.css 据此压掉所有动画与过渡
   $effect(() => {
     if (prefs.data.motion === "off") document.documentElement.dataset.motion = "off";
@@ -56,6 +63,7 @@
   });
 
   let noticeOpen = $state(false);
+  const newVersion = $derived(!!realtime.pageVersion && !!realtime.serverVersion && realtime.pageVersion !== realtime.serverVersion);
   const nav = $derived(mainNav(session.isAdmin, prefs.data.nav).map((n) => ({ ...n, active: n.matches(router.route.name) })));
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
@@ -167,6 +175,10 @@
       {/snippet}
     </Menu>
 
+    {#if newVersion}
+      <!-- 新版本（R27）：点开看这次更新了什么，再刷新使用 -->
+      <button class="btn sm update" type="button" onclick={() => (changelog.open = true)}><Icon name="sparkle" size={14} />{t("changelog.badge")}</button>
+    {/if}
     <button class="btn ghost icon" type="button" onclick={() => theme.cycle()} aria-label={t("shell.theme", { theme: t("theme." + theme.value) })} title={t("shell.theme", { theme: t("theme." + theme.value) })}>
       <Icon name={themeIcon} />
     </button>
@@ -217,6 +229,7 @@
   {/if}
 
   <main id="main" class="main" tabindex="-1">
+    <AnnouncementBar />
     {#if session.logoutAt}
       <!-- 当前设备被定时退出（需求 R8）：每个页面顶部提示，链到账户页可以取消 -->
       <p class="logout-banner" role="status"><Icon name="info" size={14} /><span>{t("account.logout_banner", { when: i18n.date(session.logoutAt, "long") })}</span><a href="/account">{t("account.logout_manage")}</a></p>
@@ -632,5 +645,9 @@
       border: 0;
       background: var(--scrim);
     }
+  }
+  .update {
+    color: var(--info);
+    border-color: var(--info);
   }
 </style>

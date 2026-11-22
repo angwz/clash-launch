@@ -1,0 +1,150 @@
+/* 强调色（需求 R28）：indigo 是默认值（tokens.css 中的原值），这里是其余预设。由 web/src/lib/accents.ts 列出名称；
+   每种预设有浅色与深色两套：--accent 上的白字、--accent-hover 上的白字、--accent-fg 在页面底色上，对比度都不低于 4.5:1
+   （accents.test.ts 锁定）。深色在「手动选择」与「跟随系统」两处的定义一致。分流图的流向色不随强调色变化（见 accents.ts）。 */
+
+:root[data-accent="blue"]:not([data-theme="dark"]) {
+  --accent: #1d5fd0;
+  --accent-hover: #174ea9;
+  --accent-soft: #e6eefb;
+  --accent-fg: #1a54b8;
+  --ring: #1d5fd0;
+  --syn-key: #1a54b8;
+}
+:root[data-accent="teal"]:not([data-theme="dark"]) {
+  --accent: #0f766e;
+  --accent-hover: #0b5f58;
+  --accent-soft: #e0f2ef;
+  --accent-fg: #0d6b63;
+  --ring: #0f766e;
+  --syn-key: #0d6b63;
+}
+:root[data-accent="green"]:not([data-theme="dark"]) {
+  --accent: #2e7a3b;
+  --accent-hover: #24652f;
+  --accent-soft: #e5f2e7;
+  --accent-fg: #296d34;
+  --ring: #2e7a3b;
+  --syn-key: #296d34;
+}
+:root[data-accent="amber"]:not([data-theme="dark"]) {
+  --accent: #a8510b;
+  --accent-hover: #8d4409;
+  --accent-soft: #fbefe2;
+  --accent-fg: #934708;
+  --ring: #a8510b;
+  --syn-key: #934708;
+}
+:root[data-accent="rose"]:not([data-theme="dark"]) {
+  --accent: #be123c;
+  --accent-hover: #9f1239;
+  --accent-soft: #fbe7ec;
+  --accent-fg: #a8113a;
+  --ring: #be123c;
+  --syn-key: #a8113a;
+}
+:root[data-accent="violet"]:not([data-theme="dark"]) {
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-soft: #f1eafd;
+  --accent-fg: #6b2fd0;
+  --ring: #7c3aed;
+  --syn-key: #6b2fd0;
+}
+:root[data-accent="blue"][data-theme="dark"] {
+  --accent: #2563d6;
+  --accent-hover: #1d55c0;
+  --accent-soft: #16223a;
+  --accent-fg: #8db4f5;
+  --ring: #6f9cf0;
+  --syn-key: #8db4f5;
+}
+:root[data-accent="teal"][data-theme="dark"] {
+  --accent: #0f7a71;
+  --accent-hover: #0d6d65;
+  --accent-soft: #12302d;
+  --accent-fg: #6fd3c7;
+  --ring: #4fbfb2;
+  --syn-key: #6fd3c7;
+}
+:root[data-accent="green"][data-theme="dark"] {
+  --accent: #2e7d3d;
+  --accent-hover: #287035;
+  --accent-soft: #15291a;
+  --accent-fg: #82d494;
+  --ring: #5cbf72;
+  --syn-key: #82d494;
+}
+:root[data-accent="amber"][data-theme="dark"] {
+  --accent: #b0550b;
+  --accent-hover: #9e4c0a;
+  --accent-soft: #2d2112;
+  --accent-fg: #f0b46a;
+  --ring: #e09a4a;
+  --syn-key: #f0b46a;
+}
+:root[data-accent="rose"][data-theme="dark"] {
+  --accent: #cc1f48;
+  --accent-hover: #b8183f;
+  --accent-soft: #33161d;
+  --accent-fg: #f59ab0;
+  --ring: #ee7896;
+  --syn-key: #f59ab0;
+}
+:root[data-accent="violet"][data-theme="dark"] {
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-soft: #261d3d;
+  --accent-fg: #c4a7f7;
+  --ring: #a986f2;
+  --syn-key: #c4a7f7;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-accent="blue"]:not([data-theme="light"]) {
+    --accent: #2563d6;
+    --accent-hover: #1d55c0;
+    --accent-soft: #16223a;
+    --accent-fg: #8db4f5;
+    --ring: #6f9cf0;
+    --syn-key: #8db4f5;
+  }
+  :root[data-accent="teal"]:not([data-theme="light"]) {
+    --accent: #0f7a71;
+    --accent-hover: #0d6d65;
+    --accent-soft: #12302d;
+    --accent-fg: #6fd3c7;
+    --ring: #4fbfb2;
+    --syn-key: #6fd3c7;
+  }
+  :root[data-accent="green"]:not([data-theme="light"]) {
+    --accent: #2e7d3d;
+    --accent-hover: #287035;
+    --accent-soft: #15291a;
+    --accent-fg: #82d494;
+    --ring: #5cbf72;
+    --syn-key: #82d494;
+  }
+  :root[data-accent="amber"]:not([data-theme="light"]) {
+    --accent: #b0550b;
+    --accent-hover: #9e4c0a;
+    --accent-soft: #2d2112;
+    --accent-fg: #f0b46a;
+    --ring: #e09a4a;
+    --syn-key: #f0b46a;
+  }
+  :root[data-accent="rose"]:not([data-theme="light"]) {
+    --accent: #cc1f48;
+    --accent-hover: #b8183f;
+    --accent-soft: #33161d;
+    --accent-fg: #f59ab0;
+    --ring: #ee7896;
+    --syn-key: #f59ab0;
+  }
+  :root[data-accent="violet"]:not([data-theme="light"]) {
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-soft: #261d3d;
+    --accent-fg: #c4a7f7;
+    --ring: #a986f2;
+    --syn-key: #c4a7f7;
+  }
+}

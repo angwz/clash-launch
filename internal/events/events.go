@@ -33,6 +33,7 @@ const (
 	Pong      = "pong"      // 回应浏览器的 ping（ID 原样带回，用于测往返延迟），附在线人数
 	Notice    = "notice"    // 新的站内提醒（R23、R24；ID 为提醒 ID）
 	Footprint = "footprint" // 新记下的足迹（R10；ID 为类别，State 为区分）
+	Announce  = "announce"  // 站内公告发布、修改或删除（R32）：浏览器重读公告
 )
 
 // Event 是推给浏览器的一条通知。
@@ -158,6 +159,24 @@ func (h *Hub) Publish(user string, e Event) {
 		case s.C <- e:
 		default:
 			s.lagged.Store(true)
+		}
+	}
+}
+
+// PublishAll 把事件发给所有在线用户的全部连接，不阻塞（站内公告，R32）。
+func (h *Hub) PublishAll(e Event) {
+	if h == nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, set := range h.subs {
+		for s := range set {
+			select {
+			case s.C <- e:
+			default:
+				s.lagged.Store(true)
+			}
 		}
 	}
 }

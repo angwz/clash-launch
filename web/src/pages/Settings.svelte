@@ -5,6 +5,7 @@
   //   管理 —— 整个站点（仅管理员）：用户、邀请与注册、默认节点写法、系统状态。
   // 语言与主题存在当前浏览器（登录前也要生效）；其余存在账号中，换设备一致。
   import PageHeader from "../components/PageHeader.svelte";
+  import { ACCENTS, SWATCH, applyAccent, type Accent } from "../lib/accents";
   import OrderDialog from "../components/OrderDialog.svelte";
   import TimezonePicker from "../components/TimezonePicker.svelte";
   import Icon from "../components/Icon.svelte";
@@ -37,6 +38,16 @@
     try {
       // 开是默认值，不写入偏好
       await prefs.save({ ...prefs.data, autoCheck: on ? undefined : false });
+    } catch (e) {
+      toasts.push("err", errorText(e));
+    }
+  }
+
+  // 强调色（R28）：保存在偏好里，换设备一致；立即应用
+  async function setAccent(a: Accent) {
+    applyAccent(a);
+    try {
+      await prefs.save({ ...prefs.data, accent: a === "indigo" ? undefined : a });
     } catch (e) {
       toasts.push("err", errorText(e));
     }
@@ -108,6 +119,18 @@
       </div>
     </div>
     <p class="hint">{t("account.local_hint")}</p>
+    <fieldset class="accents">
+      <legend class="label">{t("settings.accent")}</legend>
+      <div class="swatches">
+        {#each ACCENTS as a (a)}
+          <label class="swatch" title={t("accent." + a)}>
+            <input type="radio" name="accent" value={a} checked={(prefs.data.accent ?? "indigo") === a} onchange={() => void setAccent(a)} />
+            <span class="dot" style:background={SWATCH[a]}></span>
+            <span class="visually-hidden">{t("accent." + a)}</span>
+          </label>
+        {/each}
+      </div>
+    </fieldset>
     <label class="choice">
       <input id="st-motion" type="checkbox" checked={prefs.data.motion === "off"} onchange={(e) => void setMotionOff(e.currentTarget.checked)} />
       <span>
@@ -263,5 +286,43 @@
     .page {
       padding: var(--space-5) var(--space-4);
     }
+  }
+  .accents {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .swatch {
+    position: relative;
+    cursor: pointer;
+  }
+  .swatch input {
+    position: absolute;
+    opacity: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+    cursor: pointer;
+  }
+  .dot {
+    display: block;
+    inline-size: 28px;
+    block-size: 28px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 3px var(--border-strong);
+  }
+  .swatch input:checked + .dot {
+    box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--fg);
+  }
+  .swatch input:focus-visible + .dot {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
   }
 </style>

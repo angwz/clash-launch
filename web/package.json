@@ -14,7 +14,8 @@
     "gen:api": "openapi-typescript ../api/openapi.yaml -o src/lib/api/schema.d.ts",
     "test": "vitest run",
     "e2e": "playwright test",
-    "budget": "node scripts/budget.mjs"
+    "budget": "node scripts/budget.mjs",
+    "icons": "node scripts/icons.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",

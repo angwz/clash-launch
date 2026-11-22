@@ -8,6 +8,7 @@
   import Users from "../components/admin/Users.svelte";
   import JobsPanel from "../components/admin/JobsPanel.svelte";
   import RetentionPanel from "../components/admin/RetentionPanel.svelte";
+  import AnnouncementsPanel from "../components/admin/AnnouncementsPanel.svelte";
   import { api } from "../lib/api/client";
   import InvitesPanel from "../components/InvitesPanel.svelte";
   import { errorText } from "../lib/errors";
@@ -127,6 +128,8 @@
     </section>
 
     <StatsPanel />
+
+    <AnnouncementsPanel />
 
     <JobsPanel />
 

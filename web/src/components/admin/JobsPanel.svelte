@@ -22,7 +22,7 @@
     fetches: Record<string, number>;
     since: string;
   }
-  const KNOWN = ["fetch", "stats", "deletions", "prune_audit", "prune_requests", "purge_threads", "purge_backups"];
+  const KNOWN = ["fetch", "footprints", "avatars", "stats", "deletions", "prune_audit", "prune_requests", "purge_threads", "purge_backups"];
 
   let data = $state<Resp | null>(null);
   let error = $state("");

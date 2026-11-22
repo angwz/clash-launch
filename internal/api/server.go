@@ -335,6 +335,8 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "account.rename_wait", "the username can be changed again at "+renameWait.Until.UTC().Format(time.RFC3339))
 	case errors.Is(err, service.ErrNameReserved):
 		problem(w, http.StatusConflict, "account.name_reserved", err.Error())
+	case errors.Is(err, service.ErrAnnouncement):
+		problem(w, http.StatusUnprocessableEntity, "announcement.invalid", "text must be 1 to 500 characters, level info or warn, and the end after the start")
 	case errors.Is(err, service.ErrAvatarTooLarge):
 		problem(w, http.StatusRequestEntityTooLarge, "account.avatar_too_large", "the image must be at most 2 MiB and 40 megapixels")
 	case errors.Is(err, service.ErrAvatar):
@@ -491,6 +493,14 @@ func staticHandler(fsys fs.FS) http.Handler {
 		}
 		if p != "" && p != "index.html" {
 			if st, err := fs.Stat(fsys, p); err == nil && !st.IsDir() {
+				// 系统的类型表里不一定有这两种扩展名（Windows 上没有）：显式给出
+				switch {
+				case strings.HasSuffix(p, ".webmanifest"): // 安装为应用（R29）
+					w.Header().Set("Content-Type", "application/manifest+json")
+				case strings.HasSuffix(p, ".md"): // 更新日志（R27）：新版本发布后旧页面也要读到新内容，每次重新验证
+					w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
+					w.Header().Set("Cache-Control", "no-cache")
+				}
 				files.ServeHTTP(w, r)
 				return
 			}
