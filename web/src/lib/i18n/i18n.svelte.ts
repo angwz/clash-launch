@@ -1,20 +1,25 @@
 // 多语言（第 15 节）：界面文字全部走消息键，ICU MessageFormat；语言包按需加载。
 // 协商顺序：用户设置 → 浏览器语言（等同 Accept-Language）→ en。
+// 日语（R37）：界面、帮助、用户协议与更新日志有日语版；字段目录的说明与诊断消息由后端提供，只有中英两种，日语界面下用英文。
 // ar-XB 是伪 RTL 测试语言：由 en 生成，每条消息包进 RLO…PDF，<html dir="rtl">；只用于端到端测试与开发，
 // 不出现在语言选择器中。
 import { IntlMessageFormat } from "intl-messageformat";
 
-export type Locale = "en" | "zh-CN" | "ar-XB";
-export const LOCALES: { id: Exclude<Locale, "ar-XB">; label: string }[] = [
+export type Locale = "en" | "zh-CN" | "ja" | "ar-XB";
+/** 用户可以选择的语言（不含伪 RTL 测试语言） */
+export type UILocale = Exclude<Locale, "ar-XB">;
+export const LOCALES: { id: UILocale; label: string }[] = [
   { id: "zh-CN", label: "简体中文" },
   { id: "en", label: "English" },
+  { id: "ja", label: "日本語" },
 ];
 
 type Messages = Record<string, string>;
 
-const loaders: Record<"en" | "zh-CN", () => Promise<{ default: Messages }>> = {
+const loaders: Record<UILocale, () => Promise<{ default: Messages }>> = {
   en: () => import("./messages/en.json"),
   "zh-CN": () => import("./messages/zh-CN.json"),
+  ja: () => import("./messages/ja.json"),
 };
 
 const RLO = String.fromCharCode(0x202e);
@@ -31,7 +36,7 @@ class I18n {
     return this.locale === "ar-XB" ? "rtl" : "ltr";
   }
 
-  /** 后端只认识 en 与 zh-CN（目录说明与诊断消息）。 */
+  /** 后端只认识 en 与 zh-CN（目录说明与诊断消息）；日语界面用英文。 */
   get apiLang(): "en" | "zh-CN" {
     return this.locale === "zh-CN" ? "zh-CN" : "en";
   }
@@ -58,11 +63,11 @@ class I18n {
   /** 用户设置优先；其次是本机记住的选择；再其次是浏览器语言。 */
   negotiate(userLang?: string): Locale {
     const forced = new URLSearchParams(location.search).get("lang");
-    if (forced === "ar-XB" || forced === "en" || forced === "zh-CN") return forced;
+    if (forced === "ar-XB" || forced === "en" || forced === "zh-CN" || forced === "ja") return forced;
     if (userLang) return pick(userLang);
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "en" || saved === "zh-CN") return saved;
+      if (saved === "en" || saved === "zh-CN" || saved === "ja") return saved;
     } catch {
       /* 读不到就继续协商 */
     }
@@ -124,7 +129,8 @@ class I18n {
 }
 
 function pick(tag: string): Locale {
-  return tag.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+  const t = tag.toLowerCase();
+  return t.startsWith("zh") ? "zh-CN" : t.startsWith("ja") ? "ja" : "en";
 }
 
 // 伪 RTL：把每条消息的可见文字放进 RLO…PDF，占位符 {x} 与 ICU 结构保持原样，以检查布局能否镜像。

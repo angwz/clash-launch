@@ -73,7 +73,7 @@
 | 访客试用 | `internal/service/demo.go`（示例环境与内置示例数据）、`internal/api/demo.go`（`EnableDemo`、`demoRoute`）、`internal/api/routes.go`（`/api/v1/demo/...`）、`cmd/clash-launch/serve.go`（`CLASH_LAUNCH_DEMO`）、`web/src/lib/api/client.ts`（`demoMode` 改写路径）、`web/src/pages/Try.svelte`、`ProfileEditor.svelte` 的 `demo`。编辑器新增请求时，若试用也需要，在 demo 路由中补上 | `TestDemo`、e2e「访客试用…」、a11y | [security](../design/security.md) B14、[deploy](../guide/deploy.md) |
 | 强调色 | `web/src/lib/accents.ts`（名称、色块、应用）、`web/src/styles/accents.css`（色值）、`internal/api/prefs.go`（校验）、设置页「外观与语言」。新增预设时三处同步 | `accents.test.ts`（对比度）、`TestPrefsAccent`、e2e「强调色、安装为应用…」 | — |
 | 安装为应用 | `web/public/manifest.webmanifest`、`web/public/icons/`（`npm run icons` 生成，脚本 `web/scripts/icons.mjs`）、`web/index.html`、`internal/api/server.go`（`staticHandler` 的类型） | `TestStaticTypes`、e2e | — |
-| 更新日志 | `web/public/changelog/{zh-CN,en}.md`（发布前按主题整理）、`components/ChangelogDialog.svelte`、顶栏「新版本」在 `AppShell.svelte` | e2e | — |
+| 更新日志 | `web/public/changelog/{zh-CN,en,ja}.md`（发布前按主题整理）、`components/ChangelogDialog.svelte`、顶栏「新版本」在 `AppShell.svelte` | e2e | — |
 | 站内公告 | `internal/service/announcements.go`、`internal/store/announcements.go`、`internal/api/announcements.go`、`migrations/*/0027_announcements.sql`、`internal/events`（`PublishAll`）、`components/AnnouncementBar.svelte`、`components/admin/AnnouncementsPanel.svelte` | `TestAnnouncements`、e2e | [security](../design/security.md) B13 |
 | 头像与默认昵称 | `internal/service/avatar.go`（预置、词表、分配、上传处理）、`internal/api/avatar.go`、`internal/store/sql.go`（`SetAvatar`、`user_avatars`）、`migrations/*/0026_avatars.sql`、`web/src/lib/avatars.ts`、`components/Avatar.svelte`、`components/account/Identity.svelte`。改预置图形时前后端两处同步 | `TestAvatars`、`TestAvatarPresetsMatchFrontend`、`TestRandomPresetsAndNicknames`、`TestSquareResize`、e2e「头像与默认昵称…」 | [security](../design/security.md) B12 |
 | 足迹 | `internal/service/footprints.go`（类别、审计钩子、订阅里程碑、站点、补记）、`internal/store/footprints.go`、`internal/store/stats.go`（`OwnerPulls`、`OwnerDays`）、`internal/api/footprints.go`、`migrations/*/0025_footprints.sql`、`web/src/lib/footprints.ts`（文字）、`components/account/Footprints.svelte`；提示在 `AppShell.svelte`，庆祝效果在 `Pulse.svelte`。新增类别时后端常量、`footprints.ts` 与消息三处同步 | `TestFootprints`、`TestStreak`、e2e「足迹…」 | [data](../guide/data.md) |
@@ -109,14 +109,14 @@
 | 颜色、间距、字号、主题 | `src/styles/tokens.css`（深色定义两处，`styles.test.ts` 检查一致） | `styles.test.ts` |
 | 通用控件样式（按钮、输入框、表格） | `src/styles/base.css` | — |
 | 分流分节（地图、追踪、体检、讲解图层；按需加载） | `src/components/routing/`（`RoutingView` 取图与工具栏，`RoutingMap` 方框、SVG 连线与粒子画布，`RoutingList` 窄屏列表，`TracePanel`、`HealthDialog`、`ExplainLayer`、`DetailPanel` 详情与无鼠标编辑、`DraftBar` 草稿栏、`UpstreamDialog` 上游同步）；纯函数 `src/lib/routing/`（`layout.ts` 分列与连线，`plan.ts` 智能视图，`particles.ts` 粒子，`labels.ts` 显示文字，`draft.ts` 草稿操作与改动列表）；方案文档的 routing 段读写在 `lib/profile-doc.ts`；夹具 `src/lib/routing/fixtures/`（由 `TestRoutingFixtures` 生成）；流向色 `--flow-*` 在 `tokens.css`；偏好 `routingView` | `layout.test.ts`、`plan.test.ts`、`draft.test.ts`、e2e「分流」「分流编辑」「规则源更新后提示」「讲解图层」；教程 `src/help/*/09-routing.md` |
-| 界面文字 | `src/lib/i18n/messages/{zh-CN,en}.json`；动态前缀登记在 `i18n.test.ts` 的 `dynamic` | `i18n.test.ts`（缺失、多余、ICU 语法） |
+| 界面文字 | `src/lib/i18n/messages/{zh-CN,en,ja}.json`（日语 R37）；动态前缀登记在 `i18n.test.ts` 的 `dynamic`。新增或修改一条时三种语言一起改 | `i18n.test.ts`（缺失、多余、占位符一致、ICU 语法、中日文不手写空格） |
 | 字段说明文字 | 不在前端：来自目录（`catalog/`） | — |
 | 页面与路由 | `src/lib/router.svelte.ts`（路由表；历史记录、离开检查 `guard`、`replace` 与 `leave`、滚动还原，规则见 0004 #32）+ `src/App.svelte`（懒加载表）+ `src/pages/*`。页面内状态：进历史用 `router.go`，只改当前记录用 `router.replace`，不要直接调用 `history.*` | `e2e/app.spec.ts`（「浏览器返回…」） |
 | 顶栏、侧栏、响应式外壳 | `src/components/AppShell.svelte`；顶栏的方案状态由 `lib/shell.svelte.ts` 传递 | e2e |
 | 方案编辑器 | `pages/ProfileEditor.svelte`（三栏与定位）、`lib/editor.svelte.ts`（状态、预览、保存）、`components/editor/*` | e2e |
 | 字段卡片与控件 | `components/editor/FieldCard.svelte`、`FieldControl.svelte`；「说明与建议」面板 `FieldGuide.svelte`（编辑器与百科共用），YAML 示例 `lib/yaml-snippet.ts` | e2e、`yaml-snippet.test.ts` |
 | 字段建议（怎么选、推荐 / 建议值） | 目录 `catalog/mihomo/*.yaml` 的 `guide`（[catalog](../design/catalog.md)） | `TestGuideSuggestPassForm` |
-| 帮助：教程与百科 | `pages/Help.svelte`；教程正文 `src/help/{zh-CN,en}/NN-主题.md`（序号决定顺序，两种语言同步），极简 Markdown `lib/md.ts` | `md.test.ts`、e2e「帮助」 |
+| 帮助：教程与百科 | `pages/Help.svelte`；教程正文 `src/help/{zh-CN,en,ja}/NN-主题.md`（序号决定顺序，三种语言同步，`help.test.ts` 锁定篇目一致）；用户协议 `internal/service/terms/{zh-CN,en,ja}.md`（日语在管理员改写时可留空），极简 Markdown `lib/md.ts` | `md.test.ts`、e2e「帮助」 |
 | 预览高亮当前字段 | `lib/yaml-range.ts`（路径 → 行范围）、`components/editor/YamlView.svelte` | `yaml-range.test.ts`、e2e |
 | 方案文档的读写 | `src/lib/profile-doc.ts`（只做结构操作） | `profile-doc.test.ts` |
 | 原始编辑器 | `components/editor/RawEditor.svelte`、`lib/cm.ts`（Shadow DOM，原因见 0004 #11） | e2e |

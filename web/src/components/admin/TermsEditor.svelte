@@ -11,7 +11,8 @@
   import { toasts } from "../../lib/toast.svelte";
 
   type AdminTerms = Schemas["Terms"] & { defaults?: Record<string, string> };
-  const LANGS = ["zh-CN", "en"] as const;
+  const LANGS = ["zh-CN", "en", "ja"] as const;
+  const LANG_LABEL: Record<(typeof LANGS)[number], string> = { "zh-CN": "中文", en: "English", ja: "日本語" };
 
   let cur = $state<AdminTerms | null>(null);
   let texts = $state<Record<string, string>>({});
@@ -66,7 +67,7 @@
     <div class="bar">
       <div class="seg" role="tablist" aria-label={t("admin.terms")}>
         {#each LANGS as l (l)}
-          <button type="button" role="tab" aria-selected={lang === l} class:on={lang === l} onclick={() => (lang = l)}>{l === "zh-CN" ? "中文" : "English"}</button>
+          <button type="button" role="tab" aria-selected={lang === l} class:on={lang === l} onclick={() => (lang = l)}>{LANG_LABEL[l]}</button>
         {/each}
       </div>
       <label class="pv"><input type="checkbox" bind:checked={preview} />{t("admin.terms_preview")}</label>

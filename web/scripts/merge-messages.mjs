@@ -1,9 +1,10 @@
 // 合并消息：node scripts/merge-messages.mjs <补丁.json>
-// 补丁格式：{ "zh-CN": {键: 文字}, "en": {键: 文字}, "remove": [键] }。结果按键排序写回，便于审阅差异。
+// 补丁格式：{ "zh-CN": {键: 文字}, "en": {键: 文字}, "ja": {键: 文字}, "remove": [键] }。结果按键排序写回，便于审阅差异。
+// 三种语言的键必须一致（i18n.test.ts 检查）：新增的键在三种语言中都要给出。
 import { readFileSync, writeFileSync } from "node:fs";
 
 const patch = JSON.parse(readFileSync(process.argv[2], "utf8"));
-for (const lang of ["zh-CN", "en"]) {
+for (const lang of ["zh-CN", "en", "ja"]) {
   const f = `src/lib/i18n/messages/${lang}.json`;
   const m = JSON.parse(readFileSync(f, "utf8"));
   Object.assign(m, patch[lang] ?? {});

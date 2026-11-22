@@ -3,7 +3,7 @@
   import { notices } from "../lib/notices.svelte";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
-  import { i18n, LOCALES, t } from "../lib/i18n/i18n.svelte";
+  import { i18n, LOCALES, t, type UILocale } from "../lib/i18n/i18n.svelte";
   import { catalog } from "../lib/catalog.svelte";
   import { palette } from "../lib/palette.svelte";
   import { router } from "../lib/router.svelte";
@@ -68,7 +68,7 @@
 
   const themeIcon = $derived<IconName>(theme.value === "light" ? "sun" : theme.value === "dark" ? "moon" : "monitor");
 
-  async function setLang(l: "en" | "zh-CN") {
+  async function setLang(l: UILocale) {
     await i18n.set(l);
     if (catalog.meta) await catalog.loadMessages();
   }

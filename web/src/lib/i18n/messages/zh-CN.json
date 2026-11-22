@@ -130,7 +130,7 @@
   "admin.terms_custom": "已改写",
   "admin.terms_default": "默认文本",
   "admin.terms_discard": "放弃修改",
-  "admin.terms_hint": "使用Markdown（标题、列表、加粗、链接）。{audit}与{request}会显示为本站的保留期。两种语言都需要填写。",
+  "admin.terms_hint": "支持Markdown（标题、列表、粗体、链接）。{audit}与{request}会替换为本站的保留期。中文与英文必填；日文可以留空，留空时日语界面显示英文。",
   "admin.terms_open": "查看页面",
   "admin.terms_preview": "预览",
   "admin.terms_publish": "发布新版本",

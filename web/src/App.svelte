@@ -2,7 +2,7 @@
   import type { Component } from "svelte";
   import { onMount } from "svelte";
   import { catalog } from "./lib/catalog.svelte";
-  import { i18n, LOCALES, t } from "./lib/i18n/i18n.svelte";
+  import { i18n, LOCALES, t, type UILocale } from "./lib/i18n/i18n.svelte";
   import { palette } from "./lib/palette.svelte";
   import { registerPaletteData } from "./lib/palette-data.svelte";
   import { PUBLIC, router, type RouteName } from "./lib/router.svelte";
@@ -117,7 +117,7 @@
     }
   }
 
-  async function setLang(l: "en" | "zh-CN") {
+  async function setLang(l: UILocale) {
     await i18n.set(l);
     if (catalog.meta) await catalog.loadMessages();
   }

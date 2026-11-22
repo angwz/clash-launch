@@ -1873,3 +1873,30 @@ test("消息加密：账号页显示状态与指纹，生成只显示一次的�
   await expect(box.getByText("已设置恢复密钥。")).toBeVisible();
   expect(problems).toEqual([]);
 });
+
+test("日语界面：登录页、导航、帮助与更新日志都是日语（R37）", async ({ browser, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const ctx = await browser.newContext({ baseURL, locale: "ja-JP" });
+  const page = await ctx.newPage();
+  const problems = watch(page);
+  // 浏览器语言为日语时自动选择日语
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await page.getByLabel("ユーザー名").fill(ADMIN.username);
+  await page.getByLabel("パスワード", { exact: true }).fill(ADMIN.password);
+  await page.getByRole("button", { name: "ログイン", exact: true }).click();
+  await expect(page).toHaveURL(/\/$|\/welcome$/);
+  await page.goto("/?lang=ja"); // 账号里保存的语言优先于浏览器语言；用地址参数固定为日语
+  await expect(page.getByRole("link", { name: "ルーティングルール" }).first()).toBeVisible();
+  await page.goto("/help?lang=ja");
+  await expect(page.getByRole("heading", { name: "はじめに" }).first()).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-ja-help.png" });
+  await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused();
+  await page.keyboard.type(">更新履歴");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "更新履歴" }).getByRole("heading", { name: "アカウントとセキュリティ" })).toBeVisible();
+  expect(problems).toEqual([]);
+  await ctx.close();
+});

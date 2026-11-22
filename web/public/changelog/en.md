@@ -10,6 +10,7 @@
 - Personal backup and restore: download everything, encrypted with a passphrase; restoring keeps the previous state for 7 days.
 - Account deletion with a 7-day grace period; signing in cancels it.
 - Avatars and default nicknames: new accounts get a random launch-themed avatar and nickname; change them or upload an image.
+- End-to-end encrypted messages: the text is encrypted in the browser and the server stores only ciphertext.
 
 ### Configs and nodes
 
@@ -33,7 +34,7 @@
 - The browser's Back button returns to where you were; leaving with unsaved changes asks first.
 - Footprints: firsts, milestones and new places, kept permanently.
 - Choose an accent color in Settings; add the site to your home screen.
-- Site announcements.
+- Site announcements, a demo page that needs no account, and a Japanese interface.
 
 ### Operations
 

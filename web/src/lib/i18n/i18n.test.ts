@@ -1,4 +1,5 @@
-// 消息完整性：代码中用到的每个键在两种语言中都存在；两种语言的键集合一致；每条消息都是合法的 ICU MessageFormat。
+// 消息完整性：代码中用到的每个键在每种语言中都存在；各语言的键集合一致；每条消息都是合法的 ICU MessageFormat；
+// 各语言同一条消息的占位符相同（翻译不能丢掉或拼错 {name}）。
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { IntlMessageFormat } from "intl-messageformat";
@@ -6,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS } from "../../components/AuditLog.svelte";
 import en from "./messages/en.json";
 import zh from "./messages/zh-CN.json";
+import ja from "./messages/ja.json";
 
 const SRC = join(__dirname, "..", "..");
 
@@ -104,12 +106,39 @@ describe("messages", () => {
     for (const v of dynamic[p] ?? []) used.add(p + v);
   }
 
-  it("两种语言的键集合一致", () => {
+  it("各语言的键集合一致", () => {
     expect(Object.keys(zh).sort()).toEqual(Object.keys(en).sort());
+    expect(Object.keys(ja).sort()).toEqual(Object.keys(en).sort());
+  });
+
+  // 顶层占位符：{name} 与 {n, plural, …} 的变量名（复数分支里的文字各语言不同，不比较）
+  const vars = (s: string) => {
+    const out = new Set<string>();
+    let depth = 0;
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === "{") {
+        if (depth === 0) {
+          const m = /^\{\s*([a-zA-Z_][a-zA-Z0-9_]*)/.exec(s.slice(i));
+          if (m) out.add(m[1]!);
+        }
+        depth++;
+      } else if (s[i] === "}") depth--;
+    }
+    return [...out].sort().join(",");
+  };
+  it("各语言同一条消息的占位符相同", () => {
+    const bad: string[] = [];
+    for (const [lang, msgs] of [["zh-CN", zh], ["ja", ja]] as const) {
+      for (const [k, v] of Object.entries(en)) {
+        const other = (msgs as Record<string, string>)[k];
+        if (other !== undefined && vars(v) !== vars(other)) bad.push(lang + " " + k);
+      }
+    }
+    expect(bad).toEqual([]);
   });
 
   it("代码中用到的键都存在", () => {
-    const missing = [...used].filter((k) => !(k in en) || !(k in zh));
+    const missing = [...used].filter((k) => !(k in en) || !(k in zh) || !(k in ja));
     expect(missing).toEqual([]);
   });
 
@@ -119,15 +148,16 @@ describe("messages", () => {
   });
 
   // R54：中英文之间的细缝交给 CSS text-autospace，文案里不手写空格，避免「空格 + 细缝」叠加、各处宽窄不一
-  it("中文消息里中文与英文、数字之间不手写空格", () => {
-    const cjk = "[" + String.fromCharCode(0x4e00) + "-" + String.fromCharCode(0x9fff) + "]";
+  it("中文与日文消息里，汉字、假名与英文、数字之间不手写空格", () => {
+    // 汉字，以及日文的平假名、片假名（含长音符）
+    const cjk = "[" + String.fromCharCode(0x4e00) + "-" + String.fromCharCode(0x9fff) + String.fromCharCode(0x3041) + "-" + String.fromCharCode(0x30ff) + "]";
     const re = new RegExp(cjk + " [A-Za-z0-9{]|[A-Za-z0-9}] " + cjk);
-    const bad = Object.entries(zh).filter(([, v]) => re.test(v)).map(([k]) => k);
+    const bad = [...Object.entries(zh), ...Object.entries(ja).map(([k, v]) => ["ja " + k, v] as const)].filter(([, v]) => re.test(v)).map(([k]) => k);
     expect(bad).toEqual([]);
   });
 
   it("每条消息都是合法的 ICU MessageFormat", () => {
-    for (const [lang, msgs] of [["en", en], ["zh-CN", zh]] as const) {
+    for (const [lang, msgs] of [["en", en], ["zh-CN", zh], ["ja", ja]] as const) {
       for (const [k, v] of Object.entries(msgs)) {
         expect(() => new IntlMessageFormat(v, lang), `${lang} ${k}`).not.toThrow();
       }

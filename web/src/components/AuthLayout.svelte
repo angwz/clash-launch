@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { i18n, LOCALES, t } from "../lib/i18n/i18n.svelte";
+  import { i18n, LOCALES, t, type UILocale } from "../lib/i18n/i18n.svelte";
   import { theme } from "../lib/theme.svelte";
   import Icon from "./Icon.svelte";
 
@@ -10,7 +10,7 @@
 
 <div class="auth">
   <div class="corner">
-    <select class="select lang" aria-label={t("shell.language")} value={i18n.locale} onchange={(e) => void i18n.set(e.currentTarget.value as "en" | "zh-CN")}>
+    <select class="select lang" aria-label={t("shell.language")} value={i18n.locale} onchange={(e) => void i18n.set(e.currentTarget.value as UILocale)}>
       {#each LOCALES as l (l.id)}<option value={l.id}>{l.label}</option>{/each}
     </select>
     <button class="btn ghost icon" type="button" onclick={() => theme.cycle()} aria-label={t("shell.theme", { theme: t("theme." + theme.value) })}>

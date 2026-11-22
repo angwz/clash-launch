@@ -27,7 +27,7 @@
   const current = $derived(topics.find((x) => x.id === topic) ?? topics[0]);
 
   $effect(() => {
-    const lang = i18n.apiLang === "zh-CN" ? "zh-CN" : "en";
+    const lang = i18n.locale === "ar-XB" ? "en" : i18n.locale;
     const files = Object.keys(docs)
       .filter((p) => p.includes("/" + lang + "/"))
       .sort();

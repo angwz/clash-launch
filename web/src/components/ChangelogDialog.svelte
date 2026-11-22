@@ -21,7 +21,7 @@
 
   $effect(() => {
     if (!changelog.open) return;
-    const lang = i18n.apiLang === "zh-CN" ? "zh-CN" : "en";
+    const lang = i18n.locale === "ar-XB" ? "en" : i18n.locale;
     blocks = null;
     error = false;
     fetch("/changelog/" + lang + ".md", { cache: "no-cache" })

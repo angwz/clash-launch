@@ -18,7 +18,7 @@ export function fetchTerms(): Promise<Terms> {
 
 /** 取界面语言的文本（没有时退回中文），第一个一级标题作为页面标题，其余为正文。 */
 export function termsDoc(t: Terms, locale: string): TermsDoc {
-  const text = t.texts[locale] ?? t.texts["zh-CN"] ?? Object.values(t.texts)[0] ?? "";
+  const text = t.texts[locale] ?? t.texts[locale.startsWith("zh") ? "zh-CN" : "en"] ?? Object.values(t.texts)[0] ?? "";
   const blocks = parse(text);
   const h = blocks.find((b) => b.k === "h" && b.level === 1);
   const title = h && h.k === "h" ? h.text.map((x) => x.s).join("") : "";

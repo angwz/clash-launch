@@ -130,7 +130,7 @@
   "admin.terms_custom": "customized",
   "admin.terms_default": "default text",
   "admin.terms_discard": "Discard changes",
-  "admin.terms_hint": "Markdown is supported (headings, lists, bold, links). {audit} and {request} show this site’s retention periods. Both languages are required.",
+  "admin.terms_hint": "Markdown is supported (headings, lists, bold, links). {audit} and {request} show this site’s retention periods. Chinese and English are required; Japanese is optional, and without it the Japanese interface shows English.",
   "admin.terms_open": "View page",
   "admin.terms_preview": "Preview",
   "admin.terms_publish": "Publish new version",

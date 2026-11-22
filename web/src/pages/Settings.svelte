@@ -11,7 +11,7 @@
   import Icon from "../components/Icon.svelte";
   import { catalog } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
-  import { i18n, LOCALES, t } from "../lib/i18n/i18n.svelte";
+  import { i18n, LOCALES, t, type UILocale } from "../lib/i18n/i18n.svelte";
   import { mainNav } from "../lib/nav";
   import { fieldClickMode, ordered, prefs, type FieldClickMode } from "../lib/prefs.svelte";
   import { session } from "../lib/session.svelte";
@@ -29,7 +29,7 @@
     catalog.load().catch((e) => toasts.push("err", errorText(e)));
   });
 
-  async function setLang(l: "en" | "zh-CN") {
+  async function setLang(l: UILocale) {
     await i18n.set(l);
     if (catalog.meta) await catalog.loadMessages();
   }
@@ -105,7 +105,7 @@
     <div class="grid two">
       <div>
         <label class="label" for="st-lang">{t("shell.language")}</label>
-        <select id="st-lang" class="select" value={i18n.locale} onchange={(e) => void setLang(e.currentTarget.value as "en" | "zh-CN")}>
+        <select id="st-lang" class="select" value={i18n.locale} onchange={(e) => void setLang(e.currentTarget.value as UILocale)}>
           {#each LOCALES as l (l.id)}<option value={l.id}>{l.label}</option>{/each}
         </select>
       </div>

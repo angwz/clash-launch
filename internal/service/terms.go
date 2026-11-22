@@ -39,7 +39,11 @@ const (
 )
 
 // TermsLangs 是协议提供的语言；第一个是缺省语言。
-var TermsLangs = []string{"zh-CN", "en"}
+var TermsLangs = []string{"zh-CN", "en", "ja"}
+
+// termsRequired 是管理员改写协议时必须提供的语言。日语（R37）可以留空：没有日语文本时日语界面显示英文，
+// 管理员此前保存的版本只有中英文，加入日语后照常可用。
+var termsRequired = map[string]bool{"zh-CN": true, "en": true}
 
 var (
 	// ErrTermsOutdated 表示提交的协议版本不是当前版本（页面打开期间协议被更新，或没有勾选同意）。
@@ -148,10 +152,14 @@ func (s *Service) fillTerms(ctx context.Context, lang, text string) string {
 		switch {
 		case n <= 0 && lang == "zh-CN":
 			return "长期（不自动清理）"
+		case n <= 0 && lang == "ja":
+			return "無期限（自動削除なし）"
 		case n <= 0:
 			return "an unlimited time (no automatic cleanup)"
 		case lang == "zh-CN":
 			return strconv.Itoa(n) + " 天"
+		case lang == "ja":
+			return strconv.Itoa(n) + " 日間"
 		case n == 1:
 			return "1 day"
 		default:
@@ -167,8 +175,12 @@ func (s *Service) SetTerms(ctx context.Context, admin string, texts map[string]s
 	if texts != nil {
 		for _, l := range TermsLangs {
 			x := strings.TrimSpace(texts[l])
-			if x == "" {
+			if x == "" && termsRequired[l] {
 				return Terms{}, fmt.Errorf("%w：%s 的文本不能为空", ErrTermsText, l)
+			}
+			if x == "" {
+				delete(texts, l) // 可选的语言留空：不保存，界面退回英文
+				continue
 			}
 			if len(x) > TermsMaxBytes || !utf8.ValidString(x) {
 				return Terms{}, fmt.Errorf("%w：%s 的文本超过 %d 字节或不是有效的 UTF-8", ErrTermsText, l, TermsMaxBytes)

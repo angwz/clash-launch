@@ -43,7 +43,7 @@ func TestTerms(t *testing.T) {
 
 	// 管理员改写：版本 +1，bob 被拦截
 	admin.want(422, "PUT", "/api/v1/admin/terms", map[string]any{"texts": map[string]string{"zh-CN": "新的协议"}})
-	admin.want(422, "PUT", "/api/v1/admin/terms", map[string]any{"texts": map[string]string{"zh-CN": "x", "en": "y", "ja": "z"}})
+	admin.want(422, "PUT", "/api/v1/admin/terms", map[string]any{"texts": map[string]string{"zh-CN": "x", "en": "y", "fr": "z"}})
 	bob.want(404, "PUT", "/api/v1/admin/terms", map[string]any{"reset": true})
 	if def := decode[adminTerms](t, admin.want(200, "GET", "/api/v1/admin/terms", nil)); !strings.Contains(def.Defaults["zh-CN"], "{{audit_days}}") || !strings.Contains(def.Texts["zh-CN"], "{{audit_days}}") {
 		t.Fatal("管理员读到的文本应保留占位符，便于编辑")
