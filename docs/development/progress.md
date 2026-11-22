@@ -7,7 +7,7 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。阶段 6 的批 24–28 已完成（R34、R45、R3、R10、R11、R19、O12、R28、R29、R27、R32、R44）。接着做批 29：R46 站内消息端到端加密 + O10 旧名地址跳转 + O11 邀请树。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。阶段 6 的批 24–28 已完成（R34、R45、R3、R10、R11、R19、O12、R28、R29、R27、R32、R44）。批 29 的 O10、O11 已完成，接着做 R46 站内消息端到端加密。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。

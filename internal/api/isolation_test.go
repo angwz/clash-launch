@@ -67,7 +67,9 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 	// 头像图片与昵称一样是站内可见的资料（R19），任何登录用户都能读取，另由 TestAvatars 检查需要登录
 	scoped := map[string]bool{"GET /api/v1/messages/with/{username}": true, "GET /api/v1/avatars/{id}": true,
 		// 公告是全站的，人人可以关闭自己看到的那一条（关闭记录只属于本人），另由 TestAnnouncements 检查
-		"POST /api/v1/announcements/{id}/dismiss": true}
+		"POST /api/v1/announcements/{id}/dismiss": true,
+		// 现在的用户名原样返回（找人联想本来就能搜到），旧名只对联系人解析，另由 TestResolveFormerName 检查
+		"GET /api/v1/messages/resolve/{username}": true}
 	// 每条路由一个能通过格式校验的请求体（接口拒绝未知字段），使所有权检查成为决定结果的那一步
 	bodies := map[string]any{
 		"PATCH /api/v1/account/passkeys/{id}":       map[string]string{"name": "x"},

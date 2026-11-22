@@ -304,6 +304,8 @@ type UserRepo interface {
 	Rename(ctx context.Context, id, username string, at time.Time) error
 	// NameReserved 报告用户名（规范形式）是否在 since 之后被 exceptUser 以外的人用过（改名后的保留期）。
 	NameReserved(ctx context.Context, norm, exceptUser string, since time.Time) (bool, error)
+	// FormerOwner 返回最近一次以 name 为旧用户名的用户 ID（O10：旧的消息地址跳到新名）；没有时返回 ErrNotFound。
+	FormerOwner(ctx context.Context, name string) (string, error)
 	// SetInviter 记录邀请关系。
 	SetInviter(ctx context.Context, id, inviterID, inviterName, inviteID string) error
 	// SetInviteBanned 收回或恢复邀请权。

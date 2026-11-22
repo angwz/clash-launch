@@ -112,3 +112,27 @@ func (s *Service) SetNickname(ctx context.Context, userID, nick string) (string,
 	s.audit(ctx, userID, "account.nickname", map[string]string{"nickname": nick})
 	return nick, nil
 }
+
+// ResolveFormerName 把旧用户名解析为对方现在的用户名（O10）：旧的消息地址 /messages/<旧名> 据此跳到新名。
+// 只解析与 me 有过对话的人（任一方向的联系人），不能借此查出陌生人改过什么名；名字现在仍属于某个人时原样返回。
+func (s *Service) ResolveFormerName(ctx context.Context, me *store.User, name string) (string, error) {
+	if u, err := s.Store.Users().ByUsername(ctx, name); err == nil {
+		return u.Username, nil
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return "", err
+	}
+	id, err := s.Store.Users().FormerOwner(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	_, errMine := s.Store.Contacts().Get(ctx, me.ID, id)
+	_, errTheirs := s.Store.Contacts().Get(ctx, id, me.ID)
+	if errMine != nil && errTheirs != nil { // 两个方向都不是联系人
+		return "", store.ErrNotFound
+	}
+	u, err := s.Store.Users().ByID(ctx, id)
+	if err != nil || !u.DeletedAt.IsZero() {
+		return "", store.ErrNotFound
+	}
+	return u.Username, nil
+}

@@ -465,6 +465,12 @@ func (r users) NameReserved(ctx context.Context, norm, exceptUser string, since 
 	return n > 0, err
 }
 
+func (r users) FormerOwner(ctx context.Context, name string) (string, error) {
+	var id string
+	err := r.d.row(ctx, "SELECT user_id FROM username_history WHERE name_norm=? ORDER BY changed_at DESC LIMIT 1", NormalizeUsername(name)).Scan(&id)
+	return id, notFound(err)
+}
+
 func (r users) SetInviter(ctx context.Context, id, inviterID, inviterName, inviteID string) error {
 	res, err := r.d.exec(ctx, "UPDATE users SET invited_by=?, invited_by_name=?, invite_id=? WHERE id=?", inviterID, inviterName, inviteID, id)
 	return affected(res, err, ErrNotFound)

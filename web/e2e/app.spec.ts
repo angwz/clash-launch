@@ -1803,3 +1803,22 @@ test("访客试用：不登录打开示例配置，可以修改、预览与看�
   expect(problems).toEqual([]);
   await ctx.close();
 });
+
+test("邀请树与旧名地址：管理页显示邀请关系；旧的消息地址先解析再打开，查不到时照常回到首页（O11、O10）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  await login(page);
+  await page.goto("/admin");
+  const tree = page.locator("section", { has: page.getByRole("heading", { name: "邀请树" }) });
+  await expect(tree).toBeVisible();
+  await tree.getByLabel("只看有邀请关系的人").uncheck();
+  await expect(tree.getByText("@admin").first()).toBeVisible();
+  await tree.screenshot({ path: "test-results/shot-invite-tree.png" });
+
+  // 旧名地址：给自己以外的已有联系人发过消息时才能解析；这里只验证查不到的名字按原样打开，不报错
+  void request;
+  void baseURL;
+  await page.goto("/messages/nobody-" + Date.now().toString(36));
+  await expect(page).toHaveURL((u) => u.pathname === "/");
+  expect(problems.filter((p) => !p.includes("404"))).toEqual([]);
+});

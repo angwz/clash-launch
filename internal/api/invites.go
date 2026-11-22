@@ -306,3 +306,36 @@ func (s *Server) setInviteBan(w http.ResponseWriter, r *http.Request, p *princip
 	s.audit(ctx, p.User.ID, action, map[string]string{"user": id})
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// —— 邀请树（O11）——
+
+type inviteNodeDTO struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Nickname  string    `json:"nickname,omitempty"`
+	Avatar    string    `json:"avatar,omitempty"`
+	InvitedBy string    `json:"invitedBy,omitempty"` // 邀请人的用户 ID；空表示不是经邀请注册的
+	JoinedAt  time.Time `json:"joinedAt"`
+	Disabled  bool      `json:"disabled,omitempty"`
+	Deleted   bool      `json:"deleted,omitempty"`
+}
+
+// inviteTree 返回全部用户与邀请关系（扁平列表，前端组装成树）。管理员可见；只有名字、头像与时间，不含其他资料。
+func (s *Server) inviteTree(w http.ResponseWriter, r *http.Request, _ *principal) {
+	out := []inviteNodeDTO{}
+	for after := ""; ; {
+		users, err := s.Svc.Store.Users().List(r.Context(), store.Page{After: after, Limit: 500})
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		for _, u := range users {
+			out = append(out, inviteNodeDTO{ID: u.ID, Username: u.Username, Nickname: u.Nickname, Avatar: u.Avatar, InvitedBy: u.InvitedBy, JoinedAt: u.CreatedAt, Disabled: u.Disabled, Deleted: !u.DeletedAt.IsZero()})
+		}
+		if len(users) < 500 {
+			break
+		}
+		after = users[len(users)-1].ID
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": out})
+}

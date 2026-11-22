@@ -446,3 +446,13 @@ func (s *Server) hideMessage(w http.ResponseWriter, r *http.Request, p *principa
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// resolveName 把旧的消息地址里的用户名解析为现在的用户名（O10）。
+func (s *Server) resolveName(w http.ResponseWriter, r *http.Request, p *principal) {
+	name, err := s.Svc.ResolveFormerName(r.Context(), p.User, r.PathValue("username"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"username": name})
+}

@@ -6,6 +6,7 @@
   import Status from "../components/admin/Status.svelte";
   import StatsPanel from "../components/admin/StatsPanel.svelte";
   import Users from "../components/admin/Users.svelte";
+  import InviteTree from "../components/admin/InviteTree.svelte";
   import JobsPanel from "../components/admin/JobsPanel.svelte";
   import RetentionPanel from "../components/admin/RetentionPanel.svelte";
   import AnnouncementsPanel from "../components/admin/AnnouncementsPanel.svelte";
@@ -213,6 +214,8 @@
     </section>
 
     <InvitesPanel admin />
+
+    <InviteTree />
 
     <section class="panel box" aria-labelledby="a-audit">
       <h2 id="a-audit">{t("admin.audit")}</h2>

@@ -1179,6 +1179,12 @@ paths:
       security: [{session: [], csrf: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string}}]
       responses: {'204': {description: dismissed}, '404': {description: 公告不存在}}
+  /api/v1/admin/invite-tree:
+    get:
+      tags: [admin]
+      summary: 邀请树（O11）：全部用户与各自的邀请人（扁平列表，只有名字、头像与加入时间）
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
   /api/v1/admin/announcements:
     get:
       tags: [admin]
@@ -1741,6 +1747,13 @@ paths:
       description: 节点名与节点源页一致，最多 5000 个（超过时 truncated 为 true）。不含内容、地址或凭据；个人访问令牌不可访问。
       security: [{session: []}]
       responses: {'200': {description: ok}}
+  /api/v1/messages/resolve/{username}:
+    get:
+      tags: [messages]
+      summary: 旧用户名解析为现在的用户名（O10）；只对联系人解析，陌生人与查不到的名字返回 404
+      security: [{session: []}]
+      parameters: [{name: username, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}, '404': {description: 查不到或不是联系人}}
   /api/v1/messages/deleted:
     get:
       tags: [messages]
