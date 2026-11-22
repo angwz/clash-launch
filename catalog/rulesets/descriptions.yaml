@@ -14,6 +14,7 @@ sources:
       - match: '^https://raw\.githubusercontent\.com/angwz/domainrouter_v2/release/clash-(domain|ipcidr|classic)/[^/]+\.(yaml|mrs)$'
         zh: domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。
         en: Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.
+        ja: "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。"
 
   - id: acl4ssr
     repo: https://github.com/ACL4SSR/ACL4SSR
@@ -24,42 +25,56 @@ sources:
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/BanAD\.list$'
         zh: 去广告：常见的广告关键字与广告联盟。上游说明为无副作用。
         en: "Ad blocking: common ad keywords and ad networks. Upstream describes it as side-effect free."
+        ja: "広告ブロック：よくある広告のキーワードと広告ネットワーク。上流は副作用なしと説明しています。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD\.list$'
         zh: 去广告：常用应用内的广告。上游说明可能有轻微副作用，与网站功能冲突的规则会被删除。
         en: "Ad blocking: ads inside common apps. Upstream notes possible minor side effects; rules that break site features are removed."
+        ja: "広告ブロック：よく使うアプリ内の広告。上流によると軽い副作用がある可能性があり、サイトの機能を壊すルールは削除されます。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina\.list$'
         zh: 去广告：AdblockPlus 中国规则里的全部屏蔽域名。
         en: "Ad blocking: every blocked domain from the AdblockPlus China list."
+        ja: "広告ブロック：AdblockPlusの中国向けリストでブロックされるすべてのドメイン。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork\.list$'
         zh: 直连：本地地址与路由器管理域名等。
         en: "Direct: local addresses, router admin domains and similar."
+        ja: "直接接続：ローカルアドレス、ルーターの管理画面のドメインなど。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain\.list$'
         zh: 直连：国内常见域名与可直连的 CDN，覆盖面很广。
         en: "Direct: common domains in mainland China and directly reachable CDNs; broad coverage."
+        ja: "直接接続：中国本土のよく使われるドメインと直接接続できるCDN。対象範囲が広いです。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp\.list$'
         zh: 直连：国内大型互联网公司与云服务商的 IP 段。部署在这些云上的网站都会直连，包括其境外机房（如阿里云香港）。
         en: "Direct: IP ranges of major Chinese internet companies and cloud providers. Sites hosted on these clouds go direct, including their overseas regions (for example Alibaba Cloud Hong Kong)."
+        ja: "直接接続：中国の大手インターネット企業とクラウド事業者のIP範囲。これらのクラウド上のサイトは、海外リージョン（Alibaba Cloudの香港など）も含めて直接接続になります。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/Download\.list$'
         zh: 直连：一些下载用的域名。
         en: "Direct: domains used for downloads."
+        ja: "直接接続：ダウンロードに使われるドメイン。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/Apple\.list$'
         zh: 苹果公司的域名。
         en: Apple's domains.
+        ja: "Appleのドメイン。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft\.list$'
         zh: 微软公司的域名。
         en: Microsoft's domains.
+        ja: "Microsoftのドメイン。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive\.list$'
         zh: OneDrive。
         en: OneDrive.
+        ja: "OneDrive。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN\.list$'
         zh: 直连：谷歌在中国大陆可以直接访问的地址。
         en: "Direct: Google addresses reachable directly from mainland China."
+        ja: "直接接続：中国本土から直接到達できるGoogleのアドレス。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/Telegram\.list$'
         zh: 代理：Telegram 的域名。
         en: "Proxy: Telegram's domains."
+        ja: "プロキシ：Telegramのドメイン。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist\.list$'
         zh: 代理：GFWList 的全量列表。
         en: "Proxy: the full GFWList."
+        ja: "プロキシ：GFWListの全体。"
       - match: '^https://raw\.githubusercontent\.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite\.list$'
         zh: 代理：精简的代理列表，包含常用网站与 DNS 被污染的域名。
         en: "Proxy: a compact proxy list with commonly used sites and DNS-polluted domains."
+        ja: "プロキシ：よく使われるサイトとDNSが汚染されたドメインをまとめたコンパクトなプロキシの一覧。"

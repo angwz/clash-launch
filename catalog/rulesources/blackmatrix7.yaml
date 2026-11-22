@@ -1,6 +1,6 @@
 # blackmatrix7/ios_rule_script：按应用划分的大量规则（rule/Clash/<应用>/<应用>.yaml，classical）。
 id: blackmatrix7
-label: {en: blackmatrix7 ios_rule_script, zh: blackmatrix7 ios_rule_script}
+label: {en: blackmatrix7 ios_rule_script, zh: blackmatrix7 ios_rule_script, ja: "blackmatrix7 ios_rule_script"}
 repo: https://github.com/blackmatrix7/ios_rule_script
 license: GPL-2.0
 rank: 3
@@ -9,9 +9,10 @@ stars: 28583
 notes:
   en: Per-application classical rule sets; the template picks a few common services — add more from rule/Clash/.
   zh: 按应用划分的 classical 规则集；模板挑选了几个常用服务，更多见仓库的 rule/Clash/。
+  ja: "アプリごとのclassicalルールセット。テンプレートはよく使われるサービスをいくつか選んでいます。ほかはrule/Clash/から追加してください。"
 variants:
   - id: apps
-    label: {en: Common apps, zh: 常用应用}
+    label: {en: Common apps, zh: 常用应用, ja: "よく使うアプリ"}
     groups-text: |
       [[custom_groups]]
       name = "🚀 节点选择"

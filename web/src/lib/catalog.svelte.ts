@@ -42,6 +42,7 @@ export interface NavSection {
   id: string;
   zh: string;
   en: string;
+  ja?: string;
   generated?: "sources" | "rules";
   keys: string[];
 }
@@ -89,7 +90,7 @@ export interface CatalogMeta {
   decor: string[];
 }
 
-type DiagInfo = { severity: "error" | "warning" | "info"; en: string; "zh-CN": string };
+type DiagInfo = { severity: "error" | "warning" | "info"; en: string; "zh-CN": string; ja?: string };
 
 class CatalogState {
   meta = $state.raw<CatalogMeta | null>(null);
@@ -164,12 +165,13 @@ class CatalogState {
   }
 
   navTitle(s: NavSection): string {
-    return i18n.apiLang === "zh-CN" ? s.zh : s.en;
+    return i18n.apiLang === "zh-CN" ? s.zh : i18n.apiLang === "ja" ? (s.ja ?? s.en) : s.en;
   }
 
   label(m: Record<string, string> | undefined): string {
     if (!m) return "";
-    return (i18n.apiLang === "zh-CN" ? m.zh : m.en) ?? m.en ?? "";
+    // 数据中的 {zh, en, ja}：缺日语时退回英文
+    return (i18n.apiLang === "zh-CN" ? m.zh : i18n.apiLang === "ja" ? m.ja : m.en) ?? m.en ?? "";
   }
 
   /**
@@ -178,10 +180,10 @@ class CatalogState {
    */
   diagMessage(code: string, args?: Record<string, string>, names?: Map<string, string>): string {
     const info = this.diags[code];
-    let msg = info ? info[i18n.apiLang] : code;
+    let msg = info ? (info[i18n.apiLang] ?? info.en) : code;
     for (const [k, raw] of Object.entries(args ?? {})) {
       let v = names?.get(raw) ?? raw;
-      if (k === "setting") v = raw.split(", ").map((s) => (i18n.messages["proc.setting." + s] ? i18n.t("proc.setting." + s) : s)).join(i18n.apiLang === "zh-CN" ? "、" : ", ");
+      if (k === "setting") v = raw.split(", ").map((s) => (i18n.messages["proc.setting." + s] ? i18n.t("proc.setting." + s) : s)).join(i18n.apiLang === "en" ? ", " : "、");
       msg = msg.split("{" + k + "}").join(v);
     }
     return msg;

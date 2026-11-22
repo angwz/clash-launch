@@ -26,7 +26,7 @@
 
 | 要改的东西 | 位置 | 测试 | 同步文档 |
 | --- | --- | --- | --- |
-| 字段（新增、说明、默认值、顺序、重要程度） | `catalog/mihomo/*.yaml`；顶层顺序在 `pack.yaml` 的 `order`，界面分节在 `nav` | `internal/catalog`（锚点、顺序、分节覆盖） | [catalog](../design/catalog.md) |
+| 字段（新增、说明、默认值、顺序、重要程度） | `catalog/mihomo/*.yaml`；顶层顺序在 `pack.yaml` 的 `order`，界面分节在 `nav`（标题含 zh、en、ja）；日语译文在 `catalog/mihomo/ja.json`（英文原文 → 日语，英文改动后同步更新） | `internal/catalog`（锚点、顺序、分节覆盖、`TestJapaneseCoverage` 检查译文缺失与多余） | [catalog](../design/catalog.md) |
 | 跟进新的 mihomo 版本、检查目录覆盖率 | `tools/catalog-extract`（scan / order / diff / coverage；有意不收录的路径登记在 `coverage.go` 的 `skipped`），`tools.lock.json` | `tools/catalog-extract` | [catalog](../design/catalog.md)、[setup](setup.md) |
 | 表单层校验、合并标签、完整 YAML 换算为差异 | `internal/layer/form.go`、`merge.go`、`diff.go`；`internal/engine/absorb.go` | `merge_test.go`、`FuzzMerge`、`absorb_test.go` | [merge](../design/merge.md) |
 | 输出格式（引号、空行、文件头） | `internal/render/render.go`；自检 `selfcheck.go` | golden + `FuzzRender`（`-update` 后人工审阅） | [rendering](../design/rendering.md)；改格式先给样例 |
@@ -34,7 +34,7 @@
 | 节点解析、整理、地区识别 | `internal/node`（`node.go`、`process.go`、`region.go`、`singbox.go`）；地区表 `catalog/regions/` | `node_test.go`、`testdata/regions/tricky.yaml`、`FuzzParse` | [nodes](../design/nodes.md) |
 | 链式代理（dialer-proxy、循环检查） | `internal/engine/chain.go`；方案字段 `internal/profile`（`Chain`）；界面 `web/src/components/editor/ChainsPanel.svelte` | `chain_test.go`、`testdata/workspace/chains.profile.yaml`（`-tags kernel`） | [chains](../design/chains.md) |
 | 规则源、GROUPID、选择器、ini | `internal/ruleset`；有序源与编号在 `internal/engine/build.go` | `ruleset_test.go`、工作区 golden | [rules](../design/rules.md)、[parity](../design/subconverter-parity.md) |
-| 诊断代码与中英文消息 | `internal/diag/codes.go`（唯一登记处） | 引用处的测试 | 前端按代码显示，无需改前端 |
+| 诊断代码与消息 | `internal/diag/codes.go`（唯一登记处，中英文）；日语在 `internal/diag/ja.json`（英文原文 → 日语） | 引用处的测试；`TestJapaneseMessages`（缺失、多余、占位符） | 前端按代码显示，无需改前端 |
 | 内核检查 | `internal/kernel/check.go` | `-tags kernel` | [architecture](../design/architecture.md) |
 | 自己管理的分流（routing 段） | `internal/profile/routing.go`；`internal/ruleset/routing.go`（FromRouting、ToRouting、Fork、DetectBundles、ParseNodeOps）；引擎在 `internal/engine/build.go` 中用它代替规则源 | `internal/ruleset/routing_test.go`、`TestRoutingForkGolden`（`testdata/workspace/domainrouter-routing.*`，`-tags kernel`）、`TestRoutingForkOwnDraft` | [routing](../design/routing.md) 第 4 节 |
 | 分流地图、追踪与体检的服务端 | `internal/service/routing.go`（图数据、追踪、体检）、`routing_cache.go`（规则内容的内存缓存）、`routing_sync.go`（上游三方比对与期望）；接口 `internal/api/routing.go`；体检网站 `catalog/routing/health.yaml`；规则集说明 `catalog/rulesets/descriptions.yaml` | `TestRoutingGraphTraceHealth`、`TestRoutingTraceHostsAndQuota`、`TestRoutingUpstreamChecks`、`TestRoutingFixtures`、`TestLoadSetStaleAndSingleFlight` | [routing](../design/routing.md) 第 6–7 节、[deploy](../guide/deploy.md) |

@@ -21,6 +21,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -47,6 +48,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -75,6 +77,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -101,6 +104,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -127,6 +131,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -153,6 +158,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -179,6 +185,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -207,6 +214,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -233,6 +241,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -259,6 +268,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -285,6 +295,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -311,6 +322,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -339,6 +351,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -365,6 +378,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -391,6 +405,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -419,6 +434,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -445,6 +461,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -471,6 +488,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -499,6 +517,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -525,6 +544,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -551,6 +571,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -579,6 +600,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -605,6 +627,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -631,6 +654,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -659,6 +683,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -685,6 +710,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -711,6 +737,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -739,6 +766,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -765,6 +793,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -791,6 +820,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -819,6 +849,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -845,6 +876,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -871,6 +903,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -899,6 +932,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -925,6 +959,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -951,6 +986,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -979,6 +1015,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1005,6 +1042,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1031,6 +1069,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1059,6 +1098,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1085,6 +1125,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1111,6 +1152,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1137,6 +1179,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1163,6 +1206,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1191,6 +1235,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1217,6 +1262,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1243,6 +1289,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1271,6 +1318,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1297,6 +1345,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1323,6 +1372,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1349,6 +1399,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1375,6 +1426,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1403,6 +1455,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1484,6 +1537,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1510,6 +1564,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1538,6 +1593,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1564,6 +1620,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1590,6 +1647,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },
@@ -1618,6 +1676,7 @@
           "checked": "2026-11-15",
           "text": {
             "en": "Rule sets compiled daily by domainrouter_v2 from many upstreams, deduplicated and merged. Files named X, X-ipcidr and X-classic hold the domain, ipcidr and classical parts of one category; the YAML and MRS files match the same traffic. The file header names the target group and the upstream sources.",
+            "ja": "domainrouter_v2が多数の上流から毎日コンパイルし、重複を除いて統合したルールセット。X、X-ipcidr、X-classicという名前のファイルは、同じ分類のdomain、ipcidr、classicalの部分です。YAMLとMRSのファイルは同じ通信に一致します。ファイルの先頭に対象のグループと上流のソースが書かれています。",
             "zh": "domainrouter_v2 每日从多个上游编译、去重与合并的规则集。同名的 X、X-ipcidr、X-classic 是同一类规则的 domain、ipcidr、classical 三种文件；YAML 与 MRS 内容一致。文件头写明对应的策略组与上游来源。"
           }
         },

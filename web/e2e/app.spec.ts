@@ -1891,7 +1891,7 @@ test("消息加密：账号页显示状态与指纹，生成只显示一次的�
   expect(problems).toEqual([]);
 });
 
-test("日语界面：登录页、导航、帮助与更新日志都是日语（R37）", async ({ browser, baseURL }) => {
+test("日语界面：登录页、导航、帮助、字段说明与更新日志都是日语（R37、R37b）", async ({ browser, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
   const ctx = await browser.newContext({ baseURL, locale: "ja-JP" });
   const page = await ctx.newPage();
@@ -1909,6 +1909,14 @@ test("日语界面：登录页、导航、帮助与更新日志都是日语（R3
   await page.goto("/help?lang=ja");
   await expect(page.getByRole("heading", { name: "はじめに" }).first()).toBeVisible();
   await page.screenshot({ path: "test-results/shot-ja-help.png" });
+  // 字段说明、分节标题与地区名之外的目录文字也是日语（R37b）
+  await page.goto("/help?lang=ja&tab=wiki&f=dns.enhanced-mode");
+  await expect(page.getByRole("navigation", { name: "事典" })).toContainText("スニッファー");
+  await expect(page.getByText("拡張モード").first()).toBeVisible();
+  await expect(page.getByText(/fake-ipは偽のIPですぐに応答し/).first()).toBeVisible();
+  const diags = await page.evaluate(async () => (await (await fetch("/api/v1/diagnostics")).json())["yaml.duplicate_key"]);
+  expect(diags.ja).toBe("キー{key}が重複しています");
+  await page.screenshot({ path: "test-results/shot-ja-wiki.png" });
   await page.keyboard.press("Control+K");
   await expect(page.locator("dialog.palette input")).toBeFocused();
   await page.keyboard.type(">更新履歴");

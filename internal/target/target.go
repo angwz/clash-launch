@@ -73,7 +73,7 @@ func Load(fsys fs.FS, pack string) ([]*Preset, error) {
 		if p.Core != "mihomo" && p.Core != "stash" {
 			return nil, fmt.Errorf("target: %s 的 core 必须是 mihomo 或 stash", p.ID)
 		}
-		if p.Label["en"] == "" || p.Label["zh"] == "" {
+		if p.Label["en"] == "" || p.Label["zh"] == "" || p.Label["ja"] == "" {
 			return nil, fmt.Errorf("target: %s 缺少中英文名称", p.ID)
 		}
 		if p.Defaults.Kind != 0 && len(p.Basis) == 0 {

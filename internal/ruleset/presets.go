@@ -59,7 +59,7 @@ func LoadPresets(fsys fs.FS) ([]Preset, error) {
 		if err := dec.Decode(&p); err != nil {
 			return nil, fmt.Errorf("ruleset: 解析预设 %s: %w", e.Name(), err)
 		}
-		if p.ID+".yaml" != e.Name() || p.Repo == "" || p.License == "" || p.Checked == "" || p.Label["en"] == "" || p.Label["zh"] == "" || len(p.Variants) == 0 || p.Rank <= 0 {
+		if p.ID+".yaml" != e.Name() || p.Repo == "" || p.License == "" || p.Checked == "" || p.Label["en"] == "" || p.Label["zh"] == "" || p.Label["ja"] == "" || len(p.Variants) == 0 || p.Rank <= 0 {
 			return nil, fmt.Errorf("ruleset: 预设 %s 缺少 id、repo、license、checked、rank、中英文名称或变体", e.Name())
 		}
 		for _, v := range p.Variants {

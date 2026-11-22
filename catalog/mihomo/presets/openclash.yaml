@@ -4,7 +4,7 @@
 # 用户设置什么就输出什么，也不逐字段提示（反馈 #17）。
 # 参考提交：vernesong/OpenClash@e553e82（master，luci-app-openclash 0.48.002）。
 id: openclash
-label: {en: OpenClash (OpenWrt), zh: OpenClash（OpenWrt）}
+label: {en: OpenClash (OpenWrt), zh: OpenClash（OpenWrt）, ja: "OpenClash（OpenWrt）"}
 platform: openwrt
 core: mihomo
 docs: https://github.com/vernesong/OpenClash/wiki
@@ -18,3 +18,4 @@ basis:
 notes:
   en: Subscription for OpenClash on OpenWrt, checked against its bundled mihomo core.
   zh: 生成给 OpenWrt 上 OpenClash 使用的订阅，按它自带的 mihomo 内核检查。
+  ja: "OpenWrtのOpenClash向けのサブスクリプション。同梱のmihomoのコアでチェックします。"

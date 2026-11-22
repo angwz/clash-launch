@@ -1,6 +1,6 @@
 # SukkaW 规则集（ruleset.skk.moe）：提供 Clash 版本的 classical text 列表（non_ip 与 ip 两类）。
 id: sukkaw
-label: {en: Sukka Ruleset, zh: SukkaW 规则集}
+label: {en: Sukka Ruleset, zh: SukkaW 规则集, ja: "Sukkaのルールセット"}
 repo: https://github.com/SukkaW/Surge
 license: AGPL-3.0
 rank: 5
@@ -9,9 +9,10 @@ stars: 4647
 notes:
   en: Clash text lists from ruleset.skk.moe; non_ip lists go before ip lists, as the author recommends.
   zh: 来自 ruleset.skk.moe 的 Clash 文本列表；非 IP 类在前、IP 类在后。
+  ja: "ruleset.skk.moeのClash用テキスト一覧。作者の推奨どおり、non_ipの一覧をipの一覧より前に置きます。"
 variants:
   - id: basic
-    label: {en: Basic, zh: 基础}
+    label: {en: Basic, zh: 基础, ja: "基本"}
     groups-text: |
       [[custom_groups]]
       name = "🚀 节点选择"

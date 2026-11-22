@@ -30,6 +30,7 @@ type DescriptionSet struct {
 	Match string `yaml:"match"`
 	ZH    string `yaml:"zh"`
 	EN    string `yaml:"en"`
+	JA    string `yaml:"ja"`
 	re    *regexp.Regexp
 }
 
@@ -39,7 +40,7 @@ type Description struct {
 	Repo    string            `json:"repo"`
 	License string            `json:"license"`
 	Checked string            `json:"checked"`
-	Text    map[string]string `json:"text"` // en、zh
+	Text    map[string]string `json:"text"` // en、zh、ja
 }
 
 // LoadDescriptions 读取并校验说明目录：字段齐全、正则可编译。
@@ -61,8 +62,8 @@ func LoadDescriptions(fsys fs.FS) (*Descriptions, error) {
 		}
 		for j := range s.Sets {
 			set := &s.Sets[j]
-			if set.ZH == "" || set.EN == "" {
-				return nil, fmt.Errorf("ruleset: 规则集说明 %s#%d 缺少中英文说明", s.ID, j)
+			if set.ZH == "" || set.EN == "" || set.JA == "" {
+				return nil, fmt.Errorf("ruleset: 规则集说明 %s#%d 缺少中、英、日文说明", s.ID, j)
 			}
 			re, err := regexp.Compile(set.Match)
 			if err != nil {
@@ -79,7 +80,7 @@ func (d *Descriptions) Describe(url string) *Description {
 	for _, s := range d.Sources {
 		for _, set := range s.Sets {
 			if set.re.MatchString(url) {
-				return &Description{Source: s.ID, Repo: s.Repo, License: s.License, Checked: s.Checked, Text: map[string]string{"en": set.EN, "zh": set.ZH}}
+				return &Description{Source: s.ID, Repo: s.Repo, License: s.License, Checked: s.Checked, Text: map[string]string{"en": set.EN, "zh": set.ZH, "ja": set.JA}}
 			}
 		}
 	}

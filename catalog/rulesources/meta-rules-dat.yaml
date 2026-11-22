@@ -1,6 +1,6 @@
 # MetaCubeX/meta-rules-dat：mihomo 官方组织的 geosite/geoip 数据与 MRS 规则集（meta 分支的 geo/）。
 id: meta-rules-dat
-label: {en: MetaCubeX meta-rules-dat, zh: MetaCubeX meta-rules-dat}
+label: {en: MetaCubeX meta-rules-dat, zh: MetaCubeX meta-rules-dat, ja: "MetaCubeX meta-rules-dat"}
 repo: https://github.com/MetaCubeX/meta-rules-dat
 license: GPL-3.0
 rank: 4
@@ -8,9 +8,10 @@ checked: "2026-11-09"
 notes:
   en: MRS rule sets built from geosite and geoip; a small template covering common categories.
   zh: 由 geosite 与 geoip 构建的 MRS 规则集；模板覆盖常用分类。
+  ja: "geositeとgeoipから作られたMRSルールセット。よく使う分類を扱う小さなテンプレートです。"
 variants:
   - id: mrs
-    label: {en: MRS categories, zh: MRS 分类}
+    label: {en: MRS categories, zh: MRS 分类, ja: "MRSの分類"}
     groups-text: |
       [[custom_groups]]
       name = "🚀 节点选择"

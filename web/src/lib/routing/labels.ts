@@ -1,6 +1,6 @@
 // 分流页的显示文字：规则名、组类型、出口名。只做显示，不改变任何语义。
 import { i18n, t } from "../i18n/i18n.svelte";
-import { flagOf } from "../regions";
+import { flagOf, regionName } from "../regions";
 import { catalog } from "../catalog.svelte";
 import type { Rule } from "./layout";
 import type { ExitRow } from "./plan";
@@ -33,7 +33,8 @@ const BUILTIN_LABEL: Record<string, string> = { DIRECT: "direct", REJECT: "rejec
 export function exitLabel(e: ExitRow): string {
   if (e.kind === "builtin") return builtinLabel(e.label);
   if (e.kind === "region" && e.label === "?") return t("routing.exit.unknown_region");
-  if (e.kind === "region") return `${flagOf(e.label)} ${catalog.label(e.names) || shortRegion(e.label)}`;
+  // 地区名：服务器的地区表只有中英文，日语用浏览器的 Intl.DisplayNames
+  if (e.kind === "region") return `${flagOf(e.label)} ${(i18n.apiLang === "ja" ? regionName(e.label, i18n.intlLocale) : catalog.label(e.names)) || shortRegion(e.label)}`;
   if (e.kind === "source" && e.label === "?") return t("routing.exit.unknown_source");
   return e.label;
 }

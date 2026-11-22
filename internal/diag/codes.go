@@ -9,9 +9,10 @@ type CodeInfo struct {
 	Severity Severity
 	EN       string
 	ZH       string
+	JA       string // 日语，来自 ja.json；缺译文时为空
 }
 
-// 诊断代码按管线阶段分组登记。新增代码时同时补齐两种语言的消息，
+// 诊断代码按管线阶段分组登记。新增代码时同时补齐中英文消息，并在 ja.json 中加上日语（TestJapaneseMessages 检查），
 // docs/design/diagnostics.md 由测试检查与此表一致。
 var registry = map[Code]CodeInfo{}
 

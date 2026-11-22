@@ -1071,18 +1071,22 @@ func (s *Server) catalogDoc(w http.ResponseWriter, r *http.Request, f func(*cata
 		return
 	}
 	lang := r.URL.Query().Get("lang")
-	if lang != "zh-CN" {
+	if lang != "zh-CN" && lang != "ja" {
 		lang = "en"
 	}
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	writeJSON(w, http.StatusOK, f(s.Svc.Catalog, lang))
 }
 
-// diagnostics 返回全部诊断代码与两种语言的消息（前端渲染诊断用）。
+// diagnostics 返回全部诊断代码与各语言的消息（前端渲染诊断用）；日语缺译文时给英文。
 func (s *Server) diagnostics(w http.ResponseWriter, _ *http.Request) {
 	out := map[string]map[string]string{}
 	for code, info := range diag.All() {
-		out[string(code)] = map[string]string{"severity": string(info.Severity), "en": info.EN, "zh-CN": info.ZH}
+		ja := info.JA
+		if ja == "" {
+			ja = info.EN
+		}
+		out[string(code)] = map[string]string{"severity": string(info.Severity), "en": info.EN, "zh-CN": info.ZH, "ja": ja}
 	}
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	writeJSON(w, http.StatusOK, out)

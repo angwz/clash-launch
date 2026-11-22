@@ -1,7 +1,7 @@
 # Loyalsoldier/clash-rules：只提供规则文件。rule-providers 与 rules 按官方 README 的「白名单模式」生成；
 # 策略组模板由本项目提供（README 只要求存在名为 PROXY 的策略）。注意 .txt 文件的内容是 YAML payload。
 id: loyalsoldier
-label: {en: Loyalsoldier clash-rules, zh: Loyalsoldier clash-rules}
+label: {en: Loyalsoldier clash-rules, zh: Loyalsoldier clash-rules, ja: "Loyalsoldier clash-rules"}
 repo: https://github.com/Loyalsoldier/clash-rules
 license: GPL-3.0
 rank: 2
@@ -10,9 +10,10 @@ stars: 29199
 notes:
   en: Whitelist mode from the official README; edit the groups template to taste.
   zh: 采用官方 README 的白名单模式；策略组模板可以自行修改。
+  ja: "公式READMEのホワイトリストモード。グループのテンプレートは好みに合わせて編集してください。"
 variants:
   - id: whitelist
-    label: {en: Whitelist mode, zh: 白名单模式}
+    label: {en: Whitelist mode, zh: 白名单模式, ja: "ホワイトリストモード"}
     groups-text: |
       [[custom_groups]]
       name = "PROXY"

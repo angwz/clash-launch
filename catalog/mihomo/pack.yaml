@@ -97,48 +97,58 @@ nav:
   - id: general
     zh: 常规
     en: General
+    ja: 一般
     keys: [mode, log-level, ipv6, unified-delay, find-process-mode, tcp-concurrent, interface-name, routing-mark,
            disable-keep-alive, keep-alive-idle, keep-alive-interval, global-client-fingerprint, global-ua, etag-support,
            hosts, profile, experimental]
   - id: inbound
     zh: 入站
     en: Inbound
+    ja: 入口
     keys: [mixed-port, port, socks-port, redir-port, tproxy-port, inbound-tfo, inbound-mptcp, allow-lan, bind-address,
            authentication, skip-auth-prefixes, lan-allowed-ips, lan-disallowed-ips, listeners, tunnels,
            ss-config, vmess-config, tuic-server]
   - id: controller
     zh: 控制面板
     en: Controller
+    ja: コントローラー
     keys: [external-controller, secret, external-controller-tls, tls, external-controller-cors, external-controller-unix,
            external-controller-pipe, external-controller-routing-mark, external-ui, external-ui-name, external-ui-url,
            external-doh-server]
   - id: dns
     zh: DNS
     en: DNS
+    ja: DNS
     keys: [dns]
   - id: tun
     zh: TUN
     en: TUN
+    ja: TUN
     keys: [tun]
   - id: sniffer
     zh: 域名嗅探
     en: Sniffer
+    ja: スニッファー
     keys: [sniffer]
   - id: geo
     zh: 地理数据
     en: Geodata
+    ja: 地理データ
     keys: [geox-url, geo-auto-update, geo-update-interval, geodata-mode, geodata-loader, geosite-matcher]
   - id: proxies
     zh: 节点与策略组
     en: Proxies & groups
+    ja: プロキシとグループ
     generated: sources
     keys: [proxies, proxy-groups, proxy-providers]
   - id: rules
     zh: 规则
     en: Rules
+    ja: ルール
     generated: rules
     keys: [rules, rule-providers, sub-rules]
   - id: platform
     zh: 平台
     en: Platform
+    ja: プラットフォーム
     keys: [ntp, iptables, clash-for-android]

@@ -139,14 +139,14 @@ func TestNavCoversTopLevel(t *testing.T) {
 	}
 	top := map[string]*catalog.Field{"a": {}, "b": {}}
 	sec := func(id string, keys ...string) catalog.NavSection {
-		return catalog.NavSection{ID: id, ZH: id, EN: id, Keys: keys}
+		return catalog.NavSection{ID: id, ZH: id, EN: id, JA: id, Keys: keys}
 	}
 	cases := map[string][]catalog.NavSection{
 		"缺少 b":         {sec("x", "a")},
 		"重复的键":         {sec("x", "a", "b"), sec("y", "a")},
 		"未知键":          {sec("x", "a", "b", "c")},
 		"重复的分节":        {sec("x", "a"), sec("x", "b")},
-		"非法 generated": {{ID: "x", ZH: "x", EN: "x", Generated: "nodes", Keys: []string{"a", "b"}}},
+		"非法 generated": {{ID: "x", ZH: "x", EN: "x", JA: "x", Generated: "nodes", Keys: []string{"a", "b"}}},
 	}
 	for name, nav := range cases {
 		if err := catalog.CheckNav(nav, top); err == nil {
@@ -155,5 +155,24 @@ func TestNavCoversTopLevel(t *testing.T) {
 	}
 	if err := catalog.CheckNav([]catalog.NavSection{sec("x", "a"), sec("y", "b")}, top); err != nil {
 		t.Errorf("合法分节报错：%v", err)
+	}
+}
+
+// 日语译文（R37b）：每条英文消息都有译文，译文表里没有已不再使用的原文；译文保留占位符与配置键名。
+func TestJapaneseCoverage(t *testing.T) {
+	c := load(t)
+	missing, stale := c.JACoverage()
+	if len(missing) > 0 {
+		t.Errorf("缺少日语译文 %d 条（catalog/mihomo/ja.json），例如：%q", len(missing), missing[:min(5, len(missing))])
+	}
+	if len(stale) > 0 {
+		t.Errorf("ja.json 中有 %d 条原文已不再使用（英文改过后应同时更新译文），例如：%q", len(stale), stale[:min(5, len(stale))])
+	}
+	en, ja := c.Messages("en"), c.Messages("ja")
+	if len(en) != len(ja) {
+		t.Fatalf("日语消息数 %d 与英文 %d 不同", len(ja), len(en))
+	}
+	if ja["catalog.dns.title"] != "DNS" || ja["catalog.allow-lan.title"] == en["catalog.allow-lan.title"] {
+		t.Errorf("日语消息未生效：%q", ja["catalog.allow-lan.title"])
 	}
 }

@@ -36,9 +36,9 @@ class I18n {
     return this.locale === "ar-XB" ? "rtl" : "ltr";
   }
 
-  /** 后端只认识 en 与 zh-CN（目录说明与诊断消息）；日语界面用英文。 */
-  get apiLang(): "en" | "zh-CN" {
-    return this.locale === "zh-CN" ? "zh-CN" : "en";
+  /** 目录说明与诊断消息的语言（后端提供 en、zh-CN、ja；R37b）。伪本地化用英文。 */
+  get apiLang(): "en" | "zh-CN" | "ja" {
+    return this.locale === "zh-CN" || this.locale === "ja" ? this.locale : "en";
   }
 
   async set(locale: Locale, persist = true): Promise<void> {

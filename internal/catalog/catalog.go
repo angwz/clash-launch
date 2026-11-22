@@ -9,10 +9,13 @@ package catalog
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -150,6 +153,7 @@ type NavSection struct {
 	ID        string   `yaml:"id" json:"id"`
 	ZH        string   `yaml:"zh" json:"zh"`
 	EN        string   `yaml:"en" json:"en"`
+	JA        string   `yaml:"ja" json:"ja"`
 	Generated string   `yaml:"generated,omitempty" json:"generated,omitempty"` // sources | rules
 	Keys      []string `yaml:"keys" json:"keys"`
 }
@@ -164,6 +168,9 @@ type Catalog struct {
 	Pack Pack
 	Root *Field // 伪字段：顶层映射，Fields 按 Pack.Order 排列
 	all  []*Field
+	// ja 是日语译文（R37b）：英文原文 → 日语，来自 <pack>/ja.json。
+	// 以英文原文为键而不是消息键：英文改动后旧译文自然失配（测试报告缺失与多余），不会悄悄显示过期的意思。
+	ja map[string]string
 }
 
 // Load 从文件系统（通常是嵌入的 catalog/<pack>/）加载目录并做结构校验。
@@ -218,7 +225,37 @@ func Load(fsys fs.FS, dir string) (*Catalog, error) {
 	if err := l.object(root, ""); err != nil {
 		return nil, err
 	}
+	// 日语译文可选：没有该文件的格式包在日语界面下显示英文
+	if b, err := fs.ReadFile(fsys, path.Join(dir, "ja.json")); err == nil {
+		if err := json.Unmarshal(b, &c.ja); err != nil {
+			return nil, fmt.Errorf("catalog: 解析 %s: %w", path.Join(dir, "ja.json"), err)
+		}
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("catalog: 读取 ja.json: %w", err)
+	}
 	return c, nil
+}
+
+// JACoverage 报告日语译文的覆盖情况：missing 是没有译文的英文原文，stale 是译文表中已不再使用的原文。
+// 两者都按字典序排列；测试要求都为空。
+func (c *Catalog) JACoverage() (missing, stale []string) {
+	used := map[string]bool{}
+	for _, v := range c.Messages("en") {
+		used[v] = true
+	}
+	for v := range used {
+		if _, ok := c.ja[v]; !ok {
+			missing = append(missing, v)
+		}
+	}
+	for v := range c.ja {
+		if !used[v] {
+			stale = append(stale, v)
+		}
+	}
+	sort.Strings(missing)
+	sort.Strings(stale)
+	return missing, stale
 }
 
 // checkNav 校验分节：ID 唯一、标题齐全、generated 取值合法，每个顶层键恰好出现一次。
@@ -226,7 +263,7 @@ func checkNav(nav []NavSection, top map[string]*Field) error {
 	ids := map[string]bool{}
 	where := map[string]string{}
 	for _, s := range nav {
-		if s.ID == "" || s.ZH == "" || s.EN == "" || len(s.Keys) == 0 {
+		if s.ID == "" || s.ZH == "" || s.EN == "" || s.JA == "" || len(s.Keys) == 0 {
 			return fmt.Errorf("catalog: 分节 %q 缺少 id、标题或 keys", s.ID)
 		}
 		if ids[s.ID] {

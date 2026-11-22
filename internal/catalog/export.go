@@ -132,9 +132,19 @@ func jsonable(v any) any {
 	return v
 }
 
-// Messages 返回 i18n 源消息：键 → 文本。lang 为 "en" 或 "zh-CN"。
+// Messages 返回 i18n 源消息：键 → 文本。lang 为 "en"、"zh-CN" 或 "ja"。
 // 键的形式：catalog.<id>.title / .summary / .detail / .enum.<值> / .example.<序号>。
+// 日语由英文消息逐条查译文表得到，缺译文的条目保留英文。
 func (c *Catalog) Messages(lang string) map[string]string {
+	if lang == "ja" {
+		out := c.Messages("en")
+		for k, v := range out {
+			if j, ok := c.ja[v]; ok {
+				out[k] = j
+			}
+		}
+		return out
+	}
 	out := map[string]string{}
 	pick := func(f *Field) []string {
 		if lang == "zh-CN" {

@@ -4781,7 +4781,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
+                    /** @description 目录说明与诊断消息的语言；日语缺译文的条目给英文（R37b） */
                     lang?: components["parameters"]["lang"];
                 };
                 header?: never;
@@ -4820,7 +4820,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
+                    /** @description 目录说明与诊断消息的语言；日语缺译文的条目给英文（R37b） */
                     lang?: components["parameters"]["lang"];
                 };
                 header?: never;
@@ -8465,8 +8465,8 @@ export interface components {
         ifMatch: string;
         cursor: string;
         limit: number;
-        /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
-        lang: "en" | "zh-CN";
+        /** @description 目录说明与诊断消息的语言；日语缺译文的条目给英文（R37b） */
+        lang: "en" | "zh-CN" | "ja";
     };
     requestBodies: never;
     headers: never;
