@@ -4781,6 +4781,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
                     lang?: components["parameters"]["lang"];
                 };
                 header?: never;
@@ -4819,6 +4820,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
                     lang?: components["parameters"]["lang"];
                 };
                 header?: never;
@@ -5356,6 +5358,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            facets: {
+                                region: components["schemas"]["Facet"][];
+                                source: components["schemas"]["Facet"][];
+                                protocol: components["schemas"]["Facet"][];
+                                tags: components["schemas"]["Facet"][];
+                            };
                             groups: {
                                 name: string;
                                 type: string;
@@ -7693,6 +7701,10 @@ export interface components {
             detail?: string;
             diagnostics?: components["schemas"]["Diagnostic"][];
         };
+        Facet: {
+            value: string;
+            count: number;
+        };
         Diagnostic: {
             code: string;
             /** @enum {string} */
@@ -8453,6 +8465,7 @@ export interface components {
         ifMatch: string;
         cursor: string;
         limit: number;
+        /** @description 目录说明与诊断消息只有中英两种；日语界面请求英文（R37） */
         lang: "en" | "zh-CN";
     };
     requestBodies: never;

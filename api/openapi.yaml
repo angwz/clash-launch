@@ -51,6 +51,12 @@ components:
         status: {type: integer}
         detail: {type: string}
         diagnostics: {type: array, items: {$ref: '#/components/schemas/Diagnostic'}}
+    Facet:
+      type: object
+      required: [value, count]
+      properties:
+        value: {type: string}
+        count: {type: integer}
     Diagnostic:
       type: object
       required: [code, severity]
@@ -1580,8 +1586,16 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [groups, rules, nodes, diagnostics]
+                required: [groups, rules, nodes, diagnostics, facets]
                 properties:
+                  facets:
+                    type: object
+                    required: [region, source, protocol, tags]
+                    properties:
+                      region: {type: array, items: {$ref: '#/components/schemas/Facet'}}
+                      source: {type: array, items: {$ref: '#/components/schemas/Facet'}}
+                      protocol: {type: array, items: {$ref: '#/components/schemas/Facet'}}
+                      tags: {type: array, items: {$ref: '#/components/schemas/Facet'}}
                   groups: {type: array, items: {type: object, required: [name, type, members], properties: {name: {type: string}, type: {type: string}, members: {type: array, items: {type: string}}, use: {type: array, items: {type: string}}, filter: {type: string}}}}
                   rules: {type: integer}
                   nodes: {type: integer}

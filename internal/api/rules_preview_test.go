@@ -83,3 +83,36 @@ func TestRuleSourcePreview(t *testing.T) {
 		t.Errorf("ini：%+v", r)
 	}
 }
+
+// 预览附带节点属性汇总（选择器标签编辑器的候选）：按节点数从多到少。
+func TestRuleSourcePreviewFacets(t *testing.T) {
+	h := newHarness(t, nil)
+	c, _ := h.setup()
+	type facet struct {
+		Value string `json:"value"`
+		Count int    `json:"count"`
+	}
+	r := decode[struct {
+		Nodes  int `json:"nodes"`
+		Facets struct {
+			Region   []facet `json:"region"`
+			Source   []facet `json:"source"`
+			Protocol []facet `json:"protocol"`
+			Tags     []facet `json:"tags"`
+		} `json:"facets"`
+	}](t, c.want(200, "POST", "/api/v1/rule-sources/preview", map[string]any{"kind": "toml", "groupsText": groupsToml, "rulesetsText": rulesetsToml}))
+	total := 0
+	for _, f := range r.Facets.Protocol {
+		total += f.Count
+	}
+	if r.Nodes == 0 || total != r.Nodes || len(r.Facets.Source) == 0 || r.Facets.Tags == nil {
+		t.Fatalf("属性汇总：%+v", r)
+	}
+	codes := map[string]bool{}
+	for _, f := range r.Facets.Region {
+		codes[f.Value] = true
+	}
+	if !codes["HK"] || !codes["JP"] {
+		t.Errorf("地区应含 HK 与 JP：%+v", r.Facets.Region)
+	}
+}

@@ -40,6 +40,9 @@ const dynamic: Record<string, string[]> = {
   "invite.": ["active", "used", "expired", "revoked"],
   "palette.kind.": ["page", "field", "command", "profile", "source", "rule", "node", "short", "friend"],
   "mode.": ["inline", "provider"],
+  // 选择条件编辑器（components/rules/SelectEditor.svelte，lib/toml-select.ts 的 LIST_KEYS 与 SORTS）
+  "rules.sel_": ["region", "source", "protocol", "tags"],
+  "rules.sel_sort_": ["source", "name", "rate"],
   // 公告的状态（components/admin/AnnouncementsPanel.svelte）
   "announce.state_": ["active", "scheduled", "ended"],
   // 强调色（lib/accents.ts 的 ACCENTS）

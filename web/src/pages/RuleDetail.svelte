@@ -1,10 +1,11 @@
 <script lang="ts">
   // 规则源详情：地址或粘贴的文本（toml / ini）。文本用代码编辑器（高亮、行内诊断），
-  // 下方是策略组预览：用一份配置或全部节点源的节点展开正在编辑的规则（O2）。
+  // toml 有选择条件标签编辑器（改写 groups.toml 中某组的 select 表），下方是策略组预览：用一份配置或全部节点源的节点展开正在编辑的规则（O2）。
   import { untrack } from "svelte";
   import RuleHostsHint from "../components/RuleHostsHint.svelte";
   import RulesCode from "../components/rules/RulesCode.svelte";
   import GroupPreview from "../components/rules/GroupPreview.svelte";
+  import SelectEditor from "../components/rules/SelectEditor.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { catalog } from "../lib/catalog.svelte";
   import { listAll, type Profile } from "../lib/api/client";
@@ -37,6 +38,7 @@
     rules: number;
     nodes: number;
     diagnostics: Located[];
+    facets: Record<"region" | "source" | "protocol" | "tags", { value: string; count: number }[]>;
   }
   let preview = $state<Preview | null>(null);
   let previewError = $state("");
@@ -189,6 +191,11 @@
         </div>
       {/if}
     </div>
+
+    {#if rs.kind === "toml"}
+      <!-- 选择条件标签（O2）：改写上方 groups.toml 的原文，预览随之更新 -->
+      <SelectEditor bind:value={rs.groupsText} groups={preview?.groups ?? []} facets={preview?.facets} />
+    {/if}
 
     <section class="preview" aria-labelledby="rd-pv">
       <div class="pv-head">

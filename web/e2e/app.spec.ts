@@ -1488,29 +1488,46 @@ test("注销账号：需要确认与当前密码，最后一个管理员不能�
   expect(problems.filter((p) => !p.includes("409"))).toEqual([]);
 });
 
-test("规则源编辑器：高亮编辑、策略组预览与带行号的问题（O2）", async ({ page, request, baseURL }) => {
+test("规则源编辑器：高亮编辑、策略组预览、带行号的问题与选择条件标签（O2）", async ({ page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
   const problems = watch(page);
   const { call } = await seedProfile(request, baseURL!, "规则预览");
-  const groups = '[[custom_groups]]\nname = "代理"\ntype = "select"\nrule = ["[]DIRECT", ".*"]\n';
+  const groups = '[[custom_groups]]\nname = "代理"\ntype = "select"\nrule = ["[]DIRECT", ".*"]\n[[custom_groups]]\nname = "香港"\ntype = "select"\nrule = ["[]DIRECT"]\n';
   const rulesets = '[[rulesets]]\ngroup = "代理"\nruleset = "[]MATCH"\n';
   const rs = await call<{ id: string }>("POST", "/api/v1/rule-sources", { name: "预览测试 " + Date.now(), kind: "toml", groupsText: groups, rulesetsText: rulesets });
   await login(page);
   await page.goto("/rules/" + rs.id);
   const pv = page.locator("section", { has: page.getByRole("heading", { name: "策略组预览" }) });
-  await expect(pv.getByText(/1个策略组、1条规则/)).toBeVisible();
+  await expect(pv.getByText(/2个策略组、1条规则/)).toBeVisible();
   await expect(pv.getByText("代理", { exact: true })).toBeVisible();
-  await expect(pv.locator("li[data-kind=builtin]", { hasText: "DIRECT" })).toBeVisible();
+  await expect(pv.locator("li[data-kind=builtin]", { hasText: "DIRECT" }).first()).toBeVisible();
   await expect(pv.locator("li[data-kind=node]").first()).toBeVisible();
 
-  // 在 groups 编辑器末尾追加一个缺少 name 的组：问题列表指向它所在的第 5 行（保存的文本末尾没有换行）
+  // 在 groups 编辑器末尾追加一个缺少 name 的组：问题列表指向它所在的第 9 行（保存的文本末尾没有换行）
   const editor = page.locator("#rd-gt .cm-content");
   await editor.click();
   await page.keyboard.press("Control+End");
   await page.keyboard.insertText('\n[[custom_groups]]\ntype = "select"\nrule = [".*"]\n');
-  await expect(pv.getByRole("list", { name: "问题" })).toContainText("groups.toml:5");
+  await expect(pv.getByRole("list", { name: "问题" })).toContainText("groups.toml:9");
   await pv.getByRole("list", { name: "问题" }).getByRole("button").first().click();
   await expect(page.locator("#rd-gt .cm-activeLine")).toContainText("[[custom_groups]]");
+
+  // 选择条件标签：用这份配置的两个节点预览；给「香港」组点选地区 HK，写回 groups.toml 的 select 表，
+  // 该组的节点只有香港 01；移除标签后 select 表整个删除
+  await pv.getByRole("combobox").selectOption({ label: "规则预览" });
+  const sel = page.locator("section", { has: page.getByRole("heading", { name: "选择条件" }) });
+  await sel.getByRole("combobox").first().selectOption({ label: "香港" });
+  const hits = sel.getByRole("complementary", { name: "该组的节点" });
+  await expect(hits).toContainText("（0个）");
+  const region = sel.locator("fieldset", { has: page.locator("legend", { hasText: /^地区$/ }) }).first();
+  await region.getByRole("button", { name: /🇭🇰/ }).click();
+  await expect(editor).toContainText('[custom_groups.select]region = ["HK"]');
+  await expect(hits).toContainText("香港 01");
+  await expect(hits).not.toContainText("日本");
+  await expect(hits).toContainText("（1个）");
+  await region.getByRole("button", { name: "移除HK" }).click();
+  await expect(editor).not.toContainText("custom_groups.select");
+  await expect(hits).toContainText("（0个）");
   expect(problems).toEqual([]);
 });
 

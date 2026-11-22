@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/angwz/clash-launch/internal/diag"
 	"github.com/angwz/clash-launch/internal/engine"
+	"github.com/angwz/clash-launch/internal/node"
 	"github.com/angwz/clash-launch/internal/profile"
 	"github.com/angwz/clash-launch/internal/store"
 	"github.com/angwz/clash-launch/internal/yamlx"
@@ -55,6 +57,60 @@ type RulesPreview struct {
 	Rules       int                 `json:"rules"`
 	Nodes       int                 `json:"nodes"`
 	Diagnostics []LocatedDiagnostic `json:"diagnostics"`
+	// Facets 是这批节点上出现过的属性值，供选择器标签编辑器给出候选（规范第 6.4 节）
+	Facets Facets `json:"facets"`
+}
+
+// Facets 按 [custom_groups.select] 的键汇总节点属性；每项按节点数从多到少、同数按值排序。
+type Facets struct {
+	Region   []Facet `json:"region"`
+	Source   []Facet `json:"source"`
+	Protocol []Facet `json:"protocol"`
+	Tags     []Facet `json:"tags"`
+}
+
+// Facet 是一个属性值与拥有它的节点数。
+type Facet struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
+// facets 汇总节点属性。地区代码为空（未识别）的节点不计入地区；标签按节点去重计数。
+func facets(nodes []*node.Node) Facets {
+	region, source, protocol, tags := map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
+	for _, n := range nodes {
+		if n.Region.Code != "" {
+			region[n.Region.Code]++
+		}
+		if n.SourceName != "" {
+			source[n.SourceName]++
+		}
+		if n.Type != "" {
+			protocol[n.Type]++
+		}
+		seen := map[string]bool{}
+		for _, t := range n.Tags {
+			if !seen[t] {
+				seen[t] = true
+				tags[t]++
+			}
+		}
+	}
+	return Facets{Region: facetList(region), Source: facetList(source), Protocol: facetList(protocol), Tags: facetList(tags)}
+}
+
+func facetList(m map[string]int) []Facet {
+	out := make([]Facet, 0, len(m))
+	for v, n := range m {
+		out = append(out, Facet{Value: v, Count: n})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Count != out[j].Count {
+			return out[i].Count > out[j].Count
+		}
+		return out[i].Value < out[j].Value
+	})
+	return out
 }
 
 // PreviewRules 预览一份（可能尚未保存的）规则源。
@@ -109,7 +165,7 @@ func (s *Service) PreviewRules(ctx context.Context, owner string, in RulesPrevie
 	bi.Rules = ri
 	built := engine.Build(bi)
 
-	res := &RulesPreview{Groups: []PreviewGroup{}, Nodes: len(built.Nodes), Diagnostics: []LocatedDiagnostic{}}
+	res := &RulesPreview{Groups: []PreviewGroup{}, Nodes: len(built.Nodes), Diagnostics: []LocatedDiagnostic{}, Facets: facets(built.Nodes)}
 	if gs := yamlx.Get(built.Generated, "proxy-groups"); gs != nil {
 		for _, g := range gs.Content {
 			pg := PreviewGroup{Name: scalar(g, "name"), Type: scalar(g, "type"), Members: strs(yamlx.Get(g, "proxies")), Filter: scalar(g, "filter")}
