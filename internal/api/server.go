@@ -39,6 +39,11 @@ type Config struct {
 
 // Server 是 HTTP 服务。
 type Server struct {
+	// 访客试用（R44）：示例环境与以它为数据的另一个 Server；nil 表示未开启
+	demo      *service.Demo
+	demoSrv   *Server
+	demoLimit *limiter
+
 	Svc     *service.Service
 	Cfg     Config
 	Log     *slog.Logger
@@ -398,10 +403,10 @@ func (s *Server) renderAllowed(w http.ResponseWriter, p *principal, check bool) 
 		return true
 	}
 	now := time.Now()
-	ok, wait := s.renderLimit.allow(p.User.ID, now)
+	ok, wait := s.renderLimit.allow(p.limitID(), now)
 	code := "rate_limited"
 	if ok && check {
-		ok, wait = s.checkLimit.allow(p.User.ID, now)
+		ok, wait = s.checkLimit.allow(p.limitID(), now)
 		code = "rate_limited.check"
 	}
 	if !ok {

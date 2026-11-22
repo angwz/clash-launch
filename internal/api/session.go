@@ -23,6 +23,16 @@ type principal struct {
 	Session *store.Session
 	// Token 非空表示请求用个人访问令牌认证（需求 R25）；此时 Session 是空值，没有 CSRF 令牌
 	Token *store.AccessToken
+	// limitKey 非空时代替用户 ID 作为预览与追踪限流的键（访客试用按 IP 计，R44）
+	limitKey string
+}
+
+// limitID 是预览、内核检查与追踪限流的键。
+func (p *principal) limitID() string {
+	if p.limitKey != "" {
+		return p.limitKey
+	}
+	return p.User.ID
 }
 
 func (s *Server) cookieName(r *http.Request) string {

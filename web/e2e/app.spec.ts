@@ -1760,3 +1760,46 @@ test("强调色、安装为应用、更新日志与站内公告（R28、R29、R2
   for (const a of all.items.filter((x) => x.text === text)) await call("DELETE", "/api/v1/admin/announcements/" + a.id);
   expect(problems).toEqual([]);
 });
+
+test("访客试用：不登录打开示例配置，可以修改、预览与看分流图，修改不保存（R44）", async ({ browser, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const ctx = await browser.newContext({ baseURL, locale: "zh-CN" }); // 全新的浏览器上下文：没有登录
+  const page = await ctx.newPage();
+  const problems = watch(page);
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (r.method() !== "GET" && !/\/api\/v1\/demo\/profiles\/[^/]+\/(preview|absorb|routing\/)/.test(r.url())) writes.push(r.method() + " " + r.url());
+  });
+  await page.goto("/login");
+  await page.getByRole("link", { name: "先试一试" }).click();
+  await expect(page).toHaveURL(/\/try$/);
+  await expect(page.getByText("试用：这是一份示例配置")).toBeVisible();
+  await page.locator("#editor-main").waitFor();
+  await expect(page.locator("nav.secnav .pname")).toHaveText("示例配置");
+  await expect(page.locator("nav.secnav .plink")).toHaveCount(0); // 没有配置链接
+  // 设计理念（用户协议的第一节）
+  await page.getByRole("button", { name: "设计理念" }).click();
+  await expect(page.getByRole("dialog", { name: "设计理念" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // 改一个设置：预览随之变化
+  await page.locator("nav.secnav").getByRole("button", { name: /入站/ }).click();
+  const port = page.locator("#ctl-mixed-port");
+  await port.fill("7899");
+  await port.press("Enter");
+  await page.getByRole("button", { name: /预览/ }).first().click();
+  await expect(page.locator(".yaml").first()).toContainText("mixed-port: 7899");
+
+  // 分流图
+  await page.locator("nav.secnav").getByRole("button", { name: "分流", exact: true }).click();
+  await expect(page.getByText("🎬 流媒体").first()).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-try.png" });
+
+  // 刷新后恢复：没有保存
+  await page.reload();
+  await page.locator("nav.secnav").getByRole("button", { name: /入站/ }).click();
+  await expect(page.locator("#ctl-mixed-port")).toHaveValue("7890");
+  expect(writes).toEqual([]);
+  expect(problems).toEqual([]);
+  await ctx.close();
+});

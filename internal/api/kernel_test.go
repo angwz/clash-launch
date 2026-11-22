@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/angwz/clash-launch/internal/kernel"
+	"github.com/angwz/clash-launch/internal/service"
 )
 
 func mihomoPaths(t *testing.T) (string, string) {
@@ -157,4 +158,24 @@ func loadAndListen(t *testing.T, bin, geo string, body []byte, port int) {
 		time.Sleep(200 * time.Millisecond)
 	}
 	t.Fatal("mihomo 没有在 mixed-port 上开始监听")
+}
+
+// TestKernelDemoConfig：访客试用的示例配置（R44）能通过 mihomo 检查。试用时不做检查，示例本身必须有效。
+func TestKernelDemoConfig(t *testing.T) {
+	bin, geo := mihomoPaths(t)
+	h := newHarness(t, kernel.NewChecker(bin, geo, 1))
+	d, err := service.NewDemo(context.Background(), h.svc, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = d.Close() })
+	d.Svc.Kernel = h.svc.Kernel // 只在测试里给示例环境配上内核
+	p, err := d.Svc.Store.Profiles().Get(context.Background(), d.User.ID, d.ProfileID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := d.Svc.Render(context.Background(), d.User.ID, p.Doc, p.UpdatedAt, true)
+	if err != nil || res.Fatal != "" || res.Kernel.Status != kernel.Passed {
+		t.Fatalf("示例配置应通过检查：%v %s %+v", err, res.Fatal, res.Kernel)
+	}
 }

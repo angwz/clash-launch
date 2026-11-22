@@ -10,8 +10,8 @@ test("无障碍：主要页面没有 axe 能发现的 WCAG 2.1 A/AA 问题", asy
   test.skip(test.info().project.name === "mobile", "桌面已覆盖全部页面；手机布局的差异由其他 e2e 检查");
   test.setTimeout(240_000);
   const { profile, source } = await seedProfile(request, baseURL!, "无障碍");
-  const anon = ["/login", "/register", "/terms"];
-  const authed = ["/", `/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}/links`, `/profiles/${profile}/history`, `/sources`, `/sources/${source}`, "/rules", "/short-links", "/analytics", "/settings", "/account", "/admin", "/help", "/help?tab=wiki"];
+  const anon = ["/login", "/register", "/terms", "/try", "/try?section=routing"];
+  const authed = ["/", `/profiles/${profile}`, `/profiles/${profile}?section=dns`, `/profiles/${profile}?section=routing`, `/profiles/${profile}/links`, `/profiles/${profile}/history`, `/sources`, `/sources/${source}`, "/rules", "/short-links", "/analytics", "/settings", "/account", "/admin", "/help", "/help?tab=wiki"];
   const found: string[] = [];
   const scan = async (path: string, scheme: "light" | "dark") => {
     await page.emulateMedia({ colorScheme: scheme });

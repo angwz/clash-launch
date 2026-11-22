@@ -55,7 +55,19 @@ interface Options {
   keepalive?: boolean;
 }
 
+/**
+ * 访客试用（需求 R44）：开启后，编辑器与分流页发出的 /api/v1/... 请求改到 /api/v1/demo/...，
+ * 由服务器上与正式数据隔离的示例环境处理。字段目录、诊断说明与用户协议是公开的，照常请求。
+ */
+export const demoMode = { on: false };
+
+function demoPath(path: string): string {
+  if (!demoMode.on || !path.startsWith("/api/v1/") || /^\/api\/v1\/(demo|catalog|diagnostics|terms)(\/|$|\?)/.test(path)) return path;
+  return "/api/v1/demo" + path.slice("/api/v1".length);
+}
+
 export async function request<T>(method: Method, path: string, opts: Options = {}): Promise<T> {
+  path = demoPath(path);
   const headers: Record<string, string> = { Accept: "application/json" };
   // Blob（如上传的图片）原样发送，类型取自文件本身；其余按 JSON 编码
   const raw = opts.body instanceof Blob ? opts.body : undefined;

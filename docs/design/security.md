@@ -101,6 +101,7 @@
 | B11 | 命令面板的搜索索引只含本人的数据（名称与 ID，不含内容、地址或凭据）；回收站中的对话与已注销的账号不出现；个人访问令牌不能读取（索引含消息联系人） | `TestSearchIndex` | API |
 | B12 | 上传的头像先按尺寸拒绝（至多 2 MiB、4000 万像素，防解压炸弹）再解码，裁剪缩放后重新编码为 PNG 或 JPEG（去掉 EXIF 等附加数据）；类型由服务器决定，响应带 `nosniff` 与 `default-src 'none'`；读取需要登录 | `TestAvatars`、`TestSquareResize` | API / 单元 |
 | B13 | 站内公告只有管理员能发布、修改与删除（普通用户访问管理接口得到 404）；正文是纯文字，界面按文字显示，不解析 HTML 或 Markdown；关闭记录只属于本人 | `TestAnnouncements`、`TestOwnerIsolationAllRoutes` | API |
+| B14 | 访客试用由独立的示例环境处理（临时目录中的另一个数据库，只有示例数据），访客的请求碰不到正式数据；试用接口没有写入，POST 只接受同源请求并按 IP 限流；示例用户不能登录；用别人的真实配置 ID 访问试用接口得到 404 | `TestDemo`、`TestOwnerIsolationAllRoutes` | API |
 
 ### Web 安全
 

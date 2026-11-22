@@ -11,6 +11,12 @@
   const canPasskey = passkeysSupported();
 
   let username = $state("");
+  // 访客试用（R44）：站点开启了才显示入口
+  let canTry = $state(false);
+  api.get("/api/v1/demo").then(
+    () => (canTry = true),
+    () => undefined,
+  );
   let password = $state("");
   let code = $state("");
   let challenge = $state<MFAChallenge | null>(null);
@@ -99,6 +105,9 @@
       {/if}
       {#if canRegister}
         <p class="alt">{t("login.no_account")} <a href="/register">{t("login.register")}</a></p>
+      {/if}
+      {#if canTry}
+        <p class="alt"><a href="/try" title={t("try.link_hint")}>{t("try.link")}</a></p>
       {/if}
     </form>
   </AuthLayout>

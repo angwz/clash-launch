@@ -35,6 +35,8 @@ export class EditorState {
   /** 鼠标悬停或键盘聚焦所在的字段路径，预览据此高亮对应行（反馈 #28）。 */
   hover = $state("");
   doc: ProfileDoc | null = null;
+  /** 只读（访客试用，R44）：可以编辑、预览，但不保存，也不做内核检查 */
+  readonly = false;
 
   #timer: ReturnType<typeof setTimeout> | undefined;
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -54,7 +56,7 @@ export class EditorState {
     this.sources = sources;
     this.ruleSources = rules;
     this.#adopt(p);
-    void this.runPreview(prefs.data.autoCheck !== false); // 打开时也自动检查（反馈 #64）
+    void this.runPreview(!this.readonly && prefs.data.autoCheck !== false); // 打开时也自动检查（反馈 #64）
   }
 
   #adopt(p: Profile): void {
@@ -197,6 +199,7 @@ export class EditorState {
   /** manual：用户主动点击「检查」。只有主动检查通过时才弹出庆祝提示，自动检查只更新顶栏状态。 */
   async runPreview(kernel: boolean, manual = false): Promise<void> {
     if (!this.profile) return;
+    if (this.readonly) kernel = false; // 试用不做内核检查（服务器上的示例环境没有配置内核）
     this.#abort?.abort();
     const ac = new AbortController();
     this.#abort = ac;
@@ -248,7 +251,7 @@ export class EditorState {
    */
   async save(opts: { undoable?: boolean } = {}): Promise<boolean> {
     clearTimeout(this.#saveTimer);
-    if (!this.profile || !this.dirty) return true;
+    if (this.readonly || !this.profile || !this.dirty) return true;
     if (this.saving) {
       this.#saveQueued = true;
       return true;

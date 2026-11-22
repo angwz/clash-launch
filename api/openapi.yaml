@@ -12,6 +12,7 @@ tags:
   - {name: subscription, description: 客户端使用的订阅端点}
   - {name: session}
   - {name: catalog}
+  - {name: demo, description: 访客试用（需求 R44）：不需要登录的只读示例}
   - {name: sources}
   - {name: rule-sources}
   - {name: profiles}
@@ -1102,6 +1103,69 @@ paths:
       security: [{session: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string}}]
       responses: {'200': {description: image/png 或 image/jpeg}, '404': {description: 没有上传的头像}}
+  /api/v1/demo:
+    get:
+      tags: [demo]
+      summary: 访客试用（需求 R44）：示例配置的 ID；未开启时 404。试用接口不需要登录，只接受同源请求、按 IP 限流，由与正式数据隔离的示例环境处理
+      responses: {'200': {description: ok}, '404': {description: 未开启}}
+  /api/v1/demo/profiles/{id}:
+    get:
+      tags: [demo]
+      summary: 示例配置（与 GET /api/v1/profiles/{id} 相同的格式）
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/sources:
+    get: {tags: [demo], summary: 示例节点源, responses: {'200': {description: ok}}}
+  /api/v1/demo/rule-sources:
+    get: {tags: [demo], summary: 示例分流规则, responses: {'200': {description: ok}}}
+  /api/v1/demo/node-mode:
+    get: {tags: [demo], summary: 示例环境的节点写法设置, responses: {'200': {description: ok}}}
+  /api/v1/demo/templates:
+    get: {tags: [demo], summary: 示例环境的模板（为空）, responses: {'200': {description: ok}}}
+  /api/v1/demo/stats/field-scores:
+    get: {tags: [demo], summary: 示例环境的设置项热度（为空）, responses: {'200': {description: ok}}}
+  /api/v1/demo/profiles/{id}/preview:
+    post:
+      tags: [demo]
+      summary: 按编辑中的文档预览示例配置；不保存，不做内核检查
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}, '403': {description: 非同源}, '429': {description: 过于频繁}}
+  /api/v1/demo/profiles/{id}/absorb:
+    post:
+      tags: [demo]
+      summary: 直接编辑 YAML 的换算（同 /api/v1/profiles/{id}/absorb），不保存
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/profiles/{id}/routing/graph:
+    post:
+      tags: [demo]
+      summary: 分流地图（同 /api/v1/profiles/{id}/routing/graph）
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/profiles/{id}/routing/trace:
+    post:
+      tags: [demo]
+      summary: 分流追踪
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/profiles/{id}/routing/health:
+    post:
+      tags: [demo]
+      summary: 常用网站体检
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/profiles/{id}/routing/fork:
+    post:
+      tags: [demo]
+      summary: 开始自己管理分流（只返回换算结果，不保存）
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/demo/profiles/{id}/routing/upstream:
+    post:
+      tags: [demo]
+      summary: 规则源相对开始管理时的变化
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: ok}}
   /api/v1/announcements:
     get:
       tags: [account]

@@ -98,7 +98,8 @@
     void graphDoc;
     polls = 0;
     clearTimeout(timer);
-    timer = setTimeout(() => void load(), graph ? 400 : 0);
+    // 只随文档变化：读 graph 时不追踪，否则每次取到新图都会再触发一次取图（无限循环）
+    timer = setTimeout(() => void load(), untrack(() => graph) ? 400 : 0);
   });
 
   /** 草稿的当前值；第一次改动时取基线（已应用的 routing，或 fork 规则源的当前内容）。 */
@@ -509,7 +510,7 @@
     flex-wrap: wrap;
     gap: 4px 12px;
     font-size: var(--text-xs);
-    color: var(--fg-subtle);
+    color: var(--fg-muted); /* 在工具栏的 --bg-sunken 上，--fg-subtle 只有 4.38:1 */
   }
   .legend span {
     display: inline-flex;

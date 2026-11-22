@@ -50,6 +50,7 @@ type config struct {
 	LogLevel       string
 	LogFormat      string // json（默认）| text（需求 R26）
 	MetricsToken   string // 设置后 /metrics 凭令牌访问（需求 R26）
+	DemoOff        bool   // 关闭访客试用（需求 R44，CLASH_LAUNCH_DEMO=off）
 	Mihomo         string
 	Geodata        string
 	PoWBits        int // 注册与找回的工作量证明难度（前导零位数），默认 20，约 1 秒
@@ -63,7 +64,7 @@ type config struct {
 	DBPool         store.Pool            // PostgreSQL 连接池与语句超时（R14a）；0 表示默认
 }
 
-var configKeys = []string{"LOG_FORMAT", "METRICS_TOKEN", "LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
+var configKeys = []string{"LOG_FORMAT", "METRICS_TOKEN", "LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DEMO", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -133,6 +134,13 @@ func loadConfig() (config, error) {
 		c.TraceOff = true
 	default:
 		return config{}, fmt.Errorf("CLASH_LAUNCH_TRACE 只能是 on 或 off，得到 %q", t)
+	}
+	switch d := strings.ToLower(get("DEMO", "on")); d {
+	case "on":
+	case "off":
+		c.DemoOff = true
+	default:
+		return config{}, fmt.Errorf("CLASH_LAUNCH_DEMO 只能是 on 或 off，得到 %q", d)
 	}
 	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
 	return c, nil
@@ -269,6 +277,18 @@ func cmdServe(args []string) int {
 	metrics.Default.Gauge("clash_launch_realtime_online_users", func() float64 { return float64(svc.Events.Online()) })
 	apiCfg.MetricsToken = c.MetricsToken
 	srv := api.New(svc, *apiCfg, log)
+	// 访客试用（R44）：独立的示例环境建在临时目录里，退出时删除；建不起来只是关闭试用，不影响正式服务
+	if !c.DemoOff {
+		if dir, err := os.MkdirTemp("", "clash-launch-demo-"); err != nil {
+			log.Warn("访客试用不可用：无法创建临时目录", "error", err)
+		} else if demo, err := service.NewDemo(ctx, svc, dir); err != nil {
+			_ = os.RemoveAll(dir)
+			log.Warn("访客试用不可用", "error", err)
+		} else {
+			defer func() { _ = demo.Close() }()
+			srv.EnableDemo(demo)
+		}
+	}
 	if needed, err := svc.NeedsSetup(ctx); err == nil && needed {
 		base := c.primaryURL()
 		if base == "" {

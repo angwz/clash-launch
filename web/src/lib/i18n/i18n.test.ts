@@ -44,7 +44,7 @@ const dynamic: Record<string, string[]> = {
   "accent.": ["indigo", "blue", "teal", "green", "amber", "rose", "violet"],
   // 不带细节的足迹（lib/footprints.ts 的 default 分支，与 internal/service/footprints.go 一致）
   "footprint.kind.": ["first_login", "first_mfa", "first_passkey", "first_profile", "first_link", "first_check", "first_routing", "first_pull", "site_start"],
-  "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],
+  "stats.page.": ["try", "home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],
   "analytics.kind.": ["config", "provider", "export", "short", "import"],
   "analytics.range_": ["7", "30", "90", "365"],
   "short.state.": ["active", "disabled", "expired"],

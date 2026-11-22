@@ -39,7 +39,7 @@ func (s *Server) traceAllowed(w http.ResponseWriter, p *principal) bool {
 	if p.User.Role == "admin" {
 		return true
 	}
-	ok, wait := s.traceLimit.allow(p.User.ID, time.Now())
+	ok, wait := s.traceLimit.allow(p.limitID(), time.Now())
 	if !ok {
 		w.Header().Set("Retry-After", strconv.Itoa(wait))
 		problem(w, http.StatusTooManyRequests, "rate_limited.trace", "too many traces; try again shortly")

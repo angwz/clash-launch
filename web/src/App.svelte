@@ -42,6 +42,7 @@
     "short-links": () => import("./pages/ShortLinks.svelte"),
     messages: () => import("./pages/MessagesRedirect.svelte"),
     "message-thread": () => import("./pages/MessagesRedirect.svelte"),
+    try: () => import("./pages/Try.svelte"),
     notfound: () => import("./pages/NotFound.svelte"),
   };
 

@@ -13,7 +13,7 @@ func init() {
 		healthz readyz health healthcheck status metrics ping version debug
 		login logout signin signout signup register setup recover reset verify confirm auth oauth sso callback
 		admin administrator root system account accounts user users me profile profiles settings preferences
-		welcome home dashboard console panel app apps web www mail email
+		welcome home dashboard console panel app apps web www mail email try demo
 		sources source nodes node rules rule help docs doc about contact support terms privacy legal tos
 		analytics stats statistics short-links shortlinks links link messages message inbox chat
 		share shared invite invites sub subs subscribe subscription subscriptions config configs clash mihomo proxy proxies

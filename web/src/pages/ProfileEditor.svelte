@@ -22,9 +22,11 @@
   import { shell } from "../lib/shell.svelte";
   import { ordered, prefs } from "../lib/prefs.svelte";
 
-  let { params }: { params: Record<string, string> } = $props();
+  // demo：访客试用（R44）。编辑器只读——可以改、看预览与分流图，但不保存；隐藏依赖账号的入口（链接、历史、导出、删除……）
+  let { params, demo = false }: { params: Record<string, string>; demo?: boolean } = $props();
 
   const editor = new EditorState();
+  editor.readonly = untrack(() => demo);
   let loadError = $state("");
   let section = $state(new URLSearchParams(location.search).get("section") || "sources");
   let rawOpen = $state(false);
@@ -259,7 +261,7 @@
       <!-- 配置名放在分节导航顶端，顶栏不再重复（反馈 #36） -->
       <div class="secnav-head">
         <strong class="pname" title={editor.profile.name}>{editor.profile.name}</strong>
-        <a class="plink" href={"/profiles/" + editor.profile.id + "/links"}>{t("profiles.links")}<Icon name="arrow-right" size={12} /></a>
+        {#if !demo}<a class="plink" href={"/profiles/" + editor.profile.id + "/links"}>{t("profiles.links")}<Icon name="arrow-right" size={12} /></a>{/if}
       </div>
       <ul>
         <li>
@@ -291,14 +293,17 @@
       <details class="adv" bind:open={advOpen}>
         <summary class="subtle"><span>{t("editor.advanced")}</span><Icon name="chevron-down" size={12} /></summary>
       <ul>
+        {#if !demo}
         <li>
           <button type="button" onclick={() => (savingTemplate = true)}><span class="t">{t("templates.save_title")}</span></button>
         </li>
-        {#if current}
+        {/if}
+        {#if current && !demo}
           <li>
             <a class="item" href={"/help?tab=wiki&s=" + encodeURIComponent(current.id)}><span class="t">{t("editor.section_doc")}</span></a>
           </li>
         {/if}
+        {#if !demo}
         <li>
           <a class="item" href={"/profiles/" + editor.profile.id + "/history"}><span class="t">{t("profiles.history")}</span></a>
         </li>
@@ -314,6 +319,7 @@
         <li>
           <button type="button" class="danger-item" disabled={isProtected} title={isProtected ? t("profiles.protected_hint") : undefined} onclick={askDelete}><span class="t">{t("profiles.delete")}</span></button>
         </li>
+        {/if}
         <li>
           <button type="button" class:active={rawOpen} aria-current={rawOpen ? "true" : undefined} onclick={() => openRaw()}>
             <span class="t">{t("raw.title")}</span>

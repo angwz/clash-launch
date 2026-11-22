@@ -47,6 +47,7 @@ func TestOwnerIsolationAllRoutes(t *testing.T) {
 		"/api/v1/account/tokens/":      tok.ID,
 		"/api/v1/account/channels/":    ch["id"].(string),
 		"/api/v1/admin/announcements/": ann["id"].(string),
+		"/api/v1/demo/profiles/":       pid,    // 试用接口只认示例环境里的配置：别人的真实配置 ID 必须是 404
 		"/api/v1/invites/":             inv.ID, // 管理员 A 发出的邀请：B 不能作废
 	}
 

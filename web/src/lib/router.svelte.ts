@@ -29,6 +29,7 @@ export type RouteName =
   | "short-links"
   | "messages"
   | "message-thread"
+  | "try"
   | "notfound";
 
 const table: [RouteName, string][] = [
@@ -54,10 +55,11 @@ const table: [RouteName, string][] = [
   ["short-links", "/short-links"],
   ["messages", "/messages"],
   ["message-thread", "/messages/:username"],
+  ["try", "/try"],
 ];
 
 /** 公开页面：未登录也可以访问。 */
-export const PUBLIC: ReadonlySet<RouteName> = new Set(["login", "setup", "register", "recover", "terms", "notfound"]);
+export const PUBLIC: ReadonlySet<RouteName> = new Set(["login", "setup", "register", "recover", "terms", "try", "notfound"]);
 
 export function match(pathname: string): Match {
   const parts = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
