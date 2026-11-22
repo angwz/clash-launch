@@ -26,6 +26,7 @@
   import { api } from "../lib/api/client";
   import { footprintText, type Footprint } from "../lib/footprints";
   import Pulse from "./Pulse.svelte";
+  import Avatar from "./Avatar.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -171,9 +172,10 @@
     </button>
 
     <Menu label={session.user?.username ?? ""} icon="user" align="end">
+      {#snippet trigger()}{#if session.user}<Avatar user={session.user} size={24} />{/if}{/snippet}
       {#snippet items(close)}
         <div class="menu-head">
-          <strong>{session.user?.username}</strong>
+          <strong>{session.user?.nickname || session.user?.username}</strong>{#if session.user?.nickname}<span class="muted">@{session.user.username}</span>{/if}
           <span class="muted">{t("role." + (session.user?.role ?? "user"))}</span>
         </div>
         <a href="/account" role="menuitem" onclick={close}><Icon name="shield" size={15} />{t("nav.account")}</a>

@@ -142,12 +142,13 @@ type userDTO struct {
 	Timezone string `json:"timezone"`
 	// 需求 R4、R5、R12
 	Nickname     string     `json:"nickname,omitempty"`
+	Avatar       string     `json:"avatar,omitempty"`       // 需求 R19：p:<图形>-<颜色> 或 u:<版本>
 	NextRenameAt *time.Time `json:"nextRenameAt,omitempty"` // 下次可以改用户名的时间；为空表示现在就可以
 	InvitedBy    string     `json:"invitedBy,omitempty"`    // 邀请人的用户名
 }
 
 func toUser(u *store.User) userDTO {
-	d := userDTO{ID: u.ID, Username: u.Username, Role: u.Role, Lang: u.Lang, Timezone: u.Timezone, Nickname: u.Nickname, InvitedBy: u.InvitedByName}
+	d := userDTO{ID: u.ID, Username: u.Username, Role: u.Role, Lang: u.Lang, Timezone: u.Timezone, Nickname: u.Nickname, Avatar: u.Avatar, InvitedBy: u.InvitedByName}
 	if next := service.NextRename(u); next.After(time.Now()) {
 		d.NextRenameAt = &next
 	}
@@ -275,6 +276,7 @@ func (s *Server) setupAdmin(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
+	s.Svc.AssignDefaults(r.Context(), u, langOf(r, "")) // 预置头像与昵称（R19），按浏览器语言选词表
 	writeJSON(w, http.StatusCreated, toUser(u))
 }
 

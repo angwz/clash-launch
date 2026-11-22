@@ -10,7 +10,8 @@
     text = false,
     buttonClass = "btn ghost",
     items,
-  }: { label: string; icon?: IconName; align?: "start" | "end"; text?: boolean; buttonClass?: string; items: Snippet<[() => void]> } = $props();
+    trigger,
+  }: { label: string; icon?: IconName; align?: "start" | "end"; text?: boolean; buttonClass?: string; items: Snippet<[() => void]>; trigger?: Snippet } = $props();
 
   let open = $state(false);
   let root: HTMLDivElement | undefined = $state();
@@ -78,7 +79,7 @@
     title={text ? undefined : label}
     onclick={toggle}
   >
-    <Icon name={icon} />
+    {#if trigger}{@render trigger()}{:else}<Icon name={icon} />{/if}
     {#if text}<span>{label}</span><Icon name="chevron-down" size={14} />{/if}
   </button>
   {#if open}

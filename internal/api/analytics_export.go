@@ -15,12 +15,13 @@ import (
 // days（1–365，默认 30）、link、short、friend（只看某条链接、某个短链接、某位好友），
 // tz（用户没有设置时区时由前端传入浏览器时区）。区间结束于所选时区的明天零点，开始于 days 天前的零点。
 type analyticsScope struct {
-	from, to  time.Time
-	loc       *time.Location
-	filter    store.RequestFilter
-	codes     map[string]string // 短链接 ID → 短码
-	friends   map[string]string // 好友 ID → 用户名
-	granteeOf map[string]string // 为好友生成的短链接 ID → 好友 ID（反馈 #75）
+	from, to    time.Time
+	loc         *time.Location
+	filter      store.RequestFilter
+	codes       map[string]string // 短链接 ID → 短码
+	friends     map[string]string // 好友 ID → 用户名
+	friendNicks map[string]string // 好友 ID → 昵称（O12；没有昵称的不列出）
+	granteeOf   map[string]string // 为好友生成的短链接 ID → 好友 ID（反馈 #75）
 }
 
 func (s *Server) analyticsScope(r *http.Request, p *principal) (*analyticsScope, error) {
@@ -41,7 +42,7 @@ func (s *Server) analyticsScope(r *http.Request, p *principal) (*analyticsScope,
 	s.Svc.FlushStats(ctx)
 	now := time.Now().In(loc)
 	to := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc).AddDate(0, 0, 1)
-	sc := &analyticsScope{from: to.AddDate(0, 0, -days), to: to, loc: loc, codes: map[string]string{}, friends: map[string]string{}, granteeOf: map[string]string{}}
+	sc := &analyticsScope{from: to.AddDate(0, 0, -days), to: to, loc: loc, codes: map[string]string{}, friends: map[string]string{}, friendNicks: map[string]string{}, granteeOf: map[string]string{}}
 	shorts, err := s.Svc.Store.ShortLinks().List(ctx, p.User.ID)
 	if err != nil {
 		return nil, err
@@ -53,6 +54,9 @@ func (s *Server) analyticsScope(r *http.Request, p *principal) (*analyticsScope,
 			if _, ok := sc.friends[x.GranteeID]; !ok {
 				if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
 					sc.friends[x.GranteeID] = u.Username
+					if u.Nickname != "" {
+						sc.friendNicks[x.GranteeID] = u.Nickname
+					}
 				} else {
 					sc.friends[x.GranteeID] = "?"
 				}

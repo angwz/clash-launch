@@ -57,7 +57,10 @@ interface Options {
 
 export async function request<T>(method: Method, path: string, opts: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  // Blob（如上传的图片）原样发送，类型取自文件本身；其余按 JSON 编码
+  const raw = opts.body instanceof Blob ? opts.body : undefined;
+  if (raw) headers["Content-Type"] = raw.type || "application/octet-stream";
+  else if (opts.body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET" && csrf) headers["X-CSRF-Token"] = csrf;
   if (opts.ifMatch !== undefined) headers["If-Match"] = `"v${opts.ifMatch}"`;
   let url = path;
@@ -68,7 +71,8 @@ export async function request<T>(method: Method, path: string, opts: Options = {
     if (s) url += "?" + s;
   }
   const init: RequestInit = { method, headers, credentials: "same-origin" };
-  if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
+  if (raw) init.body = raw;
+  else if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
   if (opts.signal) init.signal = opts.signal;
   if (opts.keepalive) init.keepalive = true;
   const res = await fetch(url, init);

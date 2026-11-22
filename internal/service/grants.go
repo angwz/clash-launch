@@ -62,9 +62,10 @@ func (s *Service) RevokeGrant(ctx context.Context, u *store.User, id string) err
 
 // GrantedSource 是别人授权给我的节点源（只读软链接）。
 type GrantedSource struct {
-	Grant  store.Grant
-	Source *store.Source
-	From   string // 授权者的用户名
+	Grant    store.Grant
+	Source   *store.Source
+	From     string // 授权者的用户名
+	FromNick string // 授权者的昵称（O12）
 }
 
 // GrantedSources 返回用户收到的有效节点授权。授权者已删除节点源的不列出。
@@ -74,7 +75,7 @@ func (s *Service) GrantedSources(ctx context.Context, u *store.User) ([]GrantedS
 		return nil, err
 	}
 	var out []GrantedSource
-	names := map[string]string{}
+	names, nicks := map[string]string{}, map[string]string{}
 	for _, g := range gs {
 		if g.Kind != "source" {
 			continue
@@ -88,10 +89,10 @@ func (s *Service) GrantedSources(ctx context.Context, u *store.User) ([]GrantedS
 		}
 		if _, ok := names[g.OwnerID]; !ok {
 			if ou, err := s.Store.Users().ByID(ctx, g.OwnerID); err == nil {
-				names[g.OwnerID] = ou.Username
+				names[g.OwnerID], nicks[g.OwnerID] = ou.Username, ou.Nickname
 			}
 		}
-		out = append(out, GrantedSource{Grant: g, Source: src, From: names[g.OwnerID]})
+		out = append(out, GrantedSource{Grant: g, Source: src, From: names[g.OwnerID], FromNick: nicks[g.OwnerID]})
 	}
 	return out, nil
 }
@@ -138,7 +139,7 @@ func (s *Service) Threads(ctx context.Context, u *store.User) ([]Thread, error) 
 		if err != nil {
 			continue
 		}
-		t := Thread{UserID: c.PeerID, Username: peer.Username, Nickname: peer.Nickname, LastAt: c.LastAt}
+		t := Thread{UserID: c.PeerID, Username: peer.Username, Nickname: peer.Nickname, Avatar: peer.Avatar, LastAt: c.LastAt}
 		if ms, err := s.Store.Messages().Thread(ctx, u.ID, c.PeerID, store.Page{Limit: 1}); err == nil && len(ms) > 0 {
 			var body MessageBody
 			_ = json.Unmarshal(ms[0].Body, &body)
@@ -280,6 +281,8 @@ func (s *Service) PurgeThreads(ctx context.Context) {
 
 // UserHit 是用户名联想的一项。
 type UserHit struct {
+	ID       string `json:"id"`
+	Avatar   string `json:"avatar,omitempty"` // 需求 R19
 	Username string `json:"username"`
 	Nickname string `json:"nickname,omitempty"` // 需求 R5
 	Accepts  bool   `json:"accepts"`            // 是否接收站内消息
@@ -305,7 +308,7 @@ func (s *Service) SearchUsers(ctx context.Context, u *store.User, q string) ([]U
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, UserHit{Username: x.Username, Nickname: x.Nickname, Accepts: p.Inbox != "off"})
+		out = append(out, UserHit{ID: x.ID, Avatar: x.Avatar, Username: x.Username, Nickname: x.Nickname, Accepts: p.Inbox != "off"})
 	}
 	return out, nil
 }

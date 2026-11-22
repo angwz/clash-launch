@@ -320,12 +320,12 @@ func (d *DB) Invites() InviteRepo         { return invites{d} }
 
 type users struct{ d *DB }
 
-const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version, nickname, username_changed_at, invited_by, invited_by_name, invite_id, invite_banned, terms_version, terms_at, deletion_at, deleted_at"
+const userCols = "id, username, password_hash, role, disabled, invited, lang, timezone, created_at, updated_at, version, nickname, username_changed_at, invited_by, invited_by_name, invite_id, invite_banned, terms_version, terms_at, deletion_at, deleted_at, avatar"
 
 func scanUser(r interface{ Scan(...any) error }) (*User, error) {
 	var u User
 	var dis, inv, c, up, ch, ban, tv, ta, dl, dd int64
-	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version, &u.Nickname, &ch, &u.InvitedBy, &u.InvitedByName, &u.InviteID, &ban, &tv, &ta, &dl, &dd); err != nil {
+	if err := r.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &dis, &inv, &u.Lang, &u.Timezone, &c, &up, &u.Version, &u.Nickname, &ch, &u.InvitedBy, &u.InvitedByName, &u.InviteID, &ban, &tv, &ta, &dl, &dd, &u.Avatar); err != nil {
 		return nil, notFound(err)
 	}
 	u.Disabled, u.Invited, u.CreatedAt, u.UpdatedAt = dis == 1, inv == 1, fromMS(c), fromMS(up)
@@ -412,6 +412,31 @@ func collectUsers(rows *sql.Rows) ([]User, error) {
 func (r users) SetNickname(ctx context.Context, id, nickname string) error {
 	res, err := r.d.exec(ctx, "UPDATE users SET nickname=?, nickname_norm=?, updated_at=? WHERE id=?", nickname, strings.ToLower(nickname), ms(time.Now()), id)
 	return affected(res, err, ErrNotFound)
+}
+
+func (r users) SetAvatar(ctx context.Context, id, avatar string) error {
+	res, err := r.d.exec(ctx, "UPDATE users SET avatar=?, updated_at=? WHERE id=?", avatar, ms(time.Now()), id)
+	return affected(res, err, ErrNotFound)
+}
+
+func (r users) PutAvatarImage(ctx context.Context, id, mime string, data []byte, at time.Time) error {
+	_, err := r.d.exec(ctx, "INSERT INTO user_avatars (user_id, mime, data, updated_at) VALUES (?,?,?,?) ON CONFLICT (user_id) DO UPDATE SET mime=excluded.mime, data=excluded.data, updated_at=excluded.updated_at",
+		id, mime, data, ms(at))
+	return err
+}
+
+func (r users) AvatarImage(ctx context.Context, id string) (string, []byte, error) {
+	var mime string
+	var data []byte
+	if err := r.d.row(ctx, "SELECT mime, data FROM user_avatars WHERE user_id=?", id).Scan(&mime, &data); err != nil {
+		return "", nil, notFound(err)
+	}
+	return mime, data, nil
+}
+
+func (r users) DeleteAvatarImage(ctx context.Context, id string) error {
+	_, err := r.d.exec(ctx, "DELETE FROM user_avatars WHERE user_id=?", id)
+	return err
 }
 
 func (r users) Rename(ctx context.Context, id, username string, at time.Time) error {

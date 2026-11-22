@@ -82,8 +82,9 @@ type sourceDTO struct {
 }
 
 type sourceGrantDTO struct {
-	ID   string `json:"id"`
-	From string `json:"from"`
+	ID       string `json:"id"`
+	From     string `json:"from"`
+	FromNick string `json:"fromNickname,omitempty"` // O12
 }
 
 type sourceReq struct {
@@ -173,7 +174,7 @@ func (s *Server) listSources(w http.ResponseWriter, r *http.Request, p *principa
 			return
 		}
 		for _, g := range gs {
-			d := sourceDTO{ID: g.Source.ID, Name: g.Source.Name, Kind: g.Source.Kind, Interval: g.Source.Interval, Processing: json.RawMessage("{}"), CreatedAt: g.Grant.CreatedAt, UpdatedAt: g.Source.UpdatedAt, Grant: &sourceGrantDTO{ID: g.Grant.ID, From: g.From}}
+			d := sourceDTO{ID: g.Source.ID, Name: g.Source.Name, Kind: g.Source.Kind, Interval: g.Source.Interval, Processing: json.RawMessage("{}"), CreatedAt: g.Grant.CreatedAt, UpdatedAt: g.Source.UpdatedAt, Grant: &sourceGrantDTO{ID: g.Grant.ID, From: g.From, FromNick: g.FromNick}}
 			// 概况（节点数、协议）可以看，内容与地址不给（反馈 #76）
 			if g.Source.Kind == "subscription" {
 				if snap, err := s.Svc.Store.Snapshots().Get(r.Context(), g.Grant.OwnerID, service.SourceKey(g.Source.ID)); err == nil && len(snap.Content) > 0 {

@@ -509,7 +509,8 @@ test("站内消息：发送文字与节点，对方的节点页自动加入，�
   await page.goto("/messages");
   await page.getByPlaceholder("输入用户名，开始新会话").fill(bob);
   await page.keyboard.press("Enter");
-  await expect(page.locator(".window .peer")).toHaveText(bob); // 悬浮窗内切换到会话（反馈 #79）
+  // 悬浮窗内切换到会话（反馈 #79）；新用户注册时就有预置昵称（R19），标题显示昵称，用户名在旁边
+  await expect(page.locator(".window .chat-head .at")).toHaveText("@" + bob);
   const box = page.getByPlaceholder("输入消息，回车发送，Shift + 回车换行");
   await box.fill("送你一组节点 ");
   await page.getByRole("button", { name: "表情" }).click();
@@ -546,7 +547,8 @@ test("授权与回收站：联想收件人，授权节点给好友，对方只�
   await expect(page.locator(".hits").getByText("可以发消息").first()).toBeVisible();
   await page.screenshot({ path: "test-results/shot-messages-hits.png" });
   await page.locator(".hits").getByText(bob).click();
-  await expect(page.locator(".window .peer")).toHaveText(bob); // 悬浮窗内切换到会话（反馈 #79）
+  // 悬浮窗内切换到会话（反馈 #79）；新用户注册时就有预置昵称（R19），标题显示昵称，用户名在旁边
+  await expect(page.locator(".window .chat-head .at")).toHaveText("@" + bob);
   await page.getByRole("button", { name: "附上节点" }).click();
   await page.locator(".pick").first().getByRole("button", { name: "授权" }).click();
   await expect(page.locator(".chip")).toContainText("授权");
@@ -1667,5 +1669,40 @@ test("足迹：账户页的时间线与站点足迹；新足迹即时提示，�
   await expect(box.getByText("昵称改为「" + nick + "」")).toBeVisible();
   await box.screenshot({ path: "test-results/shot-footprints.png" });
   await call("PUT", "/api/v1/account/nickname", { nickname: me.nickname ?? "" });
+  expect(problems).toEqual([]);
+});
+
+test("头像与默认昵称：已分配预置头像，换一个、从预置中选、上传图片，昵称可以换一个建议（R19）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const before = (await call<{ user: { avatar?: string; nickname?: string } }>("GET", "/api/v1/me")).user;
+  expect(before.avatar).toMatch(/^p:[a-z]+-[1-6]$/); // 启动时补分配
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "昵称与用户名" }) });
+  await box.getByRole("button", { name: "从预置中选" }).click();
+  const grid = box.getByRole("radiogroup", { name: "从预置中选" });
+  await expect(grid.getByRole("radio")).toHaveCount(60);
+  await grid.getByRole("radio", { name: "p:telescope-4" }).click();
+  await expect(grid.getByRole("radio", { name: "p:telescope-4" })).toHaveAttribute("aria-checked", "true");
+  await box.screenshot({ path: "test-results/shot-avatars.png" });
+  await box.getByRole("button", { name: "换一个" }).click();
+  await expect(grid.getByRole("radio", { name: "p:telescope-4" })).toHaveAttribute("aria-checked", "false");
+
+  // 上传：一张 1×1 的 PNG（服务器重新编码，只裁不放大）
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  await box.locator('input[type="file"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByText("头像已更新")).toBeVisible();
+  await expect(box.locator('img.avatar[src^="/api/v1/avatars/"]')).toBeVisible();
+  await expect(page.locator('header img.avatar[src^="/api/v1/avatars/"]').first()).toBeVisible(); // 顶栏同步
+
+  // 昵称：换一个建议（不保存）
+  const nick = box.locator("#ac-nick");
+  const old = await nick.inputValue();
+  await box.getByRole("button", { name: "随机一个" }).click();
+  await expect(nick).not.toHaveValue(old);
+
+  await call("PUT", "/api/v1/account/avatar", { preset: before.avatar });
   expect(problems).toEqual([]);
 });

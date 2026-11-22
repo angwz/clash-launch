@@ -47,6 +47,8 @@ const known: Record<string, string> = {
   "message.recipient": "error.recipient",
   "message.invalid": "error.message",
   "account.timezone": "error.timezone",
+  "account.avatar": "error.avatar",
+  "account.avatar_too_large": "error.avatar_too_large",
   conflict: "error.conflict",
   exists: "error.exists",
   not_found: "error.not_found",

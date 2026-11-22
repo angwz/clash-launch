@@ -58,9 +58,10 @@ type shortDTO struct {
 	Series    []int64    `json:"series"`         // 近 30 天每天的请求数（UTC）
 	Version   int64      `json:"version"`
 	// 为好友生成的短链接（反馈 #75）：Grantee 是对方的用户名，Granted 表示授权仍有效
-	Grantee string `json:"grantee,omitempty"`
-	GrantID string `json:"grantId,omitempty"`
-	Granted bool   `json:"granted,omitempty"`
+	Grantee     string `json:"grantee,omitempty"`
+	GranteeNick string `json:"granteeNickname,omitempty"` // O12
+	GrantID     string `json:"grantId,omitempty"`
+	Granted     bool   `json:"granted,omitempty"`
 }
 
 // receivedShortDTO 是别人授权给我使用的短链接。
@@ -69,6 +70,7 @@ type receivedShortDTO struct {
 	Code      string    `json:"code"`
 	URL       string    `json:"url"`
 	From      string    `json:"from"`
+	FromNick  string    `json:"fromNickname,omitempty"` // O12：授权者的昵称
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -132,7 +134,7 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 		}
 		if x.GranteeID != "" {
 			if u, err := s.Svc.Store.Users().ByID(ctx, x.GranteeID); err == nil {
-				d.Grantee = u.Username
+				d.Grantee, d.GranteeNick = u.Username, u.Nickname
 			}
 			if g, ok := grantOf[x.ID]; ok {
 				d.GrantID, d.Granted = g.ID, g.Active()
@@ -155,9 +157,9 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 		if err != nil {
 			continue
 		}
-		from := ""
+		from, fromNick := "", ""
 		if u, err := s.Svc.Store.Users().ByID(ctx, g.OwnerID); err == nil {
-			from = u.Username
+			from, fromNick = u.Username, u.Nickname
 		}
 		// 显示对方配置的名称（只有名称，不含内容），便于区分多个授权
 		name := ""
@@ -166,7 +168,7 @@ func (s *Server) listShortLinks(w http.ResponseWriter, r *http.Request, p *princ
 				name = pr.Name
 			}
 		}
-		received = append(received, receivedShortDTO{GrantID: g.ID, Code: sl.Code, URL: s.baseURL(r) + "/" + sl.Code, From: from, Name: name, CreatedAt: g.CreatedAt})
+		received = append(received, receivedShortDTO{GrantID: g.ID, Code: sl.Code, URL: s.baseURL(r) + "/" + sl.Code, From: from, FromNick: fromNick, Name: name, CreatedAt: g.CreatedAt})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": out, "received": received})
 }
@@ -294,7 +296,7 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request, p *principal)
 		return
 	}
 	// 明细保留期（R14c）：所选范围超过它时，前端提示前段不完整
-	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends, "retentionDays": s.Svc.Retention(ctx).RequestDays})
+	writeJSON(w, http.StatusOK, map[string]any{"analytics": a, "links": labels, "shorts": codes, "friends": friends, "friendNicknames": sc.friendNicks, "retentionDays": s.Svc.Retention(ctx).RequestDays})
 }
 
 // —— 站内消息 ——
@@ -378,7 +380,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 	}
 	// 对话在回收站中：不返回消息，界面显示「已删除」与恢复按钮（反馈 #75）
 	if c, err := s.Svc.Store.Contacts().Get(ctx, p.User.ID, other.ID); err == nil && !c.DeletedAt.IsZero() {
-		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username, "nickname": other.Nickname}, "items": []messageDTO{}, "deletedAt": c.DeletedAt, "purgeAt": c.DeletedAt.Add(365 * 24 * time.Hour)})
+		writeJSON(w, http.StatusOK, map[string]any{"user": map[string]string{"id": other.ID, "username": other.Username, "nickname": other.Nickname, "avatar": other.Avatar}, "items": []messageDTO{}, "deletedAt": c.DeletedAt, "purgeAt": c.DeletedAt.Add(365 * 24 * time.Hour)})
 		return
 	}
 	items, err := s.Svc.Store.Messages().Thread(ctx, p.User.ID, other.ID, page(r))
@@ -404,7 +406,7 @@ func (s *Server) threadWith(w http.ResponseWriter, r *http.Request, p *principal
 		last := items[len(items)-1]
 		out.Next = strconv.FormatInt(last.CreatedAt.UnixMilli(), 10) + "|" + last.ID
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]any{"id": other.ID, "username": other.Username, "nickname": other.Nickname, "online": s.Svc.PeerOnline(ctx, p.User.ID, other.ID)}, "items": out.Items, "next": out.Next})
+	writeJSON(w, http.StatusOK, map[string]any{"user": map[string]any{"id": other.ID, "username": other.Username, "nickname": other.Nickname, "avatar": other.Avatar, "online": s.Svc.PeerOnline(ctx, p.User.ID, other.ID)}, "items": out.Items, "next": out.Next})
 }
 
 func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request, p *principal) {

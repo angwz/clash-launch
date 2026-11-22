@@ -1,6 +1,7 @@
 <script lang="ts">
   // 邀请（需求 R12）：账户页显示「我的邀请」，管理页显示全站的邀请（多一列发出者，撤销即删除）。
   // 发出邀请总是走 /api/v1/invites：管理员不受名额限制，普通用户受名额、注册时长与邀请权约束。
+  import Avatar from "./Avatar.svelte";
   import Icon from "./Icon.svelte";
   import QRCode from "./QRCode.svelte";
   import StatusBadge from "./StatusBadge.svelte";
@@ -23,6 +24,8 @@
   interface Invitee {
     username: string;
     nickname?: string;
+    id?: string;
+    avatar?: string;
     joinedAt: string;
   }
 
@@ -175,7 +178,7 @@
     <h3>{t("invites.invitees", { n: invitees.length })}</h3>
     <ul class="invitees">
       {#each invitees as p (p.username)}
-        <li><strong>{p.nickname || p.username}</strong>{#if p.nickname}<span class="muted">@{p.username}</span>{/if}<span class="muted when">{i18n.date(p.joinedAt)}</span></li>
+        <li><Avatar user={p} size={24} /><strong>{p.nickname || p.username}</strong>{#if p.nickname}<span class="muted">@{p.username}</span>{/if}<span class="muted when">{i18n.date(p.joinedAt)}</span></li>
       {/each}
     </ul>
   {/if}

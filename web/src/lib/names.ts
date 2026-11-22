@@ -12,6 +12,11 @@ export function shownName(u: { username: string; nickname?: string }, deletedLab
   return u.nickname || u.username;
 }
 
+/** 写在一句话里的名字（O12）：有昵称时为「昵称 @用户名」（昵称可以重名，总带上用户名），否则就是用户名。 */
+export function nameWithAt(username: string, nickname?: string): string {
+  return nickname ? nickname + " @" + username : username;
+}
+
 export function uniqueName(base: string, existing: Iterable<string>): string {
   const taken = new Set(Array.from(existing, (s) => s.trim()));
   if (!taken.has(base)) return base;

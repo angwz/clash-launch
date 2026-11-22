@@ -1,6 +1,7 @@
 <script lang="ts">
   // 选择收件人（反馈 #75、#76）：按用户名前缀联想（不区分大小写），标出对方是否接收消息；
   // 一个都匹配不上时提示「没有这个用户」。方向键选择，回车确认，Esc 收起。
+  import Avatar from "./Avatar.svelte";
   import Icon from "./Icon.svelte";
   import { api } from "../lib/api/client";
   import { t } from "../lib/i18n/i18n.svelte";
@@ -88,7 +89,7 @@
       {#each hits as h, i (h.username)}
         <li role="option" aria-selected={i === at} class:on={i === at}>
           <button type="button" onpointerdown={(e) => { e.preventDefault(); pick(h.username); }}>
-            <span class="avatar" aria-hidden="true">{h.username.slice(0, 1).toUpperCase()}</span>
+            <Avatar user={h} size={22} />
             <span class="name">{#if h.nickname}{h.nickname} <span class="muted">@{h.username}</span>{:else}{h.username}{/if}</span>
             <span class="state" class:no={!h.accepts}>{h.accepts ? t("messages.hit_ok") : t("messages.hit_off")}</span>
           </button>
@@ -135,18 +136,6 @@
   li.on button,
   .hits button:hover {
     background: var(--bg-hover);
-  }
-  .avatar {
-    display: grid;
-    place-items: center;
-    flex: none;
-    inline-size: 22px;
-    block-size: 22px;
-    border-radius: 50%;
-    background: var(--accent-soft);
-    color: var(--accent-fg);
-    font-size: 11px;
-    font-weight: 650;
   }
   .name {
     flex: 1;

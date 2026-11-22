@@ -106,3 +106,7 @@ The Subscription Analytics page exports the current range and filters as CSV: Ex
 ## Footprints
 
 Footprints on the Account page record things that happen only once: joining, your first config, the first time a subscription is fetched, the first sign-in or fetch from a new country or region, totals, name changes and so on. They are kept permanently, regardless of the audit log retention period; only you can see them, they are included in your personal backup, and they are deleted with your account.
+
+## Avatar
+
+When you sign up you get a random preset avatar and nickname; change them any time on the Account page. Uploaded images are cropped to a square, scaled down and re-encoded on the server, so extra data such as where a photo was taken is not kept. Avatars are visible only to people signed in to this site.

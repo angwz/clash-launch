@@ -123,7 +123,9 @@ func (h *harness) client() *client {
 func (c *client) do(method, path string, body any, hdr ...string) (*http.Response, []byte) {
 	c.h.t.Helper()
 	var rd io.Reader
-	if body != nil {
+	if raw, ok := body.(rawBody); ok { // 原样的请求体（如上传的图片）
+		rd = bytes.NewReader(raw)
+	} else if body != nil {
 		b, _ := json.Marshal(body)
 		rd = bytes.NewReader(b)
 	}

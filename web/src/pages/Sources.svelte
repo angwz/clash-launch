@@ -11,13 +11,14 @@
   import { session } from "../lib/session.svelte";
   import { api, listAll, type Source, type SourceInput } from "../lib/api/client";
   // 列表项另带授权信息与节点概况（反馈 #75、#76）
-  type GSource = Source & { grant?: { id: string; from: string }; summary?: Summary };
+  type GSource = Source & { grant?: { id: string; from: string; fromNickname?: string }; summary?: Summary };
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { nodeModePolicy } from "../lib/node-mode";
   import { live } from "../lib/live";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import { nameWithAt } from "../lib/names";
   import { pending } from "../lib/pending.svelte";
   import { Selection } from "../lib/selection.svelte";
   import BatchBar from "../components/BatchBar.svelte";
@@ -236,7 +237,7 @@
             <Icon name={kindIcon(s.kind)} size={16} />
             <span class="g-main">
               <strong>{s.name}</strong>
-              <span class="muted">{t("source.kind." + s.kind)} · {t("sources.granted_from", { name: s.grant!.from, when: i18n.date(s.createdAt) })}</span>
+              <span class="muted">{t("source.kind." + s.kind)} · {t("sources.granted_from", { name: nameWithAt(s.grant!.from, s.grant!.fromNickname), when: i18n.date(s.createdAt) })}</span>
               {#if s.summary}<NodeSummary summary={s.summary} />{/if}
             </span>
             <button class="btn sm ghost" type="button" onclick={() => void removeGrant(s)}>{t("messages.remove")}</button>

@@ -71,7 +71,9 @@ type User struct {
 	UpdatedAt    time.Time
 	Version      int64
 	// 需求 R4、R5、R12
-	Nickname          string    // 昵称：可含空格，不唯一
+	Nickname string // 昵称：可含空格，不唯一
+	// Avatar 是当前头像（需求 R19）：p:<图形>-<颜色> 为预置，u:<版本> 为上传的图片，空串为尚未分配
+	Avatar            string
 	UsernameChangedAt time.Time // 最近一次改用户名，零值表示从未改过
 	InvitedBy         string    // 邀请人的用户 ID
 	InvitedByName     string    // 邀请人的用户名快照（邀请人注销后仍能显示）
@@ -292,6 +294,11 @@ type UserRepo interface {
 	// —— 需求 R4、R5、R12 ——
 	// SetNickname 设置昵称（空串清除）。
 	SetNickname(ctx context.Context, id, nickname string) error
+	// 头像（需求 R19）：SetAvatar 设置当前头像的标识；上传的图片另存，换回预置头像时删除
+	SetAvatar(ctx context.Context, id, avatar string) error
+	PutAvatarImage(ctx context.Context, id, mime string, data []byte, at time.Time) error
+	AvatarImage(ctx context.Context, id string) (mime string, data []byte, err error)
+	DeleteAvatarImage(ctx context.Context, id string) error
 	// Rename 改用户名：旧名记入 username_history，记录修改时间；新名已被占用时返回 ErrExists。
 	Rename(ctx context.Context, id, username string, at time.Time) error
 	// NameReserved 报告用户名（规范形式）是否在 since 之后被 exceptUser 以外的人用过（改名后的保留期）。

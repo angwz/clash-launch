@@ -16,6 +16,7 @@
   import { live, type Live } from "../lib/live";
   import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
+  import { nameWithAt } from "../lib/names";
   import { pending } from "../lib/pending.svelte";
   import { Selection } from "../lib/selection.svelte";
   import BatchBar from "../components/BatchBar.svelte";
@@ -40,6 +41,7 @@
     last?: string;
     version: number;
     grantee?: string;
+    granteeNickname?: string;
     grantId?: string;
     granted?: boolean;
   }
@@ -48,6 +50,7 @@
     code: string;
     url: string;
     from: string;
+    fromNickname?: string;
     name: string;
     createdAt: string;
   }
@@ -261,7 +264,7 @@
               <input class="pick" type="checkbox" checked={sel.has(s.id)} aria-label={t("batch.select_x", { name: "/" + s.code })} onchange={(e) => sel.toggle(s.id, e.currentTarget.checked)} />
               <code class="code-big ltr">/{s.code}</code>
               <span class="tag" data-state={statusOf(s)}>{t("short.state." + statusOf(s))}</span>
-              {#if s.grantee}<span class="tag friend"><Icon name="shield" size={11} />{s.granted ? t("short.granted_to", { name: s.grantee }) : t("short.revoked_from", { name: s.grantee })}</span>{/if}
+              {#if s.grantee}<span class="tag friend"><Icon name="shield" size={11} />{s.granted ? t("short.granted_to", { name: nameWithAt(s.grantee, s.granteeNickname) }) : t("short.revoked_from", { name: nameWithAt(s.grantee, s.granteeNickname) })}</span>{/if}
             </div>
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(s.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>
@@ -318,7 +321,7 @@
           <div class="head">
             <div class="title">
               <code class="code-big ltr">/{g.code}</code>
-              <span class="muted">{t("sources.granted_from", { name: g.from, when: i18n.date(g.createdAt) })}{#if g.name} · {g.name}{/if}</span>
+              <span class="muted">{t("sources.granted_from", { name: nameWithAt(g.from, g.fromNickname), when: i18n.date(g.createdAt) })}{#if g.name} · {g.name}{/if}</span>
             </div>
             <div class="actions">
               <button class="btn sm" type="button" onclick={() => void copy(g.url)}><Icon name="copy" size={14} />{t("common.copy")}</button>

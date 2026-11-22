@@ -50,8 +50,9 @@ func (s *Server) restoreThread(w http.ResponseWriter, r *http.Request, p *princi
 
 type grantDTO struct {
 	ID         string     `json:"id"`
-	Kind       string     `json:"kind"` // source | short
-	Peer       string     `json:"peer"` // 对方的用户名
+	Kind       string     `json:"kind"`                   // source | short
+	Peer       string     `json:"peer"`                   // 对方的用户名
+	PeerNick   string     `json:"peerNickname,omitempty"` // O12：对方的昵称
 	Name       string     `json:"name"`
 	SourceKind string     `json:"sourceKind,omitempty"`
 	URL        string     `json:"url,omitempty"` // 短链接授权：为对方生成的短链接地址
@@ -72,20 +73,20 @@ func (s *Server) listGrants(w http.ResponseWriter, r *http.Request, p *principal
 		s.fail(w, err)
 		return
 	}
-	names := map[string]string{}
+	names, nicks := map[string]string{}, map[string]string{}
 	nameOf := func(id string) string {
 		if n, ok := names[id]; ok {
 			return n
 		}
 		if u, err := s.Svc.Store.Users().ByID(ctx, id); err == nil {
-			names[id] = u.Username
+			names[id], nicks[id] = u.Username, u.Nickname
 		}
 		return names[id]
 	}
 	conv := func(gs []store.Grant, peerOf func(store.Grant) string) []grantDTO {
 		out := []grantDTO{}
 		for _, g := range gs {
-			d := grantDTO{ID: g.ID, Kind: g.Kind, Peer: nameOf(peerOf(g)), CreatedAt: g.CreatedAt, RevokedAt: tp(g.RevokedAt)}
+			d := grantDTO{ID: g.ID, Kind: g.Kind, Peer: nameOf(peerOf(g)), PeerNick: nicks[peerOf(g)], CreatedAt: g.CreatedAt, RevokedAt: tp(g.RevokedAt)}
 			switch g.Kind {
 			case "source":
 				if src, err := s.Svc.Store.Sources().Get(ctx, g.OwnerID, g.TargetID); err == nil {

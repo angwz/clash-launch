@@ -1,5 +1,6 @@
 <script lang="ts">
   // 用户管理：只显示元数据与用量（看不到任何人的内容）。停用 / 启用、重置密码、调整配额。
+  import Avatar from "../Avatar.svelte";
   import Dialog from "../Dialog.svelte";
   import StatusBadge from "../StatusBadge.svelte";
   import { api } from "../../lib/api/client";
@@ -27,6 +28,7 @@
     quota: Limits;
     invited: boolean;
     nickname?: string;
+    avatar?: string;
     /** 邀请人的用户名（需求 R12） */
     invitedBy?: string;
     inviteBanned: boolean;
@@ -166,7 +168,7 @@
       {#each users as u (u.id)}
         <tr>
           <td>
-            <strong>{u.username}</strong>{#if u.nickname}<span class="muted nick">{u.nickname}</span>{/if}
+            <Avatar user={u} size={24} /><strong>{u.username}</strong>{#if u.nickname}<span class="muted nick">{u.nickname}</span>{/if}
             {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{:else if !u.invited}<span class="role open" title={t("admin.open_user_hint")}>{t("admin.open_user")}</span>{/if}
             {#if u.invitedBy}<div class="muted by">{t("invites.by_user", { name: u.invitedBy })}</div>{/if}
           </td>

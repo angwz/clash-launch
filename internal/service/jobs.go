@@ -27,6 +27,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 	defer t.Stop()
 	s.runJob(ctx, "fetch", s.tick)
 	s.runJob(ctx, "footprints", s.backfillJob) // 足迹上线后补记一次（需求 R10），之后立即返回
+	s.runJob(ctx, "avatars", s.avatarJob)      // 为还没有头像的用户补分配（需求 R19）
 	s.daily(ctx)
 	lastPrune := s.now()
 	for {

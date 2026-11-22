@@ -353,8 +353,9 @@ type Thread struct {
 	UserID   string    `json:"userId"`
 	Username string    `json:"username"`
 	Nickname string    `json:"nickname,omitempty"`
-	Last     string    `json:"last"`     // 最后一条的文字预览
-	LastKind string    `json:"lastKind"` // text | nodes | subscription
+	Avatar   string    `json:"avatar,omitempty"` // 需求 R19
+	Last     string    `json:"last"`             // 最后一条的文字预览
+	LastKind string    `json:"lastKind"`         // text | nodes | subscription
 	LastAt   time.Time `json:"lastAt"`
 	Mine     bool      `json:"mine"` // 最后一条是自己发的
 	Unread   int       `json:"unread"`

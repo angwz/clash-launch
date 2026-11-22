@@ -121,6 +121,8 @@ func (s *Server) inviteDetails(ctx context.Context, v *store.Invite, names map[s
 }
 
 type inviteeDTO struct {
+	ID       string    `json:"id"`
+	Avatar   string    `json:"avatar,omitempty"` // 需求 R19
 	Username string    `json:"username"`
 	Nickname string    `json:"nickname,omitempty"`
 	JoinedAt time.Time `json:"joinedAt"`
@@ -151,7 +153,7 @@ func (s *Server) myInvites(w http.ResponseWriter, r *http.Request, p *principal)
 	}
 	invitees := make([]inviteeDTO, 0, len(us))
 	for _, u := range us {
-		invitees = append(invitees, inviteeDTO{Username: u.Username, Nickname: u.Nickname, JoinedAt: u.CreatedAt})
+		invitees = append(invitees, inviteeDTO{ID: u.ID, Avatar: u.Avatar, Username: u.Username, Nickname: u.Nickname, JoinedAt: u.CreatedAt})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"quota": q, "items": items, "invitees": invitees})
 }

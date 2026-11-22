@@ -191,6 +191,7 @@ components:
         lang: {type: string}
         timezone: {type: string}
         nickname: {type: string, description: 昵称，可含空格、不唯一（需求 R5）}
+        avatar: {type: string, description: "头像（需求 R19）：p:<图形>-<颜色> 为预置头像，u:<版本> 为上传的图片（/api/v1/avatars/{id}?v=<版本>）"}
         nextRenameAt: {type: string, format: date-time, description: 下次可以改用户名的时间；为空表示现在就可以（需求 R4）}
         invitedBy: {type: string, description: 邀请人的用户名（需求 R12）}
     Session:
@@ -1074,6 +1075,32 @@ paths:
       summary: 足迹（需求 R10）：本人不会重复的「第一次」、累计里程碑、新地区与改名，按时间先后；管理员另附站点的足迹（site）
       security: [{session: []}]
       responses: {'200': {description: ok}}
+  /api/v1/account/avatar:
+    put:
+      tags: [account]
+      summary: 换成预置头像（需求 R19）；preset 为空时随机换一个。上传过的图片随之删除
+      security: [{session: [], csrf: []}]
+      responses: {'200': {description: ok}, '422': {description: 无效的预置头像}}
+  /api/v1/account/avatar/upload:
+    post:
+      tags: [account]
+      summary: 上传头像：请求体是图片本身（PNG、JPEG 或 GIF 第一帧，至多 2 MiB）。服务器裁成正方形、缩到 256 px 并重新编码（去掉 EXIF）
+      security: [{session: [], csrf: []}]
+      responses: {'200': {description: ok}, '413': {description: 图片过大}, '422': {description: 无法识别的图片}}
+  /api/v1/account/nickname/suggest:
+    get:
+      tags: [account]
+      summary: 从预置词表随机给出一个昵称（不保存）；词表按 lang 参数、账户语言或浏览器语言选择
+      security: [{session: []}]
+      parameters: [{name: lang, in: query, schema: {type: string}}]
+      responses: {'200': {description: ok}}
+  /api/v1/avatars/{id}:
+    get:
+      tags: [account]
+      summary: 用户上传的头像图片（需要登录；地址带版本，可长期缓存）
+      security: [{session: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: image/png 或 image/jpeg}, '404': {description: 没有上传的头像}}
   /api/v1/account/quota:
     get:
       tags: [account]

@@ -155,7 +155,7 @@ func (r users) DueDeletions(ctx context.Context, now time.Time) ([]User, error) 
 var personalTables = [][2]string{
 	{"sessions", "user_id"}, {"user_questions", "user_id"}, {"user_totp", "user_id"}, {"recovery_codes", "user_id"},
 	{"passkeys", "user_id"}, {"user_smtp", "user_id"}, {"user_quotas", "user_id"}, {"known_devices", "user_id"},
-	{"access_tokens", "owner_id"}, {"notifications", "owner_id"}, {"notify_channels", "owner_id"}, {"user_backups", "owner_id"}, {"footprints", "user_id"},
+	{"access_tokens", "owner_id"}, {"notifications", "owner_id"}, {"notify_channels", "owner_id"}, {"user_backups", "owner_id"}, {"footprints", "user_id"}, {"user_avatars", "user_id"},
 	{"sub_requests", "owner_id"}, {"sub_ips", "owner_id"}, {"link_seen", "owner_id"},
 }
 
@@ -171,7 +171,7 @@ func (r users) Tombstone(ctx context.Context, id, placeholder string, at time.Ti
 			return err
 		}
 		// 密码哈希改为不可能匹配的值；昵称、偏好与安全问题一并清除
-		_, err := tx.exec(ctx, "UPDATE users SET password_hash='!', nickname='', nickname_norm='', prefs='{}', disabled=1, deletion_at=0, deleted_at=? WHERE id=?", ms(at), id)
+		_, err := tx.exec(ctx, "UPDATE users SET password_hash='!', nickname='', nickname_norm='', avatar='', prefs='{}', disabled=1, deletion_at=0, deleted_at=? WHERE id=?", ms(at), id)
 		return err
 	})
 }

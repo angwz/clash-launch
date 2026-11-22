@@ -6,6 +6,7 @@
   // 删除对话会收回你们之间的全部授权。会话每 15 秒、列表每 30 秒自动刷新。
   // 反馈 #79：不再是独立页面，而是浮在当前页面之上的窗口（右上角消息图标打开，Esc 或 × 关闭）；
   // 大小随浏览器窗口变化，窗口够宽时左右两栏，否则单栏（用容器查询按窗口自身宽度切换），手机上铺满屏幕。
+  import Avatar from "../Avatar.svelte";
   import { tick } from "svelte";
   import Icon from "../Icon.svelte";
   import { shownName } from "../../lib/names";
@@ -24,6 +25,7 @@
     userId: string;
     username: string;
     nickname?: string;
+    avatar?: string;
     last: string;
     lastKind: string;
     lastAt: string;
@@ -395,7 +397,7 @@
         {#each threads ?? [] as th (th.userId)}
           <li class="th">
             <a href={"/messages/" + encodeURIComponent(th.username)} onclick={(e) => { e.preventDefault(); open(th.username); }} class:active={th.username.toLowerCase() === peer.toLowerCase()} aria-current={th.username.toLowerCase() === peer.toLowerCase() ? "page" : undefined}>
-              <span class="avatar" class:on={isOnline(th.username)} aria-hidden="true">{th.username.slice(0, 1).toUpperCase()}</span>
+              <span class="avatar" class:on={isOnline(th.username)} aria-hidden="true"><Avatar user={{ id: th.userId, username: th.username, nickname: th.nickname, avatar: th.avatar }} /></span>
               <span class="th-main">
                 <span class="th-top"><strong>{shownName(th, t("deletion.deleted_user"))}</strong>{#if isOnline(th.username)}<span class="visually-hidden">{t("messages.online")}</span>{/if}{#if th.nickname}<span class="muted at">@{th.username}</span>{/if}<span class="muted when">{i18n.relative(th.lastAt)}</span></span>
                 <span class="th-last muted">
@@ -413,7 +415,7 @@
       <ul class="list">
         {#each deleted as d (d.userId)}
           <li class="th bin">
-            <span class="avatar muted-avatar" aria-hidden="true">{d.username.slice(0, 1).toUpperCase()}</span>
+            <span class="avatar muted-avatar" aria-hidden="true"><Avatar user={d} /></span>
             <span class="th-main">
               <strong>{d.username}</strong>
               <span class="muted th-last">{t("messages.purge_in", { n: daysLeft(d.purgeAt) })}</span>
@@ -446,7 +448,7 @@
     {:else}
       <header class="chat-head">
         <button class="back btn ghost icon" type="button" onclick={() => (chat.peer = "")} aria-label={t("messages.threads")}><Icon name="chevron-right" size={16} /></button>
-        <span class="avatar" class:on={isOnline(other?.username ?? peer)} aria-hidden="true">{(other?.username ?? peer).slice(0, 1).toUpperCase()}</span>
+        <span class="avatar" class:on={isOnline(other?.username ?? peer)} aria-hidden="true"><Avatar user={other ?? { username: peer }} /></span>
         <strong class="peer">{other ? shownName(other, t("deletion.deleted_user")) : peer}</strong>{#if other?.nickname}<span class="muted at">@{other.username}</span>{/if}
         {#if peerTyping}<span class="typing" role="status">{t("messages.typing")}</span>{:else if isOnline(other?.username ?? peer)}<span class="online-label">{t("messages.online")}</span>{/if}
         {#if other && !deletedAt}

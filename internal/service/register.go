@@ -70,6 +70,8 @@ type RegisterInput struct {
 	Answers   []string
 	// TermsVersion 是用户在注册页勾选同意的用户协议版本（需求 R40），必须是当前版本
 	TermsVersion int
+	// Lang 是注册时的界面语言，用于选择预置昵称的词表（需求 R19）
+	Lang string
 }
 
 // Register 创建普通用户。注册开放时不需要邀请；关闭时邀请必须有效。
@@ -155,6 +157,7 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 		return nil, err
 	}
 	s.notifyInviter(ctx, u)
+	s.AssignDefaults(ctx, u, in.Lang)
 	joined := map[string]string{}
 	if u.InvitedByName != "" {
 		joined["inviter"] = u.InvitedByName

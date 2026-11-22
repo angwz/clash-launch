@@ -335,6 +335,10 @@ func (s *Server) fail(w http.ResponseWriter, err error) {
 		problem(w, http.StatusConflict, "account.rename_wait", "the username can be changed again at "+renameWait.Until.UTC().Format(time.RFC3339))
 	case errors.Is(err, service.ErrNameReserved):
 		problem(w, http.StatusConflict, "account.name_reserved", err.Error())
+	case errors.Is(err, service.ErrAvatarTooLarge):
+		problem(w, http.StatusRequestEntityTooLarge, "account.avatar_too_large", "the image must be at most 2 MiB and 40 megapixels")
+	case errors.Is(err, service.ErrAvatar):
+		problem(w, http.StatusUnprocessableEntity, "account.avatar", "unsupported image or avatar")
 	case errors.Is(err, service.ErrNickname):
 		problem(w, http.StatusUnprocessableEntity, "account.nickname", err.Error())
 	case errors.As(err, &denied):

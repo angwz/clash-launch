@@ -84,6 +84,7 @@
       friends: Friend[];
     };
     friends: Record<string, string>;
+    friendNicknames?: Record<string, string>; // O12：好友的昵称
     links: Record<string, { profileId: string; profileName: string; note: string }>;
     shorts: Record<string, string>;
     retentionDays?: number; // 请求明细保留天数（R14c）；0 或缺省表示不清理
@@ -288,7 +289,7 @@
             <tbody>
               {#each a.friends as f (f.userId)}
                 <tr>
-                  <td><strong>{data?.friends[f.userId] ?? "?"}</strong></td>
+                  <td><strong>{data?.friendNicknames?.[f.userId] || (data?.friends[f.userId] ?? "?")}</strong>{#if data?.friendNicknames?.[f.userId]}<span class="muted"> @{data.friends[f.userId]}</span>{/if}</td>
                   <td class="num">{i18n.number(f.requests)}{#if f.fail} <span class="bad">({t("analytics.fail_n", { n: f.fail })})</span>{/if}</td>
                   <td class="num">{f.ips}</td>
                   <td>{f.countries.map((c) => flagOf(c) + " " + regionName(c, i18n.intlLocale)).join("、") || ""}</td>
