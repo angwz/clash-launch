@@ -112,7 +112,8 @@
 | 方案文档的读写 | `src/lib/profile-doc.ts`（只做结构操作） | `profile-doc.test.ts` |
 | 原始编辑器 | `components/editor/RawEditor.svelte`、`lib/cm.ts`（Shadow DOM，原因见 0004 #11） | e2e |
 | 分流视图（未实施） | 计划的文件与职责见 [routing](../design/routing.md) 第 11.1 节；实施时把这一行替换为实际文件 | — |
-| 命令面板 | `components/CommandPalette.svelte`、`lib/palette.svelte.ts`；页面用 `palette.register` 添加来源 | e2e |
+| 命令面板 | `components/CommandPalette.svelte`、`lib/palette.svelte.ts`；页面用 `palette.register` 添加来源；本人数据的索引 `lib/palette-data.svelte.ts` ← `internal/service/search.go`（新增可搜的数据时两处同步） | `TestSearchIndex`、e2e「命令面板…」 |
+| 快捷键一览 | `components/ShortcutsDialog.svelte`（表格手写：新增或修改快捷键时同步）；? 的处理在 `App.svelte` | e2e「命令面板搜数据与快捷键一览…」 |
 | 图标 | `src/components/Icon.svelte`（自绘路径表） | — |
 | 工作量证明（浏览器端） | `src/lib/pow.ts`、`pow.worker.ts`、`sha256.ts`（与后端 `auth.LeadingZeroBits` 一致） | `sha256.test.ts`、e2e |
 | 安全问题表单与内置问题文字 | `src/components/QuestionFields.svelte`；文字在消息 `question.builtin.0–9`（数量与 `auth.BuiltinQuestions` 一致） | `i18n.test.ts` |

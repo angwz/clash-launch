@@ -152,6 +152,7 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/messages/{id}/accept", a(s.acceptMessage)},
 		{"DELETE", "/api/v1/messages/{id}", a(s.hideMessage)},
 		{"GET", "/api/v1/users/search", a(s.searchUsers)},
+		{"GET", "/api/v1/search", a(s.searchIndex)},
 		{"GET", "/api/v1/messages/deleted", a(s.deletedThreads)},
 		{"DELETE", "/api/v1/messages/with/{username}", a(s.deleteThread)},
 		{"POST", "/api/v1/messages/with/{username}/restore", a(s.restoreThread)},

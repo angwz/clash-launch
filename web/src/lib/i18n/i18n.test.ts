@@ -36,7 +36,7 @@ const dynamic: Record<string, string[]> = {
   "severity.": ["error", "warning", "info"],
   "kernel.": ["passed", "failed", "unavailable", "timeout"],
   "invite.": ["active", "used", "expired", "revoked"],
-  "palette.kind.": ["page", "field", "command"],
+  "palette.kind.": ["page", "field", "command", "profile", "source", "rule", "node", "short", "friend"],
   "mode.": ["inline", "provider"],
   "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],
   "analytics.kind.": ["config", "provider", "export", "short", "import"],

@@ -1,11 +1,12 @@
 // 命令面板（第 16.3 节）的状态与命令来源。
 // 全局命令（页面跳转、主题、语言）由 App 注册；页面可以注册额外的来源（如方案编辑器的字段搜索与原始编辑命令）。
+// 用户数据（配置、节点源、节点名等，需求 R34）由 palette-data.svelte.ts 提供，只在有输入时列出。
 // 以 > 开头进入命令模式：只列出命令（kind: "command"），「原始编辑」只在这里出现（第 16.4 节）。
 import type { IconName } from "../components/Icon.svelte";
 
 export interface PaletteItem {
   id: string;
-  kind: "page" | "field" | "command";
+  kind: "page" | "field" | "command" | DataKind;
   title: string;
   /** 次要文字：字段键、所在分节等 */
   hint?: string;
@@ -14,6 +15,9 @@ export interface PaletteItem {
   icon?: IconName;
   run: () => void;
 }
+
+export type DataKind = "profile" | "source" | "rule" | "node" | "short" | "friend";
+const DATA = new Set<string>(["profile", "source", "rule", "node", "short", "friend"]);
 
 export type Provider = () => PaletteItem[];
 
@@ -49,7 +53,7 @@ export function search(items: PaletteItem[], q: string, limit = 60): PaletteItem
   const commandMode = q.startsWith(">");
   const words = (commandMode ? q.slice(1) : q).toLowerCase().split(/\s+/).filter(Boolean);
   const pool = items.filter((x) => (commandMode ? x.kind === "command" : x.kind !== "command" || !x.id.startsWith("raw")));
-  if (!words.length) return pool.slice(0, limit);
+  if (!words.length) return pool.filter((x) => !DATA.has(x.kind)).slice(0, limit);
   const scored: [number, PaletteItem][] = [];
   for (const it of pool) {
     const title = it.title.toLowerCase();

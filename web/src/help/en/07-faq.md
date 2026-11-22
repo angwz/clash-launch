@@ -48,3 +48,7 @@ On the Configs page, choose Import config and paste a complete Clash or mihomo c
 - Proxy groups, rules and rule sets go into the config's directly edited YAML exactly as written.
 - Other settings are placed into the form by field; panel and external-controller settings (external-controller, secret and so on) are not imported.
 - The preview lists everything that was removed or rewritten.
+
+## Find a config or node quickly
+
+Press Ctrl K (⌘ K on macOS) to open the command palette and type part of a name. Besides pages and fields, it finds your configs, node sources, node names, rule sources, short links and message contacts. Picking a node opens its node source and highlights that row. Press ? to see every keyboard shortcut.

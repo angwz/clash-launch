@@ -1,6 +1,7 @@
 <script lang="ts">
   // 命令面板（第 16.3 节）：Ctrl/⌘+K。搜索字段（含摘要与详细说明全文）、跳转页面、切换主题与语言。
   // 输入 > 进入命令模式；「原始编辑」只在命令模式中出现（第 16.4 节）。
+  // 有输入时还搜本人的配置、节点源、节点名、规则源、短链接与联系人（需求 R34）。
   import { t } from "../lib/i18n/i18n.svelte";
   import { palette, search, type PaletteItem } from "../lib/palette.svelte";
   import Icon from "./Icon.svelte";
@@ -79,7 +80,7 @@
         <button type="button" class:active={i === active} onclick={() => run(it)} onpointermove={() => (active = i)} tabindex="-1">
           <span class="ico"><Icon name={it.icon ?? (it.kind === "field" ? "settings" : it.kind === "page" ? "arrow-right" : "command")} size={15} /></span>
           <span class="title">{it.title}</span>
-          {#if it.hint}<span class="hint mono ltr">{it.hint}</span>{/if}
+          {#if it.hint}<span class="hint" class:mono={it.kind === "field" || it.kind === "command"} class:ltr={it.kind === "field" || it.kind === "command"}>{it.hint}</span>{/if}
           <span class="kind">{kindLabel(it.kind)}</span>
         </button>
       </li>

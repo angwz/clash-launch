@@ -1,6 +1,7 @@
 <script lang="ts">
   // 节点源详情：基本设置、整理规则（第 5.5 节）与实时的节点表格。
   // 节点表格：协议、地址（打码）、名称、地区与识别理由、倍率、标签；点击地区可手动指定（写入 overrides）。
+  import { tick } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
@@ -99,6 +100,17 @@
   $effect(() => () => clearTimeout(procTimer));
 
   $effect(() => void load());
+
+  // 从命令面板跳到某个节点（需求 R34）：?node=<名称>。节点表格出现后滚动到该行并高亮；
+  // 每个目标只滚动一次，定时刷新不会把页面拉回去。
+  const focusNode = $derived(new URLSearchParams(router.search).get("node") ?? "");
+  let scrolledFor = "";
+  $effect(() => {
+    const n = focusNode;
+    if (!n || !nodes.length || scrolledFor === n) return;
+    scrolledFor = n;
+    void tick().then(() => document.querySelector(`tr[data-node="${CSS.escape(n)}"]`)?.scrollIntoView({ block: "center" }));
+  });
 
   // 自动刷新（反馈 #76）：只更新拉取状态与节点列表，不覆盖正在编辑的表单
   async function refreshView() {
@@ -317,7 +329,7 @@
             </thead>
             <tbody>
               {#each nodes as n (n.fingerprint)}
-                <tr>
+                <tr data-node={n.name} class:hit={n.name === focusNode}>
                   <td class="nname">{n.name}</td>
                   <td>
                     {#if editingRegion === n.fingerprint}
@@ -412,6 +424,9 @@
   }
   .err-text {
     color: var(--err);
+  }
+  tr.hit > td {
+    background: var(--accent-soft);
   }
   .nodes {
     display: grid;

@@ -4,11 +4,13 @@
   import { catalog } from "./lib/catalog.svelte";
   import { i18n, LOCALES, t } from "./lib/i18n/i18n.svelte";
   import { palette } from "./lib/palette.svelte";
+  import { registerPaletteData } from "./lib/palette-data.svelte";
   import { PUBLIC, router, type RouteName } from "./lib/router.svelte";
   import { session } from "./lib/session.svelte";
   import { theme } from "./lib/theme.svelte";
   import AppShell from "./components/AppShell.svelte";
   import CommandPalette from "./components/CommandPalette.svelte";
+  import ShortcutsDialog, { shortcuts } from "./components/ShortcutsDialog.svelte";
   import Toasts from "./components/Toasts.svelte";
 
   // 页面按路由懒加载：首屏只包含外壳与当前页（第 15.4 节）。
@@ -54,9 +56,17 @@
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         if (session.user) (palette.open ? palette.close() : palette.show());
+        return;
+      }
+      // ?：快捷键一览（需求 R45）。在输入框、代码编辑器中照常输入问号；已有对话框打开时不叠加
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey && session.user && !editable(e.target) && !document.querySelector("dialog[open]")) {
+        e.preventDefault();
+        shortcuts.open = true;
       }
     };
     window.addEventListener("keydown", onKey);
+    // 数据先注册：后注册的排在前面，同分时页面与命令在数据之前
+    const offData = registerPaletteData();
     const off = palette.register("global", () => [
       { id: "page.home", kind: "page", title: t("nav.profiles"), icon: "layers", run: () => router.go("/") },
       { id: "page.sources", kind: "page", title: t("nav.sources"), icon: "server", run: () => router.go("/sources") },
@@ -65,6 +75,7 @@
       { id: "page.account", kind: "page", title: t("nav.account"), icon: "user", run: () => router.go("/account") },
       { id: "page.settings", kind: "page", title: t("nav.settings"), icon: "settings", run: () => router.go("/settings") },
       ...(session.isAdmin ? [{ id: "page.admin", kind: "page" as const, title: t("nav.admin"), icon: "shield" as const, run: () => router.go("/admin") }] : []),
+      { id: "cmd.shortcuts", kind: "command", title: t("palette.shortcuts"), hint: "?", icon: "command", run: () => (shortcuts.open = true) },
       { id: "cmd.theme.light", kind: "command", title: t("palette.theme", { theme: t("theme.light") }), icon: "sun", run: () => theme.apply("light") },
       { id: "cmd.theme.dark", kind: "command", title: t("palette.theme", { theme: t("theme.dark") }), icon: "moon", run: () => theme.apply("dark") },
       { id: "cmd.theme.system", kind: "command", title: t("palette.theme", { theme: t("theme.system") }), icon: "monitor", run: () => theme.apply("system") },
@@ -73,8 +84,13 @@
     return () => {
       window.removeEventListener("keydown", onKey);
       off();
+      offData();
     };
   });
+
+  function editable(t: EventTarget | null): boolean {
+    return t instanceof HTMLElement && (t.isContentEditable || t.closest("input, textarea, select, [contenteditable]") !== null);
+  }
 
   async function boot() {
     try {
@@ -144,6 +160,7 @@
       {/if}
     </AppShell>
     <CommandPalette />
+    <ShortcutsDialog />
   {/if}
   <Toasts />
 {/if}

@@ -1599,6 +1599,13 @@ paths:
       security: [{session: []}]
       parameters: [{name: q, in: query, required: true, schema: {type: string}}]
       responses: {'200': {description: ok}}
+  /api/v1/search:
+    get:
+      tags: [account]
+      summary: 命令面板的本人数据索引（需求 R34）：配置、节点源、节点名、规则源、短链接与消息联系人的名称与 ID
+      description: 节点名与节点源页一致，最多 5000 个（超过时 truncated 为 true）。不含内容、地址或凭据；个人访问令牌不可访问。
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
   /api/v1/messages/deleted:
     get:
       tags: [messages]

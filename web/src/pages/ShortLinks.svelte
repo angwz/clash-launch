@@ -3,6 +3,7 @@
   // 在消息里授权给好友时，会为对方单独生成一个新的短链接（这里标出「授权给谁」，可以收回）；
   // 别人授权给我的短链接列在页面下方，只能复制与导入。访问短链接时直接返回配置内容，
   // 请求同时计入原链接与短链接，在「订阅分析」中可以单独查看。可以停用、设置过期时间、一键导入到客户端。
+  import { tick } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import QRCode from "../components/QRCode.svelte";
@@ -13,6 +14,7 @@
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
   import { live, type Live } from "../lib/live";
+  import { router } from "../lib/router.svelte";
   import { toasts } from "../lib/toast.svelte";
   import { pending } from "../lib/pending.svelte";
   import { Selection } from "../lib/selection.svelte";
@@ -61,6 +63,16 @@
   let error = $state("");
   let qrFor = $state<string | null>(null);
   let expanded = $state<string | null>(null); // 展开详情的短链接（默认都折叠）
+  // 从命令面板跳到某个短链接（需求 R34）：?focus=<ID>。列表出现后展开它、滚动到它并高亮；每个目标只处理一次
+  const focusID = $derived(new URLSearchParams(router.search).get("focus") ?? "");
+  let focusedFor = "";
+  $effect(() => {
+    const id = focusID;
+    if (!id || focusedFor === id || !(items ?? []).some((x) => x.id === id)) return;
+    focusedFor = id;
+    expanded = id;
+    void tick().then(() => document.getElementById("sl-" + id)?.scrollIntoView({ block: "center" }));
+  });
   let form = $state({ linkId: "", code: "", note: "", expiry: "0" });
   let busy = $state(false);
 
@@ -242,7 +254,7 @@
     </BatchBar>
     <ul class="list">
       {#each visible as s (s.id)}
-        <li class="item panel" class:off={statusOf(s) !== "active"} class:picked={sel.has(s.id)}>
+        <li id={"sl-" + s.id} class="item panel" class:off={statusOf(s) !== "active"} class:picked={sel.has(s.id)} class:hit={s.id === focusID}>
           <!-- 默认折叠（反馈 #78）：只显示短码、状态、指向、请求次数与上次请求时间；趋势、二维码与管理操作在「详情」里 -->
           <div class="head">
             <div class="title">
@@ -327,6 +339,10 @@
     block-size: 16px;
     accent-color: var(--accent);
     cursor: pointer;
+  }
+  .item.hit {
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    border-color: var(--accent);
   }
   .item.picked {
     border-color: var(--accent);

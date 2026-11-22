@@ -7,7 +7,7 @@
 ### 下次从这里开始（2026-11-21）
 
 - **状态**：第 2、3 批已完成（R47–R53：订阅随源的修改立即更新、保存后返回列表、节点源列表直接删除、显示上次时间、节点内容即时预览、不被浏览器自动填充、恢复默认可撤销），未推送。R15、R16 暂不处理（mihomo 通用链接已满足需求）；R18 暂缓到有可用的 Docker 环境时。
-- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。进入阶段 6：R34 命令面板搜数据 + R45 快捷键一览，然后 R3 浏览器返回。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
+- **下一步**：阶段 4 已完成（O2 的选择器标签除外）。阶段 5 已完成。阶段 6 的 R34、R45 已完成，接着做 R3 浏览器返回，然后 R19 头像与默认昵称 + R10 足迹 + O12 昵称补全。R18 与 R14 的 compose 叠加文件已在远程 Docker 上完成实测（反馈 #111）。R11 只差足迹的庆祝效果，随 R10 一起做。本机基准库 `cl_bench_20261120122524`（千万行，约 4 GB，在 `.cache/pgdata`）保留着，`go run ./tools/dbbench -dsn … -db cl_bench_20261120122524` 可直接复测；不需要时 `DROP DATABASE`。
 - **工作方式**：维护者按 token 额度安排，每批开新对话；汇报用大白话讲功能变化与验证结果。收到「开始」前只登记需求、不编码。新意见照常追加到 [feedback](feedback.md)，完成的需求移入 backlog 的「已完成」。
 - **本机环境要点**（Windows + Git Bash）：
   - 工具链不在系统 PATH：`export PATH="$PWD/.cache/toolchain/go/bin:$PWD/.cache/toolchain/node-v26.13.0-win-x64:$PATH"`；`gofmt`、`goimports`、`staticcheck`、`golangci-lint` 分别在 `.cache/toolchain/go/bin` 与 `.cache/gopath/bin`。
@@ -77,6 +77,7 @@
 - **O2 规则源编辑器与策略组预览（2026-11-21）**：规则源页的文本改为 CodeMirror（toml、ini 两种 StreamLanguage 高亮，按需加载，挂在 Shadow DOM 中以满足 CSP）；`POST /api/v1/rule-sources/preview` 用编辑中的文本与一份配置（或全部节点源）的节点走 `engine.Build`，返回每组的成员、规则条数与带文件和行号的诊断，编辑器在行内标出，点问题跳到对应行。验证：`TestRuleSourcePreview`（展开结果、按配置、用已保存的内容补齐、toml 结构错误与语法错误、ini 的行号）；e2e「规则源编辑器…」。未做：可点选的选择器标签。
 - **R26、R36 运行指标与后台任务（2026-11-21）**：`internal/metrics` 自己实现计数器与直方图并输出 Prometheus 文本格式（避免引入客户端库）；HTTP 中间件按 `r.Pattern` 统计（ServeMux 匹配后写回同一个请求），包装的 ResponseWriter 实现 `Unwrap` 与 `Hijack`，WebSocket 不受影响。后台任务经 `runJob` 记录，任务函数仍是「失败只记日志」，在原日志处加 `jobFailed`。验证：`TestWriteText`、`TestMetricsAndJobs`（本机可读、经代理 404、令牌、抓取不计入、任务面板与权限）；e2e「运行指标与后台任务…」。
 - **R43、R39 数据保留与订阅分析导出（2026-11-21）**：保留期存在 settings（`retention.audit_days`、`retention.request_days`），优先于环境变量；清理任务、订阅分析的提示与用户协议占位符改读生效值。数据量：PostgreSQL 用 `pg_class.reltuples` 与 `pg_total_relation_size`，SQLite 逐表计数加 `page_count × page_size`。订阅分析的范围与筛选抽成 `analyticsScope`，分析与导出共用。验证：`TestRetentionAndExport` 在 SQLite 与 PostgreSQL 上通过（生效值、恢复、按生效值清理、数据量、CSV 明细与按天、CSV 注入转义、只含本人）；e2e「数据保留与订阅分析导出…」。
+- **R34、R45 命令面板搜数据与快捷键一览（2026-11-21）**：索引在打开命令面板时取一次（`GET /api/v1/search`），关闭即丢弃，按键不访问服务器；节点名与节点源页一致（同一解析与整理），上限 5000 个。空输入不列数据，避免淹没页面与命令。快捷键表手写在 `ShortcutsDialog.svelte`，只列真实存在的按键。验证：`TestSearchIndex` 通过（内容、他人隔离、回收站、令牌 403）；e2e「命令面板搜数据与快捷键一览…」通过；截图看过面板与快捷键对话框。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。

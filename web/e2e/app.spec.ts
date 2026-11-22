@@ -1521,3 +1521,53 @@ test("数据保留与订阅分析导出：设置保留期、统计数据量、�
   expect(text.replace(/^﻿/, "").split("\n")[0]).toBe("time,config,link,short_link,friend,client,ip,country,asn,org,status,kind");
   expect(problems).toEqual([]);
 });
+
+test("命令面板搜数据与快捷键一览：搜到节点并定位到所在行，按 ? 打开快捷键（R34、R45）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "键盘快捷键只在桌面测试");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const tag = "R34" + Date.now().toString(36);
+  const src = await call<{ id: string }>("POST", "/api/v1/sources", {
+    name: "搜索测试 " + tag,
+    kind: "batch",
+    content: `- {name: 定位节点 ${tag}, type: ss, server: 192.0.2.10, port: 8388, cipher: aes-128-gcm, password: example-pw}\n`,
+  });
+  await login(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
+  // 没有输入时不列出数据，只有页面与命令
+  await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused();
+  await expect(page.getByRole("option", { name: new RegExp(tag) })).toHaveCount(0);
+  await page.keyboard.type("定位节点 " + tag);
+  const opt = page.getByRole("option", { name: new RegExp("定位节点 " + tag) });
+  await expect(opt).toContainText("节点");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL((u) => u.pathname === "/sources/" + src.id && u.searchParams.has("node"));
+  await expect(page.locator("tr.hit")).toContainText("定位节点 " + tag);
+  await expect(page.locator("tr.hit")).toBeInViewport();
+
+  // 节点源本身也能搜到
+  await page.keyboard.press("Control+K");
+  await expect(page.locator("dialog.palette input")).toBeFocused();
+  await page.keyboard.type("搜索测试 " + tag);
+  // 节点也会因所在节点源的名称命中；节点源本身排在前面
+  await expect(page.locator("#palette-list [role=option]").first()).toContainText("节点源");
+  await page.screenshot({ path: "test-results/shot-palette-data.png" });
+  await page.keyboard.press("Escape");
+
+  // ?：快捷键一览；在输入框中照常输入问号
+  await page.locator("body").click({ position: { x: 5, y: 300 } });
+  await page.keyboard.press("?");
+  const dlg = page.getByRole("dialog", { name: "快捷键" });
+  await expect(dlg).toBeVisible();
+  await expect(dlg.getByText("打开命令面板")).toBeVisible();
+  await page.screenshot({ path: "test-results/shot-shortcuts.png" });
+  await page.keyboard.press("Escape");
+  await expect(dlg).toBeHidden();
+  const name = page.locator("#sd-name");
+  await name.focus();
+  await page.keyboard.press("?");
+  await expect(dlg).toBeHidden();
+  expect(problems).toEqual([]);
+});
