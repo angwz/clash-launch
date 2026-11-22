@@ -2,10 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -289,24 +288,24 @@ func (s *Service) ChangePassword(ctx context.Context, userID, current, next stri
 func (s *Service) audit(ctx context.Context, owner, action string, detail map[string]string) {
 	var b []byte
 	if len(detail) > 0 {
-		parts := make([]string, 0, len(detail))
-		for k, v := range detail {
-			parts = append(parts, fmt.Sprintf("%q:%q", k, v))
-		}
-		// 键序固定，便于比较与检索
-		slices.Sort(parts)
-		b = []byte("{" + strings.Join(parts, ",") + "}")
+		// JSON 编码：map 的键按字母序输出，便于比较与检索；任何字符（含控制字符）都得到合法的 JSON
+		b, _ = json.Marshal(detail)
 	}
 	if err := s.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: owner, Action: action, Detail: b}); err != nil && s.Log != nil {
 		s.Log.Warn("写入审计日志失败", "action", action, "error", err)
 	}
+	s.footprintFromAudit(ctx, owner, action, detail)
 }
 
 // LoginSucceeded 记录一次成功登录：审计与已知设备。设备第一次出现时发送新设备提醒；
 // 账号创建后一分钟内的登录（注册后的自动登录）不提醒。
-func (s *Service) LoginSucceeded(ctx context.Context, u *store.User, ipPrefix, ua string) {
+// country 是登录地的国家代码（没有地理数据时为空），用于足迹「第一次从某地登录」（R10）。
+func (s *Service) LoginSucceeded(ctx context.Context, u *store.User, ipPrefix, ua, country string) {
 	device := auth.DeviceName(ua)
 	s.audit(ctx, u.ID, "login.ok", map[string]string{"ip": ipPrefix, "device": device})
+	if country != "" {
+		s.Footprint(ctx, u.ID, FPLoginCountry, country, nil)
+	}
 	isNew, err := s.Store.Devices().Seen(ctx, u.ID, auth.DeviceFingerprint(ipPrefix, ua), s.now())
 	if err == nil && isNew && s.now().Sub(u.CreatedAt) > time.Minute {
 		s.notify(ctx, u.ID, AlertNewDevice, map[string]string{"ip": ipPrefix, "device": device})

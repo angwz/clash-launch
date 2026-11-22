@@ -1068,6 +1068,12 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/cursor'}, {$ref: '#/components/parameters/limit'}]
       responses: {'200': {description: ok, content: {application/json: {schema: {type: object, required: [items], properties: {items: {type: array, items: {$ref: '#/components/schemas/AuditEntry'}}, next: {type: string}}}}}}}
+  /api/v1/account/footprints:
+    get:
+      tags: [account]
+      summary: 足迹（需求 R10）：本人不会重复的「第一次」、累计里程碑、新地区与改名，按时间先后；管理员另附站点的足迹（site）
+      security: [{session: []}]
+      responses: {'200': {description: ok}}
   /api/v1/account/quota:
     get:
       tags: [account]

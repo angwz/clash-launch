@@ -92,6 +92,9 @@ type StatsRepo interface {
 	LatestRequests(ctx context.Context, owner string, from, to time.Time, f RequestFilter, n int) ([]SubRequest, error)
 	// LastByShort 返回每个短链接最近一次被请求的时间（反馈 #78：短链接列表折叠时显示）。
 	LastByShort(ctx context.Context, owner string) (map[string]time.Time, error)
+	// OwnerPulls、OwnerDays：足迹（R10）的累计次数与连续在用天数
+	OwnerPulls(ctx context.Context, owner string) (int64, error)
+	OwnerDays(ctx context.Context, owner string, since int) ([]int, error)
 }
 
 func (d *DB) Stats() StatsRepo { return stats{d} }
@@ -400,4 +403,31 @@ func (r stats) CountOK(ctx context.Context, linkID string, since time.Time) (int
 	var n int
 	err := r.d.row(ctx, "SELECT COUNT(*) FROM sub_requests WHERE link_id=? AND at>=? AND status<400", linkID, ms(since)).Scan(&n)
 	return n, err
+}
+
+// —— 足迹用的汇总（需求 R10）：按所有者的订阅拉取，经 links 关联（已删除的链接不再计入）——
+
+// OwnerPulls 返回用户全部订阅链接被拉取的总次数。
+func (r stats) OwnerPulls(ctx context.Context, owner string) (int64, error) {
+	var n int64
+	err := r.d.row(ctx, "SELECT COALESCE(SUM(c.count), 0) FROM stat_counts c JOIN links l ON l.id = c.key WHERE c.scope='sub' AND l.owner_id=?", owner).Scan(&n)
+	return n, err
+}
+
+// OwnerDays 返回用户的订阅自 since（yyyymmdd，UTC）起被拉取过的日子，升序。
+func (r stats) OwnerDays(ctx context.Context, owner string, since int) ([]int, error) {
+	rows, err := r.d.query(ctx, "SELECT DISTINCT c.day FROM stat_counts c JOIN links l ON l.id = c.key WHERE c.scope='sub' AND l.owner_id=? AND c.day>=? ORDER BY c.day", owner, since)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []int
+	for rows.Next() {
+		var d int
+		if err := rows.Scan(&d); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
 }

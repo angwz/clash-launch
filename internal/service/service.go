@@ -547,6 +547,9 @@ func (s *Service) RenderProfile(ctx context.Context, owner, id string) (*store.R
 	if err := s.Store.Renders().Put(ctx, owner, r); err != nil {
 		return nil, nil, err
 	}
+	if res.Kernel.Status == kernel.Passed {
+		s.Footprint(ctx, owner, FPFirstCheck, "", map[string]string{"profile": id})
+	}
 	s.push(owner, events.Render, id)
 	return r, res, nil
 }

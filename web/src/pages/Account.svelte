@@ -14,6 +14,7 @@
   import AccessTokens from "../components/account/AccessTokens.svelte";
   import ScheduleLogoutDialog from "../components/account/ScheduleLogoutDialog.svelte";
   import Identity from "../components/account/Identity.svelte";
+  import Footprints from "../components/account/Footprints.svelte";
   import InvitesPanel from "../components/InvitesPanel.svelte";
   import { placeText } from "../lib/regions";
   import AuditLog from "../components/AuditLog.svelte";
@@ -234,6 +235,8 @@
   {/if}
 
   <InvitesPanel />
+
+  <Footprints />
 
   <section class="panel box" aria-labelledby="ac-audit">
     <h2 id="ac-audit">{t("account.audit")}</h2>

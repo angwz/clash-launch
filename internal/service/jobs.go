@@ -26,6 +26,7 @@ func (s *Service) Run(ctx context.Context, every time.Duration) {
 	t := time.NewTicker(every)
 	defer t.Stop()
 	s.runJob(ctx, "fetch", s.tick)
+	s.runJob(ctx, "footprints", s.backfillJob) // 足迹上线后补记一次（需求 R10），之后立即返回
 	s.daily(ctx)
 	lastPrune := s.now()
 	for {
@@ -221,5 +222,15 @@ func (s *Service) CreateAdmin(ctx context.Context, username, password string) (*
 		return nil, err
 	}
 	_ = s.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: u.ID, Action: "admin.create"})
+	s.Footprint(ctx, u.ID, FPJoined, "", nil)
+	s.Footprint(ctx, "", FPSiteStart, "", map[string]string{"user": u.Username}) // 第一位管理员创建之日即网站上线之日
 	return u, nil
+}
+
+// backfillJob 是补记足迹的后台任务形式。
+func (s *Service) backfillJob(ctx context.Context) {
+	if err := s.BackfillFootprints(ctx); err != nil {
+		s.Log.Error("补记足迹失败", "error", err)
+		jobFailed(ctx, err)
+	}
 }

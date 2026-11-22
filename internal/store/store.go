@@ -251,6 +251,7 @@ type Store interface {
 	// Usage 统计各表的数据量与占用（需求 R43）。
 	Usage(ctx context.Context) (*DataUsage, error)
 	Notifications() NotificationRepo
+	Footprints() FootprintRepo
 	Stats() StatsRepo
 	ShortLinks() ShortLinkRepo
 	Messages() MessageRepo

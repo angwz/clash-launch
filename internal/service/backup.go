@@ -66,6 +66,16 @@ type Backup struct {
 	ShortLinks  []BackupShortLink  `json:"shortLinks"`
 	SMTP        *BackupSMTP        `json:"smtp,omitempty"`
 	Channels    []BackupChannel    `json:"channels"`
+	// Footprints 是足迹（需求 R10）。还原时与现有的合并：足迹是永久记录，不因还原而删除
+	Footprints []BackupFootprint `json:"footprints,omitempty"`
+}
+
+type BackupFootprint struct {
+	Kind       string          `json:"kind"`
+	Subject    string          `json:"subject,omitempty"`
+	At         time.Time       `json:"at"`
+	Detail     json.RawMessage `json:"detail,omitempty"`
+	Backfilled bool            `json:"backfilled,omitempty"`
 }
 
 type BackupAccount struct {
@@ -291,6 +301,13 @@ func (s *Service) BuildBackup(ctx context.Context, u *store.User) (*Backup, erro
 	}
 	for _, c := range chs {
 		b.Channels = append(b.Channels, BackupChannel{ID: c.ID, Kind: c.Kind, Name: c.Name, Config: rawJSON(c.Config), Enabled: c.Enabled, VerifiedAt: timeOrNil(c.VerifiedAt)})
+	}
+	fps, err := st.Footprints().List(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range fps {
+		b.Footprints = append(b.Footprints, BackupFootprint{Kind: x.Kind, Subject: x.Subject, At: x.At, Detail: rawJSON(x.Detail), Backfilled: x.Backfilled})
 	}
 	return b, nil
 }
@@ -601,6 +618,20 @@ func (s *Service) apply(ctx context.Context, u *store.User, b *Backup) (*Restore
 
 // replaceAll 在事务中删除当前的个人数据并写入备份。返回写入的配置 ID（事后重新生成）。
 func (s *Service) replaceAll(ctx context.Context, st store.Store, u *store.User, b *Backup, keepShared []store.ShortLink, rep *RestoreReport) ([]string, error) {
+	// 足迹：合并（已有的保留，备份中多出的补上）
+	skipped := 0
+	for _, x := range b.Footprints {
+		if x.Kind == "" || len(x.Kind) > 40 || len(x.Subject) > 200 || len(x.Detail) > 4096 {
+			skipped++ // 备份文件可以被手工修改：明显不是足迹的条目不写入，记入日志
+			continue
+		}
+		if _, err := st.Footprints().Add(ctx, &store.Footprint{UserID: u.ID, Kind: x.Kind, Subject: x.Subject, At: x.At, Detail: x.Detail, Backfilled: x.Backfilled}); err != nil {
+			return nil, err
+		}
+	}
+	if skipped > 0 && s.Log != nil {
+		s.Log.Warn("还原时跳过了无效的足迹", "user", u.ID, "count", skipped)
+	}
 	// 删除：配置级联删除修订、订阅链接、短链接与生成结果；其余逐项删除
 	profs, err := listPaged(func(after string) ([]store.Profile, error) {
 		return st.Profiles().List(ctx, u.ID, store.Page{After: after, Limit: 200})

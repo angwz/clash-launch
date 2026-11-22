@@ -247,6 +247,13 @@ func (s *Service) SendMessage(ctx context.Context, from *store.User, to, text st
 	}
 	s.push(from.ID, events.Message, rcpt.ID)
 	s.push(rcpt.ID, events.Message, from.ID)
+	// 足迹（R10）：第一条消息、双方的第一个联系人、第一次收到授权
+	s.Footprint(ctx, from.ID, FPFirstMessage, "", map[string]string{"to": rcpt.Username})
+	s.Footprint(ctx, from.ID, FPFirstContact, "", map[string]string{"user": rcpt.Username})
+	s.Footprint(ctx, rcpt.ID, FPFirstContact, "", map[string]string{"user": from.Username})
+	if grant != nil {
+		s.Footprint(ctx, rcpt.ID, FPFirstGrantRecv, "", map[string]string{"from": from.Username})
+	}
 	if grant != nil {
 		s.push(from.ID, events.Grant, grant.ID)
 		s.push(rcpt.ID, events.Grant, grant.ID)

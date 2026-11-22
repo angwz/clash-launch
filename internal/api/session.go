@@ -201,7 +201,7 @@ func (s *Server) startSession(w http.ResponseWriter, r *http.Request, u *store.U
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: s.cookieName(r), Value: tok, Path: "/", HttpOnly: true, Secure: s.secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(s.Cfg.SessionMax.Seconds())}) //nolint:gosec // Secure 在 HTTPS 部署下为 true；明文的本地开发中浏览器不会发送 Secure Cookie
-	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA)
+	s.Svc.LoginSucceeded(ctx, u, sess.IPPrefix, sess.UA, s.Svc.Geo.Lookup(addr).Country)
 	canceled := s.Svc.CancelDeletionOnLogin(ctx, u) // 冷静期内登录即撤销注销（需求 R20）
 	terms, err := s.termsState(ctx, u)
 	if err != nil {
@@ -279,11 +279,8 @@ func (s *Server) setupAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) audit(ctx context.Context, owner, action string, detail map[string]string) {
-	var b []byte
-	if detail != nil {
-		b = []byte(jsonString(detail))
-	}
-	_ = s.Svc.Store.Audit().Add(ctx, &store.AuditEntry{OwnerID: owner, Action: action, Detail: b})
+	// 经服务层写入：同时记下由该动作得出的足迹（R10）
+	s.Svc.Audit(ctx, owner, action, detail)
 }
 
 func truncate(s string, n int) string {

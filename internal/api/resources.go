@@ -215,6 +215,7 @@ func (s *Server) createSource(w http.ResponseWriter, r *http.Request, p *princip
 		s.fail(w, err)
 		return
 	}
+	s.Svc.Footprint(r.Context(), p.User.ID, service.FPFirstSource, "", map[string]string{"name": src.Name})
 	w.Header().Set("ETag", etag(src.Version))
 	writeJSON(w, http.StatusCreated, s.toSource(r, p.User, src))
 }
@@ -1096,11 +1097,6 @@ func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
-}
-
-func jsonString(v any) string {
-	b, _ := json.Marshal(v)
-	return string(b)
 }
 
 // nonNil 让空切片编码为 [] 而不是 null，与契约中的 required 数组一致。

@@ -20,7 +20,7 @@ function files(dir: string): string[] {
 // 以前缀拼接的动态键：列出每个前缀可能的取值（与后端枚举、组件状态一致）
 const dynamic: Record<string, string[]> = {
   "admin.mfa_policy_": ["off", "admins", "all"],
-  "jobs.name.": ["fetch", "stats", "deletions", "prune_audit", "prune_requests", "purge_threads", "purge_backups"],
+  "jobs.name.": ["fetch", "footprints", "stats", "deletions", "prune_audit", "prune_requests", "purge_threads", "purge_backups"],
   "restore.row_": ["sources", "ruleSources", "profiles", "revisions", "templates", "links", "shortLinks", "channels"],
   "channels.kind_": ["webhook", "telegram", "bark", "ntfy"],
   "channels.hint_": ["webhook", "telegram", "bark", "ntfy"],
@@ -38,6 +38,8 @@ const dynamic: Record<string, string[]> = {
   "invite.": ["active", "used", "expired", "revoked"],
   "palette.kind.": ["page", "field", "command", "profile", "source", "rule", "node", "short", "friend"],
   "mode.": ["inline", "provider"],
+  // 不带细节的足迹（lib/footprints.ts 的 default 分支，与 internal/service/footprints.go 一致）
+  "footprint.kind.": ["first_login", "first_mfa", "first_passkey", "first_profile", "first_link", "first_check", "first_routing", "first_pull", "site_start"],
   "stats.page.": ["home", "welcome", "profile", "profile-links", "profile-history", "sources", "source", "rules", "rule", "account", "admin", "help", "settings", "analytics", "short-links", "messages", "message-thread"],
   "analytics.kind.": ["config", "provider", "export", "short", "import"],
   "analytics.range_": ["7", "30", "90", "365"],

@@ -1646,3 +1646,26 @@ test("浏览器返回：编辑器分节逐个返回；未保存时确认；保�
   await expect(page).not.toHaveURL(/tab=wiki/);
   expect(problems).toEqual([]);
 });
+
+test("足迹：账户页的时间线与站点足迹；新足迹即时提示，指示灯庆祝（R10、R11）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "流程与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const me = await call<{ nickname?: string }>("GET", "/api/v1/me");
+  await login(page);
+  await page.goto("/account");
+  const box = page.locator("section", { has: page.getByRole("heading", { name: "足迹", exact: true }) });
+  await expect(box.getByText("加入Clash, Launch!").first()).toBeVisible();
+  await expect(box.getByRole("heading", { name: "站点" })).toBeVisible();
+  await expect(box.getByText("网站上线")).toBeVisible();
+
+  // 另一个会话改昵称：这一页收到实时事件，弹出提示、指示灯播放庆祝效果、时间线更新
+  const nick = "足迹测试" + Date.now().toString(36);
+  await call("PUT", "/api/v1/account/nickname", { nickname: nick });
+  await expect(page.getByText("新足迹：昵称改为「" + nick + "」")).toBeVisible();
+  await expect(page.locator('.pulse .flash[data-kind="footprint"]').first()).toBeAttached();
+  await expect(box.getByText("昵称改为「" + nick + "」")).toBeVisible();
+  await box.screenshot({ path: "test-results/shot-footprints.png" });
+  await call("PUT", "/api/v1/account/nickname", { nickname: me.nickname ?? "" });
+  expect(problems).toEqual([]);
+});

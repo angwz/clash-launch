@@ -18,7 +18,7 @@
 
   let { id }: { id: string } = $props();
 
-  type Flash = "start" | "pull" | "recover" | "ok" | "fail";
+  type Flash = "start" | "pull" | "recover" | "ok" | "fail" | "footprint";
 
   // 断线判定：服务器不可达（实时通道断开且轮询也失败）超过 5 秒才熄灭，刷新、网络抖动造成的短暂重连不闪烁
   const DOWN_AFTER = 5_000;
@@ -58,6 +58,9 @@
       play("pull");
     }),
   );
+
+  // 新足迹（R10）：庆祝——光环向外扩散两圈（暖色），区别于其他一次性闪烁
+  $effect(() => realtime.on(["footprint"], () => play("footprint")));
 
   // 保存或检查完成、失败（pulse.finish）：跳过挂载前已有的结果，只播放之后发生的
   let seenOutcome = pulse.outcome?.seq ?? 0;
@@ -276,6 +279,10 @@
   .flash[data-kind="fail"] {
     background: var(--err);
   }
+  .flash[data-kind="footprint"] {
+    background: transparent;
+    box-shadow: 0 0 0 1.5px var(--warn);
+  }
 
   [data-state="active"] .core {
     opacity: 1;
@@ -340,6 +347,10 @@
     .flash[data-kind="fail"] {
       animation: blink 0.7s ease-in-out 1;
     }
+    /* 新足迹：一圈暖色光环向外扩散，连续两次 */
+    .flash[data-kind="footprint"] {
+      animation: celebrate 0.9s ease-out 2;
+    }
     .paused .light > span {
       animation-play-state: paused;
     }
@@ -382,6 +393,16 @@
     50% {
       opacity: calc(var(--pulse-glow, 0.22) * 1.4);
       transform: scale(2.3);
+    }
+  }
+  @keyframes celebrate {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(4.5);
     }
   }
   @keyframes blink {

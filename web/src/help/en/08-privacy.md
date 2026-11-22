@@ -102,3 +102,7 @@ At the bottom of the Account page you can delete your account with your current 
 ## Export subscription analytics
 
 The Subscription Analytics page exports the current range and filters as CSV: Export details gives one row per fetch (time, config, link, client, IP, region, network operator, status code), and Export daily totals gives requests, successes, blocked requests and distinct IPs per day. Details are limited by the retention period; older days appear only in the daily totals.
+
+## Footprints
+
+Footprints on the Account page record things that happen only once: joining, your first config, the first time a subscription is fetched, the first sign-in or fetch from a new country or region, totals, name changes and so on. They are kept permanently, regardless of the audit log retention period; only you can see them, they are included in your personal backup, and they are deleted with your account.

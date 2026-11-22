@@ -23,6 +23,8 @@
   import { errorText } from "../lib/errors";
   import { toasts } from "../lib/toast.svelte";
   import { realtime } from "../lib/realtime.svelte";
+  import { api } from "../lib/api/client";
+  import { footprintText, type Footprint } from "../lib/footprints";
   import Pulse from "./Pulse.svelte";
 
   let { children }: { children: Snippet } = $props();
@@ -33,7 +35,18 @@
     inbox.start(); // 未读消息角标（反馈 #74）
     notices.start(); // 站内提醒（R23、R24）
     realtime.start(); // 实时通道（R22）
+    // 新足迹（R10）：取回完整的一条（事件只带类别与区分），弹出一次轻提示；指示灯的庆祝效果在 Pulse 中
+    const offFootprint = realtime.on(["footprint"], (kind, e) => {
+      api.get<{ items: Footprint[] }>("/api/v1/account/footprints").then(
+        (r) => {
+          const f = r.items.find((x) => x.kind === kind && (x.subject ?? "") === (e?.state ?? ""));
+          if (f) toasts.push("ok", t("footprint.toast", { text: footprintText(f) }), { emoji: "party" });
+        },
+        () => undefined, // 只是提示：取不到时时间线里仍然能看到
+      );
+    });
     prefs.load().catch((e) => toasts.push("err", errorText(e)));
+    return offFootprint;
   });
   // 关闭动效（R11）：根元素加 data-motion="off"，base.css 据此压掉所有动画与过渡
   $effect(() => {

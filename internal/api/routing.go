@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/angwz/clash-launch/internal/diag"
+	"github.com/angwz/clash-launch/internal/service"
 )
 
 // 分流地图、追踪与体检（docs/design/routing.md 第 7 节）。doc 是编辑器当前的方案文档，与 preview 相同的约定；
@@ -100,6 +101,7 @@ func (s *Server) routingFork(w http.ResponseWriter, r *http.Request, p *principa
 		s.fail(w, err)
 		return
 	}
+	s.Svc.Footprint(r.Context(), p.User.ID, service.FPFirstRouting, "", nil)
 	writeJSON(w, http.StatusOK, map[string]any{"routing": text, "diagnostics": diag.Sorted(ds)})
 }
 

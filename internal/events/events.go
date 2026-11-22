@@ -20,18 +20,19 @@ import (
 
 // 事件类型。前端按类型决定刷新哪些数据（web/src/lib/realtime.svelte.ts）。
 const (
-	Render   = "render"   // 配置重新生成（ID 为配置 ID）：检查结果、订阅内容可能变了
-	Source   = "source"   // 节点源拉取或保存（ID 为节点源 ID）
-	Rules    = "rules"    // 规则源拉取或保存（ID 为规则源 ID）
-	Message  = "message"  // 收到或发出消息、已读状态变化
-	Sub      = "sub"      // 订阅链接或短链接被客户端拉取（ID 为链接 ID）
-	Grant    = "grant"    // 授权建立或收回
-	Resync   = "resync"   // 连接落后、丢过事件：浏览器应重读全部数据
-	Typing   = "typing"   // 联系人正在输入（ID 为对方的用户名）；只转发、不保存
-	Presence = "presence" // 联系人上线或下线（ID 为对方的用户名，State 为 on 或 off）
-	Hello    = "hello"    // 连接建立：附服务器版本（新版本提示）与在线人数
-	Pong     = "pong"     // 回应浏览器的 ping（ID 原样带回，用于测往返延迟），附在线人数
-	Notice   = "notice"   // 新的站内提醒（R23、R24；ID 为提醒 ID）
+	Render    = "render"    // 配置重新生成（ID 为配置 ID）：检查结果、订阅内容可能变了
+	Source    = "source"    // 节点源拉取或保存（ID 为节点源 ID）
+	Rules     = "rules"     // 规则源拉取或保存（ID 为规则源 ID）
+	Message   = "message"   // 收到或发出消息、已读状态变化
+	Sub       = "sub"       // 订阅链接或短链接被客户端拉取（ID 为链接 ID）
+	Grant     = "grant"     // 授权建立或收回
+	Resync    = "resync"    // 连接落后、丢过事件：浏览器应重读全部数据
+	Typing    = "typing"    // 联系人正在输入（ID 为对方的用户名）；只转发、不保存
+	Presence  = "presence"  // 联系人上线或下线（ID 为对方的用户名，State 为 on 或 off）
+	Hello     = "hello"     // 连接建立：附服务器版本（新版本提示）与在线人数
+	Pong      = "pong"      // 回应浏览器的 ping（ID 原样带回，用于测往返延迟），附在线人数
+	Notice    = "notice"    // 新的站内提醒（R23、R24；ID 为提醒 ID）
+	Footprint = "footprint" // 新记下的足迹（R10；ID 为类别，State 为区分）
 )
 
 // Event 是推给浏览器的一条通知。

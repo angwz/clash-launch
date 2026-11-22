@@ -78,6 +78,7 @@ func (s *Server) routes() []Route {
 		{"POST", "/api/v1/account/tokens", a(s.createToken)},
 		{"DELETE", "/api/v1/account/tokens/{id}", a(s.revokeToken)},
 		{"GET", "/api/v1/account/audit", a(s.myAudit)},
+		{"GET", "/api/v1/account/footprints", a(s.myFootprints)},
 		{"GET", "/api/v1/account/quota", a(s.myQuota)},
 		{"GET", "/api/v1/admin/users", s.adminOnly(s.adminUsers)},
 		{"GET", "/api/v1/admin/jobs", s.adminOnly(s.adminJobs)},

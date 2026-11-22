@@ -155,5 +155,11 @@ func (s *Service) Register(ctx context.Context, in RegisterInput) (*store.User, 
 		return nil, err
 	}
 	s.notifyInviter(ctx, u)
+	joined := map[string]string{}
+	if u.InvitedByName != "" {
+		joined["inviter"] = u.InvitedByName
+	}
+	s.Footprint(ctx, u.ID, FPJoined, "", joined)
+	s.siteFootprints(ctx, u)
 	return u, nil
 }

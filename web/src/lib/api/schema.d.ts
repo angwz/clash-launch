@@ -2402,6 +2402,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/footprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 足迹（需求 R10）：本人不会重复的「第一次」、累计里程碑、新地区与改名，按时间先后；管理员另附站点的足迹（site） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/quota": {
         parameters: {
             query?: never;
