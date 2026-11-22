@@ -214,7 +214,10 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 	}
 	// 订阅请求的归属地（反馈 #74）：与内核检查共用地理数据目录；没有数据时只是不记录归属地
 	geodb, err := geo.Open(c.Geodata)
-	if err != nil {
+	if errors.Is(err, geo.ErrOptional) {
+		// 只有可选的 IPv6 库不可用：其余地理数据照常使用
+		log.Warn("可选的地理数据无法使用，IPv6 地址只显示国家与运营商", "path", c.Geodata, "error", err)
+	} else if err != nil {
 		log.Warn("地理数据无法打开，订阅请求不记录归属地", "path", c.Geodata, "error", err)
 		geodb = nil
 	} else if geodb == nil {

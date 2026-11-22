@@ -133,6 +133,19 @@ docker compose -f compose.yaml -f compose.postgres.yaml up -d
 
 站点会记录订阅请求的 IP、User-Agent、时间，以及由本机地理数据查出的国家与运营商，供链接所有者在「配置链接」与「订阅分析」页做安全检查；站点访问与设置项热度只按天记次数，不记录是谁。站内消息加密保存。细节见 [stats](../design/stats.md) 与 [sharing](../design/sharing.md)。对外部署时，请在你的隐私说明中告知用户这一点。
 
+### IPv6 地址的省市（可选）
+
+镜像带的 ip2region 只有 IPv4 库，登录设备与订阅请求中的 IPv6 地址只显示国家与运营商。IPv6 库约 37 MB，按需自行加上：从 [lionsoul2014/ip2region](https://github.com/lionsoul2014/ip2region/tree/master/data) 下载 `ip2region_v6.xdb`，挂载进地理数据目录后重启：
+
+```yaml
+services:
+  clash-launch:
+    volumes:
+      - ./ip2region_v6.xdb:/opt/mihomo/geodata/ip2region_v6.xdb:ro
+```
+
+启动时校验文件头：不是 IPv6 库时日志给出警告，只停用它，其余地理数据照常使用。只把约 512 KB 的索引读入内存，其余按需从文件读取。
+
 ## 监控
 
 `/metrics` 以 Prometheus 文本格式提供运行指标：请求数与耗时（按路由模式）、配置生成耗时（含内核检查）、数据库语句耗时、订阅与规则源的拉取结果、后台任务的次数、失败与耗时、实时在线人数与 Go 运行时。指标不含用户数据，但会暴露各接口的使用情况，所以：

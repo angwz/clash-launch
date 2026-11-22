@@ -3,11 +3,17 @@ package geo
 import (
 	"net/netip"
 	"strings"
+
+	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 )
 
 // regionFile 是 ip2region 的 IPv4 库（lionsoul2014/ip2region，Apache-2.0 或 MIT），由 toolsync 下载到地理数据目录。
-// 只用 IPv4 库：IPv6 库约 37 MB，镜像体积代价过大；IPv6 地址退回国家库与 ASN 库。
-const regionFile = "ip2region_v4.xdb"
+// 镜像只带 IPv4 库：IPv6 库约 37 MB，体积代价过大（O8）。需要 IPv6 地址的省市时，把 region6File 放进地理数据目录即可；
+// 没有它时 IPv6 地址退回国家库与 ASN 库。
+const (
+	regionFile  = "ip2region_v4.xdb"
+	region6File = "ip2region_v6.xdb"
+)
 
 // Place 是一个地址所在的地方（需求 R7），用于登录设备的展示。字段为空表示查不到。
 //
@@ -19,6 +25,17 @@ type Place struct {
 	Province string `json:"region,omitempty"`
 	City     string `json:"city,omitempty"`
 	ISP      string `json:"isp,omitempty"`
+}
+
+// regionFor 选择地址对应的 ip2region 库；没有时返回 nil。
+func (d *DB) regionFor(a netip.Addr) *xdb.Searcher {
+	if a.Is4() && d.region != nil {
+		return d.region
+	}
+	if a.Is6() && d.region6 != nil {
+		return d.region6
+	}
+	return nil
 }
 
 // Empty 报告是否什么都没查到。
@@ -33,8 +50,8 @@ func (d *DB) Place(a netip.Addr) Place {
 	a = a.Unmap()
 	info := d.Lookup(a)
 	p.Country, p.ISP = info.Country, info.Org
-	if d.region != nil && a.Is4() {
-		if f := d.searchRegion(a); f != nil {
+	if s := d.regionFor(a); s != nil {
+		if f := d.searchRegion(s, a); f != nil {
 			if p.Country == "" && len(f[4]) == 2 {
 				p.Country = strings.ToUpper(f[4])
 			}
@@ -55,9 +72,9 @@ func (d *DB) Place(a netip.Addr) Place {
 
 // searchRegion 返回 ip2region 的五个字段：国家|省|市|运营商|国家代码。「0」表示空，统一换成空串；
 // 保留地址（国家为 Reserved）与格式不符的记录返回 nil。
-func (d *DB) searchRegion(a netip.Addr) []string {
+func (d *DB) searchRegion(sr *xdb.Searcher, a netip.Addr) []string {
 	d.regionMu.Lock()
-	s, err := d.region.Search(a.String())
+	s, err := sr.Search(a.String())
 	d.regionMu.Unlock()
 	if err != nil {
 		return nil

@@ -30,6 +30,9 @@ type DB struct {
 	// region 是 ip2region 的 IPv4 库（需求 R7），整个读入内存；它的 Searcher 不是并发安全的，查询时加锁
 	region   *xdb.Searcher
 	regionMu sync.Mutex
+	// region6 是可选的 ip2region IPv6 库（O8）：约 37 MB，不随镜像分发；放进地理数据目录即启用。
+	// 只把向量索引读入内存（约 512 KB），记录按需从文件读取；同样不是并发安全的，共用 regionMu
+	region6 *xdb.Searcher
 }
 
 // Info 是一次查询的结果。字段为空表示数据库中没有该地址（如内网、保留地址）。
@@ -39,7 +42,11 @@ type Info struct {
 	Org     string // 运营商或组织名
 }
 
-// Open 打开目录中的 geoip.metadb、ASN.mmdb 与 ip2region_v4.xdb。都不存在时返回 (nil, nil)。
+// ErrOptional 标记只影响可选数据（ip2region 的 IPv6 库）的错误：Open 同时返回可用的 DB，调用方记录警告后照常使用。
+var ErrOptional = errors.New("geo: 可选数据不可用")
+
+// Open 打开目录中的 geoip.metadb、ASN.mmdb、ip2region_v4.xdb 与可选的 ip2region_v6.xdb。都不存在时返回 (nil, nil)。
+// IPv6 库有问题时只停用它：返回其余可用的 DB 与包装了 ErrOptional 的错误。
 func Open(dir string) (*DB, error) {
 	if dir == "" {
 		return nil, nil
@@ -64,10 +71,43 @@ func Open(dir string) (*DB, error) {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("geo: 读取 %s：%w", regionFile, err)
 	}
-	if d.country == nil && d.asn == nil && d.region == nil {
+	s6, err6 := openRegion6(filepath.Join(dir, region6File))
+	d.region6 = s6
+	if d.country == nil && d.asn == nil && d.region == nil && d.region6 == nil {
+		if err6 != nil {
+			return nil, err6
+		}
 		return nil, nil
 	}
+	if err6 != nil {
+		return d, fmt.Errorf("%w：%w", ErrOptional, err6)
+	}
 	return d, nil
+}
+
+// openRegion6 打开可选的 IPv6 库；文件不存在时返回 (nil, nil)。文件头声明的不是 IPv6 库（例如把 v4 库改了名）时报错，
+// 而不是在查询时得到错误的结果。
+func openRegion6(path string) (*xdb.Searcher, error) {
+	h, err := xdb.LoadHeaderFromFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("geo: 读取 %s：%w", region6File, err)
+	}
+	v, err := xdb.VersionFromHeader(h)
+	if err != nil || v.Id != xdb.IPv6.Id {
+		return nil, fmt.Errorf("geo: %s 不是 ip2region 的 IPv6 库", region6File)
+	}
+	idx, err := xdb.LoadVectorIndexFromFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("geo: 读取 %s 的索引：%w", region6File, err)
+	}
+	s, err := xdb.NewWithVectorIndex(xdb.IPv6, path, idx)
+	if err != nil {
+		return nil, fmt.Errorf("geo: 打开 %s：%w", region6File, err)
+	}
+	return s, nil
 }
 
 // Close 释放数据库。
@@ -81,6 +121,9 @@ func (d *DB) Close() error {
 	}
 	if d.asn != nil {
 		errs = append(errs, d.asn.Close())
+	}
+	if d.region6 != nil {
+		d.region6.Close()
 	}
 	return errors.Join(errs...)
 }
