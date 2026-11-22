@@ -372,6 +372,7 @@
   "common.create": "Create",
   "common.delete": "Delete",
   "common.edit": "Edit",
+  "common.leave_unsaved": "You have unsaved changes that will be lost. Leave anyway?",
   "common.loading": "Loading…",
   "common.off": "Off",
   "common.ok": "OK",

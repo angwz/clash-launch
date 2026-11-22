@@ -9,6 +9,7 @@
   import { catalog, type MetaField } from "../lib/catalog.svelte";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
+  import { router } from "../lib/router.svelte";
   import { parse, type Block } from "../lib/md";
   import Markdown from "../components/Markdown.svelte";
 
@@ -42,19 +43,28 @@
     catalog.load().catch((e) => (error = errorText(e)));
   });
 
-  function setQuery() {
+  // 切换标签与主题新增历史记录（需求 R3），展开百科条目只替换当前记录
+  function setQuery(push = false) {
     const p = new URLSearchParams();
     if (tab === "wiki") {
       p.set("tab", "wiki");
       if (focus) p.set("f", focus);
     } else if (topic) p.set("topic", topic);
     const s = p.toString();
-    history.replaceState(null, "", location.pathname + (s ? "?" + s : ""));
+    if (push) router.go(location.pathname + (s ? "?" + s : ""));
+    else router.replace(s);
   }
+  // 返回与前进：标签、主题与展开的条目跟随地址栏
+  $effect(() => {
+    const p = new URLSearchParams(router.search);
+    tab = p.get("tab") === "wiki" ? "wiki" : "guide";
+    topic = p.get("topic") ?? "";
+    focus = p.get("f") ?? "";
+  });
 
   function openTopic(id: string) {
     topic = id;
-    setQuery();
+    setQuery(true);
     document.getElementById("help-main")?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
   }
@@ -127,8 +137,8 @@
   <PageHeader title={t("help.title")} subtitle={t("help.subtitle")} />
 
   <div class="tabs" role="tablist" aria-label={t("help.title")}>
-    <button role="tab" type="button" aria-selected={tab === "guide"} onclick={() => ((tab = "guide"), setQuery())}><Icon name="file" size={15} />{t("help.tab_guide")}</button>
-    <button role="tab" type="button" aria-selected={tab === "wiki"} onclick={() => ((tab = "wiki"), setQuery())}><Icon name="rules" size={15} />{t("help.tab_wiki")}</button>
+    <button role="tab" type="button" aria-selected={tab === "guide"} onclick={() => ((tab = "guide"), setQuery(true))}><Icon name="file" size={15} />{t("help.tab_guide")}</button>
+    <button role="tab" type="button" aria-selected={tab === "wiki"} onclick={() => ((tab = "wiki"), setQuery(true))}><Icon name="rules" size={15} />{t("help.tab_wiki")}</button>
   </div>
 
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}

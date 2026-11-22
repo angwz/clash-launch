@@ -46,6 +46,14 @@
 
   let Page = $state<PageComponent | null>(null);
   let loadedFor = $state("");
+  // 已加载的组件属于哪个路由：新页面异步加载期间不再用新路由的参数渲染旧页面（否则旧页面会以缺少 id 的参数重新挂载并发出请求）
+  let pageFor = $state("");
+  const showPage = $derived(Page !== null && pageFor === router.route.name);
+  // 传给页面的参数只在路由属于该页面时更新：离开时旧页面在销毁前不会读到新路由的参数（如缺少 id）
+  let pageParams = $state<Record<string, string>>({});
+  $effect.pre(() => {
+    if (router.route.name === pageFor) pageParams = router.route.params;
+  });
   let booted = $state(false);
   let bootError = $state("");
 
@@ -128,7 +136,10 @@
     loadedFor = key;
     Page = null;
     void pages[name]().then((m) => {
-      if (loadedFor === key) Page = m.default;
+      if (loadedFor === key) {
+        Page = m.default;
+        pageFor = key;
+      }
     });
   });
 
@@ -150,12 +161,12 @@
   {:else if mfaGated}
     {#await import("./components/MfaGate.svelte") then m}<m.default />{/await}
   {:else if bare}
-    {#if Page}<Page params={router.route.params} />{/if}
+    {#if showPage && Page}<Page params={pageParams} />{/if}
   {:else}
     <AppShell>
-      {#if Page}
-        {#key router.route.params.id}
-          <Page params={router.route.params} />
+      {#if showPage && Page}
+        {#key pageParams.id}
+          <Page params={pageParams} />
         {/key}
       {/if}
     </AppShell>

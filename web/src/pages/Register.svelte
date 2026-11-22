@@ -65,7 +65,6 @@
       // 注册开放时也带上邀请令牌：用于记下邀请关系（需求 R12）；无效的令牌在开放时不挡住注册
       await api.post("/api/v1/register", { username, password, invite: invite || undefined, ...toPayload(questions), pow, terms: terms!.version });
       await session.login(username, password);
-      history.replaceState(null, "", "/register");
       router.go("/welcome", true);
     } catch (err) {
       // 填写期间协议更新了：取消勾选并重新读取，请用户看过新版本再同意

@@ -1571,3 +1571,78 @@ test("命令面板搜数据与快捷键一览：搜到节点并定位到所在�
   await expect(dlg).toBeHidden();
   expect(problems).toEqual([]);
 });
+
+test("浏览器返回：编辑器分节逐个返回；未保存时确认；保存后返回不回到详情；滚动位置还原（R3）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "历史记录与视口无关，只在桌面运行一次");
+  const problems = watch(page);
+  const { profile, source } = await seedProfile(request, baseURL!, "返回测试 " + Date.now().toString(36));
+  const srcURL = (u: URL) => u.pathname === "/sources/" + source;
+  await login(page);
+
+  // 编辑器：切换分节进入历史，返回回到上一个分节，再返回离开编辑器
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "配置" })).toBeVisible();
+  await page.goto("/profiles/" + profile);
+  const secnav = page.locator("nav.secnav");
+  await secnav.getByRole("button", { name: "分流", exact: true }).click();
+  await expect(page).toHaveURL(/section=routing/);
+  await secnav.locator("button").nth(3).click();
+  await expect(page).not.toHaveURL(/section=routing/);
+  await page.goBack();
+  await expect(page).toHaveURL(/section=routing/);
+  await expect(secnav.getByRole("button", { name: "分流", exact: true })).toHaveAttribute("aria-current", "true");
+  await page.goBack();
+  await expect(secnav.getByRole("button", { name: /节点与分流/ })).toHaveAttribute("aria-current", "true");
+  await page.goBack();
+  await expect(page).toHaveURL((u) => u.pathname === "/");
+
+  // 节点源：未保存时离开需要确认；取消则留在原页（站内链接与浏览器返回都一样）
+  await page.getByRole("link", { name: "节点", exact: true }).first().click();
+  await expect(page).toHaveURL((u) => u.pathname === "/sources");
+  await page.locator('a[href="/sources/' + source + '"]').first().click();
+  await expect(page.locator("#sd-name")).toHaveValue(/返回测试/);
+  await page.locator("#sd-name").fill("返回测试 改名");
+  let asked = 0;
+  page.on("dialog", (d) => {
+    asked++;
+    void d.dismiss();
+  });
+  await page.getByRole("link", { name: "分流规则" }).first().click();
+  await expect(page).toHaveURL(srcURL);
+  // 浏览器返回：拒绝后撤销这次返回，仍在详情页
+  await page.evaluate(() => history.back());
+  await expect.poll(() => asked).toBe(2);
+  await expect(page).toHaveURL(srcURL);
+  await expect(page.locator("#sd-name")).toHaveValue("返回测试 改名");
+  page.removeAllListeners("dialog");
+
+  // 保存后回到列表：上一页就是列表时后退一步；再返回到列表之前的页面，不回到详情
+  await page.getByRole("button", { name: "保存" }).click();
+  await expect(page).toHaveURL((u) => u.pathname === "/sources");
+  await page.goBack();
+  await expect(page).toHaveURL((u) => u.pathname === "/");
+  await page.goForward();
+  await expect(page).toHaveURL((u) => u.pathname === "/sources");
+
+  // 滚动位置：离开后返回，回到原来的位置
+  await page.getByRole("link", { name: "帮助", exact: true }).first().click();
+  await page.getByRole("tab", { name: /百科/ }).click();
+  await expect(page).toHaveURL(/tab=wiki/);
+  await page.waitForLoadState("networkidle");
+  const y = await page.evaluate(() => {
+    const m = document.getElementById("main")!;
+    const el = m.scrollHeight > m.clientHeight + 10 ? m : document.scrollingElement!;
+    el.scrollTop = 1200;
+    return el.scrollTop;
+  });
+  expect(y).toBeGreaterThan(600);
+  await page.getByRole("link", { name: "节点", exact: true }).first().click();
+  await expect(page).toHaveURL((u) => u.pathname === "/sources");
+  await page.goBack();
+  await expect(page).toHaveURL(/tab=wiki/);
+  await expect.poll(() => page.evaluate(() => Math.max(document.getElementById("main")!.scrollTop, document.scrollingElement!.scrollTop))).toBeGreaterThan(y - 10);
+  // 帮助的标签也在历史中
+  await page.goBack();
+  await expect(page).not.toHaveURL(/tab=wiki/);
+  expect(problems).toEqual([]);
+});

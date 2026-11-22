@@ -1,7 +1,7 @@
 <script lang="ts">
   // 方案编辑（第 16.1 节）：分节导航 · 字段卡片 · 预览栏。
   // 预览：宽屏编辑设置时停靠在右侧；「源与规则」与 768–1279 时收起，点击后浮层滑出；< 768 单栏，底部切换「设置 / 预览」。
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PreviewPane from "../components/editor/PreviewPane.svelte";
   import RawEditor from "../components/editor/RawEditor.svelte";
@@ -136,14 +136,25 @@
     };
   });
 
+  // 切换分节新增一条历史记录（需求 R3）：浏览器返回回到上一个分节，而不是离开编辑器
   function select(id: string) {
-    section = id;
     rawOpen = false;
-    const q = new URLSearchParams(location.search);
-    q.set("section", id);
-    history.replaceState(null, "", location.pathname + "?" + q.toString());
+    if (id !== section) {
+      const q = new URLSearchParams(location.search);
+      q.set("section", id);
+      router.go(location.pathname + "?" + q.toString());
+    }
+    section = id;
     document.getElementById("editor-main")?.scrollTo({ top: 0 });
   }
+  // 返回与前进：分节跟随地址栏
+  $effect(() => {
+    const s = new URLSearchParams(router.search).get("section") || "sources";
+    if (s !== untrack(() => section)) {
+      section = s;
+      rawOpen = false;
+    }
+  });
 
   function openRaw(s?: NavSection) {
     rawKey = s?.keys[0];

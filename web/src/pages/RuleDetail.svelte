@@ -1,6 +1,7 @@
 <script lang="ts">
   // 规则源详情：地址或粘贴的文本（toml / ini）。文本用代码编辑器（高亮、行内诊断），
   // 下方是策略组预览：用一份配置或全部节点源的节点展开正在编辑的规则（O2）。
+  import { untrack } from "svelte";
   import RuleHostsHint from "../components/RuleHostsHint.svelte";
   import RulesCode from "../components/rules/RulesCode.svelte";
   import GroupPreview from "../components/rules/GroupPreview.svelte";
@@ -17,6 +18,8 @@
   import { toasts } from "../lib/toast.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
+  // 页面按 id 重建：固定在创建时的值，离开后仍在进行的异步请求不会读到新路由的参数
+  const id = untrack(() => params.id)!;
   let rs = $state<RuleSource | null>(null);
   let error = $state("");
   let saving = $state(false);
@@ -74,9 +77,30 @@
 
   $effect(() => {
     api
-      .get<RuleSource>("/api/v1/rule-sources/" + params.id)
-      .then((r) => (rs = r))
+      .get<RuleSource>("/api/v1/rule-sources/" + id)
+      .then((r) => {
+        rs = r;
+        saved = snapshot(r);
+      })
       .catch((e) => (error = errorText(e)));
+  });
+
+  // 已保存的内容：与当前编辑的不同即为有未保存的修改
+  let saved = $state("");
+  const snapshot = (r: RuleSource) => JSON.stringify([r.name, r.preset, r.groupsUrl, r.rulesetsUrl, r.iniUrl, r.groupsText, r.rulesetsText, r.iniText, r.interval]);
+  const dirty = $derived(rs !== null && saved !== "" && snapshot(rs) !== saved);
+
+  // 未保存的修改（需求 R3）：站内跳转与浏览器返回经 router.guard 确认，刷新或关闭由浏览器询问
+  $effect(() => {
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (dirty) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onUnload);
+    router.guard = () => !(dirty) || confirm(t("common.leave_unsaved"));
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      router.guard = null;
+    };
   });
 
   async function save() {
@@ -85,9 +109,10 @@
     try {
       const { id: _id, version, createdAt: _c, updatedAt: _u, ...body } = rs;
       rs = await api.put<RuleSource>("/api/v1/rule-sources/" + rs.id, body, { ifMatch: version });
+      saved = snapshot(rs);
       toasts.push("ok", t("common.saved"));
-      // 保存成功后返回列表（R48）；失败时留在原页，便于修改后重试
-      router.go("/rules");
+      // 保存成功后返回列表（R48）；失败时留在原页，便于修改后重试。上一页就是列表时后退，返回不会再回到这里
+      router.leave("/rules");
     } catch (e) {
       toasts.push("err", errorText(e));
     } finally {
@@ -98,7 +123,7 @@
   async function refresh() {
     try {
       // 拉取是同步完成的：完成后告知结果（反馈 #76）
-      const r = await api.post<{ error?: string }>("/api/v1/rule-sources/" + params.id + "/refresh");
+      const r = await api.post<{ error?: string }>("/api/v1/rule-sources/" + id + "/refresh");
       if (r?.error) toasts.push("err", t("source.refresh_failed", { reason: r.error }));
       else toasts.push("ok", t("source.refresh_done"));
     } catch (e) {
@@ -110,7 +135,8 @@
     if (!rs || !confirm(t("source.delete_confirm", { name: rs.name }))) return;
     try {
       await api.del("/api/v1/rule-sources/" + rs.id);
-      router.go("/rules");
+      saved = snapshot(rs);
+      router.leave("/rules");
     } catch (e) {
       toasts.push("err", errorText(e));
     }

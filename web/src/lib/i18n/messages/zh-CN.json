@@ -372,6 +372,7 @@
   "common.create": "创建",
   "common.delete": "删除",
   "common.edit": "编辑",
+  "common.leave_unsaved": "有未保存的修改，离开后会丢失。确定离开吗？",
   "common.loading": "加载中…",
   "common.off": "关",
   "common.ok": "确定",

@@ -10,6 +10,7 @@
   import { api } from "../lib/api/client";
   import { errorText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n/i18n.svelte";
+  import { router } from "../lib/router.svelte";
   import { live } from "../lib/live";
   import { flagOf, isLocalIP, placeText, regionName, type Place } from "../lib/regions";
   import { browserZone } from "../components/TimezonePicker.svelte";
@@ -144,7 +145,7 @@
     if (link) p.set("link", link);
     if (short) p.set("short", short);
     if (friend) p.set("friend", friend);
-    history.replaceState(history.state, "", location.pathname + (p.size ? "?" + p : ""));
+    router.replace(p.toString());
     load().catch((e) => (error = errorText(e)));
   });
   $effect(() => live(load, 60_000, ["sub"]).stop);

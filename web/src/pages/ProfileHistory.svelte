@@ -1,5 +1,6 @@
 <script lang="ts">
   // 版本历史：任意两个版本的差异（逐行比较方案文档），一键回滚（回滚也生成新版本）。
+  import { untrack } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import YamlView from "../components/editor/YamlView.svelte";
@@ -11,6 +12,8 @@
   import { toasts } from "../lib/toast.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
+  // 页面按 id 重建：固定在创建时的值，离开后仍在进行的异步请求不会读到新路由的参数
+  const id = untrack(() => params.id)!;
 
   let profile = $state<Profile | null>(null);
   let revs = $state<Revision[]>([]);
@@ -20,7 +23,7 @@
 
   async function load() {
     try {
-      [profile, revs] = await Promise.all([api.get<Profile>("/api/v1/profiles/" + params.id), listAll<Revision>("/api/v1/profiles/" + params.id + "/revisions")]);
+      [profile, revs] = await Promise.all([api.get<Profile>("/api/v1/profiles/" + id), listAll<Revision>("/api/v1/profiles/" + id + "/revisions")]);
       b = revs[0]?.n ?? null;
       a = revs[1]?.n ?? revs[0]?.n ?? null;
     } catch (e) {
@@ -51,7 +54,7 @@
 <div class="page">
   <PageHeader title={t("history.title")} subtitle={profile?.name}>
     {#snippet actions()}
-      <a class="btn" href={"/profiles/" + params.id}><Icon name="settings" size={15} />{t("links.edit_profile")}</a>
+      <a class="btn" href={"/profiles/" + id}><Icon name="settings" size={15} />{t("links.edit_profile")}</a>
     {/snippet}
   </PageHeader>
   {#if error}<p class="field-error" role="alert">{error}</p>{/if}
@@ -78,7 +81,7 @@
     <section class="panel diff">
       <header class="dh">
         <span>{t("history.compare", { a: a ?? "—", b: b ?? "—" })}</span>
-        <button class="btn sm ghost" type="button" onclick={() => router.go("/profiles/" + params.id)}>{t("common.close")}</button>
+        <button class="btn sm ghost" type="button" onclick={() => router.leave("/profiles/" + id)}>{t("common.close")}</button>
       </header>
       {#if diff}
         {#if diff.every((d) => d.op === " ")}

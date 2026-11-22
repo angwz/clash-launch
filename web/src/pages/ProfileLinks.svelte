@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { uniqueName } from "../lib/names";
   // 订阅链接（第 13.2 节）：随时查看与复制、二维码；重置（旧链接立即失效）、备注、最近访问时间与客户端。
   import Icon from "../components/Icon.svelte";
@@ -16,6 +17,8 @@
   import { toasts } from "../lib/toast.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
+  // 页面按 id 重建：固定在创建时的值，离开后仍在进行的异步请求不会读到新路由的参数
+  const id = untrack(() => params.id)!;
 
   let profile = $state<Profile | null>(null);
   let links = $state<Link[] | null>(null);
@@ -37,7 +40,7 @@
   }
   let error = $state("");
 
-  const base = $derived("/api/v1/profiles/" + params.id + "/links");
+  const base = $derived("/api/v1/profiles/" + id + "/links");
 
   // 订阅统计（反馈 #67）
   let ps = $state<{ createdAt: string; days: number[]; links: LinkStat[] } | null>(null);
@@ -54,9 +57,9 @@
   async function load() {
     try {
       [profile, links, ps] = await Promise.all([
-        api.get<Profile>("/api/v1/profiles/" + params.id),
+        api.get<Profile>("/api/v1/profiles/" + id),
         listAll<Link>(base),
-        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + params.id + "/stats"),
+        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + id + "/stats"),
       ]);
     } catch (e) {
       error = errorText(e);
@@ -70,7 +73,7 @@
     const l = live(async () => {
       [links, ps] = await Promise.all([
         listAll<Link>(base),
-        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + params.id + "/stats"),
+        api.get<{ createdAt: string; days: number[]; links: LinkStat[] }>("/api/v1/profiles/" + id + "/stats"),
       ]);
     }, 30_000, ["sub", "render"]);
     poll = l;
@@ -132,7 +135,7 @@
 <div class="page">
   <PageHeader title={t("links.title")} subtitle={profile ? t("links.subtitle", { name: profile.name }) : ""}>
     {#snippet actions()}
-      <a class="btn" href={"/profiles/" + params.id}><Icon name="settings" size={15} />{t("links.edit_profile")}</a>
+      <a class="btn" href={"/profiles/" + id}><Icon name="settings" size={15} />{t("links.edit_profile")}</a>
     {/snippet}
   </PageHeader>
 
@@ -183,7 +186,7 @@
             {#if l.lastAccess}{t("links.last_access", { when: i18n.relative(l.lastAccess), ua: l.lastUa || "—" })}{:else}{t("links.never_used")}{/if}
           </p>
           {#if hasLimits(l)}<p class="limits"><Icon name="shield" size={13} /><span>{t("limits.active")}：{limitsText(l)}</span></p>{/if}
-          {#if statOf(l.id)}<LinkStats stat={statOf(l.id)!} days={ps!.days} profileId={params.id!} />{/if}
+          {#if statOf(l.id)}<LinkStats stat={statOf(l.id)!} days={ps!.days} profileId={id} />{/if}
           {#if qrFor === l.id}
             <div class="qr-box"><QRCode text={l.url} label={t("links.qr")} /><p class="hint">{t("links.qr_hint")}</p></div>
           {/if}

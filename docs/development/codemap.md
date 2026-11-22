@@ -102,7 +102,7 @@
 | 分流分节（地图、追踪、体检、讲解图层；按需加载） | `src/components/routing/`（`RoutingView` 取图与工具栏，`RoutingMap` 方框、SVG 连线与粒子画布，`RoutingList` 窄屏列表，`TracePanel`、`HealthDialog`、`ExplainLayer`、`DetailPanel` 详情与无鼠标编辑、`DraftBar` 草稿栏、`UpstreamDialog` 上游同步）；纯函数 `src/lib/routing/`（`layout.ts` 分列与连线，`plan.ts` 智能视图，`particles.ts` 粒子，`labels.ts` 显示文字，`draft.ts` 草稿操作与改动列表）；方案文档的 routing 段读写在 `lib/profile-doc.ts`；夹具 `src/lib/routing/fixtures/`（由 `TestRoutingFixtures` 生成）；流向色 `--flow-*` 在 `tokens.css`；偏好 `routingView` | `layout.test.ts`、`plan.test.ts`、`draft.test.ts`、e2e「分流」「分流编辑」「规则源更新后提示」「讲解图层」；教程 `src/help/*/09-routing.md` |
 | 界面文字 | `src/lib/i18n/messages/{zh-CN,en}.json`；动态前缀登记在 `i18n.test.ts` 的 `dynamic` | `i18n.test.ts`（缺失、多余、ICU 语法） |
 | 字段说明文字 | 不在前端：来自目录（`catalog/`） | — |
-| 页面与路由 | `src/lib/router.svelte.ts`（路由表）+ `src/App.svelte`（懒加载表）+ `src/pages/*` | `e2e/app.spec.ts` |
+| 页面与路由 | `src/lib/router.svelte.ts`（路由表；历史记录、离开检查 `guard`、`replace` 与 `leave`、滚动还原，规则见 0004 #32）+ `src/App.svelte`（懒加载表）+ `src/pages/*`。页面内状态：进历史用 `router.go`，只改当前记录用 `router.replace`，不要直接调用 `history.*` | `e2e/app.spec.ts`（「浏览器返回…」） |
 | 顶栏、侧栏、响应式外壳 | `src/components/AppShell.svelte`；顶栏的方案状态由 `lib/shell.svelte.ts` 传递 | e2e |
 | 方案编辑器 | `pages/ProfileEditor.svelte`（三栏与定位）、`lib/editor.svelte.ts`（状态、预览、保存）、`components/editor/*` | e2e |
 | 字段卡片与控件 | `components/editor/FieldCard.svelte`、`FieldControl.svelte`；「说明与建议」面板 `FieldGuide.svelte`（编辑器与百科共用），YAML 示例 `lib/yaml-snippet.ts` | e2e、`yaml-snippet.test.ts` |

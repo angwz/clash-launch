@@ -5140,6 +5140,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 命令面板的本人数据索引（需求 R34）：配置、节点源、节点名、规则源、短链接与消息联系人的名称与 ID
+         * @description 节点名与节点源页一致，最多 5000 个（超过时 truncated 为 true）。不含内容、地址或凭据；个人访问令牌不可访问。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ok */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/messages/deleted": {
         parameters: {
             query?: never;

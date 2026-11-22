@@ -1,7 +1,7 @@
 <script lang="ts">
   // 节点源详情：基本设置、整理规则（第 5.5 节）与实时的节点表格。
   // 节点表格：协议、地址（打码）、名称、地区与识别理由、倍率、标签；点击地区可手动指定（写入 overrides）。
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
@@ -16,6 +16,9 @@
   import { pending } from "../lib/pending.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
+  // 页面按 id 重建（App 中的 {#key}）：固定在创建时的值。离开后仍在进行的异步刷新（如保存后收到的更新通知）
+  // 不会读到新路由的参数，请求的始终是这个节点源
+  const id = untrack(() => params.id);
 
   interface Processing {
     include?: string;
@@ -52,7 +55,7 @@
 
   async function load() {
     try {
-      const s = await api.get<Source>("/api/v1/sources/" + params.id);
+      const s = await api.get<Source>("/api/v1/sources/" + id);
       src = s;
       name = s.name;
       url = s.url ?? "";
@@ -60,6 +63,7 @@
       ua = s.ua ?? "";
       interval = Math.round(s.interval / 60);
       proc = (s.processing ?? {}) as Processing;
+      saved = snapshot();
       await Promise.all([loadNodes(), catalog.load()]);
     } catch (e) {
       error = errorText(e);
@@ -73,7 +77,7 @@
     const seq = ++previewSeq;
     const body: Record<string, unknown> = { processing: clean(proc) };
     if (src && src.kind !== "subscription") body.content = content;
-    const r = await api.post<{ nodes: Node[]; diagnostics: Diagnostic[]; format?: string }>("/api/v1/sources/" + params.id + "/nodes/preview", body);
+    const r = await api.post<{ nodes: Node[]; diagnostics: Diagnostic[]; format?: string }>("/api/v1/sources/" + id + "/nodes/preview", body);
     if (seq !== previewSeq) return; // 只采用最后一次请求的结果，避免慢请求覆盖新结果
     nodes = r.nodes;
     diags = r.diagnostics;
@@ -114,13 +118,32 @@
 
   // 自动刷新（反馈 #76）：只更新拉取状态与节点列表，不覆盖正在编辑的表单
   async function refreshView() {
-    src = await api.get<Source>("/api/v1/sources/" + params.id);
+    src = await api.get<Source>("/api/v1/sources/" + id);
     await loadNodes();
   }
   $effect(() => live(refreshView, 30_000, ["source"]).stop);
   let refreshing = $state(false);
 
-  async function save() {
+  // 已保存的表单内容：与当前表单不同即为有未保存的修改
+  let saved = $state("");
+  const snapshot = () => JSON.stringify({ name, url, content, ua, interval, proc: clean(proc) });
+  const dirty = $derived(src !== null && saved !== "" && snapshot() !== saved);
+
+  // 未保存的修改（需求 R3）：站内跳转与浏览器返回经 router.guard 确认，刷新或关闭由浏览器询问
+  $effect(() => {
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (dirty) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onUnload);
+    router.guard = () => !(dirty) || confirm(t("common.leave_unsaved"));
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      router.guard = null;
+    };
+  });
+
+  // back：保存后回到列表（R48）；修改节点地区时留在本页
+  async function save(back = true) {
     if (!src) return;
     saving = true;
     try {
@@ -128,9 +151,10 @@
       if (src.kind === "subscription") body.url = url;
       else body.content = content;
       src = await api.put<Source>("/api/v1/sources/" + src.id, body, { ifMatch: src.version });
+      saved = snapshot();
       toasts.push("ok", t("common.saved"));
-      // 与规则源一致：保存成功后返回列表（R48）
-      router.go("/sources");
+      // 与规则源一致：保存成功后返回列表（R48）；上一页就是列表时后退，返回不会再回到这里
+      if (back) router.leave("/sources");
     } catch (e) {
       toasts.push("err", errorText(e));
     } finally {
@@ -168,7 +192,8 @@
   function remove() {
     if (!src) return;
     pending.remove([{ id: src.id, path: "/api/v1/sources/" + src.id }], t("sources.deleted", { name: src.name }));
-    router.go("/sources");
+    saved = snapshot(); // 已删除：不再提示未保存
+    router.leave("/sources");
   }
 
   function startRegion(n: Node) {
@@ -187,7 +212,7 @@
     }
     proc = { ...proc, overrides: ov };
     editingRegion = null;
-    await save();
+    await save(false);
   }
 
   function flag(code?: string): string {
