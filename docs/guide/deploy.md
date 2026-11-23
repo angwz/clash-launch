@@ -1,6 +1,6 @@
 # 部署
 
-Clash, Launch! 是一个单容器服务：一个静态二进制、内嵌的前端、固定版本的 mihomo（用于 `mihomo -t`）与地理数据。默认用 SQLite，数据全部在 `/data`。
+Clash, Launch! 由两个容器组成：服务本身（一个静态二进制、内嵌的前端、固定版本的 mihomo 与地理数据）和 PostgreSQL。数据库默认使用 PostgreSQL（[0010](../decisions/0010-postgresql-default.md)），主密钥与自动备份在 `/data`。
 
 镜像由 GitHub Actions 构建并发布到 `ghcr.io/angwz/clash-launch`（amd64、arm64）：推送到 `main` 更新 `:latest`，推送 `v*` 标签发布版本号标签。
 
@@ -8,6 +8,7 @@ Clash, Launch! 是一个单容器服务：一个静态二进制、内嵌的前�
 
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.yaml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env   # 数据库密码，只在 compose 内部使用
 docker compose up -d
 ```
 
@@ -32,7 +33,7 @@ docker compose pull && docker compose up -d
 
 ## 数据放在哪
 
-数据（数据库与主密钥 `master.key`）在 `compose.yaml` 旁边的 `data` 文件夹，备份时整个文件夹打包即可。不需要手动改权限：镜像以 root 启动，程序先把 `/data` 交给运行用户，再放弃 root 继续运行（`cmd/clash-launch/privdrop_linux.go`）；宿主机上由 root 创建的目录、Docker 数据卷、NAS 的共享目录都能直接用。
+数据在 `compose.yaml` 旁边的两个文件夹：`postgres`（数据库）与 `data`（主密钥 `master.key`、迁移前的自动备份）。两者都要备份；数据库用 `pg_dump`，见下文「备份与升级」，主密钥丢失后数据无法解密。不需要手动改权限：镜像以 root 启动，程序先把 `/data` 交给运行用户，再放弃 root 继续运行（`cmd/clash-launch/privdrop_linux.go`）；宿主机上由 root 创建的目录、Docker 数据卷、NAS 的共享目录都能直接用。
 
 | 情况 | 做法 |
 | --- | --- |
@@ -53,10 +54,31 @@ docker compose up -d
 
 继续用旧文件也可以：它以 `user: "0:0"` 启动并自带加固项，与新镜像兼容。
 
-### 不用 compose
+### 从 SQLite 迁到 PostgreSQL
+
+2026-11-23 之前默认使用 SQLite（`data/clash-launch.db`）。新版本没有设置数据库地址时，若数据目录里有这个文件，会继续使用它并在每次启动时提示迁移；没有时拒绝启动，并说明怎么设置。迁移只需一次，主密钥不变：
 
 ```sh
-docker run -d --name clash-launch --restart unless-stopped -p 20230:20230 -v "$PWD/data:/data" ghcr.io/angwz/clash-launch:latest
+docker compose down
+curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.yaml   # 新的 compose.yaml 已包含 PostgreSQL
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
+docker compose up -d postgres
+# 把 SQLite 中的全部数据复制到 PostgreSQL（目标库需为空；源库不改动，可以保留作回退）
+docker compose run --rm clash-launch db copy \
+  -from sqlite:///data/clash-launch.db \
+  -to "postgres://clash:$(grep POSTGRES_PASSWORD .env | cut -d= -f2)@postgres:5432/clash?sslmode=disable"
+docker compose up -d
+```
+
+确认一切正常后，可以把 `data/clash-launch.db` 移走。复制的细节与校验见 [data](data.md)。
+
+### 不用 compose
+
+需要自己准备一个 PostgreSQL（14 及以上；库为空即可，表由程序在启动时创建）：
+
+```sh
+docker run -d --name clash-launch --restart unless-stopped -p 20230:20230 -v "$PWD/data:/data" \
+  -e CLASH_LAUNCH_DATABASE_URL='postgres://用户:密码@数据库主机:5432/库名' ghcr.io/angwz/clash-launch:latest
 ```
 
 ### 安全加固
@@ -68,15 +90,11 @@ docker compose -f compose.yaml -f compose.hardened.yaml up -d
 
 叠加后根文件系统只读（只写 `/data` 与 `/tmp`）、去掉其余全部 Linux 能力、禁止提权。保留的 `CHOWN`、`DAC_OVERRIDE`、`SETUID`、`SETGID` 只用于启动时整理 `/data` 并降权，降权后全部失效。默认不开，因为部分 NAS 与 rootless 环境不支持去掉能力或只读根文件系统。
 
-### 使用 PostgreSQL
+### 什么时候用 SQLite
 
-```sh
-curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.postgres.yaml
-echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
-docker compose -f compose.yaml -f compose.postgres.yaml up -d
-```
+只在本机试用、开发与离线测试时使用，需要显式设置 `CLASH_LAUNCH_DATABASE_URL=sqlite:///data/clash-launch.db`；启动时会提示它不适合生产。不再提供 SQLite 的 compose 文件。访客试用（`/try`）的示例环境始终是系统临时目录中的独立 SQLite 库，退出时删除，与此设置无关。
 
-数据库文件在旁边的 `postgres` 文件夹，只在 compose 内部网络中可达，不对外开放端口；主密钥仍在 `data`，两者都要备份。备份用 `pg_dump`，见下文「备份与升级」。已有的 SQLite 数据要先用 `db copy` 搬过去，见 [data](data.md)。三个文件可以同时叠加：`-f compose.yaml -f compose.hardened.yaml -f compose.postgres.yaml`。
+加固叠加照常可用：`docker compose -f compose.yaml -f compose.hardened.yaml up -d`。
 
 ## 版本
 
@@ -96,7 +114,7 @@ docker compose -f compose.yaml -f compose.postgres.yaml up -d
 | --- | --- | --- |
 | `CLASH_LAUNCH_LISTEN` | `:20230` | 监听地址 |
 | `CLASH_LAUNCH_DATA_DIR` | `/data` | 数据目录：数据库、主密钥、迁移前备份 |
-| `CLASH_LAUNCH_DATABASE_URL` | `sqlite:///data/clash-launch.db` | `postgres://…` 时使用 PostgreSQL |
+| `CLASH_LAUNCH_DATABASE_URL` | 无（compose.yaml 已设置） | `postgres://…`。未设置时：数据目录里有旧的 `clash-launch.db` 就继续用它并提示迁移，否则拒绝启动；`sqlite:///…` 只用于本机试用 |
 | `CLASH_LAUNCH_DB_MAX_CONNS` · `_DB_MAX_IDLE` | `20` · `5` | PostgreSQL 连接池：同时打开的连接上限与保持的空闲连接。上限加上备份、管理工具的连接，要低于数据库的 `max_connections`（默认 100） |
 | `CLASH_LAUNCH_DB_IDLE_MINUTES` | `5` | 空闲连接多久后关闭 |
 | `CLASH_LAUNCH_DB_STATEMENT_TIMEOUT` | `30` | 单条语句的最长执行时间（秒），防止慢查询长期占住连接；启动时的迁移不受限制。地址中写了 `statement_timeout` 时以地址为准 |

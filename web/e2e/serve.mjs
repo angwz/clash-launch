@@ -12,7 +12,9 @@ const exe = join(root, ".cache", "bin", process.platform === "win32" ? "clash-la
 const data = mkdtempSync(join(tmpdir(), "clash-launch-e2e-"));
 
 execFileSync("go", ["build", "-o", exe, "./cmd/clash-launch"], { cwd: root, stdio: "inherit" });
-const env = { ...process.env, CLASH_LAUNCH_DATA_DIR: data, CLASH_LAUNCH_LISTEN: "127.0.0.1:" + port, CLASH_LAUNCH_PUBLIC_URL: "http://localhost:" + port, CLASH_LAUNCH_LOG_LEVEL: "warn", CLASH_LAUNCH_POW_BITS: "12" }; // 工作量证明降到 12 位：仍经过 Worker 与 CSP，只是更快
+// 数据库：默认用临时目录里的 SQLite（快、互不影响）；设置 E2E_DATABASE_URL 时用 PostgreSQL（决定 0010，库需为空）
+const dbURL = process.env.E2E_DATABASE_URL || "sqlite://" + join(data, "clash-launch.db").replaceAll("\\", "/");
+const env = { ...process.env, CLASH_LAUNCH_DATABASE_URL: dbURL, CLASH_LAUNCH_DATA_DIR: data, CLASH_LAUNCH_LISTEN: "127.0.0.1:" + port, CLASH_LAUNCH_PUBLIC_URL: "http://localhost:" + port, CLASH_LAUNCH_LOG_LEVEL: "warn", CLASH_LAUNCH_POW_BITS: "12" }; // 工作量证明降到 12 位：仍经过 Worker 与 CSP，只是更快
 execFileSync(exe, ["admin", "create", "-username", "admin"], { env, input: "admin password 2026\n", stdio: ["pipe", "inherit", "inherit"] });
 
 const child = spawn(exe, ["serve"], { env, stdio: "inherit" });

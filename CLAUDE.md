@@ -18,7 +18,7 @@
 ## 硬性边界
 
 - 远端操作（创建仓库、推送、发布镜像、创建 Release、配置 Actions secret、接入 Weblate）只在维护者明确要求时进行；仓库元数据先经维护者确认。
-- 参考资料只读，放在 `.cache/ref/`：domainrouter_v2@2c812f9、mihomo@v1.19.33、angwz/subconverter@a33d49e、ACL4SSR（记录提交）、OpenClash@e553e82。不运行其中的脚本，不修改，不推送。
+- 参考资料只读，放在 `.cache/ref/`：domainrouter_v2@2c812f9、mihomo@v1.19.34（旧版在 `mihomo-1.19.33` 等目录）、angwz/subconverter@a33d49e、ACL4SSR（记录提交）、OpenClash@e553e82。不运行其中的脚本，不修改，不推送。
 - 只按官方文档或源码实现语义；查不到就列为限制，不猜。没有正式规范的输入格式不支持。
 - 用户写下的内容是有意为之：节点名、组名、正则、手写规则、原始编辑中的值按原样保留，看似不规范时只报告。
 - 不静默丢弃：被跳过、改写、删除或无法验证的内容都进入诊断（`internal/diag`）。
@@ -43,9 +43,9 @@ go test -run X -fuzz FuzzRender ./internal/render/   # fuzz（另有 FuzzMerge �
 go test ./internal/render/ ./internal/engine/ -update  # 更新 golden（必须人工审阅差异）
 gofmt -l . && go vet ./... && staticcheck ./... && golangci-lint run
 go run ./cmd/clash-launch render -check -mihomo .cache/tools/mihomo.exe -geodata .cache/tools/geodata testdata/profiles/m1-layers.yaml
-CLASH_LAUNCH_DATA_DIR=.cache/servedata CLASH_LAUNCH_LISTEN=127.0.0.1:18080 go run ./cmd/clash-launch serve   # 本机运行服务
+CLASH_LAUNCH_DATABASE_URL=postgres://… CLASH_LAUNCH_DATA_DIR=.cache/servedata CLASH_LAUNCH_LISTEN=127.0.0.1:18080 go run ./cmd/clash-launch serve   # 本机运行服务（默认 PostgreSQL，决定 0010；只试用时可用 sqlite:///…）
 cd web && npm run check && npm test && npm run build && npm run budget && npm run e2e   # 前端（见 setup）
-go run ./tools/catalog-extract scan -src .cache/ref/mihomo -version v1.19.33 -o fields.json
+go run ./tools/catalog-extract scan -src .cache/ref/mihomo -version v1.19.34 -o fields.json
 go run ./tools/catalog-extract order -src .cache/ref/mihomo > testdata/catalog/example-order.json
 ```
 

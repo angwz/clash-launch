@@ -1,8 +1,29 @@
-# Clash, Launch!  启动：docker compose up -d   然后打开 http://<服务器 IP>:20230
-# 数据（数据库与主密钥 master.key）在旁边的 data 文件夹，备份时整个打包。说明见 docs/guide/deploy.md。
+# Clash, Launch!  启动（决定 0010：默认使用 PostgreSQL）：
+#   echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env
+#   docker compose up -d          然后打开 http://<服务器 IP>:20230
+#
+# 数据在旁边的两个文件夹：postgres（数据库）与 data（主密钥 master.key 与迁移前的自动备份），两者都要备份。
+# 数据库只在 compose 内部网络中可达，不对外开放端口。说明见 docs/guide/deploy.md 与 docs/guide/data.md。
 services:
   clash-launch:
     image: ghcr.io/angwz/clash-launch:latest
     restart: unless-stopped
     ports: ["20230:20230"]
     volumes: ["./data:/data"]
+    environment:
+      CLASH_LAUNCH_DATABASE_URL: postgres://clash:${POSTGRES_PASSWORD:?在 .env 中设置 POSTGRES_PASSWORD}@postgres:5432/clash?sslmode=disable
+    depends_on:
+      postgres: {condition: service_healthy}
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clash
+      POSTGRES_DB: clash
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?在 .env 中设置 POSTGRES_PASSWORD}
+    volumes: ["./postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clash -d clash"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

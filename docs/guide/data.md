@@ -6,9 +6,9 @@
 
 | 内容 | 位置 | 说明 |
 | --- | --- | --- |
-| 数据库 | `<数据目录>/clash-launch.db`（SQLite，默认）或 `CLASH_LAUNCH_DATABASE_URL` 指向的 PostgreSQL | 全部业务数据 |
+| 数据库 | `CLASH_LAUNCH_DATABASE_URL` 指向的 PostgreSQL（默认，[0010](../decisions/0010-postgresql-default.md)）；本机试用可显式用 SQLite | 全部业务数据 |
 | 主密钥 | `<数据目录>/master.key`（或 `CLASH_LAUNCH_MASTER_KEY*`） | 数据库中的订阅地址、节点、配置、链接令牌都用它加密。**丢失主密钥，数据库就无法解密** |
-| 升级前的自动备份 | `<数据目录>/backups/before-migrate-*.db` | 每次升级执行迁移前自动生成（SQLite） |
+| 升级前的自动备份 | `<数据目录>/backups/before-migrate-*.db` | 只有 SQLite 会在迁移前自动生成；PostgreSQL 请在升级前用 `pg_dump` 备份（见 [deploy](deploy.md)「备份与升级」） |
 
 ## 操作
 
@@ -22,6 +22,8 @@
 | 轮换主密钥 | `clash-launch keys rotate` | 追加新密钥并重新加密全部数据；旧密钥确认备份后再手动删除 |
 
 ### 搬迁（SQLite → PostgreSQL、换机器、换文件）
+
+用 compose 部署时的完整步骤见 [deploy](deploy.md)「从 SQLite 迁到 PostgreSQL」。直接运行程序时：
 
 ```sh
 # 1. 先备份（在线进行）

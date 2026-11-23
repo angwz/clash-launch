@@ -198,6 +198,9 @@ type DataUsage struct {
 	Tables  []TableUsage `json:"tables"`
 }
 
+// exactBelow：PostgreSQL 的估算行数低于它时改为精确计数。
+const exactBelow = 100_000
+
 // Usage 统计 Tables 中各表的数据量。PostgreSQL 用 pg_class 的估算行数与 pg_total_relation_size；
 // SQLite 精确计数，总占用为 page_count × page_size（SQLite 不按表统计占用）。
 func (d *DB) Usage(ctx context.Context) (*DataUsage, error) {
@@ -208,9 +211,17 @@ func (d *DB) Usage(ctx context.Context) (*DataUsage, error) {
 		}
 		for _, t := range Tables {
 			tu := TableUsage{Table: t, Estimated: true}
-			err := d.row(ctx, "SELECT GREATEST(c.reltuples, 0)::bigint, pg_total_relation_size(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = ? AND c.relkind = 'r' AND n.nspname = current_schema()", t).Scan(&tu.Rows, &tu.Bytes)
+			err := d.row(ctx, "SELECT c.reltuples::bigint, pg_total_relation_size(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = ? AND c.relkind = 'r' AND n.nspname = current_schema()", t).Scan(&tu.Rows, &tu.Bytes)
 			if err != nil {
 				return nil, fmt.Errorf("统计 %s：%w", t, err)
+			}
+			// 估算值来自 ANALYZE：新建或很少写入的表还没有统计信息（reltuples 为 -1），小表的估算也常为 0。
+			// 估算不到 exactBelow 行时精确计数（小表很快），大表才用估算，避免全表扫描（反馈 #115 的 PostgreSQL 实测）
+			if tu.Rows < exactBelow {
+				if err := d.row(ctx, "SELECT COUNT(*) FROM "+t).Scan(&tu.Rows); err != nil { // 表名来自常量列表 Tables
+					return nil, fmt.Errorf("统计 %s：%w", t, err)
+				}
+				tu.Estimated = false
 			}
 			u.Tables = append(u.Tables, tu)
 		}

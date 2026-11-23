@@ -23,42 +23,34 @@
     button?.focus();
   }
 
-  // 浮层用固定定位，按按钮的位置摆放：放在可横向滚动的表格等裁剪容器里也不会被截断（反馈 #113）；
-  // 下方空间不够时向上展开
-  // 祖先元素的 transform、contain 等会让固定定位改以该祖先为参照；打开后量一次实际位置与期望位置的差，之后按差值修正
+  // 浮层（反馈 #113、#114）：移到 <body>（菜单在打开的对话框里时移到该对话框）下，用固定定位按按钮的位置摆放。
+  // 放在原处时，可滚动表格会截断它，祖先的 transform（页面切换动画等）还会改变固定定位的参照，
+  // 滚动后位置失准、点到的是别的元素（e2e 在长列表中复现）。移出后位置只取决于按钮的坐标。
+  // 下方空间不够时向上展开；页面滚动或窗口变化时关闭。
   let pos = $state<{ top: number; left?: number; right?: number } | null>(null);
-  let shift = { x: 0, y: 0 };
-  let want = { top: 0, x: 0 };
   function place() {
     if (!button) return;
     const r = button.getBoundingClientRect();
     const h = panel?.offsetHeight ?? 0;
     const below = r.bottom + 4;
     const top = h && below + h > window.innerHeight - 8 && r.top - 4 - h > 8 ? r.top - 4 - h : below;
-    want = { top, x: align === "start" ? r.left : r.right };
-    pos = align === "start" ? { top: top - shift.y, left: r.left - shift.x } : { top: top - shift.y, right: window.innerWidth - r.right + shift.x };
+    pos = align === "start" ? { top, left: r.left } : { top, right: window.innerWidth - r.right };
   }
-  function calibrate() {
-    flushSync(); // 位置的修改先写进 DOM，再量
-    if (!panel) return;
-    // 量的时候暂停展开动画：动画的位移与缩放会被算进位置
-    panel.style.animationName = "none";
-    const a = panel.getBoundingClientRect();
-    panel.style.animationName = "";
-    shift = { x: shift.x + (align === "start" ? a.left : a.right) - want.x, y: shift.y + a.top - want.top };
-    place();
-    flushSync();
+
+  /** 把浮层挂到 <body> 或所在的打开的对话框（对话框在顶层，挂到 body 会被它盖住）。 */
+  function portal(node: HTMLElement) {
+    const host = root?.closest("dialog[open]") ?? document.body;
+    host.appendChild(node);
+    return { destroy: () => node.remove() };
   }
 
   function toggle() {
     open = !open;
     if (open) {
-      shift = { x: 0, y: 0 };
       place();
       queueMicrotask(() => {
         flushSync();
         place(); // 浮层渲染后知道高度，再决定向上还是向下
-        calibrate();
         focusItem(0);
       });
     }
@@ -96,7 +88,8 @@
   $effect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (root && !root.contains(e.target as Node)) open = false;
+      const t = e.target as Node;
+      if (!root?.contains(t) && !panel?.contains(t)) open = false;
     };
     // 页面滚动或窗口变化时关闭（浮层是固定定位的，不跟随内容移动）；浮层内部的滚动不算
     const onMove = (e: Event) => {
@@ -131,7 +124,7 @@
     {#if text}<span>{label}</span><Icon name="chevron-down" size={14} />{/if}
   </button>
   {#if open}
-    <div class="panel-menu" role="menu" bind:this={panel} style:top={pos ? pos.top + "px" : undefined} style:left={pos?.left !== undefined ? pos.left + "px" : undefined} style:right={pos?.right !== undefined ? pos.right + "px" : undefined}>
+    <div class="panel-menu" role="menu" tabindex="-1" bind:this={panel} use:portal onkeydown={onKey} style:top={pos ? pos.top + "px" : undefined} style:left={pos?.left !== undefined ? pos.left + "px" : undefined} style:right={pos?.right !== undefined ? pos.right + "px" : undefined}>
       {@render items(close)}
     </div>
   {/if}

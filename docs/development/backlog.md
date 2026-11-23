@@ -185,6 +185,8 @@
 
 **结论先行**：生产部署改为默认 PostgreSQL；SQLite 保留给本机开发、单元测试与很小的私人部署，不再作为推荐的生产选项。完全移除 SQLite 会让 `go test ./...` 离不开数据库服务，离线测试与每次改表结构写两份迁移的成本得不偿失，所以建议保留。如果你希望彻底只留 PostgreSQL，这是唯一需要拍板的点。
 
+> 2026-11-23 修订（[0010](../decisions/0010-postgresql-default.md)）：默认改为 PostgreSQL，compose.yaml 自带；没有配置时不再自动建 SQLite 库，已有的旧 SQLite 库继续可用并提示迁移；SQLite 只用于本机开发、测试与访客试用的沙箱。
+
 **会增长到千万级的表**：`sub_requests`（每次订阅拉取一行，目前从不清理）、`audit`（保留 180 天）、`messages`、`sub_ips`。其余表随用户数线性增长，量很小。
 
 **分批**：

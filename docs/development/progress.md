@@ -90,6 +90,8 @@
 - **R13、R38、O6、O8 的决定（2026-11-22，反馈 #112）**：见 backlog。O8 验证：`TestPlaceIPv6`（用与 IPv4 库同一提交的 IPv6 库，手动下载到 `.cache/tools/ip2region-v6/`，国内公共 DNS 的 IPv6 地址查出省、市与运营商；文档地址查不到）、`TestRegion6WrongVersion`（IPv4 库冒充时报错，与其他数据放在一起时只停用 IPv6 库）。容器内挂载没有实测。
 - **测试实例的界面意见（2026-11-23，反馈 #113）**：见 feedback #113。在本机实例上逐项截图对比后修改。`Menu` 的浮层改为固定定位：打开后测量实际位置与期望位置的差并修正（祖先的 transform 会改变固定定位的参照），聚焦菜单项时不滚动页面，页面滚动时关闭。验证：截图看过账户、邀请、管理页用户列表与菜单、用户协议、配置卡片与菜单、节点源详情与大编辑框；e2e「节点源：点击内容框打开大编辑框…」「删除配置…」「节点源删除…」「保护配置…」改为经菜单操作。手机布局没有截图。
 - **第二批界面意见（2026-11-23，反馈 #114）**：见 feedback #114。新增依赖 `@replit/codemirror-minimap@0.5.2`（MIT，2023-12 发布，同级依赖都是已有的 CodeMirror 包）。验证：`cm-nodes.test.ts`（上下文推断：行内花括号、嵌套、块写法、字符串内不提示）、`place-names.test.ts`、`TestJapaneseCoverage`（新枚举标签）；截图看过编辑框的键与值提示、缩略图、无效 cipher 时的标红与「完成」禁用、深色模式复选框、头像菜单、备份选择框。复制：在测试实例（http://IP）上用浏览器实测，移除 navigator.clipboard 后经退回方式复制成功并提示「已复制」。缩略图包对临时元素写 style 属性，违反 CSP，用 vite.config.ts 的构建期补丁去掉。完整 e2e 中「节点源：保存后返回列表…」超时一次，单独运行通过，判断为偶发。地点名称只覆盖收录的地区，小地方保留数据库原文；mihomo 不检查端口范围，编辑框也不报告。
+- **跟进 mihomo v1.19.34（2026-11-23，反馈 #115）**：按 [mihomo-upgrade](mihomo-upgrade.md) 执行，变化见其「升级记录」。新增 4 个字段（Snell v6 的 mode ×2、Shadowsocks 入站 users、mieru 入站 tcp-idle-timeout），coverage 2079 条无 missing；可执行文件的 SHA-256 自行下载计算，与 GitHub 记录的 digest 一致；`golang.org/x/*` 未变；`pierrec/lz4/v4 v4.1.27` 已被作者撤回，但与 mihomo 自身 go.mod 一致（经 zerotier-go 间接引入，v1.19.33 时已存在），保持一致不单独升级。第 5 步表中的源码只有 `common/convert` 有变化（httpupgrade），新增 `TestParseLinkHTTPUpgrade`。验证：`go test ./...`、`-tags kernel`（v1.19.34 检查全部 golden，无需更新 golden）、staticcheck、golangci-lint。
+- **默认使用 PostgreSQL（2026-11-23，反馈 #115，决定 [0010](../decisions/0010-postgresql-default.md)）**：`compose.yaml` 自带 PostgreSQL 17（密码在 `.env`），删除 `compose.postgres.yaml`；没有设置 `CLASH_LAUNCH_DATABASE_URL` 时不再自动建 SQLite 库（打开数据库时报错并说明），数据目录里已有旧库时继续使用并每次启动提示迁移；显式 `sqlite://` 只用于试用、开发、测试与访客试用沙箱。在 PostgreSQL 上完整跑 e2e 时发现管理页「数据量」把刚建的小表算作 0 行而隐藏（统计信息尚未 ANALYZE，reltuples 为 -1），改为估算低于 10 万行时精确计数，`TestUsageCountsSmallTables` 在两种数据库上锁定。验证：`TestDatabaseDefault`；`go test ./...` 在 SQLite 与 PostgreSQL 上全部通过；e2e 在 PostgreSQL 上 67 通过、1 失败（即上述问题，修复后单独重跑通过）；CI 容器测试改为带 `.env` 运行（未在 GitHub Actions 上实跑，未推送）。 同批修正：「⋯」菜单的浮层原来留在页面里用固定定位，祖先的 transform 会改变参照，长列表滚动后点到别的元素（「节点源：保存后返回列表…」在完整 e2e 中两次超时，并非偶发）；改为把浮层移到 body（或所在的对话框）下，去掉位置校准。修正后完整 e2e（SQLite）68 通过、0 失败。
 - **下一步**：见本节开头「下次从这里开始」。
 - **待维护者**：① 在 OpenClash 中导入订阅链接实测（服务端检查已通过）。② 本机 Docker 守护进程未运行。启动 Docker Desktop（或提供远程 Docker 并同意在其上构建）后，补做镜像构建与 compose 运行验证。
 - **远端**：仓库 https://github.com/angwz/clash-launch（GPL-3.0，2026-11-10 按维护者要求创建；2026-11-16 按维护者要求曾短暂转为私有，同日恢复公开）。GitHub Actions：`ci`（Linux 上的 Go 与前端测试、真实 mihomo 内核测试）与 `image`（amd64、arm64 镜像发布到 `ghcr.io/angwz/clash-launch`，匿名可拉取）。
@@ -195,7 +197,7 @@
 
 ## 最近一次验证
 
-2026-11-10 · Windows 10 x64 · Go 1.27.3 · Node 26.13.0 · Edge 157 · mihomo v1.19.33
+2026-11-10 · Windows 10 x64 · Go 1.27.3 · Node 26.13.0 · Edge 157 · mihomo v1.19.33（2026-11-23 起为 v1.19.34，见上方记录）
 
 ```text
 gofmt -l cmd internal tools        → 无输出

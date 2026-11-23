@@ -41,9 +41,12 @@ import (
 // config 是服务的配置（第 18.2 节）。环境变量为主；CLASH_LAUNCH_CONFIG 指向的 TOML 文件提供默认值，
 // 同名设置以环境变量为准。TOML 的键为环境变量去掉前缀后的小写短横线形式（如 public-url）。
 type config struct {
-	Listen         string
-	DataDir        string
-	DatabaseURL    string
+	Listen      string
+	DataDir     string
+	DatabaseURL string
+	// LegacySQLite：没有设置 DATABASE_URL、但数据目录里有旧的 SQLite 库时为 true（决定 0010）。
+	// 照常使用这个库并在启动时提示迁移，不让已有部署在升级后无法启动。
+	LegacySQLite   bool
 	PublicURLs     []string // 第一个为主地址（需求 R9）
 	TrustedProxies string
 	FetchAllowlist string
@@ -142,7 +145,17 @@ func loadConfig() (config, error) {
 	default:
 		return config{}, fmt.Errorf("CLASH_LAUNCH_DEMO 只能是 on 或 off，得到 %q", d)
 	}
-	c.DatabaseURL = get("DATABASE_URL", "sqlite://"+filepath.ToSlash(filepath.Join(c.DataDir, "clash-launch.db")))
+	// 默认使用 PostgreSQL（决定 0010）：没有设置 DATABASE_URL 时不再自动建 SQLite 库。
+	// 数据目录里已有旧的 SQLite 库时继续用它（并在启动时提示迁移）；都没有时在打开数据库时报错并说明怎么设置。
+	// 这里不报错：会读写数据目录的子命令要先完成目录权限的检查（main.go），错误信息按先后给出。
+	c.DatabaseURL = get("DATABASE_URL", "")
+	if c.DatabaseURL == "" {
+		legacy := filepath.Join(c.DataDir, legacySQLiteFile)
+		if st, err := os.Stat(legacy); err == nil && st.Mode().IsRegular() {
+			c.DatabaseURL = "sqlite://" + filepath.ToSlash(legacy)
+			c.LegacySQLite = true
+		}
+	}
 	return c, nil
 }
 
@@ -157,8 +170,26 @@ func logger(level, format string) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stderr, opts))
 }
 
+// legacySQLiteFile 是旧版默认的 SQLite 数据库文件名（数据目录下）。
+const legacySQLiteFile = "clash-launch.db"
+
+// errNoDatabase 在没有配置数据库时返回：说明生产用 PostgreSQL，只在本机试用时可以显式选择 SQLite。
+var errNoDatabase = errors.New("没有设置 CLASH_LAUNCH_DATABASE_URL。生产部署使用 PostgreSQL（postgres://用户:密码@主机:5432/库名，" +
+	"compose.yaml 已包含，见 docs/guide/deploy.md）；只在本机试用时可以显式设为 sqlite:///<路径>/clash-launch.db")
+
 // openStore 读取主密钥、打开数据库并执行迁移（迁移前自动备份到 <数据目录>/backups/）。
 func openStore(ctx context.Context, c config, log *slog.Logger) (*store.DB, error) {
+	if c.DatabaseURL == "" {
+		return nil, errNoDatabase
+	}
+	switch {
+	case c.LegacySQLite:
+		log.Warn("正在使用旧版默认的 SQLite 数据库。新版本默认使用 PostgreSQL，请尽快迁移（数据与主密钥不变）："+
+			"clash-launch db copy -from sqlite://<数据目录>/clash-launch.db -to postgres://…，然后设置 CLASH_LAUNCH_DATABASE_URL",
+			"path", c.DatabaseURL)
+	case strings.HasPrefix(c.DatabaseURL, "sqlite:"):
+		log.Warn("正在使用 SQLite：只适合本机试用与开发；生产部署请使用 PostgreSQL（见 docs/guide/deploy.md）")
+	}
 	keys, ks, err := store.LoadKeyring(c.DataDir, os.Getenv)
 	if err != nil {
 		return nil, fmt.Errorf("主密钥: %w", err)

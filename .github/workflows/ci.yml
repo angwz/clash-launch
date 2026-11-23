@@ -68,7 +68,7 @@ jobs:
       - run: npm run budget
 
   # 用仓库中的 compose 文件实际运行镜像（amd64，需求 R18）：
-  #   ① 默认 compose.yaml：宿主机目录 ./data 由 root 创建（VPS 上最常见的情况）→ 自动交给运行用户并降权；
+  #   ① 默认 compose.yaml（含 PostgreSQL）：宿主机目录 ./data 由 root 创建（VPS 上最常见的情况）→ 自动交给运行用户并降权；
   #   ② PUID/PGID：已有文件改为指定用户所有；
   #   ③ 叠加 compose.hardened.yaml：只读根文件系统、去掉能力后仍能启动；
   #   ④ Docker 数据卷；
@@ -81,6 +81,7 @@ jobs:
         run: docker build -t clash-launch:ci .
       - name: 覆盖文件（只替换镜像，其余沿用仓库中的 compose 文件）
         run: |
+          echo "POSTGRES_PASSWORD=example-ci-compose" > .env   # compose.yaml 默认带 PostgreSQL（决定 0010）
           printf 'services:\n  clash-launch:\n    image: clash-launch:ci\n' > image.override.yaml
           printf 'services:\n  clash-launch:\n    environment: {PUID: "1026", PGID: "100"}\n' > puid.override.yaml
           printf 'services:\n  clash-launch:\n    volumes: !override\n      - data:/data\nvolumes:\n  data:\n' > volume.override.yaml

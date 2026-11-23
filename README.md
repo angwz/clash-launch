@@ -9,7 +9,7 @@
 
 ## 特点
 
-- **字段即目录。** mihomo v1.19.33 的全部配置字段（2075 项，含 listeners、xhttp、AmneziaWG 等）都能在表单中设置，附中英文说明、默认值与官方文档链接。界面、帮助、用户协议、字段说明与诊断消息另有日语版。
+- **字段即目录。** mihomo v1.19.34 的全部配置字段（2079 项，含 listeners、xhttp、AmneziaWG 等）都能在表单中设置，附中英文说明、默认值与官方文档链接。界面、帮助、用户协议、字段说明与诊断消息另有日语版。
 - **格式与官方一致。** 字段顺序、缩进遵循官方示例；节点可选单行或多行写法；预览与订阅输出逐字节一致。
 - **后备隐藏能源。** 原始编辑入口可以写入任意字段，包括目录里还没有的新字段。
 - **有序订阅与地区识别。** 多个订阅按顺序编号，兼容 subconverter 的 `!!GROUPID=`；地区识别会忽略「广港」这类线路词。
@@ -23,6 +23,7 @@
 ```sh
 mkdir clash-launch && cd clash-launch
 curl -fsSLO https://raw.githubusercontent.com/angwz/clash-launch/main/compose.yaml
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" > .env   # 数据库密码（默认使用 PostgreSQL）
 docker compose up -d
 ```
 
@@ -36,7 +37,7 @@ docker compose up -d
 docker compose pull && docker compose up -d
 ```
 
-数据保存在 `compose.yaml` 旁边的 `data` 文件夹，不需要手动改权限；更新不会丢数据，启动时会自动迁移数据库，并在迁移前备份。想固定版本时，把 `:latest` 改为具体版本号（如 `:1.0.0`）。安全加固、PostgreSQL、NAS 的 `PUID`/`PGID` 与从旧版 compose（数据在 Docker 卷中）升级的步骤见 [deploy](docs/guide/deploy.md)。
+数据保存在 `compose.yaml` 旁边的 `postgres`（数据库）与 `data`（主密钥）两个文件夹，不需要手动改权限；更新不会丢数据，启动时会自动迁移数据库。想固定版本时，把 `:latest` 改为具体版本号（如 `:1.0.0`）。安全加固、NAS 的 `PUID`/`PGID`、从旧版的 SQLite 迁到 PostgreSQL 与从旧版 compose（数据在 Docker 卷中）升级的步骤见 [deploy](docs/guide/deploy.md)。
 
 更多配置项、备份与迁移见 [docs/guide/deploy.md](docs/guide/deploy.md)。
 
