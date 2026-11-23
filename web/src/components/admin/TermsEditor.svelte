@@ -95,6 +95,45 @@
 </Dialog>
 
 <style>
+  /* 外框内边距与语言切换的样式在组件内定义（反馈 #113：页面的 .box 不作用于子组件，按钮显示为浏览器原生样式） */
+  .box {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    margin-block-end: var(--space-4);
+  }
+  h2 {
+    font-size: var(--text-lg);
+  }
+  .seg {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+  }
+  .seg button {
+    block-size: 28px;
+    padding-inline: var(--space-3);
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+  .seg button:hover {
+    color: var(--fg);
+  }
+  .seg button.on {
+    background: var(--bg-raised);
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
+  }
   .row {
     display: flex;
     justify-content: space-between;
@@ -106,7 +145,7 @@
     justify-content: space-between;
     align-items: center;
     gap: var(--space-3);
-    margin-block: var(--space-4) var(--space-2);
+    margin-block: var(--space-1) 0;
   }
   .pv {
     display: inline-flex;

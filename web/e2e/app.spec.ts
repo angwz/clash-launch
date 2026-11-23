@@ -631,8 +631,9 @@ test("删除配置：从列表卡片、编辑器的「更多」或命令面板�
   const link = await b.call<{ url: string }>("POST", `/api/v1/profiles/${a.profile}/links`, { note: "手机" }); // 用最后一次登录的会话（每次登录换新的 CSRF）
   await login(page);
 
-  // 列表：卡片右端的删除按钮 → 对话框列出会一起删除的内容 → 确认
-  await page.getByRole("button", { name: `删除配置「删除甲${suffix}」` }).click();
+  // 列表：卡片的「更多」菜单里删除（反馈 #113）→ 对话框列出会一起删除的内容 → 确认
+  await page.getByRole("button", { name: `「删除甲${suffix}」的更多操作` }).click();
+  await page.getByRole("menuitem", { name: "删除配置" }).click();
   const dialog = page.getByRole("dialog", { name: "删除配置" });
   await expect(dialog).toContainText("1条订阅链接");
   await dialog.getByRole("button", { name: "删除", exact: true }).click();
@@ -1039,7 +1040,8 @@ test("节点源：保存后返回列表，列表中可直接删除（R48、R50�
   await page.goto(`/sources/${src.id}`);
   await page.getByRole("button", { name: "保存" }).click();
   await expect(page).toHaveURL(/\/sources$/);
-  await page.getByRole("button", { name: `删除节点源「${name}」` }).click();
+  await page.getByRole("button", { name: `「${name}」的更多操作` }).click();
+  await page.getByRole("menuitem", { name: `删除节点源「${name}」` }).click();
   await expect(page.getByRole("link", { name })).toHaveCount(0);
 });
 
@@ -1059,15 +1061,27 @@ test("字段：恢复默认后可在原位撤销；敏感字段不被浏览器�
   await expect(page.locator("#ctl-secret")).toHaveAttribute("autocomplete", "new-password");
 });
 
-test("节点源：内容失焦后下方节点立即更新，不必先保存（R49）", async ({ page, request, baseURL }) => {
+test("节点源：点击内容框打开大编辑框，完成后下方节点立即更新，不必先保存（R49、反馈 #113）", async ({ page, request, baseURL }) => {
   test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const problems = watch(page);
   const { source } = await seedProfile(request, baseURL!, "即时预览");
   await login(page);
   await page.goto(`/sources/${source}`);
-  const box = page.locator("#sd-content");
-  await box.fill("- {name: 预览专用 07, type: ss, server: 192.0.2.37, port: 8388, cipher: aes-128-gcm, password: example-pw}\n");
-  await page.getByRole("heading", { level: 1 }).click(); // 点到别处，触发失焦
-  await expect(page.getByText("预览专用 07")).toBeVisible();
+  await page.locator("#sd-content").click();
+  const dlg = page.getByRole("dialog", { name: /编辑内容/ });
+  await expect(dlg).toBeVisible();
+  const editor = dlg.locator(".cm-content");
+  await expect(editor).toBeFocused();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.insertText("- {name: 预览专用 07, type: ss, server: 192.0.2.37, port: 8388, cipher: aes-128-gcm, password: example-pw}\n");
+  // 大编辑框接近全屏
+  const box = await dlg.boundingBox();
+  expect(box!.height).toBeGreaterThan(600);
+  await dlg.getByRole("button", { name: "完成" }).click();
+  await expect(dlg).toBeHidden();
+  await expect(page.locator("#sd-content")).toContainText("预览专用 07");
+  await expect(page.getByRole("cell", { name: /预览专用 07/ })).toBeVisible();
+  expect(problems).toEqual([]);
   await expect(page).toHaveURL(new RegExp(`/sources/${source}$`)); // 没有保存、仍在原页
 });
 
@@ -1335,9 +1349,11 @@ test("删除保护、可撤销的删除与批量操作（R55、R33、R35）", as
   await expect(page.getByText("已开启删除保护")).toBeVisible();
   await expect(page.getByRole("button", { name: "删除配置" })).toBeDisabled();
 
-  // 列表：卡片上的删除按钮禁用；批量删除跳过受保护的
+  // 列表：「更多」菜单里的删除禁用；批量删除跳过受保护的
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "删除配置「保护甲」" })).toBeDisabled();
+  await page.getByRole("button", { name: "「保护甲」的更多操作" }).click();
+  await expect(page.getByRole("menuitem", { name: "删除配置" })).toBeDisabled();
+  await page.keyboard.press("Escape");
   await page.getByRole("checkbox", { name: "选择保护甲" }).check();
   await page.getByRole("checkbox", { name: "选择保护乙" }).check();
   await expect(page.getByRole("toolbar", { name: "批量操作" })).toContainText("已选2项");

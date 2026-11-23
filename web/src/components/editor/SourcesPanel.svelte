@@ -62,13 +62,15 @@
     adding = "";
   }
 
-  // 规则源的 preset 形如「预设/变体」（见 lib/rules.ts）；名称与预设相同时不重复显示
-  function presetLabel(preset: string | undefined): string {
+  // 规则源的 preset 形如「预设/变体」（见 lib/rules.ts）。从预设添加的规则源名称已含变体名
+  //（如「domainrouter_v2 · MRS 规则集（加载更快）」），这时不再追加，避免重复（反馈 #113）
+  function presetLabel(name: string, preset: string | undefined): string {
     if (!preset) return "";
     const [pid, vid] = preset.split("/");
     const p = catalog.meta?.ruleSources.find((x) => x.id === pid);
     const v = p?.variants.find((x) => x.id === vid);
-    return v ? " · " + catalog.label(v.label) : "";
+    const label = v ? catalog.label(v.label) : "";
+    return label && !name.includes(label) ? " · " + label : "";
   }
 
   function kindIcon(s: Source | undefined) {
@@ -171,7 +173,7 @@
     <option value="">{t("editor.no_rules")}</option>
     <!-- 按用户在分流规则页排的顺序（反馈 #73） -->
     {#each ordered(editor.ruleSources, (x) => x.id, prefs.data.rules) as rs (rs.id)}
-      <option value={rs.id}>{rs.name}{presetLabel(rs.preset)}</option>
+      <option value={rs.id}>{rs.name}{presetLabel(rs.name, rs.preset)}</option>
     {/each}
   </select>
   {#if editor.preview}

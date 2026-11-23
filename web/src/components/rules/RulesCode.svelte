@@ -9,7 +9,8 @@
     placeholder,
     diagnostics = [],
     id,
-  }: { value?: string; lang: RulesLang; label: string; placeholder: string; diagnostics?: LineDiagnostic[]; id: string } = $props();
+    fill = false,
+  }: { value?: string; lang: RulesLang; label: string; placeholder: string; diagnostics?: LineDiagnostic[]; id: string; fill?: boolean } = $props();
 
   let host = $state<HTMLDivElement>();
   let ed = $state<RulesEditor | null>(null);
@@ -22,7 +23,8 @@
     import("../../lib/cm-rules")
       .then(({ createRulesEditor }) => {
         if (!alive || !host) return;
-        made = createRulesEditor({ parent: host, doc: value, lang, label, placeholder, onChange: (t) => (value = t) });
+        made = createRulesEditor({ parent: host, doc: value, lang, label, placeholder, fill, onChange: (t) => (value = t) });
+        if (fill) made.view.focus();
         ed = made;
       })
       .catch(() => (failed = true));
@@ -51,11 +53,14 @@
 {#if failed}
   <textarea {id} class="textarea mono ltr" rows="12" bind:value spellcheck="false" {placeholder} aria-label={label}></textarea>
 {:else}
-  <div class="host" bind:this={host} {id}></div>
+  <div class="host" class:fill bind:this={host} {id}></div>
 {/if}
 
 <style>
   .host {
     min-block-size: 12em;
+  }
+  .host.fill {
+    block-size: 100%;
   }
 </style>

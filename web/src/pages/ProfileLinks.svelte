@@ -3,6 +3,7 @@
   import { uniqueName } from "../lib/names";
   // 订阅链接（第 13.2 节）：随时查看与复制、二维码；重置（旧链接立即失效）、备注、最近访问时间与客户端。
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/Menu.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import QRCode from "../components/QRCode.svelte";
   import Emoji from "../components/Emoji.svelte";
@@ -194,7 +195,11 @@
         <div class="side">
           <button class="btn sm" type="button" onclick={() => ((limitsFor = l), (limitsOpen = true))}><Icon name="shield" size={14} />{t("limits.button")}</button>
           <button class="btn sm" type="button" onclick={() => void reset(l)}><Icon name="refresh" size={14} />{t("links.reset")}</button>
-          <button class="btn sm ghost danger" type="button" onclick={() => void remove(l)}><Icon name="trash" size={14} />{t("common.delete")}</button>
+          <Menu label={t("common.more")} buttonClass="btn sm ghost">
+            {#snippet items(close)}
+              <button type="button" role="menuitem" class="danger" onclick={() => { close(); void remove(l); }}><Icon name="trash" size={14} />{t("common.delete")}</button>
+            {/snippet}
+          </Menu>
         </div>
       </li>
     {/each}

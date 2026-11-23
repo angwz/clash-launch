@@ -4,6 +4,7 @@
   // 节点源列表与新建（第 16.1 节「节点源」）：订阅地址、粘贴分享链接或节点（单条 / 批量）、文件内容。
   import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/Menu.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import ShareDialog, { type ShareTarget } from "../components/ShareDialog.svelte";
@@ -218,8 +219,12 @@
                 <button class="btn ghost icon sm" type="button" aria-label={t("share.grant_x", { name: s.name })} title={t("messages.grant_hint")} onclick={() => (shareTarget = { kind: "source", id: s.id, name: s.name, mode: "grant" })}><Icon name="shield" size={14} /></button>
                 <!-- 编辑：带文字的按钮，比只有箭头更容易发现和点中（反馈 #78） -->
                 <a class="btn sm" href={"/sources/" + s.id}><Icon name="edit" size={14} />{t("common.edit")}</a>
-                <!-- 删除放在最右端、与编辑隔开，样式与配置列表一致（R50） -->
-                <button class="btn sm ghost danger" type="button" aria-label={t("sources.delete_named", { name: s.name })} title={t("common.delete")} onclick={() => remove([s])}><Icon name="trash" size={14} /></button>
+                <!-- 删除收进「更多」菜单，与配置列表一致（反馈 #113） -->
+                <Menu label={t("common.more_named", { name: s.name })} buttonClass="btn sm ghost">
+                  {#snippet items(close)}
+                    <button type="button" role="menuitem" class="danger" onclick={() => { close(); remove([s]); }}><Icon name="trash" size={14} />{t("sources.delete_named", { name: s.name })}</button>
+                  {/snippet}
+                </Menu>
               </td>
             </tr>
           {/each}

@@ -185,11 +185,20 @@
 </section>
 
 <style>
+  /* 外框的内边距与标题字号在组件内定义：页面的 .box 是页面作用域的样式，不会作用到这里（反馈 #113） */
   .box {
     /* grid 子项默认最小宽度为内容宽度：设为 0，表格才会在外框内横向滚动而不是撑宽页面 */
     grid-template-columns: minmax(0, 1fr);
     display: grid;
     gap: var(--space-3);
+    padding: var(--space-5);
+    margin-block-end: var(--space-4);
+  }
+  h2 {
+    font-size: var(--text-lg);
+  }
+  .box > .muted {
+    font-size: var(--text-sm);
   }
   .by,
   .quota {

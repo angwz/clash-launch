@@ -116,10 +116,11 @@
     <div class="field">
       <label class="label" for="ac-nick">{t("account.nickname")}</label>
       <input id="ac-nick" class="input" bind:value={nickname} maxlength="32" placeholder={t("account.nickname_placeholder")} autocomplete="nickname" />
-      <p class="hint">{t("account.nickname_hint")}</p>
     </div>
     <button class="btn ghost" type="button" onclick={() => void suggest()}>{t("avatar.nick_shuffle")}</button>
     <button class="btn" type="submit" disabled={!nickChanged || busy}>{t("common.save")}</button>
+    <!-- 说明放在整行：按钮与输入框底边对齐（反馈 #113） -->
+    <p class="hint wide">{t("account.nickname_hint")}</p>
   </form>
 
   <form class="rename" onsubmit={rename}>
@@ -197,21 +198,8 @@
     display: grid;
     gap: var(--space-1);
   }
-  .row .hint {
-    margin: 0;
-  }
   .wide {
     flex-basis: 100%;
     margin: 0;
-  }
-  .row .btn,
-  .rename .btn {
-    margin-block-end: 0;
-  }
-  .row {
-    align-items: flex-start;
-  }
-  .row .btn {
-    margin-block-start: 22px;
   }
 </style>

@@ -6,6 +6,7 @@
   import DeleteProfileDialog from "../components/DeleteProfileDialog.svelte";
   import ImportProfileDialog from "../components/ImportProfileDialog.svelte";
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/Menu.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { api, listAll, type Profile, type Template } from "../lib/api/client";
@@ -196,7 +197,14 @@
           <div class="links">
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/links"}><Icon name="link" size={14} />{t("profiles.links")}</a>
             <a class="btn sm ghost" href={"/profiles/" + p.id + "/history"}><Icon name="history" size={14} />{t("profiles.history")}</a>
-            <button class="btn sm ghost danger del" type="button" disabled={p.protected} aria-label={t("profiles.delete_named", { name: p.name })} title={p.protected ? t("profiles.protected_hint") : t("profiles.delete")} onclick={() => { deleting = p; deleteOpen = true; }}><Icon name="trash" size={14} /></button>
+            <!-- 删除收进「更多」菜单，不在卡片上直接露出（反馈 #113）；受保护的配置不能删除 -->
+            <span class="del">
+              <Menu label={t("common.more_named", { name: p.name })} buttonClass="btn sm ghost">
+                {#snippet items(close)}
+                  <button type="button" role="menuitem" class="danger" disabled={p.protected} title={p.protected ? t("profiles.protected_hint") : undefined} onclick={() => { close(); deleting = p; deleteOpen = true; }}><Icon name="trash" size={14} />{t("profiles.delete")}</button>
+                {/snippet}
+              </Menu>
+            </span>
           </div>
         </li>
       {/each}
@@ -330,7 +338,10 @@
   }
   .card {
     position: relative;
+    min-inline-size: 0;
     display: grid;
+    /* 列宽限定为卡片宽度：否则隐式列按内容撑开，长名称会把状态与菜单挤出卡片（反馈 #113） */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
     padding: var(--space-4) var(--space-5);
     transition:
@@ -384,7 +395,10 @@
     justify-content: space-between;
     gap: var(--space-3);
   }
+  /* 名称占据剩余宽度并在过长时省略，状态标记不被挤出卡片（反馈 #113） */
   .name {
+    flex: 1;
+    min-inline-size: 0;
     font-size: var(--text-lg);
     font-weight: 600;
     overflow: hidden;

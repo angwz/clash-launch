@@ -1,6 +1,7 @@
 <script lang="ts">
   // 用户管理：只显示元数据与用量（看不到任何人的内容）。停用 / 启用、重置密码、调整配额。
   import Avatar from "../Avatar.svelte";
+  import Menu from "../Menu.svelte";
   import Dialog from "../Dialog.svelte";
   import StatusBadge from "../StatusBadge.svelte";
   import { api } from "../../lib/api/client";
@@ -168,9 +169,19 @@
       {#each users as u (u.id)}
         <tr>
           <td>
-            <Avatar user={u} size={24} /><strong>{u.username}</strong>{#if u.nickname}<span class="muted nick">{u.nickname}</span>{/if}
-            {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{:else if !u.invited}<span class="role open" title={t("admin.open_user_hint")}>{t("admin.open_user")}</span>{/if}
-            {#if u.invitedBy}<div class="muted by">{t("invites.by_user", { name: u.invitedBy })}</div>{/if}
+            <!-- 头像 + 两行：昵称（没有时为用户名）与角色；@用户名与邀请人（反馈 #113：原来挤在一行） -->
+            <div class="who">
+              <Avatar user={u} size={32} />
+              <div class="names">
+                <div class="l1">
+                  <strong class="nm">{u.nickname || u.username}</strong>
+                  {#if u.role === "admin"}<span class="role">{t("role.admin")}</span>{:else if !u.invited}<span class="role open" title={t("admin.open_user_hint")}>{t("admin.open_user")}</span>{/if}
+                </div>
+                <div class="l2 muted">
+                  <span class="ltr">@{u.username}</span>{#if u.invitedBy}<span aria-hidden="true"> · </span><span>{t("invites.by_user", { name: u.invitedBy })}</span>{/if}
+                </div>
+              </div>
+            </div>
           </td>
           <td>
             {#if u.deleted}<StatusBadge tone="muted" label={t("deletion.deleted")} />{:else if u.disabled}<StatusBadge tone="err" label={t("admin.disabled")} />{:else}<StatusBadge tone="ok" label={t("admin.active")} />{/if}
@@ -178,14 +189,19 @@
             {#if u.mfa}<StatusBadge tone="info" icon="shield" label="2FA" />{/if}
           </td>
           <td class="usage">{t("admin.usage", { sources: u.usage.sources, profiles: u.usage.profiles, links: u.usage.links })} · {mb(u.usage.bytes)}</td>
-          <td class="muted">{i18n.relative(u.createdAt)}</td>
+          <td class="muted when" title={i18n.date(u.createdAt)}>{i18n.relative(u.createdAt)}</td>
           <td class="act">
             {#if u.id !== session.user?.id && !u.deleted}
-              <button class="btn sm ghost" type="button" onclick={() => openQuota(u)}>{t("admin.quota")}</button>
-              <button class="btn sm ghost" type="button" onclick={() => openReset(u)}>{t("admin.reset_password")}</button>
-              {#if u.role !== "admin"}<button class="btn sm ghost" type="button" onclick={() => void toggleInvite(u)}>{u.inviteBanned ? t("invites.allow") : t("invites.ban")}</button>{/if}
-              <button class="btn sm ghost" class:danger={!u.disabled} type="button" onclick={() => void toggle(u)}>{u.disabled ? t("admin.enable") : t("admin.disable")}</button>
-              <button class="btn sm ghost danger" type="button" onclick={() => void remove(u)}>{t("deletion.admin_run")}</button>
+              <!-- 操作收进菜单：停用与注销不放在随手可点的位置（反馈 #113） -->
+              <Menu label={t("admin.user_actions", { name: u.username })} buttonClass="btn sm ghost">
+                {#snippet items(close)}
+                  <button type="button" role="menuitem" onclick={() => { close(); openQuota(u); }}>{t("admin.quota")}</button>
+                  <button type="button" role="menuitem" onclick={() => { close(); openReset(u); }}>{t("admin.reset_password")}</button>
+                  {#if u.role !== "admin"}<button type="button" role="menuitem" onclick={() => { close(); void toggleInvite(u); }}>{u.inviteBanned ? t("invites.allow") : t("invites.ban")}</button>{/if}
+                  <button type="button" role="menuitem" class:danger={!u.disabled} onclick={() => { close(); void toggle(u); }}>{u.disabled ? t("admin.enable") : t("admin.disable")}</button>
+                  <button type="button" role="menuitem" class="danger" onclick={() => { close(); void remove(u); }}>{t("deletion.admin_run")}</button>
+                {/snippet}
+              </Menu>
             {/if}
           </td>
         </tr>
@@ -250,15 +266,36 @@
     /* 让表内绝对定位的无障碍标签以此为包含块，否则会逃出滚动容器、撑宽页面（反馈 #41） */
     position: relative;
   }
-  .nick {
-    margin-inline-start: var(--space-1);
+  .who {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-inline-size: 220px;
+  }
+  .names {
+    display: grid;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+  .l1 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .nm {
+    max-inline-size: 22em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .l2 {
     font-size: var(--text-xs);
   }
-  .by {
-    font-size: var(--text-xs);
+  .when {
+    white-space: nowrap;
   }
   .role {
-    margin-inline-start: var(--space-2);
+    flex: none;
     padding-inline: 6px;
     border-radius: var(--radius-full);
     background: var(--accent-soft);
@@ -297,10 +334,6 @@
   }
   .act {
     text-align: end;
-  }
-  /* 操作按钮在窄屏上换行，不把表格撑出页面（需求 R12 新增了一个按钮） */
-  .act :global(.btn) {
-    margin-block: 2px;
   }
   .table-wrap {
     /* 表头里的 visually-hidden 是绝对定位的：滚动框必须是它的包含块，否则会跑出滚动框、撑宽页面 */

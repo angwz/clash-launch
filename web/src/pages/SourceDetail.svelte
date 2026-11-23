@@ -2,7 +2,10 @@
   // 节点源详情：基本设置、整理规则（第 5.5 节）与实时的节点表格。
   // 节点表格：协议、地址（打码）、名称、地区与识别理由、倍率、标签；点击地区可手动指定（写入 overrides）。
   import { tick, untrack } from "svelte";
+  import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/Menu.svelte";
+  import RulesCode from "../components/rules/RulesCode.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { api, type Diagnostic, type Node, type Source } from "../lib/api/client";
@@ -83,6 +86,19 @@
     diags = r.diagnostics;
     format = r.format ?? "";
   }
+  // 内容的大编辑框（反馈 #113）：像 Clash Verge Rev 编辑文件那样在近乎全屏的对话框里编辑；
+  // 直接改 content，关闭后刷新下方的节点预览，保存仍由页面的「保存」完成（离开前有未保存提示）
+  let editing = $state(false);
+  let wasEditing = false;
+  $effect(() => {
+    if (wasEditing && !editing) previewSoon();
+    wasEditing = editing;
+  });
+  const PREVIEW_LINES = 14;
+  const contentLines = $derived(content.split("\n"));
+  const previewText = $derived(contentLines.slice(0, PREVIEW_LINES).join("\n"));
+  const moreLines = $derived(Math.max(0, contentLines.length - PREVIEW_LINES));
+
   function previewSoon() {
     loadNodes().catch((e) => toasts.push("err", errorText(e)));
   }
@@ -248,8 +264,13 @@
     <PageHeader title={src.name} subtitle={t("source.kind." + src.kind) + (format ? " · " + format : "")}>
       {#snippet actions()}
         {#if src?.kind === "subscription" && !clientFetch}<button class="btn" type="button" disabled={refreshing} onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>{/if}
-        <button class="btn danger" type="button" onclick={() => void remove()}><Icon name="trash" size={15} />{t("common.delete")}</button>
         <button class="btn primary" type="button" disabled={saving} onclick={() => void save()}>{t("common.save")}</button>
+        <!-- 删除收进「更多」菜单，不与保存并排（反馈 #113） -->
+        <Menu label={t("common.more")} buttonClass="btn">
+          {#snippet items(close)}
+            <button type="button" role="menuitem" class="danger" onclick={() => { close(); void remove(); }}><Icon name="trash" size={15} />{t("common.delete")}</button>
+          {/snippet}
+        </Menu>
       {/snippet}
     </PageHeader>
 
@@ -287,9 +308,14 @@
           {/if}
         {:else}
           <div>
-            <label class="label" for="sd-content">{t("source.content")}</label>
-            <!-- 高度随内容增加（6–24 行），可拖动调整；失焦即更新下方节点（R49） -->
-            <textarea id="sd-content" class="textarea mono ltr content-box" rows={Math.min(24, Math.max(6, content.split("\n").length + 1))} bind:value={content} onchange={previewSoon} spellcheck="false"></textarea>
+            <div class="content-head">
+              <span class="label" id="sd-content-l">{t("source.content")}</span>
+              <button class="btn ghost sm" type="button" onclick={() => (editing = true)}><Icon name="edit" size={14} />{t("source.content_expand")}</button>
+            </div>
+            <!-- 点击内容框打开大编辑框（反馈 #113）；框内只显示前几行，完整内容在编辑框中 -->
+            <button id="sd-content" class="content-box mono ltr" type="button" aria-describedby="sd-content-l" onclick={() => (editing = true)}>
+              {#if content.trim()}<span class="pre">{previewText}</span>{#if moreLines}<span class="more muted">{t("rules.preview_more", { n: moreLines })}</span>{/if}{:else}<span class="muted">{t("source.content_expand")}</span>{/if}
+            </button>
           </div>
         {/if}
       </section>
@@ -401,6 +427,17 @@
   {/if}
 </div>
 
+{#if src && src.kind !== "subscription"}
+  <Dialog bind:open={editing} title={t("source.content_editor", { name })} full>
+    <div class="big">
+      {#if editing}<RulesCode id="sd-content-big" lang="yaml" fill label={t("source.content")} placeholder="" bind:value={content} />{/if}
+    </div>
+    {#snippet footer()}
+      <button class="btn primary" type="button" onclick={() => (editing = false)}>{t("source.content_done")}</button>
+    {/snippet}
+  </Dialog>
+{/if}
+
 <style>
   .page {
     max-inline-size: 1120px;
@@ -419,10 +456,51 @@
     align-content: start;
     padding: var(--space-5);
   }
-  /* 只允许纵向拖动：横向拖动会撑破两栏布局 */
+  .content-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-block-end: var(--space-1);
+  }
+  .content-head .label {
+    margin: 0;
+  }
+  /* 内容预览：外观与输入框一致，点击打开大编辑框（反馈 #113） */
   .content-box {
-    resize: vertical;
+    display: grid;
+    align-content: start;
+    gap: var(--space-1);
+    inline-size: 100%;
+    min-block-size: 8em;
+    max-block-size: 22em;
+    padding: var(--space-2) var(--space-3);
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    color: var(--fg);
+    font-size: var(--text-sm);
     line-height: 1.55;
+    text-align: start;
+    cursor: text;
+    transition: border-color var(--dur-fast) var(--ease);
+  }
+  .content-box:hover {
+    border-color: var(--accent);
+  }
+  .content-box .pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .content-box .more {
+    font-size: var(--text-xs);
+  }
+  .big {
+    block-size: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
   }
   .box h2,
   .nodes h2 {

@@ -11,6 +11,7 @@
   import { listAll, type Profile } from "../lib/api/client";
   import type { LineDiagnostic } from "../lib/cm-rules";
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/Menu.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import { api, type RuleSource } from "../lib/api/client";
   import { errorText } from "../lib/errors";
@@ -152,8 +153,13 @@
     <PageHeader title={rs.name} subtitle={rs.kind === "ini" ? t("rules.ini") : "groups.toml + rulesets.toml"}>
       {#snippet actions()}
         <button class="btn" type="button" onclick={() => void refresh()}><Icon name="refresh" size={15} />{t("source.refresh")}</button>
-        <button class="btn danger" type="button" onclick={() => void remove()}><Icon name="trash" size={15} />{t("common.delete")}</button>
         <button class="btn primary" type="button" disabled={saving} onclick={() => void save()}>{t("common.save")}</button>
+        <!-- 删除收进「更多」菜单，不与保存并排（反馈 #113） -->
+        <Menu label={t("common.more")} buttonClass="btn">
+          {#snippet items(close)}
+            <button type="button" role="menuitem" class="danger" onclick={() => { close(); void remove(); }}><Icon name="trash" size={15} />{t("common.delete")}</button>
+          {/snippet}
+        </Menu>
       {/snippet}
     </PageHeader>
     <div class="grid">
