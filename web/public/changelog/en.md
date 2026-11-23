@@ -1,6 +1,6 @@
 # Changelog
 
-## Next release
+## 1.1.0 · 2026-11-23
 
 ### Account and security
 
@@ -18,6 +18,9 @@
 - Delete protection, undo within 10 seconds of deleting, and batch actions on multiple items.
 - Rule source editor: highlighting for toml and ini, inline problems, and a preview of the expanded proxy groups.
 - Live preview of node content; restoring a default can be undone.
+- A large editor for node content: field and value suggestions per protocol, a minimap, and a mihomo check of every proxy; it cannot be finished while problems remain.
+- Proxy groups in rule sources can pick regions, node sources, protocols and tags as clickable conditions.
+- Delete moved into the “⋯” menu so it is no longer one click away.
 
 ### Subscriptions and alerts
 
@@ -34,10 +37,13 @@
 - The browser's Back button returns to where you were; leaving with unsaved changes asks first.
 - Footprints: firsts, milestones and new places, kept permanently.
 - Choose an accent color in Settings; add the site to your home screen.
-- Site announcements, a demo page that needs no account, and a Japanese interface.
+- Site announcements, a demo page that needs no account, and a Japanese interface (including field descriptions and diagnostics).
+- Place names in analytics and sign-in devices follow the interface language; copy buttons also work over plain http.
 
 ### Operations
 
-- Minimal docker compose; the image drops privileges after starting and supports PUID and PGID; hardening and PostgreSQL are overlay files.
+- PostgreSQL is now the default and ships in compose.yaml; existing SQLite data keeps working and one command migrates it (see the deployment guide).
+- Core and field catalog follow mihomo v1.19.34: Snell v6, multi-user Shadowsocks inbounds and more.
+- Minimal docker compose; the image drops privileges after starting and supports PUID and PGID; hardening is an overlay file.
 - /metrics in Prometheus format; the admin page shows background jobs and data size, and retention can be adjusted on the web.
-- PostgreSQL support with configurable connection pool and statement timeout.
+- Configurable PostgreSQL connection pool and statement timeout.
