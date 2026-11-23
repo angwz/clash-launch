@@ -1,4 +1,4 @@
-# 各协议的专属字段（片段名 p-<协议>）。字段集合取自 mihomo v1.19.33 adapter/outbound 的选项结构体，
+# 各协议的专属字段（片段名 p-<协议>）。字段集合取自 mihomo v1.19.34 adapter/outbound 的选项结构体，
 # 顺序以官方示例中该协议的第一个样例为基准。
 fragments:
   p-ss:
@@ -277,8 +277,21 @@ fragments:
     - {key: headers, type: map, values: {type: string}, importance: optional, doc: proxies/http, zh: [请求头, "附加的HTTP请求头。"], en: [Headers, "Extra HTTP request headers."]}
   p-snell:
     - {key: psk, type: string, importance: core, sensitive: true, doc: "proxies/snell#psk", zh: [预共享密钥, "Snell预共享密钥。"], en: [PSK, "Snell pre-shared key."]}
-    - {key: version, type: int, importance: recommended, doc: "proxies/snell#version", zh: [版本, "Snell协议版本。"], en: [Version, "Snell protocol version."]}
-    - {key: reuse, type: bool, importance: expert, doc: "proxies/snell#reuse", zh: [连接复用, "复用连接。"], en: [Reuse, "Reuse connections."]}
+    - {key: version, type: int, importance: recommended, doc: "proxies/snell#version", zh: [版本, "Snell协议版本1–6；省略为1，5按4处理。"], en: [Version, "Snell protocol version 1–6; 1 when omitted, 5 is treated as 4."]}
+    # v1.19.34：Snell v6 的流量整形模式（adapter/outbound/snell.go、transport/snell/v6.go 的 ParseV6Mode）；
+    # 只能用于 version 6，其他版本写了会加载失败；v6 不支持 http、tls 混淆
+    - key: mode
+      type: enum
+      enum:
+        - {value: default, en: Default traffic shaping, zh: 默认流量整形}
+        - {value: unshaped, en: No traffic shaping, zh: 不整形}
+        - {value: unsafe-raw, en: Raw (insecure), zh: 原始（不安全）}
+      importance: optional
+      since: "1.19.34"
+      doc: "proxies/snell"
+      zh: [v6模式, "仅版本6：default、unshaped或unsafe-raw，须与服务端一致；版本6不支持http、tls混淆。"]
+      en: [v6 mode, "Version 6 only: default, unshaped or unsafe-raw; must match the server. Version 6 does not support http or tls obfuscation."]
+    - {key: reuse, type: bool, importance: expert, doc: "proxies/snell#reuse", zh: [连接复用, "复用连接（版本4、5、6）。"], en: [Reuse, "Reuse connections (versions 4, 5 and 6)."]}
     - {key: client-fingerprint, type: string, importance: expert, doc: "proxies/snell#client-fingerprint", zh: [客户端指纹, "混淆使用TLS时模拟的浏览器指纹。"], en: [Client fingerprint, "Browser fingerprint for TLS-based obfuscation."]}
     - {key: obfs-opts, type: map, values: {type: any, reason: 混淆参数取决于 mode}, importance: optional, doc: "proxies/snell#obfs-opts", zh: [混淆参数, "混淆方式与参数，如mode与host。"], en: [Obfs options, "Obfuscation mode and parameters such as mode and host."]}
   p-mieru:

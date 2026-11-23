@@ -210,7 +210,7 @@ fields:
             - {include: p-snell, keys: [psk, version]}
             - {include: udp, keys: [udp]}
             - {include: dial, keys: [ip-version, interface-name, routing-mark, tfo, mptcp, dialer-proxy]}
-            - {include: p-snell, keys: [reuse, client-fingerprint, obfs-opts]}
+            - {include: p-snell, keys: [reuse, mode, client-fingerprint, obfs-opts]}
         - value: mieru
           doc: proxies/mieru
           zh: [mieru]

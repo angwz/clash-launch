@@ -3,7 +3,7 @@
 //
 //	clash-launch/profile: v1
 //	name: 手机 · Stash
-//	target: { pack: mihomo, preset: stash, core: "1.19.33" }
+//	target: { pack: mihomo, preset: stash, core: "1.19.34" }
 //	sources:                 # 有序：顺序即节点顺序；订阅按出现顺序编号（GROUPID）
 //	  - ref: src_airport_a
 //	    mode: inline          # inline 写入配置 | provider 交给客户端

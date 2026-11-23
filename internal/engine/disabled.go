@@ -9,7 +9,7 @@ import (
 
 // 未启用的分节整段不写入配置（反馈 #58）。
 //
-// 依据 mihomo v1.19.33 源码（hub/executor/executor.go、config/config.go）：下列顶层分节的 enable 为 false
+// 依据 mihomo v1.19.34 源码（hub/executor/executor.go、config/config.go）：下列顶层分节的 enable 为 false
 // （或未写，默认 false）时，分节中的其他字段都不生效，省略整段与写上 enable: false 行为相同：
 //
 //	tun          updateTun 只在 enable 时启动监听

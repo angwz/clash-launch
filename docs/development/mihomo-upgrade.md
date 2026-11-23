@@ -1,6 +1,6 @@
 # 跟进 mihomo 新版本
 
-本项目按某一个 mihomo 版本编写字段目录、校验语义并做内核检查（当前 **v1.19.33**）。mihomo 发布新版本后，按本文从头到尾执行一遍。本文面向维护者和任何 AI 代理，步骤可以逐条照做，每一步都写明要验证什么。
+本项目按某一个 mihomo 版本编写字段目录、校验语义并做内核检查（当前 **v1.19.34**，每次升级的记录见文末「升级记录」）。mihomo 发布新版本后，按本文从头到尾执行一遍。本文面向维护者和任何 AI 代理，步骤可以逐条照做，每一步都写明要验证什么。
 
 > 原则不变：只按官方文档与源码实现语义，查不到就记为限制，不猜。参考源码只读，放在 `.cache/ref/`。
 
@@ -25,13 +25,14 @@
 
 ```sh
 git clone --depth 1 --branch vX https://github.com/MetaCubeX/mihomo .cache/ref/mihomo-vX
-# 旧版保留在 .cache/ref/mihomo（当前 v1.19.33）
+# 旧版保留在 .cache/ref/mihomo（当前 v1.19.34）。全部完成后把旧版改名为 mihomo-<旧版本>、
+# 新版改名为 mihomo，使 .cache/ref/mihomo 始终是当前版本
 ```
 
 ### 2. 找出字段变化并更新目录
 
 ```sh
-go run ./tools/catalog-extract scan -src .cache/ref/mihomo     -version v1.19.33 -o .cache/old.json
+go run ./tools/catalog-extract scan -src .cache/ref/mihomo     -version v1.19.34 -o .cache/old.json
 go run ./tools/catalog-extract scan -src .cache/ref/mihomo-vX  -version vX       -o .cache/new.json
 go run ./tools/catalog-extract diff .cache/old.json .cache/new.json        # 新增、移除、类型变化；有差异时退出码为 3
 go run ./tools/catalog-extract coverage -o .cache/cov.json .cache/new.json # 每条路径在目录中的状态，摘要写到标准错误
@@ -67,7 +68,7 @@ go run ./tools/catalog-extract order -src .cache/ref/mihomo-vX > testdata/catalo
 下面这些代码的正确性依赖 mihomo 的具体行为，代码注释里写明了源码出处。新版本必须逐条对照，确认行为没变：
 
 ```sh
-grep -rn "v1\.19\.33" internal --include=*.go | grep -v _test
+grep -rn "v1\.19\.34" internal --include=*.go | grep -v _test
 ```
 
 | 文件 | 依赖的行为 | 对照的源码 |
@@ -98,7 +99,7 @@ golden 的差异只应来自新版本的真实变化，比如新的键顺序。�
 
 ### 7. 同步文档并提交
 
-- 用 `grep -rn "1\.19\.33" README.md THIRD_PARTY_NOTICES.md docs/guide docs/design docs/development CLAUDE.md` 找出版本号，逐一更新。`docs/history/` 与 `docs/spec/` 是归档，不改。
+- 用 `grep -rn "1\.19\.34" README.md THIRD_PARTY_NOTICES.md docs/guide docs/design docs/development CLAUDE.md` 找出版本号，逐一更新。`docs/history/` 与 `docs/spec/` 是归档，不改。
 - 更新 [progress](progress.md)，记录这次升级与验证结果。
 - 提交信息示例：`feat: 跟进 mihomo vX：新增 N 个字段，……`。
 
@@ -112,4 +113,13 @@ golden 的差异只应来自新版本的真实变化，比如新的键顺序。�
 
 ## 跟进多个版本
 
-一次只跨一个版本：从 v1.19.33 升到 v1.19.35，要经过 v1.19.34。每个版本单独提交，出问题时容易定位到具体是哪一版。
+一次只跨一个版本：从 v1.19.34 升到 v1.19.36，要经过 v1.19.35。每个版本单独提交，出问题时容易定位到具体是哪一版。
+
+## 升级记录
+
+每次升级在这里加一行：变化与对本项目的影响，详细验证写在 [progress](progress.md)。
+
+| 版本 | 日期 | 字段变化 | 行为变化与本项目的处理 |
+|---|---|---|---|
+| v1.19.34（发布于 2026-11-11） | 2026-11-23 | 新增 4 个：`proxies.snell.mode`、`listeners.snell.mode`（Snell v6 的流量整形模式）、`listeners.shadowsocks.users`（多用户）、`listeners.mieru.tcp-idle-timeout`；无移除、无类型变化 | Snell 支持版本 6（v6 不支持 http、tls 混淆，mode 只用于 v6），目录说明已更新；分享链接 `type=httpupgrade` 改为 ws + `v2ray-http-upgrade`（直接调用 mihomo 转换器，自动生效，`TestParseLinkHTTPUpgrade` 锁定）；第 5 步表中其余源码与 v1.19.33 逐字相同；`golang.org/x/*` 版本未变 |
+| v1.19.33 | 2026-11-09 | 相对 v1.19.32 新增 `tun.dns-mode`、`listeners.tun.dns-mode` | 首次按本文流程建立 |

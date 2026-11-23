@@ -36,7 +36,7 @@ export interface Routing {
 export const GROUP_TYPES = ["select", "url-test", "fallback", "load-balance"] as const;
 export type GroupType = (typeof GROUP_TYPES)[number];
 
-/** 每种类型使用的参数（mihomo v1.19.33 adapter/outboundgroup）。 */
+/** 每种类型使用的参数（mihomo v1.19.34 adapter/outboundgroup）。 */
 export const PARAM_KEYS: Record<GroupType, string[]> = {
   select: [],
   "url-test": ["url", "interval", "tolerance", "lazy"],

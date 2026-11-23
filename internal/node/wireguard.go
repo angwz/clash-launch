@@ -19,7 +19,7 @@ import (
 
 // WireGuard 配置文件（wg-quick 格式）到 mihomo wireguard 节点的映射（反馈 #40）。
 // 格式依据 wg(8) 与 wg-quick(8) 手册：INI 风格，[Interface] 一节加若干 [Peer]，键不区分大小写，
-// # 开始注释，多值用逗号分隔。mihomo 字段依据 adapter/outbound/wireguard.go（v1.19.33）：
+// # 开始注释，多值用逗号分隔。mihomo 字段依据 adapter/outbound/wireguard.go（v1.19.34）：
 //
 //	[Interface] PrivateKey → private-key；Address 中第一个 IPv4 / IPv6 → ip / ipv6（mihomo 接受带前缀的写法）；
 //	            MTU → mtu；AmneziaWG 的 Jc、Jmin、Jmax、S1–S4、H1–H4、I1–I5 → amnezia-wg-option

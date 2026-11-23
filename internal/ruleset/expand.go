@@ -274,7 +274,7 @@ func providerSelect(g Group, ps []ProviderSource, plan *providerPlan, out *diag.
 	}
 }
 
-// knownTypes 是 mihomo v1.19.33 adapter.ParseProxy 支持的协议（exclude-type 取补集时使用）。
+// knownTypes 是 mihomo v1.19.34 adapter.ParseProxy 支持的协议（exclude-type 取补集时使用）。
 var knownTypes = []string{"ss", "ssr", "socks5", "http", "vmess", "vless", "snell", "trojan", "hysteria", "hysteria2", "wireguard", "tuic", "shadowquic", "gost-relay", "direct", "dns", "reject", "rematch", "ssh", "mieru", "anytls", "sudoku", "masque", "trusttunnel", "openvpn", "tailscale", "zerotier", "easytier"}
 
 func sourceMatchProvider(want []string, p ProviderSource) bool {

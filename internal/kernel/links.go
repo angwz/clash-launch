@@ -14,7 +14,7 @@ func init() {
 	mlog.SetLevel(mlog.SILENT)
 }
 
-// Schemes 是 mihomo v1.19.33 common/convert.ConvertsV2Ray 处理的 scheme（2026-11-09 对照源码）。
+// Schemes 是 mihomo v1.19.34 common/convert.ConvertsV2Ray 处理的 scheme（2026-11-09 对照源码）。
 // wireguard 没有正式的分享链接规范，不在其中；WireGuard 节点通过 Clash YAML 输入。
 var Schemes = []string{
 	"hysteria", "hysteria2", "hy2", "hysteria2+realm", "hy2+realm", "tuic", "trojan", "vless", "vmess",

@@ -1,6 +1,6 @@
 // Package kernel 是 mihomo 的适配层：调用固定版本 mihomo 的分享链接解析与节点校验（Go 库），
 // 以及用 mihomo 可执行文件做配置检查（mihomo -t）。引擎与 mihomo 的全部接触都经过这里，
-// 版本固定为 tools.lock.json 与 go.mod 中的同一个 v1.19.33。
+// 版本固定为 tools.lock.json 与 go.mod 中的同一个 v1.19.34。
 package kernel
 
 import (
@@ -25,7 +25,7 @@ import (
 
 // Checker 用 mihomo -t 检查配置。零值不可用；用 NewChecker 构造。
 //
-// 不联网的保证（第 11.3 节，已对照 v1.19.33 源码核验）：
+// 不联网的保证（第 11.3 节，已对照 v1.19.34 源码核验）：
 //   - -t 只执行 config.Parse，不调用 provider 的 Initial()，因此 proxy-providers 与
 //     rule-providers 不会被下载；
 //   - GEOIP、GEOSITE、IP-ASN 规则在解析时会调用 geodata.Init*，文件缺失才下载——
@@ -152,7 +152,7 @@ func (c *Checker) run(ctx context.Context, config []byte) (Result, error) {
 // Version 返回内核版本（管理页的系统状态也使用）。
 func (c *Checker) Version() string {
 	// 版本取自工具锁：与 go.mod 中的依赖一致，避免每次检查多启动一次进程。
-	return "v1.19.33"
+	return "v1.19.34"
 }
 
 // isolate 返回用于检查的副本：geox-url 指向回环上的不可达地址，关闭 geo-auto-update。

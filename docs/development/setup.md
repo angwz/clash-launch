@@ -69,7 +69,7 @@ go run ./tools/toolsync          # 按 tools.lock.json 下载 mihomo 与地理�
 
 ```sh
 git clone https://github.com/angwz/domainrouter_v2 .cache/ref/domainrouter_v2 && git -C .cache/ref/domainrouter_v2 checkout 2c812f9da217a12d16507c9af8d0b89a5f413e4c
-git clone --depth 1 --branch v1.19.33 https://github.com/MetaCubeX/mihomo .cache/ref/mihomo
+git clone --depth 1 --branch v1.19.34 https://github.com/MetaCubeX/mihomo .cache/ref/mihomo
 git clone --depth 1 --branch v1.19.32 https://github.com/MetaCubeX/mihomo .cache/ref/mihomo-1.19.32
 git clone https://github.com/angwz/subconverter .cache/ref/subconverter && git -C .cache/ref/subconverter checkout a33d49e
 git clone --depth 1 https://github.com/ACL4SSR/ACL4SSR .cache/ref/acl4ssr

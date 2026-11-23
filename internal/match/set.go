@@ -183,7 +183,7 @@ type rulePayload struct {
 	Rules   []string `yaml:"rules"`
 }
 
-// parseLines 逐行移植 mihomo v1.19.33 rules/provider/provider.go 的 rulesParse（text、yaml 分支），
+// parseLines 逐行移植 mihomo v1.19.34 rules/provider/provider.go 的 rulesParse（text、yaml 分支），
 // 只把原本交给 strategy.Insert 的字符串收集起来。yaml 的逐行解析方式（先找 payload 头，再逐行拼上头部解析）
 // 与内核保持一致，因此对不规范文件的容错也相同。
 func parseLines(buf []byte, format P.RuleFormat) ([]string, error) {
@@ -255,7 +255,7 @@ func parseLines(buf []byte, format P.RuleFormat) ([]string, error) {
 	return out, nil
 }
 
-// readMrs 移植 mihomo v1.19.33 rules/provider/mrs_reader.go 的 rulesMrsParse：zstd 解压后依次是
+// readMrs 移植 mihomo v1.19.34 rules/provider/mrs_reader.go 的 rulesMrsParse：zstd 解压后依次是
 // 魔数 MRS\x01、行为字节、条数（int64 大端）、扩展长度与内容，之后交给策略对象的 FromMrs。
 func readMrs(buf []byte, s strategy, b P.RuleBehavior) error {
 	dec, err := zstd.NewReader(bytes.NewReader(buf))

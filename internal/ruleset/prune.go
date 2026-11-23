@@ -12,7 +12,7 @@ import (
 
 // 空策略组的处理（反馈 #45）。
 //
-// 背景（mihomo v1.19.33 adapter/outboundgroup/parser.go、groupbase.go）：组内没有任何节点时，mihomo 使用
+// 背景（mihomo v1.19.34 adapter/outboundgroup/parser.go、groupbase.go）：组内没有任何节点时，mihomo 使用
 // empty-fallback，默认是 COMPATIBLE——一个 Direct 类型的出站。也就是说，空组会让指向它的流量悄悄直连；
 // empty-fallback 也不允许填策略组。subconverter 的做法是写入 DIRECT，同样悄悄直连。
 //

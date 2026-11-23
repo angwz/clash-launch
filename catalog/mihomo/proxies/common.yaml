@@ -211,7 +211,7 @@ fragments:
         - {key: min-streams, type: int, importance: expert, doc: "proxies/transport#grpc-optsmin-streams", zh: [最少流, "开新连接前的最少流数。"], en: [Min streams, "Streams before opening a new connection."]}
         - {key: max-streams, type: int, importance: expert, doc: "proxies/transport#grpc-optsmax-streams", zh: [最多流, "单连接的最多流数。"], en: [Max streams, "Maximum streams per connection."]}
   # XHTTP 的请求参数与连接复用；download-settings 复用其中的 path、host、headers 与 reuse-settings。
-  # 取值与默认值依据 transport/xhttp/config.go（mihomo v1.19.33）。
+  # 取值与默认值依据 transport/xhttp/config.go（mihomo v1.19.34）。
   xhttp-core:
     - {key: path, type: string, default: /, importance: core, zh: [路径, "请求路径；不以 / 开头时自动补上。"], en: [Path, "Request path; a leading / is added when missing."]}
     - {key: host, type: string, importance: optional, zh: [主机, "Host请求头；留空使用服务器地址。"], en: [Host, "Host header; the server address when empty."]}

@@ -2,28 +2,28 @@
   "schema_version": 1,
   "tools": {
     "mihomo": {
-      "version": "v1.19.33",
+      "version": "v1.19.34",
       "purpose": "内核检查（mihomo -t）的可执行文件；与 go.mod 中的 github.com/metacubex/mihomo 版本一致",
-      "license": "GPL-3.0，https://github.com/MetaCubeX/mihomo/blob/v1.19.33/LICENSE",
+      "license": "GPL-3.0，https://github.com/MetaCubeX/mihomo/blob/v1.19.34/LICENSE",
       "platforms": {
         "windows-amd64": {
-          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-windows-amd64-v1.19.33.zip",
-          "sha256": "6ab2180875f9f6fff8b19386d760daec257f66b45f72b3afc650634272fa837a",
+          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-windows-amd64-v1.19.34.zip",
+          "sha256": "f6b855de8722781caea62686f0301f89625fc558d48c1103ffdd98dad7f7f488",
           "archive": "zip"
         },
         "linux-amd64": {
-          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-v1.19.33.gz",
-          "sha256": "132f6f3edf9a65e62f04853aed3358472e0b2b7666daa8419edfa2ddf5bb6323",
+          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-linux-amd64-v1.19.34.gz",
+          "sha256": "223fab877e5795ce780ba39902e5f0b1113c1256ae244a7160f1165e017e9ccc",
           "archive": "gz"
         },
         "linux-arm64": {
-          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-arm64-v1.19.33.gz",
-          "sha256": "ba408b317080ee265c46cb923a50018c1b82cbd708551cdd46a1e3e307396187",
+          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-linux-arm64-v1.19.34.gz",
+          "sha256": "daaf78a6240a282cdfd75bcbf98fe321f6bd52765cc29e79f344191198f0b50f",
           "archive": "gz"
         },
         "linux-arm-v7": {
-          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-armv7-v1.19.33.gz",
-          "sha256": "c8a8f9bcaab914269fbdca7569e4a9f024cc667ecf12eb43e8ccdc01b3731604",
+          "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-linux-armv7-v1.19.34.gz",
+          "sha256": "aa5e51572e29ce22ace7b6e28e611e1f1f635210d76420d161ce12a5431bf93e",
           "archive": "gz"
         }
       }

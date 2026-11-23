@@ -1,15 +1,15 @@
 # Mihomo 格式包 · 字段目录入口
 #
-# order 是顶层键的渲染顺序，取自 mihomo v1.19.33 官方示例 docs/config.yaml（含其中被注释掉的键）。
+# order 是顶层键的渲染顺序，取自 mihomo v1.19.34 官方示例 docs/config.yaml（含其中被注释掉的键）。
 # 示例中没有出现的键标注「示例未列出」，按 wiki 文档页的介绍顺序放在相关字段旁边。
 # 依据与取舍见 docs/design/catalog.md。
 id: mihomo
 label: Mihomo
 doc-root: https://wiki.metacubex.one/config/
 core-min: "1.18.0"
-core-max: "1.19.33"
-core-date: "2026-10-21"   # core-max 的官方发布日期，界面的兼容性提示使用
-reference: MetaCubeX/mihomo@v1.19.33 docs/config.yaml
+core-max: "1.19.34"
+core-date: "2026-11-11"   # core-max 的官方发布日期，界面的兼容性提示使用
+reference: MetaCubeX/mihomo@v1.19.34 docs/config.yaml
 files:
   - general.yaml
   - dns.yaml

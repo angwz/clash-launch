@@ -18,8 +18,8 @@ clash-launch render [选项] <方案文件>
 诊断写到标准错误，按严重程度排序，每行是「级别 代码 [路径]：消息」：
 
 ```text
-warning target.removed [global-client-fingerprint]：global-client-fingerprint 在内核 1.19.27 中已移除，所选内核为 1.19.33
-info    kernel.passed：已通过 mihomo v1.19.33 -t 检查
+warning target.removed [global-client-fingerprint]：global-client-fingerprint 在内核 1.19.27 中已移除，所选内核为 1.19.34
+info    kernel.passed：已通过 mihomo v1.19.34 -t 检查
 info    layer.off_catalog [experimental.some-new-field]：experimental.some-new-field 不在字段目录中，按原样输出
 ```
 
@@ -28,7 +28,7 @@ info    layer.off_catalog [experimental.some-new-field]：experimental.some-new-
 ```yaml
 clash-launch/profile: v1
 name: M1 · 两层编辑
-target: { pack: mihomo, preset: mihomo, core: "1.19.33" }
+target: { pack: mihomo, preset: mihomo, core: "1.19.34" }
 output: { timezone: Asia/Shanghai }
 form:                       # 表单层：只写目录中的字段
   mixed-port: 7890

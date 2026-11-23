@@ -21,7 +21,7 @@
 - 分享链接产出的字段按目录类型修正（端口等由字符串转为整数）；用户提供的 YAML 保持原样。
 - mihomo 转换器会为 ws 传输**随机**注入一个浏览器 User-Agent；本项目把它改为按链接内容（不含名称）哈希选取同一张表中的条目，保证渲染确定（[0001](../decisions/0001-deviations-from-spec-1.0.md) #12）。
 - mihomo 的日志级别被设为 `SILENT`：它的转换器会把解析失败的整行写进日志。
-- 支持的 scheme 以 v1.19.33 源码为准：`hysteria`、`hysteria2`/`hy2`/`hysteria2+realm`/`hy2+realm`、`tuic`、`trojan`、`vless`、`vmess`、`ss`、`ssr`、`socks`/`socks5`/`socks5h`/`http`/`https`、`anytls`、`mierus`。WireGuard 没有正式的分享链接规范，通过 Clash YAML 输入。
+- 支持的 scheme 以 v1.19.34 源码为准：`hysteria`、`hysteria2`/`hy2`/`hysteria2+realm`/`hy2+realm`、`tuic`、`trojan`、`vless`、`vmess`、`ss`、`ssr`、`socks`/`socks5`/`socks5h`/`http`/`https`、`anytls`、`mierus`。WireGuard 没有正式的分享链接规范，通过 Clash YAML 输入。
 
 ## 整理
 

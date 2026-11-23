@@ -1,4 +1,4 @@
-# 顶层通用字段。字段内顺序即渲染顺序；默认值取自 mihomo v1.19.33 config.DefaultRawConfig，
+# 顶层通用字段。字段内顺序即渲染顺序；默认值取自 mihomo v1.19.34 config.DefaultRawConfig，
 # 源码中没有显式默认值的字段不写 default（交给内核零值）。
 fields:
   # —— 入站端口 ——

@@ -6,7 +6,7 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 
 | 模块 | 版本 | 许可 | 用途 |
 | --- | --- | --- | --- |
-| `github.com/metacubex/mihomo` | v1.19.33 | GPL-3.0 | 分享链接解析（`common/convert`）与节点校验（`adapter.ParseProxy`） |
+| `github.com/metacubex/mihomo` | v1.19.34 | GPL-3.0 | 分享链接解析（`common/convert`）与节点校验（`adapter.ParseProxy`） |
 | `go.yaml.in/yaml/v3` | v3.0.5 | MIT 与 Apache-2.0 | YAML 解析与格式自检 |
 | `github.com/pelletier/go-toml/v2` | v2.4.3 | MIT | groups.toml、rulesets.toml 解析 |
 | `github.com/dlclark/regexp2` | v1.12.0 | MIT | 与 mihomo `filter` 一致的正则 |
@@ -23,7 +23,7 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 | 内容 | 来源 | 许可 | 位置 |
 | --- | --- | --- | --- |
 | 常见口令表（长度 ≥ 10 的条目） | danielmiessler/SecLists@a1a06ab `Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt` | MIT | `internal/auth/common_passwords.txt`（由 `tools/commonpw` 生成） |
-| 浏览器 User-Agent 表 | MetaCubeX/mihomo@v1.19.33 `common/convert/util.go` | GPL-3.0 | `internal/kernel/useragents.go`（生成） |
+| 浏览器 User-Agent 表 | MetaCubeX/mihomo@v1.19.34 `common/convert/util.go` | GPL-3.0 | `internal/kernel/useragents.go`（生成） |
 | 国旗字体 Twemoji Country Flags | talkjs/country-flag-emoji-polyfill 0.1.10 的 `dist/TwemojiCountryFlags.woff2`（SHA-256 `9f04f144…54e3b8`）；图形来自 Twitter Twemoji | 图形 CC-BY-4.0（© Twitter, Inc. 及其他贡献者，https://github.com/twitter/twemoji）；包代码 MIT | `web/public/fonts/twemoji-country-flags.woff2`，只用于显示国旗 |
 
 ## 前端（编译进 web/dist）
@@ -43,6 +43,6 @@ Clash, Launch! 以 GPL-3.0-or-later 发布。下表列出编译进程序、随�
 
 | 组件 | 版本 | 许可 | 用途 |
 | --- | --- | --- | --- |
-| mihomo 可执行文件 | v1.19.33 | GPL-3.0 | 内核检查（`mihomo -t`），SHA-256 见 `tools.lock.json` |
+| mihomo 可执行文件 | v1.19.34 | GPL-3.0 | 内核检查（`mihomo -t`），SHA-256 见 `tools.lock.json` |
 | 地理数据 | MetaCubeX/meta-rules-dat@d5574ea0ab33 | GPL-3.0；ASN 数据为 MaxMind GeoLite2，CC BY-SA 4.0 | 内核检查时预置，避免联网下载 |
 | IP 归属地库 `ip2region_v4.xdb` | lionsoul2014/ip2region@f8410adb | Apache-2.0 或 MIT | 登录设备显示省市与运营商（只用 IPv4 库） |

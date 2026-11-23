@@ -13,7 +13,7 @@ import (
 	"github.com/angwz/clash-launch/internal/yamlx"
 )
 
-// 链式代理（反馈 #24）。依据 mihomo v1.19.33 源码：
+// 链式代理（反馈 #24）。依据 mihomo v1.19.34 源码：
 //   - relay 组已移除（adapter/outboundgroup/parser.go），dialer-proxy 是唯一的链式写法；
 //   - dialer-proxy 写在节点上，值为节点名或策略组名；写在组上无效（parser.go 只记录错误）；
 //   - proxy-provider 的 dialer-proxy 套用到其中每个节点，override.dialer-proxy 在其后生效

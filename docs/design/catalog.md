@@ -68,7 +68,7 @@ go run ./tools/catalog-extract coverage -o cov.json vX.json                     
 
 ## 覆盖率
 
-以 `catalog-extract coverage` 对 mihomo v1.19.33 的 scan 结果（2075 条路径）为准。
+以 `catalog-extract coverage` 对 mihomo v1.19.34 的 scan 结果（2079 条路径）为准。
 
 | 时间 | covered | free | skipped | passthrough | missing | 本次补齐 |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |

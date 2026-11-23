@@ -1,4 +1,4 @@
-// Code generated from MetaCubeX/mihomo@v1.19.33 common/convert/util.go (userAgents). DO NOT EDIT.
+// Code generated from MetaCubeX/mihomo@v1.19.34 common/convert/util.go (userAgents). DO NOT EDIT.
 // 来源：mihomo（GPL-3.0），用于把转换器随机注入的 User-Agent 替换为确定性的选择，见 links.go。
 // 更新：随 mihomo 版本升级时从同一文件重新生成，并核对 RandUserAgent 的用法是否变化。
 

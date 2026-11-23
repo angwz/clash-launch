@@ -2,14 +2,14 @@
 
 方案的 `chains` 让选中的节点先经过一个前置再连出去：流量路径为 **本机 → 前置 → 节点 → 目标**。输出只用 mihomo 的 `dialer-proxy`，实现在 [`internal/engine/chain.go`](../../internal/engine/chain.go)。
 
-## 依据（mihomo v1.19.33 源码）
+## 依据（mihomo v1.19.34 源码）
 
 | 事实 | 位置 |
 | --- | --- |
 | `relay` 类型的策略组已移除，加载时报错并提示改用 `dialer-proxy` | `adapter/outboundgroup/parser.go` |
 | `dialer-proxy` 写在节点上，值为节点名或策略组名；写在策略组上无效，只记录错误日志 | `adapter/outbound/base.go`、`parser.go` |
 | proxy-provider 的 `dialer-proxy` 套用到其中每个节点；`override.dialer-proxy` 在其后生效 | `adapter/provider/provider.go`、官方示例 `provider2` |
-| 内核只检查前置是否存在，以及「节点 → 节点」的直接循环；经策略组绕回自身的循环能通过 `-t` | `config/utils.go` `validateDialerProxies`；已用 mihomo v1.19.33 实测 |
+| 内核只检查前置是否存在，以及「节点 → 节点」的直接循环；经策略组绕回自身的循环能通过 `-t` | `config/utils.go` `validateDialerProxies`；已用 mihomo v1.19.34 实测 |
 
 ## 写法
 
@@ -50,4 +50,4 @@ chains:
 ## 验证
 
 - `internal/engine/chain_test.go`：按来源套用、覆盖与跳过自身、直接循环、经组循环、provider 整体与部分条件、无效输入。
-- `testdata/workspace/chains.profile.yaml` → golden，`go test -tags kernel ./internal/kernel/` 通过 mihomo v1.19.33 检查。
+- `testdata/workspace/chains.profile.yaml` → golden，`go test -tags kernel ./internal/kernel/` 通过 mihomo v1.19.34 检查。

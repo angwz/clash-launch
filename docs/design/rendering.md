@@ -6,7 +6,7 @@
 
 ```yaml
 # NAME: 手机 · Stash
-# TARGET: stash · mihomo 1.19.33
+# TARGET: stash · mihomo 1.19.34
 # GENERATOR: Clash, Launch! 1.0.0 · https://github.com/angwz/clash-launch
 # UPDATED: 2026-11-09 06:08:31 (UTC+8)
 

@@ -1,5 +1,5 @@
 # 入站：listeners 与旧式的单项入站配置。
-# listeners 的字段依据 listener/inbound/*.go（mihomo v1.19.33）与官方示例 docs/config.yaml 的注释；
+# listeners 的字段依据 listener/inbound/*.go（mihomo v1.19.34）与官方示例 docs/config.yaml 的注释；
 # 各类型的键顺序与示例一致（catalog 测试锁定）。与节点同构的参数复用 proxies/common.yaml 中的片段。
 fragments:
   in-base:
@@ -372,8 +372,17 @@ fields:
           en: [Shadowsocks]
           fields:
             - {include: in-base}
-            - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Shadowsocks密码（2022系列为base64密钥）。"], en: [Password, "Shadowsocks password (a base64 key for the 2022 ciphers)."]}
+            - {key: password, type: string, importance: core, sensitive: true, zh: [密码, "Shadowsocks密码（2022系列为base64密钥）。设置users时：AEAD加密须留空，2022-blake3-aes-*为服务端PSK。"], en: [Password, "Shadowsocks password (a base64 key for the 2022 ciphers). With users: leave empty for AEAD ciphers; the server PSK for 2022-blake3-aes-*."]}
             - {key: cipher, type: string, importance: core, zh: [加密方式, "如2022-blake3-aes-256-gcm、aes-128-gcm。"], en: [Cipher, "For example 2022-blake3-aes-256-gcm or aes-128-gcm."]}
+            # v1.19.34：多用户（listener/sing_shadowsocks/server.go 的 newMultiService），匹配到的用户名可用于 IN-USER 规则
+            - key: users
+              type: map
+              values: {type: string}
+              importance: optional
+              sensitive: true
+              since: "1.19.34"
+              zh: [用户, "用户名到用户密码（或用户PSK）的映射；仅支持AEAD加密与2022-blake3-aes-*。2022系列客户端密码填「服务端PSK:用户PSK」。AEAD的每个包都要逐个尝试所有用户，用户较多时请用2022-blake3-aes-*。"]
+              en: [Users, "Map of username to user password (or user PSK); AEAD ciphers and 2022-blake3-aes-* only. For the 2022 ciphers the client password is \"serverPSK:userPSK\". AEAD tries every user on each packet, so prefer 2022-blake3-aes-* with many users."]
             - {include: in-udp}
             - key: simple-obfs
               type: object
@@ -399,8 +408,19 @@ fields:
           fields:
             - {include: in-base, keys: [name, type, port, listen, routing-mark]}
             - {key: psk, type: string, importance: core, sensitive: true, zh: [预共享密钥, "Snell预共享密钥。"], en: [PSK, "Snell pre-shared key."]}
-            - {key: version, type: int, importance: recommended, zh: [版本, "Snell协议版本1–5。"], en: [Version, "Snell protocol version 1–5."]}
+            - {key: version, type: int, importance: recommended, zh: [版本, "Snell协议版本1–6。"], en: [Version, "Snell protocol version 1–6."]}
             - {include: in-udp}
+            # v1.19.34：仅 v6（listener/snell/server.go）；v6 的 psk 须为 12–255 字节，且不支持 http、tls 混淆
+            - key: mode
+              type: enum
+              enum:
+                - {value: default, en: Default traffic shaping, zh: 默认流量整形}
+                - {value: unshaped, en: No traffic shaping, zh: 不整形}
+                - {value: unsafe-raw, en: Raw (insecure), zh: 原始（不安全）}
+              importance: optional
+              since: "1.19.34"
+              zh: [v6模式, "仅版本6：须与客户端一致。版本6的psk须为12到255字节，且不支持http、tls混淆。"]
+              en: [v6 mode, "Version 6 only; must match the client. Version 6 needs a 12–255 byte psk and does not support http or tls obfuscation."]
             - key: obfs-opts
               type: object
               importance: optional
@@ -627,6 +647,8 @@ fields:
             - {include: in-users-map}
             - {key: traffic-pattern, type: string, importance: expert, zh: [流量模式, "微调网络行为的base64字符串。"], en: [Traffic pattern, "Base64 string that fine-tunes network behaviour."]}
             - {key: user-hint-is-mandatory, type: bool, default: false, importance: expert, zh: [必须用户提示, "开启后拒绝不发送用户提示的客户端。"], en: [User hint mandatory, "Reject clients that do not send a user hint."]}
+            # v1.19.34：listener/inbound/mieru.go，非 0 时不得小于 60
+            - {key: tcp-idle-timeout, type: int, importance: expert, since: "1.19.34", zh: [TCP空闲超时, "上行与下行同时空闲这么多秒后关闭底层TCP连接；最小60。"], en: [TCP idle timeout, "Close the underlying TCP connection after this many seconds with no traffic either way; at least 60."]}
         - value: sudoku
           zh: [Sudoku]
           en: [Sudoku]

@@ -57,5 +57,5 @@
 | 差异 | `TestParityRules`、`TestParityGroups` | 按 fork 源码实现的参考模型与本项目逐条比较，见 [subconverter-parity](subconverter-parity.md) |
 | fuzz | `FuzzRender`、`FuzzMerge`、`FuzzParse`（node）、`FuzzMatchRange`（ruleset） | 任意输入不 panic；渲染输出必过格式自检；合并结果确定、不修改输入；凭据不进入错误信息 |
 | 格式自检 | 每次渲染 | 重新解析输出并与渲染前的树逐节点比较；检查 YAML 1.1 歧义值、重复键、制表符缩进、CR、结尾换行 |
-| 内核 | `go test -tags kernel ./internal/kernel/ ./internal/api/` | mihomo v1.19.33 `-t` 检查全部 golden 输出（离线，见 [0001](../decisions/0001-deviations-from-spec-1.0.md#核验结论待环境核验项)）；端到端：mihomo 实际加载订阅链接返回的配置并开始监听 |
+| 内核 | `go test -tags kernel ./internal/kernel/ ./internal/api/` | mihomo v1.19.34 `-t` 检查全部 golden 输出（离线，见 [0001](../decisions/0001-deviations-from-spec-1.0.md#核验结论待环境核验项)）；端到端：mihomo 实际加载订阅链接返回的配置并开始监听 |
 | 契约与 API | `TestContract`、`TestEndToEnd` 等 | 路由表与 OpenAPI 逐条一致；登录、CSRF、If-Match、订阅、304、重置、越权 404、限流、503、SSRF |

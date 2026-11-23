@@ -546,7 +546,7 @@ func ruleFlags(l match.Line) []string {
 	return flags
 }
 
-// groupLints 按 routing 第 11.3 节计算组的提醒。依据见决定 0007 #16（mihomo v1.19.33 adapter/outboundgroup）。
+// groupLints 按 routing 第 11.3 节计算组的提醒。依据见决定 0007 #16（mihomo v1.19.34 adapter/outboundgroup）。
 func groupLints(g finalGroup, referenced bool) []string {
 	lints := []string{}
 	if g.Type != "select" && len(g.Use) == 0 && len(g.Proxies) < 2 {

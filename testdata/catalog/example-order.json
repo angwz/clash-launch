@@ -231,7 +231,8 @@
     "transport",
     "users",
     "traffic-pattern",
-    "user-hint-is-mandatory"
+    "user-hint-is-mandatory",
+    "tcp-idle-timeout"
   ],
   "listeners.mieru.users": [
     "username1",
@@ -306,6 +307,7 @@
     "proxy",
     "password",
     "cipher",
+    "users",
     "simple-obfs",
     "shadow-tls",
     "res-tls",
@@ -367,6 +369,10 @@
     "enable",
     "mode"
   ],
+  "listeners.shadowsocks.users": [
+    "username1",
+    "username2"
+  ],
   "listeners.snell": [
     "name",
     "type",
@@ -376,6 +382,7 @@
     "psk",
     "version",
     "udp",
+    "mode",
     "obfs-opts",
     "shadow-tls",
     "res-tls",
@@ -1122,6 +1129,7 @@
     "version",
     "udp",
     "reuse",
+    "mode",
     "client-fingerprint",
     "obfs-opts"
   ],
