@@ -6,7 +6,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { HighlightStyle, StreamLanguage, syntaxHighlighting, type StreamParser } from "@codemirror/language";
 import { lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 
@@ -101,7 +101,7 @@ export interface RulesEditor {
   destroy(): void;
 }
 
-export function createRulesEditor(opts: { parent: HTMLElement; doc: string; lang: RulesLang; label: string; placeholder: string; onChange: (text: string) => void; fill?: boolean }): RulesEditor {
+export function createRulesEditor(opts: { parent: HTMLElement; doc: string; lang: RulesLang; label: string; placeholder: string; onChange: (text: string) => void; fill?: boolean; extensions?: Extension[] }): RulesEditor {
   // 与原始编辑器相同，挂在 Shadow DOM 中：style-mod 在 ShadowRoot 上使用可构造样式表，
   // 挂在 document 上会插入 <style> 元素，被 CSP 的 style-src 'self' 拦下（见 cm.ts）。
   const shadow = opts.parent.shadowRoot ?? opts.parent.attachShadow({ mode: "open" });
@@ -133,6 +133,7 @@ export function createRulesEditor(opts: { parent: HTMLElement; doc: string; lang
           if (u.docChanged) opts.onChange(u.state.doc.toString());
         }),
         theme,
+        ...(opts.extensions ?? []),
       ],
     }),
   });

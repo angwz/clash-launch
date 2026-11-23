@@ -193,6 +193,8 @@
 >
   <span class="light" aria-hidden="true">
     <span class="halo"></span>
+    <span class="ripple"></span>
+    <span class="orbit"></span>
     <span class="core"></span>
     {#if flash && mode !== "down"}
       {#key flash.seq}<span class="flash" data-kind={flash.kind}></span>{/key}
@@ -270,6 +272,37 @@
       --pulse-glow: 0.38;
     }
   }
+  /* 静止时也有生气（反馈 #114）：一圈每隔几秒向外扩散的涟漪，和一颗绕灯运行的小卫星 */
+  .ripple {
+    inline-size: 8px;
+    block-size: 8px;
+    box-shadow: 0 0 0 1px var(--c);
+    opacity: 0;
+  }
+  .orbit {
+    position: relative;
+    inline-size: 18px;
+    block-size: 18px;
+    opacity: 0;
+  }
+  .orbit::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    inline-size: 3px;
+    block-size: 3px;
+    margin-inline-start: -1.5px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  /* 悬停：柔光放大，给一个即时的回应 */
+  .pulse:hover .halo {
+    transform: scale(2.8);
+    transition:
+      opacity 0.6s ease,
+      transform 0.4s ease;
+  }
   .flash {
     inline-size: 8px;
     block-size: 8px;
@@ -313,6 +346,35 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* 静止与操作中：柔光缓慢呼吸，涟漪约 6 秒一次，小卫星 9 秒绕一圈；夜间都放慢。
+       断线、启动、降级不加这些，保持各自的样子便于分辨。 */
+    [data-state="idle"] .halo,
+    [data-state="active"] .halo {
+      animation: idle-glow 4.5s ease-in-out infinite;
+    }
+    [data-state="idle"] .ripple,
+    [data-state="active"] .ripple,
+    [data-state="unread"] .ripple {
+      animation: ripple 6s ease-out infinite;
+    }
+    [data-state="idle"] .orbit,
+    [data-state="active"] .orbit,
+    [data-state="unread"] .orbit,
+    [data-state="working"] .orbit {
+      opacity: 0.7;
+      animation: orbit 9s linear infinite;
+    }
+    [data-state="working"] .orbit {
+      animation-duration: 2.4s;
+    }
+    .night .halo,
+    .night .ripple,
+    .night .orbit {
+      animation-duration: 8s;
+    }
+    .night .orbit {
+      animation-duration: 16s;
+    }
     /* 未读：约 5 秒一个周期的呼吸；夜间放慢到 8 秒 */
     [data-state="unread"] .core {
       animation: breathe 5s ease-in-out infinite;
@@ -353,6 +415,33 @@
     }
     .paused .light > span {
       animation-play-state: paused;
+    }
+  }
+  @keyframes idle-glow {
+    0%,
+    100% {
+      opacity: calc(var(--pulse-glow, 0.22) * 0.5);
+      transform: scale(1.7);
+    }
+    50% {
+      opacity: calc(var(--pulse-glow, 0.22) * 1.6);
+      transform: scale(2.6);
+    }
+  }
+  @keyframes ripple {
+    0% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    45%,
+    100% {
+      opacity: 0;
+      transform: scale(3.4);
+    }
+  }
+  @keyframes orbit {
+    to {
+      transform: rotate(360deg);
     }
   }
   @keyframes breathe {

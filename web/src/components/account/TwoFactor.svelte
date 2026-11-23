@@ -1,5 +1,6 @@
 <script lang="ts">
   // 两步验证（TOTP）：扫码添加 → 输入一个验证码确认 → 显示恢复码（只此一次）。关闭与重新生成恢复码需要密码。
+  import { copyAndTell } from "../../lib/clipboard";
   import Icon from "../Icon.svelte";
   import QRCode from "../QRCode.svelte";
   import { api } from "../../lib/api/client";
@@ -64,12 +65,7 @@
   }
 
   async function copyCodes() {
-    try {
-      await navigator.clipboard.writeText((codes ?? []).join("\n"));
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell((codes ?? []).join("\n"));
   }
 
   function downloadCodes() {

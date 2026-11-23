@@ -1,5 +1,6 @@
 <script lang="ts">
   // 首次向导（第 16.1 节）：选择目标客户端 → 添加节点或订阅 → 选择规则源（预设按用户的规则顺序列出，默认第一个）→ 得到订阅链接与二维码。
+  import { copyAndTell } from "../lib/clipboard";
   import Icon from "../components/Icon.svelte";
   import QRCode from "../components/QRCode.svelte";
   import { api, type Link, type Profile, type RuleSource, type Source, type SourceInput } from "../lib/api/client";
@@ -58,12 +59,7 @@
 
   async function copy() {
     if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link.url);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(link.url);
   }
 </script>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   // 个人备份与还原（需求 R21）：下载加密的备份文件；从备份还原（先比较数量，确认后整体覆盖）；
   // 7 天内撤销最近一次还原。都需要当前密码。备份口令只用于加密文件，服务器不保存，忘记就无法还原。
+  import Icon from "../Icon.svelte";
   import { api } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
   import { i18n, t } from "../../lib/i18n/i18n.svelte";
@@ -63,8 +64,11 @@
   let report = $state<Report | null>(null);
   let rBusy = $state(false);
 
+  let dragOver = $state(false);
   async function pick(e: Event) {
-    const f = (e.currentTarget as HTMLInputElement).files?.[0];
+    await take((e.currentTarget as HTMLInputElement).files?.[0]);
+  }
+  async function take(f: File | undefined) {
     preview = null;
     report = null;
     if (!f) return;
@@ -158,8 +162,14 @@
     <p class="hint">{t("restore.desc")}</p>
     <div class="two">
       <div>
-        <label class="label" for="rs-file">{t("restore.file")}</label>
-        <input id="rs-file" class="input" type="file" accept=".backup,application/octet-stream,application/json" onchange={(e) => void pick(e)} />
+        <span class="label" id="rs-file-l">{t("restore.file")}</span>
+        <!-- 选择文件（反馈 #114：原生控件难看）：真正的文件输入框在标签里、视觉隐藏，键盘与读屏照常可用；也可以把文件拖进来 -->
+        <label class="file-pick" class:over={dragOver} class:chosen={!!fileName} ondragover={(e) => { e.preventDefault(); dragOver = true; }} ondragleave={() => (dragOver = false)} ondrop={(e) => { e.preventDefault(); dragOver = false; void take(e.dataTransfer?.files?.[0]); }}>
+          <input id="rs-file" class="visually-hidden" type="file" accept=".backup,application/octet-stream,application/json" aria-labelledby="rs-file-l" onchange={(e) => void pick(e)} />
+          <Icon name={fileName ? "check" : "upload"} size={16} />
+          <span class="fname">{fileName || t("restore.choose")}</span>
+          {#if fileName}<span class="muted change">{t("restore.change")}</span>{/if}
+        </label>
       </div>
       <div>
         <label class="label" for="rs-pass">{t("backup.passphrase")}</label>
@@ -221,6 +231,47 @@
 </section>
 
 <style>
+  .file-pick {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: 38px;
+    padding: var(--space-2) var(--space-3);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+  .file-pick:hover,
+  .file-pick.over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+  }
+  .file-pick:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .file-pick.chosen {
+    border-style: solid;
+    color: var(--fg);
+  }
+  .fname {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .change {
+    margin-inline-start: auto;
+    font-size: var(--text-xs);
+  }
   .box {
     display: grid;
     gap: var(--space-5);

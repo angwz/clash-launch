@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { copyAndTell } from "../lib/clipboard";
   import { untrack } from "svelte";
   import { uniqueName } from "../lib/names";
   // 订阅链接（第 13.2 节）：随时查看与复制、二维码；重置（旧链接立即失效）、备注、最近访问时间与客户端。
@@ -93,12 +94,7 @@
   }
 
   async function copy(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(url);
   }
 
   async function reset(l: Link) {

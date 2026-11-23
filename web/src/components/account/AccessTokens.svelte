@@ -1,6 +1,7 @@
 <script lang="ts">
   // 个人访问令牌（需求 R25）：供脚本调用 API。明文只在创建后显示一次；吊销立即生效。
   // 令牌能访问的范围由服务端限定（节点源、规则源、配置、链接、统计等），这里只负责生成与管理。
+  import { copyAndTell } from "../../lib/clipboard";
   import Icon from "../Icon.svelte";
   import { api, type Schemas } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
@@ -52,12 +53,7 @@
   }
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(created?.token ?? "");
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(created?.token ?? "");
   }
 
   const example = $derived(created ? "curl -H 'Authorization: Bearer " + created.token + "' " + location.origin + "/api/v1/profiles" : "");

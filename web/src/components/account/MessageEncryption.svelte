@@ -1,6 +1,7 @@
 <script lang="ts">
   // 站内消息加密（需求 R46，决定 0009）：状态、密钥指纹、恢复密钥与重新生成。
   // 指纹是公钥的 SHA-256 前 16 字节：双方可以当面或另找渠道核对，确认对方的公钥没有被调换。
+  import { copyAndTell } from "../../lib/clipboard";
   import { api, ApiError } from "../../lib/api/client";
   import { errorText } from "../../lib/errors";
   import { t } from "../../lib/i18n/i18n.svelte";
@@ -47,12 +48,7 @@
     }
   }
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      // 剪贴板不可用：用户可以手动选中复制
-    }
+    await copyAndTell(code);
   }
   const stateText = $derived(
     messageKeys.state === "ready" ? t("e2e.state_ready") : messageKeys.state === "locked" ? t("e2e.state_locked") : messageKeys.state === "none" ? t("e2e.state_none") : messageKeys.state === "unsupported" ? t("e2e.off_unsupported") : t("common.loading"),

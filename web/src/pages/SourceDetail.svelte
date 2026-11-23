@@ -2,10 +2,9 @@
   // 节点源详情：基本设置、整理规则（第 5.5 节）与实时的节点表格。
   // 节点表格：协议、地址（打码）、名称、地区与识别理由、倍率、标签；点击地区可手动指定（写入 overrides）。
   import { tick, untrack } from "svelte";
-  import Dialog from "../components/Dialog.svelte";
   import Icon from "../components/Icon.svelte";
   import Menu from "../components/Menu.svelte";
-  import RulesCode from "../components/rules/RulesCode.svelte";
+  import NodesEditorDialog from "../components/sources/NodesEditorDialog.svelte";
   import PageHeader from "../components/PageHeader.svelte";
   import StatusBadge from "../components/StatusBadge.svelte";
   import { api, type Diagnostic, type Node, type Source } from "../lib/api/client";
@@ -428,14 +427,7 @@
 </div>
 
 {#if src && src.kind !== "subscription"}
-  <Dialog bind:open={editing} title={t("source.content_editor", { name })} full>
-    <div class="big">
-      {#if editing}<RulesCode id="sd-content-big" lang="yaml" fill label={t("source.content")} placeholder="" bind:value={content} />{/if}
-    </div>
-    {#snippet footer()}
-      <button class="btn primary" type="button" onclick={() => (editing = false)}>{t("source.content_done")}</button>
-    {/snippet}
-  </Dialog>
+  <NodesEditorDialog bind:open={editing} bind:value={content} sourceId={src.id} sourceName={name} processing={() => clean(proc)} />
 {/if}
 
 <style>
@@ -496,12 +488,7 @@
   .content-box .more {
     font-size: var(--text-xs);
   }
-  .big {
-    block-size: 100%;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
+
   .box h2,
   .nodes h2 {
     font-size: var(--text-lg);

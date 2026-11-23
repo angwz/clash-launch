@@ -1,6 +1,7 @@
 <script lang="ts">
   // 邀请（需求 R12）：账户页显示「我的邀请」，管理页显示全站的邀请（多一列发出者，撤销即删除）。
   // 发出邀请总是走 /api/v1/invites：管理员不受名额限制，普通用户受名额、注册时长与邀请权约束。
+  import { copyAndTell } from "../lib/clipboard";
   import Avatar from "./Avatar.svelte";
   import Icon from "./Icon.svelte";
   import QRCode from "./QRCode.svelte";
@@ -87,12 +88,7 @@
   }
 
   async function copy(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(url);
   }
 
   const durLabel = (h: number) => (h === 0 ? t("admin.never") : h < 24 ? t("admin.hours", { n: h }) : t("admin.days", { n: h / 24 }));

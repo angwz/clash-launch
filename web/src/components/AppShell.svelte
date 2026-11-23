@@ -186,9 +186,16 @@
     <Menu label={session.user?.username ?? ""} icon="user" align="end">
       {#snippet trigger()}{#if session.user}<Avatar user={session.user} size={24} />{/if}{/snippet}
       {#snippet items(close)}
+        <!-- 头像菜单的抬头（反馈 #114）：强调色渐变的横幅上放大头像，名字、@用户名、角色与邀请人 -->
         <div class="menu-head">
-          <strong>{session.user?.nickname || session.user?.username}</strong>{#if session.user?.nickname}<span class="muted">@{session.user.username}</span>{/if}
-          <span class="muted">{t("role." + (session.user?.role ?? "user"))}</span>
+          <span class="banner" aria-hidden="true"></span>
+          {#if session.user}<span class="big"><Avatar user={session.user} size={52} /></span>{/if}
+          <strong class="who">{session.user?.nickname || session.user?.username}</strong>
+          <span class="handle muted ltr">@{session.user?.username}</span>
+          <span class="chips">
+            <span class="role-chip" data-role={session.user?.role ?? "user"}>{t("role." + (session.user?.role ?? "user"))}</span>
+            {#if session.user?.invitedBy}<span class="muted by">{t("invites.by_user", { name: session.user.invitedBy })}</span>{/if}
+          </span>
         </div>
         <a href="/account" role="menuitem" onclick={close}><Icon name="shield" size={15} />{t("nav.account")}</a>
         <a href="/settings" role="menuitem" onclick={close}><Icon name="settings" size={15} />{t("nav.settings")}</a>
@@ -563,12 +570,92 @@
     display: none;
   }
 
+  /* 顶栏头像：悬停与展开时加一圈强调色光环 */
+  .topbar :global(button[aria-haspopup="menu"] .avatar) {
+    transition:
+      box-shadow var(--dur-fast) var(--ease),
+      transform var(--dur-fast) var(--ease);
+  }
+  .topbar :global(button[aria-haspopup="menu"]:hover .avatar),
+  .topbar :global(button[aria-expanded="true"] .avatar) {
+    box-shadow:
+      0 0 0 2px var(--bg-raised),
+      0 0 0 4px var(--accent);
+    transform: scale(1.06);
+  }
   .menu-head {
+    position: relative;
     display: grid;
-    padding: var(--space-2) var(--space-3);
+    justify-items: center;
+    gap: 2px;
+    min-inline-size: 240px;
+    margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) var(--space-1);
+    padding: 34px var(--space-4) var(--space-3);
+    overflow: hidden;
     border-block-end: 1px solid var(--border);
-    margin-block-end: var(--space-1);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     font-size: var(--text-sm);
+    text-align: center;
+  }
+  /* 横幅：强调色斜向渐变，叠一层缓慢移动的光泽（减少动效时静止） */
+  .banner {
+    position: absolute;
+    inset: 0 0 auto;
+    block-size: 58px;
+    background:
+      radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--fg-on-accent) 35%, transparent), transparent 55%),
+      linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--info)));
+    background-size: 200% 100%, 100% 100%;
+    animation: sheen 8s ease-in-out infinite alternate;
+  }
+  .big {
+    position: relative;
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--bg-raised);
+    box-shadow: var(--shadow-md);
+    animation: pop-in var(--dur) var(--ease);
+  }
+  .who {
+    margin-block-start: var(--space-1);
+    font-size: var(--text-md);
+  }
+  .handle {
+    font-size: var(--text-xs);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-1);
+  }
+  .role-chip {
+    padding: 1px 8px;
+    border-radius: var(--radius-full);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+  }
+  .role-chip[data-role="admin"] {
+    background: var(--accent-soft);
+    color: var(--accent-fg);
+  }
+  .by {
+    font-size: var(--text-xs);
+  }
+  @keyframes sheen {
+    to {
+      background-position: 100% 0, 0 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.8) translateY(4px);
+    }
   }
   .check {
     display: inline-flex;

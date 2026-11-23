@@ -16,8 +16,24 @@ const keepDist: Plugin = {
   },
 };
 
+// @replit/codemirror-minimap@0.5.2 取样式时给临时元素写 style 属性（style: "display: none"），
+// 违反 CSP 的 style-src 'self'（反馈 #114 的缩略图）。该元素在同一个同步过程中插入、读取样式后立即移除，
+// 不会被绘制，去掉这个属性不影响结果。只改这一处；升级该包时确认此处仍然存在（找不到即构建失败，避免悄悄失效）。
+const minimapCsp: Plugin = {
+  name: "minimap-csp",
+  transform(code, id) {
+    if (!id.includes("@replit/codemirror-minimap")) return null;
+    const from = `crelt("div", { class: "cm-line", style: "display: none" }, mockToken)`;
+    if (!code.includes(from)) {
+      if (code.includes("cm-minimap")) throw new Error("minimap-csp：@replit/codemirror-minimap 的代码已变化，请检查 vite.config.ts 中的补丁");
+      return null;
+    }
+    return code.replace(from, `crelt("div", { class: "cm-line" }, mockToken)`);
+  },
+};
+
 export default defineConfig({
-  plugins: [svelte(), keepDist],
+  plugins: [svelte(), keepDist, minimapCsp],
   build: {
     outDir: "dist",
     emptyOutDir: true,

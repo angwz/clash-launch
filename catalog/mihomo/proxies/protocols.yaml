@@ -2,8 +2,50 @@
 # 顺序以官方示例中该协议的第一个样例为基准。
 fragments:
   p-ss:
+    # 取值：mihomo 经 sing-shadowsocks2 v0.2.8 注册的全部方法（shadowaead、shadowaead_2022、shadowstream 与 none 的 MethodList）；
+    # mihomo 不做别名转换（adapter/outbound/shadowsocks.go 直接 CreateMethod），名称不在此列时节点加载失败
     - key: cipher
-      type: string
+      type: enum
+      enum:
+        - {value: aes-128-gcm, en: "AEAD", zh: AEAD}
+        - {value: aes-192-gcm, en: "AEAD", zh: AEAD}
+        - {value: aes-256-gcm, en: "AEAD", zh: AEAD}
+        - {value: chacha20-ietf-poly1305, en: "AEAD", zh: AEAD}
+        - {value: xchacha20-ietf-poly1305, en: "AEAD", zh: AEAD}
+        - {value: 2022-blake3-aes-128-gcm, en: "Shadowsocks 2022", zh: Shadowsocks 2022}
+        - {value: 2022-blake3-aes-256-gcm, en: "Shadowsocks 2022", zh: Shadowsocks 2022}
+        - {value: 2022-blake3-chacha20-poly1305, en: "Shadowsocks 2022", zh: Shadowsocks 2022}
+        - {value: chacha8-ietf-poly1305, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: xchacha8-ietf-poly1305, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: rabbit128-poly1305, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aes-128-ccm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aes-192-ccm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aes-256-ccm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aes-128-gcm-siv, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aes-256-gcm-siv, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aegis-128l, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aegis-256, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: aez-384, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: deoxys-ii-256-128, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: lea-128-gcm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: lea-192-gcm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: lea-256-gcm, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: ascon128, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: ascon128a, en: "AEAD (non-standard; the server must support it)", zh: AEAD（非标准，需服务端支持）}
+        - {value: 2022-blake3-chacha8-poly1305, en: "Shadowsocks 2022 (non-standard)", zh: Shadowsocks 2022（非标准）}
+        - {value: 2022-blake3-aes-128-ccm, en: "Shadowsocks 2022 (non-standard)", zh: Shadowsocks 2022（非标准）}
+        - {value: 2022-blake3-aes-256-ccm, en: "Shadowsocks 2022 (non-standard)", zh: Shadowsocks 2022（非标准）}
+        - {value: aes-128-ctr, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: aes-192-ctr, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: aes-256-ctr, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: aes-128-cfb, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: aes-192-cfb, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: aes-256-cfb, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: rc4-md5, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: chacha20-ietf, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: xchacha20, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: chacha20, en: "Stream cipher (insecure, legacy)", zh: 流加密（不安全，旧式）}
+        - {value: none, en: "No encryption", zh: 不加密}
       importance: core
       doc: "proxies/ss#cipher"
       examples: [{value: 2022-blake3-aes-128-gcm, en: Shadowsocks 2022, zh: Shadowsocks 2022}, {value: aes-128-gcm, en: AEAD, zh: AEAD}]

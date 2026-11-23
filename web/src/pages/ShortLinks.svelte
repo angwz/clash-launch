@@ -3,6 +3,7 @@
   // 在消息里授权给好友时，会为对方单独生成一个新的短链接（这里标出「授权给谁」，可以收回）；
   // 别人授权给我的短链接列在页面下方，只能复制与导入。访问短链接时直接返回配置内容，
   // 请求同时计入原链接与短链接，在「订阅分析」中可以单独查看。可以停用、设置过期时间、一键导入到客户端。
+  import { copyAndTell } from "../lib/clipboard";
   import { tick } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PageHeader from "../components/PageHeader.svelte";
@@ -177,12 +178,7 @@
   }
 
   async function copy(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(url);
   }
 
   async function revokeGrant(id: string, name: string, mine: boolean) {

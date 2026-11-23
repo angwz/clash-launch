@@ -418,3 +418,78 @@ samp {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* —— 复选框与单选框（反馈 #114：浏览器默认样式在深色模式下是黑色方块）——
+   自绘：方框与圆点跟随主题与强调色，勾选时打勾带一点缩放动效；尺寸 16px，与正文行高对齐。
+   勾号用伪元素的两条边画出，不依赖图片（CSP 下 data: 图片虽允许，伪元素更易随主题变色）。 */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  vertical-align: -3px;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+input[type="radio"] {
+  border-radius: 50%;
+}
+input[type="checkbox"]::before {
+  content: "";
+  inline-size: 8px;
+  block-size: 4px;
+  border-inline-start: 2px solid var(--fg-on-accent);
+  border-block-end: 2px solid var(--fg-on-accent);
+  transform: translateY(-1px) rotate(-45deg) scale(0);
+  transition: transform var(--dur-fast) var(--ease);
+}
+input[type="radio"]::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--fg-on-accent);
+  transform: scale(0);
+  transition: transform var(--dur-fast) var(--ease);
+}
+input[type="checkbox"]:checked,
+input[type="checkbox"]:indeterminate,
+input[type="radio"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+input[type="checkbox"]:checked::before {
+  transform: translateY(-1px) rotate(-45deg) scale(1);
+}
+input[type="checkbox"]:indeterminate::before {
+  block-size: 0;
+  border-inline-start: 0;
+  transform: none;
+}
+input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+input[type="checkbox"]:hover:not(:disabled),
+input[type="radio"]:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

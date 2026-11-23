@@ -41,7 +41,10 @@
   function calibrate() {
     flushSync(); // 位置的修改先写进 DOM，再量
     if (!panel) return;
+    // 量的时候暂停展开动画：动画的位移与缩放会被算进位置
+    panel.style.animationName = "none";
     const a = panel.getBoundingClientRect();
+    panel.style.animationName = "";
     shift = { x: shift.x + (align === "start" ? a.left : a.right) - want.x, y: shift.y + a.top - want.top };
     place();
     flushSync();
@@ -142,6 +145,8 @@
   .panel-menu {
     position: fixed;
     z-index: 50;
+    /* 展开时淡入并轻微下移（反馈 #114：原来没有任何效果） */
+    animation: menu-in var(--dur-fast) var(--ease);
     min-inline-size: 200px;
     padding: var(--space-1);
     border: 1px solid var(--border);
@@ -182,5 +187,11 @@
     border: 0;
     border-block-start: 1px solid var(--border);
     margin-block: var(--space-1);
+  }
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
   }
 </style>

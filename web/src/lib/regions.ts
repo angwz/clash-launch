@@ -1,4 +1,5 @@
 // 国家与地区的显示（反馈 #74）：名称用浏览器的 Intl.DisplayNames 按当前语言给出，旗帜用区域指示符 emoji。
+import { placeName } from "./place-names";
 
 /** ISO 两位代码 → 旗帜 emoji（无效代码返回空字符串） */
 export function flagOf(code: string): string {
@@ -51,8 +52,10 @@ export interface Place {
   isp?: string;
 }
 
-/** 地点的显示文字：国家名按界面语言生成，省、市与运营商按数据库原文；重复的部分只显示一次（例如直辖市的省与市）。 */
+/** 地点的显示文字：国家名按界面语言生成；省、市收录在 place-names 中的按界面语言显示，其余按数据库原文；
+ * 运营商按原文。重复的部分只显示一次（例如直辖市的省与市）。 */
 export function placeText(p: Place, locale: string, withISP = true): string {
-  const parts = [p.cc ? regionName(p.cc, locale) : "", p.region, p.city, withISP ? p.isp : ""].filter((x): x is string => !!x);
+  const loc = (s: string | undefined) => (s ? placeName(s, p.cc, locale) : "");
+  const parts = [p.cc ? regionName(p.cc, locale) : "", loc(p.region), loc(p.city), withISP ? p.isp : ""].filter((x): x is string => !!x);
   return parts.filter((x, i) => parts.indexOf(x) === i).join(" · ");
 }

@@ -1,12 +1,12 @@
 <script lang="ts">
   // 预览栏（第 16.1 节）：最终 YAML（只读）、与当前版本的差异、诊断列表（点击定位字段）。
+  import { copyAndTell } from "../../lib/clipboard";
   import Icon from "../Icon.svelte";
   import YamlView from "./YamlView.svelte";
   import { yamlRange } from "../../lib/yaml-range";
   import { catalog } from "../../lib/catalog.svelte";
   import type { EditorState } from "../../lib/editor.svelte";
   import { t } from "../../lib/i18n/i18n.svelte";
-  import { toasts } from "../../lib/toast.svelte";
 
   // onHide：停靠时「收起」，浮层时「关闭」；手机视图由底部切换控制，不传
   let { editor, onLocate, onHide, floating = false }: { editor: EditorState; onLocate: (path: string) => void; onHide?: () => void; floating?: boolean } = $props();
@@ -29,12 +29,7 @@
 
   async function copy() {
     if (!p) return;
-    try {
-      await navigator.clipboard.writeText(p.yaml);
-      toasts.push("ok", t("common.copied"));
-    } catch {
-      toasts.push("err", t("common.copy_failed"));
-    }
+    await copyAndTell(p.yaml);
   }
 
   const sevIcon = (s: string) => (s === "error" ? "error" : s === "warning" ? "warning" : "info") as "error" | "warning" | "info";

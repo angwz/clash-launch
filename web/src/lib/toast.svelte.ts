@@ -28,7 +28,8 @@ class Toasts {
     const id = ++this.#n;
     const { duration, ...rest } = opts;
     this.items = [...this.items, { id, kind, text, ...rest }];
-    if (kind !== "err") this.#timers.set(id, setTimeout(() => this.dismiss(id), duration ?? (opts.action ? 8000 : 4000)));
+    // 错误默认停留到手动关闭；调用方给了 duration 时（如复制失败这类无需处理的提示）照样自动消失
+    if (kind !== "err" || duration) this.#timers.set(id, setTimeout(() => this.dismiss(id), duration ?? (opts.action ? 8000 : 4000)));
     return id;
   }
 
