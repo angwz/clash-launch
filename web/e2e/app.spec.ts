@@ -1941,3 +1941,20 @@ test("日语界面：登录页、导航、帮助、字段说明与更新日志�
   expect(problems).toEqual([]);
   await ctx.close();
 });
+
+test("规则源详情：只有地址、没有粘贴文本的规则源（预设添加）能正常打开（反馈 #117）", async ({ page, request, baseURL }) => {
+  test.skip(test.info().project.name === "mobile", "与桌面相同");
+  const problems = watch(page);
+  const call = await apiAs(request, baseURL!);
+  const rs = await call<{ id: string }>("POST", "/api/v1/rule-sources", {
+    name: "只有地址 " + Date.now(),
+    kind: "toml",
+    groupsUrl: "https://rules.example.com/groups.toml",
+    rulesetsUrl: "https://rules.example.com/rulesets.toml",
+  });
+  await login(page);
+  await page.goto("/rules/" + rs.id);
+  await expect(page.getByLabel("groups.toml URL")).toHaveValue("https://rules.example.com/groups.toml");
+  await expect(page.getByRole("heading", { name: "选择条件" })).toBeVisible();
+  expect(problems.filter((p) => !p.includes("422") && !p.includes("502"))).toEqual([]);
+});

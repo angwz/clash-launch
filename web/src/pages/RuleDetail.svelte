@@ -78,12 +78,16 @@
     diags.filter((d) => d.file === file && d.line).map((d) => ({ line: d.line!, severity: d.severity, message: catalog.diagMessage(d.code, d.args) }));
   const fileLabel = (f?: string) => (f === "groups" ? "groups.toml" : f === "rulesets" ? "rulesets.toml" : f === "ini" ? "ini" : "");
 
+  // 从预设添加、只填了地址的规则源没有文本字段（接口省略空值）。代码编辑器的 bind:value 带默认值，
+  // 传入 undefined 时 Svelte 抛出 props_invalid_value，页面停在「加载中」（反馈 #117）：读入后补成空串
+  const normalize = (r: RuleSource): RuleSource => ({ ...r, groupsText: r.groupsText ?? "", rulesetsText: r.rulesetsText ?? "", iniText: r.iniText ?? "" });
+
   $effect(() => {
     api
       .get<RuleSource>("/api/v1/rule-sources/" + id)
       .then((r) => {
-        rs = r;
-        saved = snapshot(r);
+        rs = normalize(r);
+        saved = snapshot(rs);
       })
       .catch((e) => (error = errorText(e)));
   });
@@ -111,7 +115,7 @@
     saving = true;
     try {
       const { id: _id, version, createdAt: _c, updatedAt: _u, ...body } = rs;
-      rs = await api.put<RuleSource>("/api/v1/rule-sources/" + rs.id, body, { ifMatch: version });
+      rs = normalize(await api.put<RuleSource>("/api/v1/rule-sources/" + rs.id, body, { ifMatch: version }));
       saved = snapshot(rs);
       toasts.push("ok", t("common.saved"));
       // 保存成功后返回列表（R48）；失败时留在原页，便于修改后重试。上一页就是列表时后退，返回不会再回到这里
