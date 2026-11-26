@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 · 2026-11-26
+
+- Fixed: the detail page of a routing rule added from a preset (URLs only) stayed on “Loading”.
+
 ## 1.1.0 · 2026-11-23
 
 ### Account and security
