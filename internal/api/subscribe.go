@@ -165,6 +165,9 @@ func kindOf(r *http.Request, def string) string {
 // serveConfig 写出一条配置链接的最近一次成功渲染结果。tok 是该链接的令牌，用于替换托管节点文件地址中的占位符。
 func (s *Server) serveConfig(w http.ResponseWriter, r *http.Request, l *store.Link, tok string, download bool) {
 	_ = s.Svc.Store.Links().Accessed(r.Context(), l.ID, time.Now(), r.UserAgent())
+	// 用到的节点订阅与规则源过期时先拉取、重新生成，最多等几秒（反馈 #119，见 service/fresh.go）；
+	// 来不及时照常返回最近一次成功的结果
+	s.Svc.EnsureFresh(r.Context(), l.OwnerID, l.ProfileID)
 	rd, err := s.Svc.Store.Renders().Get(r.Context(), l.OwnerID, l.ProfileID)
 	if err != nil || len(rd.GoodYAML) == 0 {
 		// 尚无成功结果：返回 503 与 YAML 注释，而不是空配置，以免客户端用空配置覆盖旧配置。

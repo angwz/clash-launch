@@ -64,10 +64,11 @@ type config struct {
 	RequestDays    int                   // 订阅请求明细保留天数，默认 400；0 表示不清理（R14c）
 	TraceOff       bool                  // CLASH_LAUNCH_TRACE=off：关闭分流追踪与体检（routing 第 6 节）
 	TraceCacheMB   int                   // 规则内容缓存上限，默认 256
+	RefreshSeconds int                   // 请求订阅时按需拉取的间隔（秒），默认 60，0 关闭（反馈 #119）
 	DBPool         store.Pool            // PostgreSQL 连接池与语句超时（R14a）；0 表示默认
 }
 
-var configKeys = []string{"LOG_FORMAT", "METRICS_TOKEN", "LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DEMO", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT"}
+var configKeys = []string{"LOG_FORMAT", "METRICS_TOKEN", "LISTEN", "DATA_DIR", "DATABASE_URL", "PUBLIC_URL", "TRUSTED_PROXIES", "FETCH_ALLOWLIST", "RULE_HOSTS", "LOG_LEVEL", "MIHOMO", "GEODATA", "POW_BITS", "QUOTA_SOURCES", "QUOTA_PROFILES", "QUOTA_LINKS", "QUOTA_MIN_INTERVAL", "QUOTA_STORAGE_MB", "OPEN_QUOTA_SOURCES", "OPEN_QUOTA_PROFILES", "OPEN_QUOTA_LINKS", "OPEN_QUOTA_MIN_INTERVAL", "OPEN_QUOTA_STORAGE_MB", "AUDIT_DAYS", "SUB_REQUEST_DAYS", "TRACE", "TRACE_CACHE_MB", "DEMO", "DB_MAX_CONNS", "DB_MAX_IDLE", "DB_IDLE_MINUTES", "DB_STATEMENT_TIMEOUT", "REFRESH_ON_REQUEST"}
 
 func loadConfig() (config, error) {
 	vals := map[string]string{}
@@ -118,7 +119,7 @@ func loadConfig() (config, error) {
 	c.RuleHosts = hosts
 	// 配额默认值与审计保留期：非负整数；配额为 0 时使用内置默认（见 internal/service/quota.go）
 	nums := map[string]int{}
-	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180", "SUB_REQUEST_DAYS": "400", "TRACE_CACHE_MB": "256", "DB_MAX_CONNS": "0", "DB_MAX_IDLE": "0", "DB_IDLE_MINUTES": "0", "DB_STATEMENT_TIMEOUT": "0"} {
+	for k, def := range map[string]string{"QUOTA_SOURCES": "0", "QUOTA_PROFILES": "0", "QUOTA_LINKS": "0", "QUOTA_MIN_INTERVAL": "0", "QUOTA_STORAGE_MB": "0", "OPEN_QUOTA_SOURCES": "0", "OPEN_QUOTA_PROFILES": "0", "OPEN_QUOTA_LINKS": "0", "OPEN_QUOTA_MIN_INTERVAL": "0", "OPEN_QUOTA_STORAGE_MB": "0", "AUDIT_DAYS": "180", "SUB_REQUEST_DAYS": "400", "TRACE_CACHE_MB": "256", "DB_MAX_CONNS": "0", "DB_MAX_IDLE": "0", "DB_IDLE_MINUTES": "0", "DB_STATEMENT_TIMEOUT": "0", "REFRESH_ON_REQUEST": "60"} {
 		n, err := strconv.Atoi(get(k, def))
 		if err != nil || n < 0 {
 			return config{}, fmt.Errorf("CLASH_LAUNCH_%s 需要非负整数", k)
@@ -130,6 +131,7 @@ func loadConfig() (config, error) {
 	c.AuditDays = nums["AUDIT_DAYS"]
 	c.RequestDays = nums["SUB_REQUEST_DAYS"]
 	c.TraceCacheMB = nums["TRACE_CACHE_MB"]
+	c.RefreshSeconds = nums["REFRESH_ON_REQUEST"]
 	c.DBPool = store.Pool{MaxConns: nums["DB_MAX_CONNS"], MaxIdle: nums["DB_MAX_IDLE"], IdleTime: time.Duration(nums["DB_IDLE_MINUTES"]) * time.Minute, StatementTimeout: time.Duration(nums["DB_STATEMENT_TIMEOUT"]) * time.Second}
 	switch t := strings.ToLower(get("TRACE", "on")); t {
 	case "on":
@@ -276,7 +278,7 @@ func buildService(ctx context.Context, c config, db store.Store, log *slog.Logge
 		}
 		trusted = append(trusted, pr.Masked())
 	}
-	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.primaryURL(), PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, Pusher: &source.Pusher{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, RequestRetention: time.Duration(c.RequestDays) * 24 * time.Hour, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo},
+	svc := &service.Service{Store: db, Catalog: cat, CatalogDigest: digest, Presets: presets, Tools: tools, Kernel: checker, Fetcher: fetcher, Log: log, PublicURL: c.primaryURL(), PoWBits: c.PoWBits, Mailer: &source.Mailer{Guard: guard}, Pusher: &source.Pusher{Guard: guard}, QuotaDefaults: c.Quota, OpenQuotaDefaults: c.OpenQuota, RuleHosts: c.RuleHosts, Geo: geodb, AuditRetention: time.Duration(c.AuditDays) * 24 * time.Hour, RequestRetention: time.Duration(c.RequestDays) * 24 * time.Hour, Fresh: service.FreshConfig{After: time.Duration(c.RefreshSeconds) * time.Second, Wait: 3 * time.Second}, Trace: service.TraceConfig{Disabled: c.TraceOff, CacheBytes: int64(c.TraceCacheMB) << 20, Geo: matchGeo},
 		Events: events.New(eventsPerUser)}
 	return svc, &api.Config{PublicURLs: c.PublicURLs, TrustedProxies: trusted, Static: web.Dist(), Guard: guard}, nil
 }

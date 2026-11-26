@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 · 2026-11-26
+
+- When a client updates its subscription, node subscriptions and rule sources older than 60 seconds are fetched from upstream first, so the subscription is always current; if upstream is slow or failing, the previous config is served as usual. Adjust or disable with `CLASH_LAUNCH_REFRESH_ON_REQUEST`.
+
 ## 1.1.1 · 2026-11-26
 
 - Fixed: the detail page of a routing rule added from a preset (URLs only) stayed on “Loading”.
