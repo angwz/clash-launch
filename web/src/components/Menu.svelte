@@ -28,9 +28,11 @@
   // 滚动后位置失准、点到的是别的元素（e2e 在长列表中复现）。移出后位置只取决于按钮的坐标。
   // 下方空间不够时向上展开；页面滚动或窗口变化时关闭。
   let pos = $state<{ top: number; left?: number; right?: number } | null>(null);
+  let anchor: { top: number; left: number } | null = null;
   function place() {
     if (!button) return;
     const r = button.getBoundingClientRect();
+    anchor = { top: r.top, left: r.left };
     const h = panel?.offsetHeight ?? 0;
     const below = r.bottom + 4;
     const top = h && below + h > window.innerHeight - 8 && r.top - 4 - h > 8 ? r.top - 4 - h : below;
@@ -91,18 +93,26 @@
       const t = e.target as Node;
       if (!root?.contains(t) && !panel?.contains(t)) open = false;
     };
-    // 页面滚动或窗口变化时关闭（浮层是固定定位的，不跟随内容移动）；浮层内部的滚动不算
-    const onMove = (e: Event) => {
+    // 按钮所在容器滚动导致按钮移位时关闭（浮层是固定定位的，不跟随内容移动）；
+    // 浮层内部滚动、无关容器滚动，以及点击按钮前滚动定位的滞后 scroll 事件不会改变按钮坐标，不应误关。
+    const onScroll = (e: Event) => {
       if (e.target instanceof Node && panel?.contains(e.target)) return;
+      if (button && anchor) {
+        const r = button.getBoundingClientRect();
+        if (Math.abs(r.top - anchor.top) < 2 && Math.abs(r.left - anchor.left) < 2) return;
+      }
+      open = false;
+    };
+    const onResize = () => {
       open = false;
     };
     document.addEventListener("pointerdown", onDown);
-    window.addEventListener("scroll", onMove, true);
-    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("scroll", onMove, true);
-      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     };
   });
 </script>
